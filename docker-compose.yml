@@ -1,0 +1,6 @@
+# Local development environment
+# TODO: add services (catalog, ordering, notification, admin), a datastore,
+# an event backbone (e.g., Redis Streams/Kafka), and a cache (Redis),
+# plus seed/fixture data for a realistic local dataset.
+version: "3.9"
+services: {}
