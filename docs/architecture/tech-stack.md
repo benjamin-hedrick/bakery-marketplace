@@ -19,7 +19,7 @@ This is a reference document, not an ADR — individual decisions below are eith
 | Primary data store | Azure Cosmos DB (SQL API), container-per-bounded-context | Permanent free tier: 1000 RU/s + 25GB (single shared account) | Confirmed — see ADR-0004 |
 | Cache | Azure Cache for Redis, environment-conditional | Basic tier (no permanent free tier) | Confirmed — see ADR-0002 |
 | Observability | Application Insights + Azure Monitor | Free 5GB/month ingestion | Confirmed |
-| Auth | Azure AD B2C | Free up to 50,000 MAU | **Pending ADR** (auth model) |
+| Auth | Azure AD B2C | Free up to 50,000 MAU | Confirmed — see ADR-0006 |
 | Payments | Third-party processor — Stripe Connect (Express accounts) | N/A (external) | Confirmed — see ADR-0005 |
 | IaC | Terraform, `azurerm` provider | — | Confirmed |
 | CI/CD | GitHub Actions, OIDC federated login to Azure (no stored secrets) | — | Confirmed |
@@ -43,7 +43,7 @@ Local dev runs entirely via `docker-compose`. Not everything is optional the way
 | Event backbone | Redis Streams container | **Yes** — default service, not profile-gated (ADR-0003) | Contract-test suite runs against both Redis Streams and Event Grid to catch behavioral drift; `ChaosEventTransport` injects duplicate/out-of-order/delayed/dropped delivery (ADR-0003) |
 | Data store | Cosmos DB Linux emulator container | **Yes** — default service (ADR-0004); known to be resource-heavier than the other local services | `FakeRepository` (fast unit tests, bypasses the emulator entirely); contract tests run against the emulator for integration-level parity checks (ADR-0004) |
 | Payments | Stripe test mode + Stripe CLI (`stripe listen --forward-to`) forwarding real webhook events to a local endpoint | External SaaS — not a Compose service; no emulator needed (ADR-0005) | Stripe's own test-mode fixtures/test cards; webhook idempotency exercised by replaying Stripe's test events |
-| Auth | Local stub/mock auth provider, no real Azure AD B2C dependency | Yes | Model TBD — pending auth/authz ADR |
+| Auth | Local stub/mock OIDC issuer (config-driven issuer/JWKS URL swap, not a runtime fallback), no real Azure AD B2C dependency | Yes | Deterministic tests only (expired/tampered/malformed tokens) — no live chaos decorator, since auth has no fallback behavior to prove (ADR-0006) |
 | Seed data | Fixture/seed script run on `docker-compose up` | Yes | — |
 
 Default command: `docker-compose up` — brings up the event backbone (Redis Streams) and data store (Cosmos emulator) automatically, since both are non-optional local dependencies per ADR-0003/ADR-0004. Still zero cost and fully offline-capable; only the managed-Redis cache path requires an extra flag.
@@ -57,8 +57,9 @@ Extended command: `docker-compose --profile with-redis up` — additionally exer
 - Fault-injection harness planned as a small shared `/tools` package so caching and eventing don't duplicate the pattern.
 - Payments (ADR-0005) deliberately sits outside this pattern — Stripe isn't a swappable backend with a local/cloud adapter pair, so its local-dev story relies on Stripe's own test mode instead.
 
-## Open decisions (pending ADRs)
+## Open decisions
 
-1. Auth/authz model (Azure AD B2C configuration, role model)
+All originally planned ADRs are now accepted: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), and ADR-0006 (auth/authz model).
 
-ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), and ADR-0005 (payments buy-vs-build) are already accepted.
+One new item surfaced during ADR-0006 and not yet resolved:
+1. **Secrets management** (e.g., Azure Key Vault) — relevant to Stripe API keys, DB connection strings, and future service secrets. Worth its own short ADR before the build phase.
