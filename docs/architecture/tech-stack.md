@@ -4,9 +4,9 @@ This is a reference document, not an ADR — individual decisions below are eith
 
 ## Guiding principles
 
-1. **Free-tier-first for dev/demo**, environment-conditional for anything with real cost — mirrors the cache design (ADR-0002, pending) and should be the default pattern for any component with a paid tier.
+1. **Free-tier-first for dev/demo**, environment-conditional for anything with real cost — established for caching (ADR-0002) and should be the default pattern for any component with a paid tier.
 2. **Same toggle, same name, everywhere** — a config value like `CACHE_BACKEND` means the same thing in Terraform, Compose, and app config. Reduces cognitive load and documentation drift.
-3. **Adapter + fallback over hard dependency** — anything with an external/paid backend gets an interface, a local/no-cost implementation, and (where it matters for resilience) a circuit-breaker fallback. Not just caching — this is the default posture for the event backbone and data store too, evaluated case by case.
+3. **Adapter + fallback over hard dependency** — anything with an external/paid backend gets an interface, a local/no-cost implementation, and (where it matters for resilience) a circuit-breaker fallback. Applied to caching (ADR-0002), the event backbone (ADR-0003), and data access (ADR-0004).
 4. **OIDC over long-lived secrets** for CI/CD → cloud auth.
 
 ## Cloud stack (Azure)
@@ -15,17 +15,17 @@ This is a reference document, not an ADR — individual decisions below are eith
 |---|---|---|---|
 | Compute (services) | Azure Container Apps | Consumption plan, permanent free grant | Confirmed |
 | Frontend hosting | Azure Static Web Apps | Free tier, permanent | Confirmed |
-| Event backbone | Azure Event Grid (leading candidate) vs. Service Bus | Permanent free grant (Event Grid: 100k ops/mo) | **Pending ADR-0003** |
+| Event backbone | Azure Event Grid | Permanent free grant (100k ops/mo) | Confirmed — see ADR-0003 |
 | Primary data store | Azure Cosmos DB (SQL API), container-per-bounded-context | Permanent free tier: 1000 RU/s + 25GB (single shared account) | Confirmed — see ADR-0004 |
-| Cache | Azure Cache for Redis, environment-conditional | Basic tier (no permanent free tier) | **Pending ADR-0002** — see Caching section below |
+| Cache | Azure Cache for Redis, environment-conditional | Basic tier (no permanent free tier) | Confirmed — see ADR-0002 |
 | Observability | Application Insights + Azure Monitor | Free 5GB/month ingestion | Confirmed |
 | Auth | Azure AD B2C | Free up to 50,000 MAU | **Pending ADR** (auth model) |
-| Payments | Third-party processor (e.g., Stripe Connect) — not self-built | N/A (external) | **Pending ADR** (payments buy-vs-build) |
+| Payments | Third-party processor — Stripe Connect (Express accounts) | N/A (external) | Confirmed — see ADR-0005 |
 | IaC | Terraform, `azurerm` provider | — | Confirmed |
 | CI/CD | GitHub Actions, OIDC federated login to Azure (no stored secrets) | — | Confirmed |
 | IaC environment structure | Per-environment `.tfvars` in `/infra/environments` (`dev`, `staging`, `prod`) | — | Confirmed |
 
-## Caching — environment-conditional design (detail pending ADR-0002)
+## Caching — environment-conditional design (see ADR-0002)
 
 Two independent switches:
 - **Deploy-time (Terraform):** `enable_managed_redis` var, gates whether `azurerm_redis_cache` is provisioned at all (`false` in `dev.tfvars`, `true` in `staging`/`prod`)
@@ -35,29 +35,30 @@ Full rationale, Terraform snippets, and testing/chaos design land in ADR-0002.
 
 ## Local development stack
 
-Local dev runs entirely via `docker-compose`, using **Compose profiles** to mirror the cloud's environment-conditional design rather than introducing a separate mental model:
+Local dev runs entirely via `docker-compose`. Not everything is optional the way caching is — the event backbone and data store are core function, so they're part of the **default service set**; only the cache is genuinely opt-in via a Compose profile.
 
-| Concern | Local default | Optional profile |
-|---|---|---|
-| Cache | `CACHE_BACKEND=local` (in-process), no container | `--profile with-redis` → real Redis container, `CACHE_BACKEND=redis` |
-| Event backbone | Lightweight in-process/local bus or Redis Streams container (final choice with ADR-0003) | — |
-| Data store | Local container of whatever ADR chooses (e.g., Cosmos DB emulator or Postgres) | — |
-| Auth | Local stub/mock auth provider, no real Azure AD B2C dependency | — |
-| Seed data | Fixture/seed script run on `docker-compose up`, gives a realistic local dataset without manual setup | — |
+| Concern | Local implementation | Included by default? | Fakes / chaos support |
+|---|---|---|---|
+| Cache | `LocalCacheProvider` (in-process) by default; real Redis via `--profile with-redis` | No — Redis is opt-in; local fallback is always available regardless | `FakeCacheProvider` (unit tests); `ChaosCacheProvider` decorator injects latency/errors/outage windows to prove circuit-breaker fallback (ADR-0002) |
+| Event backbone | Redis Streams container | **Yes** — default service, not profile-gated (ADR-0003) | Contract-test suite runs against both Redis Streams and Event Grid to catch behavioral drift; `ChaosEventTransport` injects duplicate/out-of-order/delayed/dropped delivery (ADR-0003) |
+| Data store | Cosmos DB Linux emulator container | **Yes** — default service (ADR-0004); known to be resource-heavier than the other local services | `FakeRepository` (fast unit tests, bypasses the emulator entirely); contract tests run against the emulator for integration-level parity checks (ADR-0004) |
+| Payments | Stripe test mode + Stripe CLI (`stripe listen --forward-to`) forwarding real webhook events to a local endpoint | External SaaS — not a Compose service; no emulator needed (ADR-0005) | Stripe's own test-mode fixtures/test cards; webhook idempotency exercised by replaying Stripe's test events |
+| Auth | Local stub/mock auth provider, no real Azure AD B2C dependency | Yes | Model TBD — pending auth/authz ADR |
+| Seed data | Fixture/seed script run on `docker-compose up` | Yes | — |
 
-Default command: `docker-compose up` — zero external dependencies, zero cost, works offline.
-Extended command: `docker-compose --profile with-redis up` — exercises the real Redis path before it hits staging.
+Default command: `docker-compose up` — brings up the event backbone (Redis Streams) and data store (Cosmos emulator) automatically, since both are non-optional local dependencies per ADR-0003/ADR-0004. Still zero cost and fully offline-capable; only the managed-Redis cache path requires an extra flag.
+Extended command: `docker-compose --profile with-redis up` — additionally exercises the real Redis cache path before it hits staging.
 
-## Cross-cutting patterns (apply beyond caching wherever relevant)
+## Cross-cutting patterns (apply across caching, eventing, and data access)
 
-- **Adapter/Strategy interfaces** for any swappable backend (cache, and likely event transport)
-- **Contract test suites** run against every implementation of an interface, to catch behavioral drift between adapters (e.g., local vs. Redis cache behaving subtly differently)
-- **Chaos/fault-injection decorators** (e.g., `ChaosCacheProvider`) that wrap a real provider to inject latency, forced errors, and outage windows — used in tests to prove fallback/circuit-breaker behavior actually works. Structurally disabled in production via config validation at startup, not just "off by default."
+- **Adapter/Strategy interfaces** for any swappable backend — `CacheProvider` (ADR-0002), `EventPublisher`/`EventSubscriber` (ADR-0003), `Repository<T>` (ADR-0004)
+- **Contract test suites** run against every implementation of an interface, to catch behavioral drift between adapters (e.g., local vs. cloud cache, Redis Streams vs. Event Grid, fake vs. real Cosmos)
+- **Chaos/fault-injection decorators** (`ChaosCacheProvider`, `ChaosEventTransport`) that wrap a real provider to inject latency, forced errors, duplicate/out-of-order delivery, and outage windows — used in tests to prove fallback/circuit-breaker and idempotency behavior actually works. Structurally disabled in production via config validation at startup, not just "off by default."
 - Fault-injection harness planned as a small shared `/tools` package so caching and eventing don't duplicate the pattern.
+- Payments (ADR-0005) deliberately sits outside this pattern — Stripe isn't a swappable backend with a local/cloud adapter pair, so its local-dev story relies on Stripe's own test mode instead.
 
 ## Open decisions (pending ADRs)
 
 1. Auth/authz model (Azure AD B2C configuration, role model)
-2. Payments buy-vs-build (Stripe Connect or similar)
 
-ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), and ADR-0004 (data store choice) are already accepted.
+ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), and ADR-0005 (payments buy-vs-build) are already accepted.
