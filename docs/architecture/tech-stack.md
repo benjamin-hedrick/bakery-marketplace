@@ -16,7 +16,7 @@ This is a reference document, not an ADR — individual decisions below are eith
 | Compute (services) | Azure Container Apps | Consumption plan, permanent free grant | Confirmed |
 | Frontend hosting | Azure Static Web Apps | Free tier, permanent | Confirmed |
 | Event backbone | Azure Event Grid (leading candidate) vs. Service Bus | Permanent free grant (Event Grid: 100k ops/mo) | **Pending ADR-0003** |
-| Primary data store | Azure Cosmos DB vs. Azure SQL serverless | Cosmos DB permanent free tier: 1000 RU/s + 25GB | **Pending ADR** (data store choice) |
+| Primary data store | Azure Cosmos DB (SQL API), container-per-bounded-context | Permanent free tier: 1000 RU/s + 25GB (single shared account) | Confirmed — see ADR-0004 |
 | Cache | Azure Cache for Redis, environment-conditional | Basic tier (no permanent free tier) | **Pending ADR-0002** — see Caching section below |
 | Observability | Application Insights + Azure Monitor | Free 5GB/month ingestion | Confirmed |
 | Auth | Azure AD B2C | Free up to 50,000 MAU | **Pending ADR** (auth model) |
@@ -57,10 +57,7 @@ Extended command: `docker-compose --profile with-redis up` — exercises the rea
 
 ## Open decisions (pending ADRs)
 
-1. **ADR-0002** — Cache strategy (environment-conditional managed Redis with local fallback)
-2. **ADR-0003** — Event-driven backbone (technology choice, delivery semantics, schema versioning)
-3. Data store choice (Cosmos DB vs. Azure SQL serverless)
-4. Auth/authz model (Azure AD B2C configuration, role model)
-5. Payments buy-vs-build (Stripe Connect or similar)
+1. Auth/authz model (Azure AD B2C configuration, role model)
+2. Payments buy-vs-build (Stripe Connect or similar)
 
-ADR-0001 (fulfillment strategy extensibility) is already accepted and doesn't depend on any of the above.
+ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), and ADR-0004 (data store choice) are already accepted.

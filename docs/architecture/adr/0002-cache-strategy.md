@@ -1,0 +1,84 @@
+# ADR-0002: Cache Strategy — Environment-Conditional Managed Redis with Local Fallback
+
+**Status:** Accepted
+
+## Context
+
+Catalog and search are the read-heavy, latency-sensitive paths in the system and are the intended caching targets. Azure Cache for Redis has no permanent free tier, which conflicts with the free-tier-first principle for dev/demo environments (see `tech-stack.md`). At the same time, a fully local-only cache in every environment would understate a real production concern and forgo a legitimate resilience story (degraded-but-available cache beats no cache strategy at all).
+
+The design needs to satisfy three things at once: near-zero cost in dev/demo, a real managed-Redis path in staging/prod, and graceful behavior when Redis is deployed but temporarily unreachable.
+
+## Decision
+
+Two independent switches, kept deliberately separate:
+
+**1. Deploy-time (Terraform)** — whether managed Redis exists in an environment at all:
+
+```hcl
+variable "enable_managed_redis" {
+  type    = bool
+  default = false
+}
+
+resource "azurerm_redis_cache" "cache" {
+  count    = var.enable_managed_redis ? 1 : 0
+  name     = "bakery-cache-${var.environment}"
+  sku_name = "Basic"
+  capacity = 0
+}
+
+locals {
+  cache_backend = var.enable_managed_redis ? "redis" : "local"
+  redis_conn    = var.enable_managed_redis ? azurerm_redis_cache.cache[0].primary_connection_string : ""
+}
+```
+
+`dev.tfvars`: `enable_managed_redis = false`. `staging.tfvars` / `prod.tfvars`: `enable_managed_redis = true`. `local.cache_backend` / `local.redis_conn` feed the app's Container Apps environment config.
+
+**2. Runtime (application)** — which backend is actually in use right now, independent of what's deployed:
+
+```
+CacheProvider (interface: get, set, delete, exists)
+ ├─ RedisCacheProvider   — talks to Azure Cache for Redis
+ └─ LocalCacheProvider   — in-process LRU map, no external dependency
+
+ResilientCacheProvider (decorator, wraps the configured primary)
+ ├─ on success → passthrough
+ └─ on failure/timeout → trip circuit breaker → route to LocalCacheProvider
+                          → emit a metric/log event
+                          → periodically probe primary; close breaker on recovery
+```
+
+Selected via `CACHE_BACKEND=redis|local` config. The `ResilientCacheProvider` wraps whichever is primary and falls through to `LocalCacheProvider` on failure **regardless of `CACHE_BACKEND`** — this is what gives graceful degradation even when Redis is deployed and configured but momentarily unreachable.
+
+**Pattern**: cache-aside. App checks cache, falls back to source on miss, writes result back with a short default TTL (60s). No write-through/explicit invalidation-on-write for v1 — revisit if staleness proves to be a real problem. **What's cached**: catalog listings and search results only — order/cart data is never cached.
+
+**Local dev** mirrors the same toggle via Compose profiles:
+- `docker-compose up` (default) → no Redis container, `CACHE_BACKEND=local`
+- `docker-compose --profile with-redis up` → Redis container present, `CACHE_BACKEND=redis`
+
+**Testing**: a `FakeCacheProvider` for fast unit tests; a shared contract-test suite run against both `RedisCacheProvider` and `LocalCacheProvider` to catch behavioral drift between adapters; integration tests against a real Redis container via the `with-redis` profile. A `ChaosCacheProvider` decorator (wraps either real provider) injects latency, forced errors, and outage windows, used specifically to prove the `ResilientCacheProvider`'s circuit breaker actually falls through and recovers. Chaos mode is gated so `ENVIRONMENT=production` + `CHAOS_MODE=true` fails config validation at startup, not just "off by default."
+
+## Consequences
+
+**Positive**
+- Dev/demo runs at $0 with zero external dependency; staging/prod get a real managed-Redis path for a few dollars/month
+- Resilience is demonstrated, not just claimed — chaos tests exercise the actual fallback path
+- Deploy-time and runtime concerns stay decoupled, so an operator can force local-only in staging (e.g., during a Redis incident) without a Terraform change
+
+**Negative / accepted limitations**
+- `LocalCacheProvider` is in-process. In a horizontally-scaled deployment (multiple Container Apps replicas), each replica has its own local cache — **this is a fallback for resilience, not a substitute for shared-cache consistency.** Under a sustained Redis outage with multiple replicas, cache hit rates drop and replicas can briefly disagree on cached values (bounded by the 60s TTL). This is an accepted tradeoff for degraded-but-available behavior, not an oversight.
+- Cache-aside + short TTL means staleness up to 60s is possible by design; acceptable for catalog/search, would not be acceptable if cache scope ever expanded to order/pricing data (explicitly excluded above).
+
+## Alternatives considered
+
+1. **Redis in every environment, including dev.** Rejected — conflicts with the free-tier-first principle; no meaningful benefit for a single-developer local loop.
+2. **Local-only cache everywhere, no managed Redis at all.** Rejected — forgoes a legitimate production concern and the resilience story; would look like cost-avoidance rather than an architectural decision if reviewed.
+3. **Write-through caching with explicit invalidation.** Rejected for v1 — more correct but meaningfully more complex; cache-aside with short TTL is adequate for the read patterns involved and easier to reason about.
+4. **A distributed local cache (e.g., gossip-based) instead of per-replica local cache.** Rejected — significant added complexity for a fallback path that's only exercised during a Redis outage; the accepted-limitation framing above is a better cost/benefit than building this.
+
+## Related
+
+- `tech-stack.md` — free-tier-first principle, environment-conditional pattern
+- ADR-0001 — same "adapter + fallback, not hard dependency" posture applied to Fulfillment
+- ADR-0003 (event-driven backbone, next) — expected to reuse this same three-layer pattern (adapter → contract tests → chaos decorator)
