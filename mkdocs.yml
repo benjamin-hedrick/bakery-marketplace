@@ -8,6 +8,7 @@ nav:
       - Roadmap: product/roadmap.md
       - OKRs: product/okrs.md
   - Architecture:
+      - Tech Stack Overview: architecture/tech-stack.md
       - C4 Diagrams: architecture/c4/README.md
       - ADRs: architecture/adr/README.md
       - DDD: architecture/ddd/README.md
