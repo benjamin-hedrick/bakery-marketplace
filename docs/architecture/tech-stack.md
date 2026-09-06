@@ -1,6 +1,6 @@
 # Tech Stack Overview
 
-This is a reference document, not an ADR — it indexes the decisions made across ADR-0001 through ADR-0007 and links out to each for full rationale.
+This is a reference document, not an ADR — it indexes the decisions made across ADR-0001 through ADR-0008 and links out to each for full rationale.
 
 ## Guiding principles
 
@@ -23,6 +23,7 @@ This is a reference document, not an ADR — it indexes the decisions made acros
 | Auth | Azure AD B2C | Free up to 50,000 MAU | Confirmed — see ADR-0006 |
 | Payments | Third-party processor — Stripe Connect (Express accounts) | N/A (external) | Confirmed — see ADR-0005 |
 | Secrets management | Azure Key Vault, per-environment, accessed via managed identity (no stored credential to reach it) | Free tier covers this scale (charged per operation, negligible cost) | Confirmed — see ADR-0007 |
+| API Gateway | Azure API Management, Consumption tier, zero-trust dual validation (edge fast-fail + authoritative per-service check) | Permanent free grant (1,000,000 calls/mo) | Confirmed — see ADR-0008 |
 | IaC | Terraform, `azurerm` provider | — | Confirmed |
 | CI/CD | GitHub Actions, OIDC federated login to Azure (no stored secrets) | — | Confirmed |
 | IaC environment structure | Per-environment `.tfvars` in `/infra/environments` (`dev`, `staging`, `prod`) | — | Confirmed |
@@ -46,6 +47,7 @@ Local dev runs entirely via `docker-compose`. Not everything is optional the way
 | Data store | Cosmos DB Linux emulator container | **Yes** — default service (ADR-0004); known to be resource-heavier than the other local services | `FakeRepository` (fast unit tests, bypasses the emulator entirely); contract tests run against the emulator for integration-level parity checks (ADR-0004) |
 | Payments | Stripe test mode + Stripe CLI (`stripe listen --forward-to`) forwarding real webhook events to a local endpoint | External SaaS — not a Compose service; no emulator needed (ADR-0005) | Stripe's own test-mode fixtures/test cards; webhook idempotency exercised by replaying Stripe's test events |
 | Auth | Local stub/mock OIDC issuer (config-driven issuer/JWKS URL swap, not a runtime fallback), no real Azure AD B2C dependency | Yes | Deterministic tests only (expired/tampered/malformed tokens) — no live chaos decorator, since auth has no fallback behavior to prove (ADR-0006) |
+| API Gateway | Skip locally, call services directly (safe under zero-trust dual validation) + thin reverse-proxy stand-in for URL/routing parity | Optional — reverse-proxy stand-in, not the real gateway | Static policy-config lint in CI (no live instance needed); real policy testing happens against a shared dev-tier cloud APIM instance, same shape as Stripe's test-mode approach (ADR-0008) |
 | Secrets | Git-ignored `.env` file with Stripe **test-mode** keys; no Key Vault dependency locally at all | Yes | Fail-fast startup validation tests (missing/malformed secret → refuse to start), not a live chaos decorator — no meaningful degraded mode for "can't get the Stripe key" (ADR-0007) |
 | Seed data | Fixture/seed script run on `docker-compose up` | Yes | — |
 
@@ -58,10 +60,10 @@ Extended command: `docker-compose --profile with-redis up` — additionally exer
 - **Contract test suites** run against every implementation of an interface, to catch behavioral drift between adapters (e.g., local vs. cloud cache, Redis Streams vs. Event Grid, fake vs. real Cosmos)
 - **Chaos/fault-injection decorators** (`ChaosCacheProvider`, `ChaosEventTransport`) that wrap a real provider to inject latency, forced errors, duplicate/out-of-order delivery, and outage windows — used in tests to prove fallback/circuit-breaker and idempotency behavior actually works. Structurally disabled in production via config validation at startup, not just "off by default."
 - Fault-injection harness planned as a small shared `/tools` package so caching and eventing don't duplicate the pattern.
-- Payments (ADR-0005) and secrets retrieval (ADR-0007) deliberately sit outside this pattern — Stripe isn't a swappable backend with a local/cloud adapter pair, and Container Apps' native Key Vault secret references make application code environment-agnostic without needing a custom adapter.
+- Payments (ADR-0005), secrets retrieval (ADR-0007), and the API Gateway (ADR-0008) deliberately sit outside this pattern — Stripe isn't a swappable backend with a local/cloud adapter pair, Container Apps' native Key Vault secret references make application code environment-agnostic without needing a custom adapter, and APIM's policy language has no local-emulator equivalent to adapt against (mitigated instead by a reverse-proxy stand-in + cloud-dev-instance testing, per ADR-0008).
 
 ## Open decisions
 
-All ADRs are now accepted: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), ADR-0006 (auth/authz model), and ADR-0007 (secrets management).
+All ADRs are now accepted: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), ADR-0006 (auth/authz model), ADR-0007 (secrets management), and ADR-0008 (API gateway).
 
 No open architectural decisions remain from the original planning pass. Next steps move from planning into backlog/sprint scoping and actual build.

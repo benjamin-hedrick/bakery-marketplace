@@ -59,6 +59,10 @@ No centralized policy engine (e.g., OPA) — ownership checks are simple enough 
 - ADR-0002 / ADR-0003 / ADR-0004 — the adapter+fallback pattern this ADR deliberately does not use, for stated security reasons
 - ADR-0005 — the other ADR that explicitly sits outside the adapter+chaos pattern, for its own stated reasons
 
+## Amendment note (ADR-0008)
+
+ADR-0008 (API Gateway) adds Azure API Management in front of these services. This does **not** change the decision above — every service still independently and fully validates the JWT and performs its own resource-ownership check, per zero-trust principles. APIM's JWT check is an additional, edge-level fast-fail optimization, not a replacement for anything in this ADR.
+
 ## Open item surfaced, not resolved here
 
 **Secrets management (e.g., Azure Key Vault)** has not been formally decided anywhere in the plan — relevant to Stripe API keys, database connection strings, and any future service secrets, though not to this ADR directly (JWT validation needs only the public JWKS endpoint, no shared secret). Worth its own short ADR or a `tech-stack.md` addition before the build phase.
