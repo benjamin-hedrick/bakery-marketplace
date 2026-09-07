@@ -16,13 +16,13 @@ Scope: Catalog · Primary hat(s): Architect, Engineering/Build · Status: Not St
 - ⚪ CAT-004 (Service Implementation) — Catalog moderation queue hooks (feeds EPIC-ADMIN)
 
 ### EPIC-SEARCH — Search & Discovery
-Scope: Search & Discovery · Primary hat(s): Architect, Digital PM · Status: Not Started
+Scope: Search & Discovery · Primary hat(s): Architect, Digital PM · Status: Not Started · Hosted in: `catalog-service` (ADR-0009)
 - ⚪ SRCH-001 (Service Implementation) — Search/filter by dietary preference (consumes Preference Snapshot per ADR context map)
 - 🟢 SRCH-002 (Integration) — Blend sponsored placement into results (Partnership relationship w/ Advertising, per bounded context map)
 - ⚪ SRCH-003 (Service Implementation) — Ranking logic, organic vs. sponsored
 
 ### EPIC-PREFERENCES — Preferences & Dietary Safety
-Scope: Preferences & Dietary Safety · Primary hat(s): Architect, Digital PM · Status: Not Started
+Scope: Preferences & Dietary Safety · Primary hat(s): Architect, Digital PM · Status: Not Started · Hosted in: `catalog-service` (ADR-0009)
 - ⚪ PREF-001 (Service Implementation) — Preference Profile CRUD
 - 🟢 PREF-002 (Integration) — Publish Preference Snapshot via Open Host Service (per bounded context map) to Search + Ordering
 
@@ -45,13 +45,13 @@ Scope: Ordering & Fulfillment (future) · Primary hat(s): Architect · Status: D
 - 🟢 FUL-001 (Document/Artifact) — Only item planned for now: keep ADR-0001 current if delivery requirements firm up before this is actually scheduled. No build items exist yet on purpose.
 
 ### EPIC-VENDOR-ONBOARDING — Vendor Onboarding & Verification
-Scope: Vendor Onboarding & Verification · Primary hat(s): Architect, Digital PM · Status: Not Started
+Scope: Vendor Onboarding & Verification · Primary hat(s): Architect, Digital PM · Status: Not Started · Hosted in: `admin-service` (ADR-0009)
 - ⚪ VEN-001 (Service Implementation) — Vendor profile + `VendorType` (Shop | Independent) per glossary
 - ⚪ VEN-002 (Service Implementation) — Verification status workflow (`Pending → Verified` / `Suspended`)
 - 🟢 VEN-003 (Integration) — Stripe Connect Express onboarding flow (per ADR-0005) — store only the resulting connected-account ID + status, not raw KYC data
 
 ### EPIC-ADVERTISING — Advertising / Promotions
-Scope: Advertising/Promotions · Primary hat(s): Digital PM, Architect · Status: Not Started
+Scope: Advertising/Promotions · Primary hat(s): Digital PM, Architect · Status: Not Started · Hosted in: `catalog-service` (ADR-0009)
 - ⚪ ADV-001 (Service Implementation) — Sponsored slot assignment (MVP-lite per portfolio-plan.md — simple flag, no bidding engine)
 - ⚪ ADV-002 (Document/Artifact) — Monetization model detail (commission % vs. ad revenue split) — overlaps with EPIC-PRODUCT-STRATEGY, listed in both deliberately (see gap note below)
 
@@ -63,7 +63,7 @@ Scope: Payments & Payouts · Primary hat(s): Architect, Engineering/Build · Sta
 - ⚪ PAY-004 (Service Implementation) — Basic refund initiation (chargebacks explicitly out of scope per ADR-0005 / Open Item #6)
 
 ### EPIC-REVIEWS — Reviews / Trust
-Scope: Reviews/Trust · Primary hat(s): Digital PM · Status: Not Started
+Scope: Reviews/Trust · Primary hat(s): Digital PM · Status: Not Started · Hosted in: `ordering-service` (ADR-0009)
 - ⚪ REV-001 (Service Implementation) — Basic rating tied to completed Order + Vendor (MVP-lite; fraud/trust scoring deferred per portfolio-plan.md)
 
 ### EPIC-NOTIFICATIONS — Notifications
@@ -158,9 +158,9 @@ Scope: repo-level · Primary hat(s): Manager/Lead, Platform Engineering · Statu
 ## Architecture & Operations Artifact Epics
 
 ### EPIC-ARCH-DOCS — Remaining Architecture Documents
-Scope: cross-cutting-artifact · Primary hat(s): Architect · Status: Started (1 of ~4 items drafted)
-- ✅ NFR-001 (Document/Artifact) — drafted, see `WI-NFR-001.md` — now explicitly requires zero-trust posture and CSRF/injection-protection content, closing gaps surfaced during backlog-organization review
-- ⚪ ARCH-001 (Document/Artifact) — C4 diagrams: context + container (stubs exist) + component-level for ordering-service and catalog-service
+Scope: cross-cutting-artifact · Primary hat(s): Architect · Status: Started (1 of ~4 items done)
+- ✅ NFR-001 (Document/Artifact) — **Done**, see `docs/architecture/nfrs.md` + `WI-NFR-001.md`
+- ✅ ARCH-001 (Document/Artifact) — **Done**, see `docs/architecture/c4/context.md` + `container.md` — surfaced and resolved a bounded-context-to-service mapping gap, formalized as ADR-0009
 - ⚪ ARCH-002 (Document/Artifact) — Capability map / business architecture view
 - ⚪ ARCH-003 (Document/Artifact) — Data model / API contracts per service, derivable from ADR-0004's aggregates
 - ⚪ ARCH-004 (Document/Artifact) — Formal event-storming session output (events already named in glossary/ADR-0003; no formal artifact yet)
@@ -272,3 +272,4 @@ Not a substitute for `PLAN-001`, just a rough sanity check so the outline isn't 
 2. **Non-technical epics' Scope field (resolved)** — standardized to exactly two values (`cross-cutting-artifact`, `repo-level`), both the template and all epics in this file backfilled to match.
 3. **API Gateway / BFF layer — resolved.** ADR-0008 decided Azure API Management (Consumption tier) with zero-trust dual validation — APIM performs an edge fast-fail check, every service still independently validates per ADR-0006. `EPIC-API-GATEWAY` added, `AUTH-002` and `RATE-004`/`GW-006` annotated to reflect the actual scope boundary (the gateway does not replace per-service auth or per-user rate limiting — Consumption tier's lack of `rate-limit-by-key` was the key finding that shaped this).
 4. **Context completeness (resolved, process-level)** — a "zero trust" assumption existed only in the human's head until an unrelated decision (API Gateway) surfaced it. Fixed at the process level, not just here: `project-process-framework/core/context-completeness.md` now names "surprise as a trigger," two front-loaded checklists (`templates/technology-decision-checklist.md`, `templates/business-decision-checklist.md`) exist for the preventive side, and the work-item template gained categorized (not flat) references, a "You do not need to know about" field, and a transient "Open Points (working)" section. Applied here: `vision.md` gained an explicit zero-trust principle, ADR-0006 gained an explicit token-storage/CSRF note, and `WI-NFR-001` now explicitly requires both plus injection-protection content.
+5. **Bounded-context-to-service mapping — resolved.** Formalized as ADR-0009: 13 bounded contexts grouped onto the 4 existing services (`catalog-service`, `ordering-service`, `admin-service`, `notification-service`), with a binding "modular monolith" rule that co-located contexts still communicate through the same interfaces/events they'd use if physically separate. The root cause (scaffolding making a real decision by default, before any decision-record discipline existed) is also fixed at the process level: `core/phase-sequence.md` Phase 4 now requires this mapping be explicit before scaffolding, and both `technology-decision-checklist.md` and `architecture-patterns.md` were updated to name the pattern.

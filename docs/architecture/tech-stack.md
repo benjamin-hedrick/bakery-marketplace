@@ -1,6 +1,6 @@
 # Tech Stack Overview
 
-This is a reference document, not an ADR — it indexes the decisions made across ADR-0001 through ADR-0008 and links out to each for full rationale.
+This is a reference document, not an ADR — it indexes the decisions made across ADR-0001 through ADR-0009 and links out to each for full rationale.
 
 ## Guiding principles
 
@@ -64,6 +64,6 @@ Extended command: `docker-compose --profile with-redis up` — additionally exer
 
 ## Open decisions
 
-All ADRs are now accepted: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), ADR-0006 (auth/authz model), ADR-0007 (secrets management), and ADR-0008 (API gateway).
+All ADRs are now accepted: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), ADR-0006 (auth/authz model), ADR-0007 (secrets management), ADR-0008 (API gateway), and ADR-0009 (bounded-context-to-service mapping).
 
 No open architectural decisions remain from the original planning pass. Next steps move from planning into backlog/sprint scoping and actual build.

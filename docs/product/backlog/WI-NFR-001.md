@@ -5,7 +5,7 @@ Type:                 Document/Artifact
 Epic:                 EPIC-ARCH-DOCS
 Shared with epic(s):  none
 Hat/Owner:            Architect
-Status:               Ready
+Status:               Done
 Size:                 M
 ```
 
@@ -47,4 +47,4 @@ See `docs/process/definition-of-done.md`. Item-specific addition: reviewed again
 Partial. The synthesis of existing ADRs into NFR statements — including the zero-trust and CSRF sections, since both now have an explicit source ADR to draw from — is well within scope for isolated agent execution. However, the actual *target numbers* (expected concurrent users, specific latency targets) likely require a human business judgment call this item's references don't resolve on their own; flag those specific fields for human input rather than inventing plausible-sounding numbers.
 
 **Open Points (working)**
-*(none currently)*
+*(none — resolved: 50 peak concurrent users / 200 orders/day target load, 99.0% monthly target availability, both committed to `docs/architecture/nfrs.md`)*
