@@ -42,7 +42,7 @@ All eight are cross-referenced in `architecture/adr/README.md`. General ADR disc
 | Artifact | Path | Status | Description |
 |---|---|---|---|
 | Tech Stack Overview | `docs/architecture/tech-stack.md` | ✅, actively maintained | Cloud + local stack, confirmed-vs-open status per concern; re-audited after every ADR |
-| NFRs Doc | `docs/architecture/nfrs.md` | 🟡 | Scalability/security/compliance assumptions — stub only |
+| NFRs Doc | `docs/architecture/nfrs.md` | 🟡 | Scalability/security/compliance assumptions — stub, but now with explicit required-content pointers (zero trust, CSRF, injection) added; see `WI-NFR-001.md` |
 | Data Model / API Contracts | *(not yet created)* | ⬜ | Per-service contracts, derivable from ADR-0004's aggregates |
 | C4 Diagrams | `docs/architecture/c4/` | 🟡 | Context/container stubs exist; not drawn |
 | Open Items Register | `docs/governance/open-items-register.md` | ✅, active | Staging area for GitHub Issues; shrinks as items get triaged |
@@ -71,7 +71,8 @@ All eight are cross-referenced in `architecture/adr/README.md`. General ADR disc
 | **Work-item template** | ✅ **Done** | `project-process-framework/templates/work-item-template.md` (separate repo) — Epic + Work Item shape with type-specific sections; validated against 2 real examples below |
 | EPIC-CACHING | `docs/product/backlog/EPIC-CACHING.md` 🟡 | Validation example; 1 of 5 constituent items drafted |
 | WI-CACHE-001 | `docs/product/backlog/WI-CACHE-001.md` ✅ Ready | Interface/Contract-type validation example, derived from ADR-0002 |
-| WI-NFR-001 | `docs/product/backlog/WI-NFR-001.md` ✅ Ready | Document/Artifact-type validation example, derived from ADR-0002/0004/0006 + vision |
+| WI-NFR-001 | `docs/product/backlog/WI-NFR-001.md` ✅ Ready | Document/Artifact-type validation example, derived from ADR-0002/0004/0005/0006 + vision; now explicitly requires zero-trust and CSRF/injection content |
+| PARKING-LOT | `docs/product/backlog/PARKING-LOT.md` ✅ Active | Transient, per `project-process-framework/templates/parking-lot-template.md` — distinct from the permanent open-items register |
 
 ## Operations/SRE Artifacts
 

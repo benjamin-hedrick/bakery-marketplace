@@ -27,6 +27,7 @@ A pickup-first marketplace that puts dietary safety and preference-matching at t
 2. **Extensible by design.** Fulfillment, ranking, and payments are modeled so delivery, ad auctions, and other v2 capabilities can be added without reworking the core domain.
 3. **Small and home-based vendors are first-class actors**, not an edge case bolted onto a shop-centric model.
 4. **Ship a small, real thing before a big, theoretical one.** MVP scope beats speculative generality — see `portfolio-plan.md` for the explicit MVP line.
+5. **Zero trust: no security decision relies on network position alone.** Every service authoritatively validates its own auth and authorization, regardless of what sits in front of it (a gateway, a load balancer, an internal network boundary). This was an implicit assumption from early in the project that was never written down until ADR-0008 needed it explicitly — recorded here now so it's available to justify every future decision that touches it, instead of being rediscovered piecemeal. See `docs/architecture/adr/0006-auth-authz-model.md` and `docs/architecture/adr/0008-api-gateway.md`.
 
 ## Explicitly out of scope for v1
 
