@@ -10,7 +10,7 @@ Legend: ✅ Done · 🟡 Stub (exists, not fleshed out) · ⬜ Planned, not star
 |---|---|---|---|---|
 | Portfolio Plan | `portfolio-plan.md` | ✅ | Full scope, MVP-line legend, artifact list by role, delivery sequence | *process:* core Phase 7 shape |
 | Vision One-Pager | `docs/product/vision.md` | ✅ | Problem, audience, value prop, guiding principles, explicit out-of-scope list | *process:* core Phase 3 |
-| Personas / JTBD | `docs/product/personas.md` | 🟡 | Vision doc gestures at actors; not a full artifact yet | — |
+| Personas / JTBD | `docs/product/personas.md` | ✅ | Full personas (goals/pain points/JTBD) for all 4 glossary actors, each connected to a specific product decision | *process:* core Phase 3 |
 | OKRs / Success Metrics | `docs/product/okrs.md` | 🟡 | North-star safety metric named in vision; not formalized | — |
 | Roadmap | `docs/product/roadmap.md` | 🟡 | Points back to this log and the plan; not yet a live-tracked roadmap | — |
 
@@ -19,8 +19,8 @@ Legend: ✅ Done · 🟡 Stub (exists, not fleshed out) · ⬜ Planned, not star
 | Artifact | Path | Status | Description | Cross-reference |
 |---|---|---|---|---|
 | Bounded Context Map | `docs/architecture/ddd/bounded-contexts.md` | ✅ | Core/supporting/generic classification, Mermaid context map, named integration patterns | *process:* core Phase 4; *domain:* `domains/software-systems` (DDD instantiation) |
-| Glossary | `docs/architecture/ddd/glossary.md` | ✅ | Ubiquitous language, incl. explicit scoped-out B2B-supplier entry | *process:* core Phase 4 (glossary discipline) |
-| Event Storming Output | `docs/architecture/ddd/event-storming.md` | 🟡 | Domain events named across ADR-0003/glossary; no formal storming-session artifact | — |
+| Glossary | `docs/architecture/ddd/glossary.md` | ✅ | Ubiquitous language, incl. explicit scoped-out B2B-supplier entry; updated with 4 events surfaced by event-storming | *process:* core Phase 4 (glossary discipline) |
+| Event Storming Output | `docs/architecture/ddd/event-storming.md` | ✅ Done | 4 process flows, Command→Aggregate→Event→Policy→Read Model; surfaced 4 previously-unnamed real events | — |
 
 ## Architecture Decision Records
 
@@ -44,7 +44,8 @@ All nine are cross-referenced in `architecture/adr/README.md`. General ADR disci
 |---|---|---|---|
 | Tech Stack Overview | `docs/architecture/tech-stack.md` | ✅, actively maintained | Cloud + local stack, confirmed-vs-open status per concern; re-audited after every ADR |
 | NFRs Doc | `docs/architecture/nfrs.md` | ✅ Done | Full content — scalability (50 concurrent users / 200 orders/day target), availability (99.0% self-imposed target), security (zero trust/CSRF/injection/secrets/sensitive data), compliance, reliability, extensibility, aspirational/future |
-| Data Model / API Contracts | *(not yet created)* | ⬜ | Per-service contracts, derivable from ADR-0004's aggregates |
+| Capability Map | `docs/architecture/capability-map.md` | ✅ Done | Business-facing re-grouping of bounded contexts into 5 capability domains, consistent with ADR-0009's service mapping and `personas.md` |
+| Data Model / API Contracts | `docs/architecture/data-model-api-contracts.md` | ✅ Done | Per-service Cosmos shapes, events, API endpoints; resolved event-dedupe store location (CacheProvider), made the ADR-0004 read-model split concrete, and corrected with the 4 events event-storming surfaced |
 | C4 Diagrams | `docs/architecture/c4/` | ✅ Done | Context + container diagrams complete; container diagram's bounded-context-to-service mapping formalized as ADR-0009 |
 | Open Items Register | `docs/governance/open-items-register.md` | ✅, active | Staging area for GitHub Issues; shrinks as items get triaged |
 
@@ -52,13 +53,13 @@ All nine are cross-referenced in `architecture/adr/README.md`. General ADR disci
 
 | Artifact | Path | Status |
 |---|---|---|
-| Project Plan (execution-level) | *(not yet created)* | ⬜ |
-| Risk Register | *(not yet created)* | ⬜ — should absorb Open Item #6 (chargebacks) |
+| Project Plan (execution-level) | `docs/management/project-plan.md` | 🟡 In Review — 8 phases, current-status marker; 1 open decision (relative vs. calendar-date phasing) |
+| Risk Register | `docs/management/risk-register.md` | 🟡 In Review — 11 entries incl. chargebacks (Open Item #6) and a new PM-level schedule risk; 1 open decision (confirm ratings) |
 | RACI | *(not yet created)* | ⬜ |
-| Engineering Standards (PR guidelines, onboarding) | `docs/process/engineering-standards.md` | 🟡 Stub — DoD now lives separately, see Product Owner section |
-| Budget/Cost Estimate | *(not yet created)* | ⬜ |
+| Engineering Standards (PR guidelines, onboarding) | `docs/process/engineering-standards.md` | ✅ Done — PR/review guidelines, onboarding path, secure-coding baseline |
+| Budget/Cost Estimate | `docs/management/budget-cost-estimate.md` | 🟡 In Review — ~$0-32/month, driven entirely by Redis tier; 1 open decision (labor/time cost, deliberately not invented) |
 | Team/Hiring Plan | *(not yet created)* | ⬜ |
-| Stakeholder Comms Plan | *(not yet created)* | ⬜ |
+| Stakeholder Comms Plan | `docs/management/stakeholder-communications-plan.md` | ✅ Done — role-based, cadence tied to SLA/risk-register/project-plan checkpoints, not invented meetings |
 
 ## Product Owner Artifacts
 
@@ -79,9 +80,9 @@ All nine are cross-referenced in `architecture/adr/README.md`. General ADR disci
 
 | Artifact | Path | Status |
 |---|---|---|
-| SLA/SLO | `docs/operations/sla.md` | 🟡 Stub — intentionally drafted **before code**, per the original plan |
+| SLA/SLO | `docs/operations/sla.md` | ✅ Done — 99.0% monthly target (self-imposed, no Azure SLA at this tier), error budget policy, latency targets, known failure modes, all traced to `nfrs.md`/ADRs |
 | Runbooks | `docs/operations/runbooks/` | 🟡 Empty, no real scenario written yet |
-| Monitoring/Alerting Plan | *(not yet created)* | ⬜ |
+| Monitoring/Alerting Plan | `docs/operations/monitoring-alerting.md` | ✅ Done — thresholds for every free-tier ceiling + SLA error-budget burn rate, all traced; policy layer only, `EPIC-OBSERVABILITY` implements against it |
 | On-Call Pattern Doc | *(not yet created)* | ⬜ Hypothetical, planned |
 | Incident Postmortem | *(not yet created)* | ⬜ Post-launch |
 
@@ -91,7 +92,7 @@ All nine are cross-referenced in `architecture/adr/README.md`. General ADR disci
 |---|---|---|
 | `docker-compose.yml` | repo root | 🟡 Stub — needs Redis Streams, Cosmos emulator, cache profile, Stripe CLI wiring, seed data (Open Item #10) |
 | Reusable tooling (`/tools`) | `tools/event-schemas`, `tools/logging-helper` | 🟡 Scaffolded, empty; `/tools/auth-middleware` and fault-injection harness not yet created (Open Item #11) |
-| Branching/Release Strategy | `docs/process/branching-strategy.md` | 🟡 Stub |
+| Branching/Release Strategy | `docs/process/branching-strategy.md` | ✅ Done — trunk-based + feature flags, repo-wide versioning; surfaced API/URL versioning via APIM as a new open item |
 | CI Workflow | `.github/workflows/ci.yml` | 🟡 Placeholder only (Open Item #14) |
 | Ephemeral/Preview Environments | *(not yet created)* | ⬜ (Open Item #15) |
 
@@ -99,8 +100,10 @@ All nine are cross-referenced in `architecture/adr/README.md`. General ADR disci
 
 | Artifact | Path | Status |
 |---|---|---|
-| Architecture Review Note | `docs/governance/architecture-review.md` | 🟡 Stub |
+| Architecture Review Note | `docs/governance/architecture-review.md` | ✅ Done — ADR lifecycle, amend-vs-supersede precedent, audit cadence; explicitly distinguished from `discovery/README.md`'s separate scope |
 | Open Items Register | `docs/governance/open-items-register.md` | ✅ Active |
+| Activity Log | `docs/ACTIVITY-LOG.md` | ✅ Active — reverse-chronological, distinct from this index |
+| Parking Lot | `docs/product/backlog/PARKING-LOT.md` | ✅ Active — transient, per-conversation items |
 
 ## Engineering/Build
 

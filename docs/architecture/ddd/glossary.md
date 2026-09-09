@@ -63,7 +63,9 @@
 
 ## Key domain events
 
-`OrderPlaced` · `OrderCustomized` · `PickupWindowScheduled` · `OrderReadyForPickup` · `OrderCompleted` · `VendorVerified` · `ListingSponsored` · `LowStockDetected`
+`OrderPlaced` · `OrderCustomized` · `PickupWindowScheduled` · `OrderReadyForPickup` · `OrderCompleted` · `VendorVerified` · `VendorSuspended` · `ListingPublished` · `ListingSponsored` · `ListingApproved` · `ListingRejected` · `ReviewSubmitted` · `PayoutReconciled` · `LowStockDetected`
+
+`VendorSuspended` and `ListingPublished` were named when drafting `ARCH-003` (`data-model-api-contracts.md`) but should have been added here at the same time — corrected now rather than left as a small consistency gap. `ListingApproved`, `ListingRejected`, `ReviewSubmitted`, and `PayoutReconciled` are new to this event-storming exercise (`docs/architecture/ddd/event-storming.md`) — real business moments that existed before any document named them.
 
 ## Explicitly scoped-out term
 

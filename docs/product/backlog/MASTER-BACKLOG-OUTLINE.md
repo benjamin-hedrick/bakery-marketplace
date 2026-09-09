@@ -2,6 +2,14 @@
 
 A high-level list only — titles and, where already known from existing ADRs/decisions, a short detail. Full work-item detail (per `project-process-framework/templates/work-item-template.md`) comes later, one epic at a time. Two items are already fully drafted as validation examples: `WI-CACHE-001` and `WI-NFR-001` — see `EPIC-CACHING.md`.
 
+Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (transient, per-conversation open items), `docs/governance/open-items-register.md` (permanent tradeoffs/tech debt), `docs/ACTIVITY-LOG.md` (chronological record of what's been done).
+
+## On Deck (decided priority — update this whenever priority changes)
+
+1. **`ARCH-005`** (Component-level C4 diagrams) — the only item left in `EPIC-ARCH-DOCS`, low priority.
+
+`GOV-001`, `OPS-003`, `ARCH-002`, `ARCH-003`, and `ARCH-004` are all done. `OPS-001` (SLA/SLO) is done. `EPIC-PM-ARTIFACTS` has only `MGMT-003`/`MGMT-006` left, currently not on deck. Full history of prior reprioritizations is in `docs/ACTIVITY-LOG.md`, not repeated here each time.
+
 Legend: 🟢 detail known now (from an existing ADR/decision) · ⚪ title only, detail TBD when picked up
 
 ---
@@ -158,24 +166,25 @@ Scope: repo-level · Primary hat(s): Manager/Lead, Platform Engineering · Statu
 ## Architecture & Operations Artifact Epics
 
 ### EPIC-ARCH-DOCS — Remaining Architecture Documents
-Scope: cross-cutting-artifact · Primary hat(s): Architect · Status: Started (1 of ~4 items done)
+Scope: cross-cutting-artifact · Primary hat(s): Architect · Status: Started (5 of 6 items done — only ARCH-005 left, low priority)
 - ✅ NFR-001 (Document/Artifact) — **Done**, see `docs/architecture/nfrs.md` + `WI-NFR-001.md`
 - ✅ ARCH-001 (Document/Artifact) — **Done**, see `docs/architecture/c4/context.md` + `container.md` — surfaced and resolved a bounded-context-to-service mapping gap, formalized as ADR-0009
-- ⚪ ARCH-002 (Document/Artifact) — Capability map / business architecture view
-- ⚪ ARCH-003 (Document/Artifact) — Data model / API contracts per service, derivable from ADR-0004's aggregates
-- ⚪ ARCH-004 (Document/Artifact) — Formal event-storming session output (events already named in glossary/ADR-0003; no formal artifact yet)
+- ✅ ARCH-002 (Document/Artifact) — **Done**, see `docs/architecture/capability-map.md` + `WI-ARCH-002.md` — business-facing re-grouping of `bounded-contexts.md`, consistent with ADR-0009's service mapping
+- ✅ ARCH-003 (Document/Artifact) — **Done**, see `docs/architecture/data-model-api-contracts.md` + `WI-ARCH-003.md` — per-service Cosmos document shapes, events, and API endpoints; resolved the event-dedupe store location (CacheProvider) and made the ADR-0004 read-model split concrete (`order-status-readmodel`)
+- ✅ ARCH-004 (Document/Artifact) — **Done**, see `docs/architecture/ddd/event-storming.md` + `WI-ARCH-004.md` — surfaced 4 previously-unnamed events (`ReviewSubmitted`, `PayoutReconciled`, `ListingApproved`, `ListingRejected`), added to glossary.md and `data-model-api-contracts.md`
+- ⚪ ARCH-005 (Document/Artifact) — Component-level C4 diagrams for `ordering-service` and `catalog-service`, explicitly deferred from `WI-ARCH-001`'s scope — logged now so it's tracked rather than just remembered
 
 ### EPIC-OPS-ARTIFACTS — Operations/SRE Artifacts
-Scope: cross-cutting-artifact · Primary hat(s): Operations · Status: Not Started
-- ⚪ OPS-001 (Document/Artifact) — SLA/SLO — should be written **after** ARCH/NFR-001 lands, since targets should derive from stated NFRs (per WI-NFR-001's own Dependencies field)
+Scope: cross-cutting-artifact · Primary hat(s): Operations · Status: Started (2 of 4 items done)
+- ✅ OPS-001 (Document/Artifact) — **Done**, see `docs/operations/sla.md` + `WI-OPS-001.md` — 99.0% monthly target, error budget policy, latency targets, known failure modes, all traced to `nfrs.md`/ADRs
 - ⚪ OPS-002 (Document/Artifact) — Runbook, tied to a real failure mode from the ADRs (candidates: Redis fallback per ADR-0002, Cosmos throttling per ADR-0004)
-- ⚪ OPS-003 (Document/Artifact) — Monitoring/alerting plan
+- ✅ OPS-003 (Document/Artifact) — **Done**, see `docs/operations/monitoring-alerting.md` + `WI-OPS-003.md` — policy layer (thresholds), distinct from `EPIC-OBSERVABILITY`'s implementation layer
 - ⚪ OPS-004 (Document/Artifact) — On-call pattern doc (hypothetical)
 
 ### EPIC-GOVERNANCE — Governance Artifacts
-Scope: cross-cutting-artifact · Primary hat(s): Governance · Status: Started (open items register already active)
+Scope: cross-cutting-artifact · Primary hat(s): Governance · Status: Started (open items register active, GOV-001 done)
 - ✅ (ongoing) `docs/governance/open-items-register.md` — active, not a discrete work item, a living document
-- ⚪ GOV-001 (Document/Artifact) — Fill in the architecture-review-template.md content for real (currently a blank template copied from `project-process-framework/governance/`)
+- ✅ GOV-001 (Document/Artifact) — **Done**, see `docs/governance/architecture-review.md` + `WI-GOV-001.md` — explicitly distinguishes this project's ADR governance from `project-process-framework/discovery/README.md`'s separate scope
 - ⚪ GOV-002 (Document/Artifact) — Explicit scope decision on legal artifacts (Terms of Service, Privacy Policy): in or out for v1, and why. Never appeared anywhere before this review pass, not even as a "scoped out" note — worth an explicit decision either way rather than continued silence, especially given the playbook was deliberately generalized to work for real projects too.
 
 ---
@@ -183,19 +192,19 @@ Scope: cross-cutting-artifact · Primary hat(s): Governance · Status: Started (
 ## Manager/Lead & Product Strategy Epics
 
 ### EPIC-PM-ARTIFACTS — Manager/Lead Artifacts
-Scope: cross-cutting-artifact · Primary hat(s): Manager/Lead · Status: Not Started
-- ⚪ MGMT-001 (Document/Artifact) — Project plan (execution-level, distinct from `portfolio-plan.md`)
-- ⚪ MGMT-002 (Document/Artifact) — Risk register — should absorb Open Item #6 (chargeback/dispute handling) as its first entry
+Scope: cross-cutting-artifact · Primary hat(s): Manager/Lead · Status: Started (3 done, 3 in review, 2 not started)
+- 🟡 MGMT-001 (Document/Artifact) — drafted, see `docs/management/project-plan.md` + `WI-MGMT-001.md` — 1 open decision (relative vs. calendar-date phasing)
+- 🟡 MGMT-002 (Document/Artifact) — drafted, see `docs/management/risk-register.md` + `WI-MGMT-002.md` — 1 open decision (confirm likelihood/impact ratings)
 - ⚪ MGMT-003 (Document/Artifact) — RACI (hypothetical team)
-- ⚪ MGMT-004 (Document/Artifact) — Engineering standards: PR/review guidelines, onboarding doc (DoD/DoR already done separately)
-- ⚪ MGMT-005 (Document/Artifact) — Budget/cost estimate
+- ✅ MGMT-004 (Document/Artifact) — **Done**, see `docs/process/engineering-standards.md` + `WI-MGMT-004.md`
+- 🟡 MGMT-005 (Document/Artifact) — drafted, see `docs/management/budget-cost-estimate.md` + `WI-MGMT-005.md` — 1 open decision (labor/time cost, deliberately not invented)
 - ⚪ MGMT-006 (Document/Artifact) — Team structure + hiring plan (hypothetical)
-- ⚪ MGMT-007 (Document/Artifact) — Stakeholder communications plan
-- ⚪ MGMT-008 (Document/Artifact) — Branching/release strategy (currently a stub)
+- ✅ MGMT-007 (Document/Artifact) — **Done**, see `docs/management/stakeholder-communications-plan.md` + `WI-MGMT-007.md` — deliberately not blocked on `MGMT-006`
+- ✅ MGMT-008 (Document/Artifact) — **Done**, see `docs/process/branching-strategy.md` + `WI-MGMT-008.md` — trunk-based + feature flags, repo-wide versioning; surfaced a new gap (API/URL versioning via APIM, not yet decided — see `PARKING-LOT.md`)
 
 ### EPIC-PRODUCT-STRATEGY — Digital PM Artifacts
-Scope: cross-cutting-artifact · Primary hat(s): Digital PM · Status: Not Started
-- ⚪ PROD-001 (Document/Artifact) — Personas / JTBD (vision doc gestures at this; not a full artifact)
+Scope: cross-cutting-artifact · Primary hat(s): Digital PM · Status: Started (1 of 4 done)
+- ✅ PROD-001 (Document/Artifact) — **Done**, see `docs/product/personas.md` + `WI-PROD-001.md`
 - ⚪ PROD-002 (Document/Artifact) — Competitive scan
 - ⚪ PROD-003 (Document/Artifact) — Monetization model — overlaps with `ADV-002` above; deliberately listed in both places rather than picking one home (see gap note below)
 - ⚪ PROD-004 (Document/Artifact) — OKRs / success metrics (north-star safety metric already named in vision; needs the rest)
@@ -215,7 +224,7 @@ Scope: cross-cutting-artifact (post-MVP) · Primary hat(s): Operations, Manager/
 Scope: cross-cutting-artifact · Primary hat(s): Platform Engineering, Operations · Status: Not Started
 - ⚪ OBS-001 (Service Implementation) — Application Insights wiring per service
 - 🟢 OBS-002 (Integration) — Correlation-ID propagation across services, using `/tools/logging-helper` (`TOOL-002`)
-- ⚪ OBS-003 (Document/Artifact) — What gets dashboarded/alerted on (feeds `OPS-003` monitoring plan — deliberately not duplicating that item, just noting the dependency)
+- ⚪ OBS-003 (Document/Artifact) — Actual dashboard construction implementing `OPS-003`'s thresholds (corrected: `OPS-003` is the policy layer this item implements against, not the other way around — see `docs/operations/monitoring-alerting.md`)
 
 ### EPIC-RATE-LIMITING — Rate Limiting / Abuse Prevention
 Scope: cross-cutting-artifact · Primary hat(s): Architect, Platform Engineering · Status: Not Started

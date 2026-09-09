@@ -1,0 +1,62 @@
+# Activity Log
+
+Reverse-chronological (newest first). Distinct from `project-log.md` (a current-state snapshot/index) — this is a running record of *what happened and when*, so a fresh session with no conversation history can catch up quickly. Append new entries at the top as they happen; don't edit history below.
+
+---
+
+**2026-09-07 — Formal event-storming session output drafted**
+`WI-ARCH-004` completed. `docs/architecture/ddd/event-storming.md` walks 4 business processes end-to-end (vendor onboarding & listing publication, order lifecycle, review & payout, listing moderation) using Command→Aggregate→Event→Policy→Read Model vocabulary. As expected for this kind of exercise (same shape as ADR-0009's origin), it surfaced 4 real business events that had never been named anywhere: `ReviewSubmitted`, `PayoutReconciled`, `ListingApproved`, `ListingRejected`. All four added to `glossary.md`; `data-model-api-contracts.md`'s `ordering-service` and `admin-service` event lists corrected to match, rather than left as a second inconsistency. `EPIC-ARCH-DOCS` is now 5 of 6 items done — only `ARCH-005` (component-level C4, low priority) remains.
+
+**2026-09-07 — Data model / API contracts drafted**
+`WI-ARCH-003` completed. `docs/architecture/data-model-api-contracts.md` makes ADR-0004's containers and ADR-0009's service groupings concrete: document shapes, events published/consumed, and API endpoints per service. Resolved one previously-undecided detail along the way — where the at-least-once-delivery dedupe store required by ADR-0003 actually lives (the existing `CacheProvider`, not a new mechanism) — and made ADR-0004's CQRS decision concrete with an explicit `order-status-readmodel` container, distinct from the source-of-truth `orders` container. `EPIC-ARCH-DOCS` is now 4 of 5 done; only `ARCH-004` (event-storming) and `ARCH-005` (component-level C4, low priority) remain.
+
+**2026-09-07 — Capability map / business architecture view drafted**
+`WI-ARCH-002` completed. `docs/architecture/capability-map.md` re-groups the existing bounded contexts into 5 business-facing capability domains (Customer Experience, Vendor Enablement, Trust & Safety, Monetization, Platform Operations), each traced to its bounded context, hosting service (ADR-0009), and served persona. Deliberately reuses the existing core/supporting/generic classification and MVP-line legend rather than inventing new categories — this document's value is a different audience, not a new decision.
+
+**2026-09-07 — Governance and monitoring criteria locked down before finishing architecture**
+`WI-GOV-001`/`WI-OPS-003` drafted, both fully Done, per direct request to settle these before `ARCH-002`/`003`/`004`. `docs/governance/architecture-review.md`: codifies practices this project was already using (state-assumptions-first, amend-don't-rewrite per ADR-0006's precedent, periodic audit cadence) rather than inventing a new process — and explicitly distinguishes its scope from `project-process-framework/discovery/README.md`, which governs the framework's own evolution, not this project's ADRs. `docs/operations/monitoring-alerting.md`: warning/critical thresholds for every free-tier ceiling and the SLA error-budget burn rate, all derived from existing numbers in `nfrs.md`/`sla.md`. Corrected a backwards cross-reference discovered in the process — `EPIC-OBSERVABILITY`'s `OBS-003` had described itself as feeding this document, when the actual relationship is the reverse (this document is the policy layer, `OBS-003` implements against it).
+
+**2026-09-07 — Stakeholder communications plan and branching strategy drafted (third priority override)**
+`WI-MGMT-007`/`WI-MGMT-008` drafted, both fully Done, no open decisions. `docs/management/stakeholder-communications-plan.md`: role-based (not name-based, since `MGMT-006` doesn't exist yet), with escalation triggers wired directly to the SLA's error-budget policy and the risk register rather than invented generic triggers. `docs/process/branching-strategy.md`: trunk-based development chosen over GitFlow specifically because it's what lets the already-planned feature-flag mechanism (`EPIC-FEATURE-FLAGS`) pay for itself; repo-wide versioning chosen over per-service versioning given ADR-0009's modular-monolith grouping. Surfaced a new, explicitly-named gap while drafting: API endpoint/URL versioning through Azure API Management has never been decided — added to `PARKING-LOT.md` rather than silently bundled into this document or left unstated. Only `MGMT-003` (RACI) and `MGMT-006` (team/hiring) remain not-started in `EPIC-PM-ARTIFACTS`.
+
+**2026-09-07 — Engineering standards, budget estimate, and personas drafted (second priority override)**
+`WI-MGMT-004`/`WI-MGMT-005`/`WI-PROD-001` drafted — On-Deck queue explicitly updated to show this as a second consecutive reprioritization ahead of the architecture-artifact items. `docs/process/engineering-standards.md`: PR/review guidelines, an onboarding path that deliberately starts narrow (project-log → on-deck → the specific work item's categorized references, not "read the whole repo"), and the secure-coding baseline promised in `nfrs.md`. `docs/management/budget-cost-estimate.md`: confirmed the architecture is genuinely ~$0/month except managed Redis, verified at $16.06/month (Basic C0) against Azure's current pricing rather than an earlier casual "a few dollars" estimate. `docs/product/personas.md`: full personas for all 4 glossary actors, each explicitly connected to a specific product decision rather than generic marketplace boilerplate.
+
+**2026-09-07 — Project plan + risk register drafted (priority override)**
+`WI-MGMT-001`/`WI-MGMT-002` drafted — a deliberate jump ahead of the standing On-Deck queue (which had `ARCH-003` next), noted explicitly rather than silently overriding it. `docs/management/project-plan.md`: 8 phases with entry/exit criteria and a current-status marker, deliberately using relative sequencing instead of fabricated calendar dates. `docs/management/risk-register.md`: 11 risks synthesized from existing ADRs/open items, plus one new PM-level risk (R-10, backlog size vs. likely pace) that hadn't been captured anywhere else. Both flagged with one open decision each rather than invented answers.
+
+**2026-09-07 — SLA/SLO document drafted**
+`WI-OPS-001` completed. 99.0% monthly uptime target and error budget (~7.3 hours/month) derived directly from `nfrs.md`, not invented fresh. Explicit error-budget policy (feature-flag freeze + incident review on exhaustion), latency targets per path, and every known failure mode (cache fallback, Cosmos ceiling, APIM's lack of its own SLA, event-delivery lag) traced to its source ADR. On-deck queue advanced to `ARCH-003` next.
+
+**2026-09-07 — On-deck queue + activity log established**
+Added `ARCH-005` (component-level C4 diagrams — explicitly deferred from `WI-ARCH-001`'s scope) to the backlog. Added an "On Deck" priority section to the top of `MASTER-BACKLOG-OUTLINE.md`. Created this file. Process fix: `project-process-framework` core phase sequence and checklists updated to require this same discipline (on-deck queue + activity log) on future projects, not just this one.
+
+**2026-09-07 — ADR-0009: Bounded-Context-to-Service Mapping**
+Formalized the 13-bounded-context → 4-service grouping that was surfaced (not decided) while drafting C4. Modular monolith rule established: co-located contexts still communicate through the same interfaces/events they'd use if physically separate. Root-cause process fix landed in `project-process-framework`: Phase 4 now requires this mapping be explicit *before* scaffolding; `technology-decision-checklist.md` gained a "Service/deployment decomposition" section; `architecture-patterns.md` names the pattern; `context-completeness.md` now distinguishes "implicit decision by early action" as a second failure mode alongside "unstated human assumption."
+
+**2026-09-07 — C4 diagrams (Context + Container)**
+`WI-ARCH-001` drafted and completed. Context diagram clean. Container diagram surfaced the bounded-context-to-service gap above (resolved same day via ADR-0009).
+
+**2026-09-07 — NFR document drafted in full**
+`WI-NFR-001` completed. Seven sections: scalability, availability, security (zero trust, CSRF, injection, secrets, sensitive data), compliance, reliability/resilience, extensibility, aspirational/future. Two fields required real business input rather than invented numbers — resolved: 50 peak concurrent users / 200 orders/day target load, 99.0% monthly target availability (explicitly self-imposed, since APIM Consumption tier carries no Azure-backed SLA).
+
+**2026-09-07 — Context-completeness discipline established**
+Triggered by a real incident: a "zero trust" security posture existed only in the human's head until an unrelated decision (API Gateway) surfaced it. Fixed at the process level (`project-process-framework/core/context-completeness.md`, two new front-loaded checklists, a `discovery/` layer with promotion criteria) and applied to this project (`vision.md` gained an explicit zero-trust principle, ADR-0006 gained a token-storage/CSRF note, `WI-NFR-001` required both).
+
+**2026-09-07 — ADR-0008: API Gateway**
+Azure API Management, Consumption tier, zero-trust dual validation (edge fast-fail check + authoritative per-service check, unchanged from ADR-0006). Confirmed via live research that Consumption tier lacks VNet/Private Link and the self-hosted gateway option — both accepted, not worked around, because of the zero-trust posture.
+
+**2026-09-07 — Work-item template defined, validated, and template gaps fixed**
+`project-process-framework/templates/work-item-template.md` created (Epic + Work Item shape, 6 types). Validated against two real, structurally different items (`WI-CACHE-001` interface/contract, `WI-NFR-001` document/artifact) before being treated as settled. Gaps found and fixed during real use: categorized (not flat) references, a "You do not need to know about" field, a transient "Open Points (working)" section, a `Shared with epic(s)` field (5 real instances of cross-listing surfaced the need), and standardized non-technical `Scope` values.
+
+**2026-09-07 — Full master backlog outline built**
+~33 epics across every hat (`docs/product/backlog/MASTER-BACKLOG-OUTLINE.md`), with a rough suggested build order. Several missing epics identified and added in a dedicated review pass (Observability, Rate Limiting, Feature Flags, Data Privacy, Backup/DR, Frontend Quality, Backlog Meta-Work) plus a missing refinement-phase item and a legal-scope decision item.
+
+**2026-09-07 — ADR-0001 through ADR-0007 accepted**
+Fulfillment strategy extensibility, cache strategy, event-driven backbone, data store choice, payments buy-vs-build, auth/authz model, secrets management. Full detail in `docs/architecture/adr/`.
+
+**2026-09-07 — Three-repo split**
+Separated the reusable process framework (`project-process-framework`), AI-collaboration mechanics (`ai-collaboration-playbook`), and this project's implementation (`bakery-marketplace`) into three independent repos with no cross-references baked in.
+
+**2026-09-07 — Foundational planning**
+Vision one-pager, bounded context map, glossary, `portfolio-plan.md`, and the initial repo skeleton (4 services, 3 apps) all established. This is where the bounded-context-to-service mapping gap actually originated (see the ADR-0009 entry above) — the services were named here, before any decision-record discipline existed to catch it.
