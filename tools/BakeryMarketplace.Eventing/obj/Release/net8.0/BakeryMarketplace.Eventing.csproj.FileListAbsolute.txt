@@ -1,0 +1,12 @@
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\bin\Release\net8.0\BakeryMarketplace.Eventing.deps.json
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\bin\Release\net8.0\BakeryMarketplace.Eventing.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\bin\Release\net8.0\BakeryMarketplace.Eventing.pdb
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\BakeryMarketplace.Eventing.GeneratedMSBuildEditorConfig.editorconfig
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\BakeryMarketplace.Eventing.AssemblyInfoInputs.cache
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\BakeryMarketplace.Eventing.AssemblyInfo.cs
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\BakeryMarketplace.Eventing.csproj.CoreCompileInputs.cache
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\BakeryMarketplace.Eventing.sourcelink.json
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\BakeryMarketplace.Eventing.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\refint\BakeryMarketplace.Eventing.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\BakeryMarketplace.Eventing.pdb
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Eventing\obj\Release\net8.0\ref\BakeryMarketplace.Eventing.dll

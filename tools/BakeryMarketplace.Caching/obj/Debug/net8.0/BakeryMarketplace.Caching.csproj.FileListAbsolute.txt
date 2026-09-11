@@ -1,0 +1,13 @@
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\bin\Debug\net8.0\BakeryMarketplace.Caching.deps.json
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\bin\Debug\net8.0\BakeryMarketplace.Caching.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\bin\Debug\net8.0\BakeryMarketplace.Caching.pdb
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\BakeryMarketplace.Caching.csproj.AssemblyReference.cache
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\BakeryMarketplace.Caching.GeneratedMSBuildEditorConfig.editorconfig
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\BakeryMarketplace.Caching.AssemblyInfoInputs.cache
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\BakeryMarketplace.Caching.AssemblyInfo.cs
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\BakeryMarketplace.Caching.csproj.CoreCompileInputs.cache
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\BakeryMarketplace.Caching.sourcelink.json
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\BakeryMarketplace.Caching.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\refint\BakeryMarketplace.Caching.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\BakeryMarketplace.Caching.pdb
+c:\git\bakery-marketplace\tools\BakeryMarketplace.Caching\obj\Debug\net8.0\ref\BakeryMarketplace.Caching.dll
