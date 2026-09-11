@@ -8,10 +8,10 @@ Goal:                Deliver the CacheProvider abstraction and both implementati
                      Redis is unreachable.
 Related references:  ADR-0002 (docs/architecture/adr/0002-cache-strategy.md)
 Constituent work items:
-  - WI-CACHE-001 (Interface/Contract — CacheProvider interface + contract test suite)
-  - WI-CACHE-002 (Service Implementation — RedisCacheProvider) — not yet written
-  - WI-CACHE-003 (Service Implementation — LocalCacheProvider + ResilientCacheProvider decorator) — not yet written
-  - WI-CACHE-004 (Test/Mock/Chaos — ChaosCacheProvider + fallback proof tests) — not yet written
-  - WI-CACHE-005 (Infra/Environment — Terraform enable_managed_redis toggle + Compose with-redis profile) — not yet written
-Status:              Not Started (one constituent item drafted as a template validation example)
+  - WI-CACHE-001 (Interface/Contract — CacheProvider interface + contract test suite) — Ready for agents
+  - WI-CACHE-002 (Service Implementation — RedisCacheProvider) — 🛑 HOLD, vendor under reconsideration (open item #22)
+  - WI-CACHE-003 (Service Implementation — LocalCacheProvider + ResilientCacheProvider decorator) — Ready for agents, vendor-agnostic
+  - WI-CACHE-004 (Test/Mock/Chaos — ChaosCacheProvider + fallback proof tests) — Ready for agents, vendor-agnostic
+  - WI-CACHE-005 (Infra/Environment — Terraform enable_managed_redis toggle + Compose with-redis profile) — 🛑 HOLD, vendor under reconsideration (open item #22)
+Status:              Started (3 of 5 items detailed and Ready for agents; 2 held pending the Redis vendor decision)
 ```

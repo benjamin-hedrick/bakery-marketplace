@@ -65,6 +65,14 @@ No centralized policy engine (e.g., OPA) — ownership checks are simple enough 
 
 ADR-0008 (API Gateway) adds Azure API Management in front of these services. This does **not** change the decision above — every service still independently and fully validates the JWT and performs its own resource-ownership check, per zero-trust principles. APIM's JWT check is an additional, edge-level fast-fail optimization, not a replacement for anything in this ADR.
 
+## Amendment note (Azure AD B2C → Microsoft Entra External ID)
+
+Azure AD B2C stopped accepting new tenants as of May 2025, and Premium P2/Identity Protection retired March 2026 — the platform continues to be supported for existing tenants until at least May 2030, but is frozen (no new features). Microsoft's stated successor for new work is **Microsoft Entra External ID** (generally available since 2024). Since this project is new work, it targets Entra External ID instead of Azure AD B2C.
+
+**This does not change anything else in this ADR.** The actual validation mechanism — JWT bearer tokens, issuer/audience/JWKS-driven verification, role + resource-ownership authorization — is identical regardless of which OIDC-compliant provider issues the token. Per ADR-0010, `Microsoft.AspNetCore.Authentication.JwtBearer` is Authority-URL-driven and config-only, meaning this swap is a configuration change (which Authority URL, which audience) rather than a code or design change.
+
+**Only `AUTH-004`** (the actual tenant/policy configuration work, not yet built) needs to target Entra External ID specifically when it's picked up. `AUTH-001` (the generic JWT validation middleware) is unaffected and safe to build now regardless of this pending swap — see `docs/governance/open-items-register.md` item #21.
+
 ## Open item surfaced, not resolved here
 
 **Secrets management (e.g., Azure Key Vault)** has not been formally decided anywhere in the plan — relevant to Stripe API keys, database connection strings, and any future service secrets, though not to this ADR directly (JWT validation needs only the public JWKS endpoint, no shared secret). Worth its own short ADR or a `tech-stack.md` addition before the build phase.

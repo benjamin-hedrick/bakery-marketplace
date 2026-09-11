@@ -4,6 +4,23 @@ A high-level list only — titles and, where already known from existing ADRs/de
 
 Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (transient, per-conversation open items), `docs/governance/open-items-register.md` (permanent tradeoffs/tech debt), `docs/ACTIVITY-LOG.md` (chronological record of what's been done).
 
+## Agent-Ready Queue (safe to assign to AI coding agents right now)
+
+Six items, fully detailed with real C# signatures (ADR-0010), verified independent of both pending tech swaps (open items #21 Entra External ID, #22 Redis vendor). Each can be worked in parallel — none blocks another except where noted.
+
+| Item | Type | What it produces | Notes |
+|---|---|---|---|
+| `WI-CACHE-001` | Interface/Contract | `ICacheProvider` + contract test base | Blocks CACHE-003/004 |
+| `WI-EVT-001` | Interface/Contract | `IEventPublisher`/`IEventSubscriber` + envelope | Independent |
+| `WI-DATA-001` | Interface/Contract | `IRepository<T>` + contract test base | Independent |
+| `WI-AUTH-001` | Interface/Contract | JWT middleware + `IResourceOwnershipChecker` | Explicitly unaffected by the Entra swap |
+| `WI-CACHE-003` | Service Implementation | `LocalCacheProvider` + `ResilientCacheProvider` | Blocked by CACHE-001; vendor-agnostic |
+| `WI-CACHE-004` | Test/Mock/Chaos | `ChaosCacheProvider` + fallback proof tests | Blocked by CACHE-003; vendor-agnostic |
+
+**Explicitly held from agent assignment** — do not queue these until the noted decision finalizes:
+- `AUTH-004` (Entra External ID tenant/policy config) — open item #21
+- `CACHE-002` (RedisCacheProvider) and `CACHE-005` (Terraform Redis toggle) — open item #22
+
 ## On Deck (decided priority — update this whenever priority changes)
 
 1. **`ARCH-005`** (Component-level C4 diagrams) — the only item left in `EPIC-ARCH-DOCS`, low priority.
@@ -89,29 +106,29 @@ Scope: Admin/Moderation · Primary hat(s): Engineering/Build, Operations · Stat
 
 ## Cross-Cutting Technical Epics
 
-### EPIC-CACHING — see `EPIC-CACHING.md` (existing, 1 of 5 items drafted)
+### EPIC-CACHING — see `EPIC-CACHING.md` (existing, 3 of 5 items detailed — `CACHE-001`/`003`/`004` Ready for agents, `CACHE-002`/`005` held per open item #22)
 
 ### EPIC-EVENTING — Event-Driven Backbone
-Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Not Started
-- 🟢 EVT-001 (Interface/Contract) — `EventPublisher`/`EventSubscriber` interfaces + envelope shape (ADR-0003)
+Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (1 of 5 items detailed)
+- ✅ EVT-001 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-EVT-001.md` — `IEventPublisher`/`IEventSubscriber` interfaces + envelope shape (ADR-0003), real C# per ADR-0010
 - 🟢 EVT-002 (Service Implementation) — `EventGridPublisher`/`EventGridSubscriber` (cloud)
 - 🟢 EVT-003 (Service Implementation) — `RedisStreamsPublisher`/`RedisStreamsSubscriber` (local)
 - 🟢 EVT-004 (Test/Mock/Chaos) — Contract-test suite + `ChaosEventTransport` (duplicate/out-of-order/delayed/dropped delivery, per ADR-0003)
 - ⚪ EVT-005 (Infra/Environment) — Terraform Event Grid custom topic + subscription filters
 
 ### EPIC-DATA-STORE — Cosmos DB Repositories
-Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Not Started
-- 🟢 DATA-001 (Interface/Contract) — `Repository<T>` interface (ADR-0004)
+Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (1 of 4 items detailed)
+- ✅ DATA-001 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-DATA-001.md` — `IRepository<T>` interface (ADR-0004), real C# per ADR-0010
 - 🟢 DATA-002 (Service Implementation) — `CosmosRepository<T>` per container (`catalog`, `orders`, `vendors`, `preferences`, `reviews`, `payouts`)
 - 🟢 DATA-003 (Test/Mock/Chaos) — `FakeRepository<T>` + contract tests against the Cosmos emulator
 - ⚪ DATA-004 (Infra/Environment) — Terraform Cosmos account + per-container partition key config
 
 ### EPIC-AUTH — Auth/Authz
-Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Not Started
-- 🟢 AUTH-001 (Interface/Contract) — Shared `/tools/auth-middleware` (JWT validation against JWKS, per ADR-0006)
+Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (1 of 4 items detailed)
+- ✅ AUTH-001 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-AUTH-001.md` — JWT middleware + ownership checker, real C# per ADR-0010; explicitly unaffected by the pending Entra External ID swap (open item #21)
 - ⚪ AUTH-002 (Service Implementation) — Per-service role + resource-ownership checks (unchanged by `EPIC-API-GATEWAY` — APIM adds an edge fast-fail check per ADR-0008, this remains the authoritative one per zero-trust principles)
 - 🟢 AUTH-003 (Test/Mock/Chaos) — Deterministic tests: expired/tampered/malformed token handling (ADR-0006 — explicitly not a live chaos decorator, see ADR's own reasoning)
-- ⚪ AUTH-004 (Infra/Environment) — Azure AD B2C tenant + policy configuration
+- 🛑 AUTH-004 (Infra/Environment) — **HOLD — do not assign to agents.** Tenant + policy configuration — targets Microsoft Entra External ID, not Azure AD B2C, per open item #21. Held until that migration decision is finalized.
 
 ### EPIC-SECRETS — Secrets Management
 Scope: cross-cutting (all contexts) · Primary hat(s): Platform Engineering · Status: Not Started

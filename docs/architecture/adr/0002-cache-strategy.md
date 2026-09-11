@@ -82,3 +82,7 @@ Selected via `CACHE_BACKEND=redis|local` config. The `ResilientCacheProvider` wr
 - `tech-stack.md` — free-tier-first principle, environment-conditional pattern
 - ADR-0001 — same "adapter + fallback, not hard dependency" posture applied to Fulfillment
 - ADR-0003 (event-driven backbone, next) — expected to reuse this same three-layer pattern (adapter → contract tests → chaos decorator)
+
+## Amendment note (Redis vendor under reconsideration)
+
+The specific managed cache vendor (Azure Cache for Redis) is under reconsideration and may change. **This does not affect this ADR's core design.** The `CacheProvider` interface, `LocalCacheProvider`, `ResilientCacheProvider` fallback decorator, and the contract-test suite are all vendor-agnostic — none of them know or care which managed service backs the "cloud" implementation. Only `CACHE-002` (the concrete `RedisCacheProvider` implementation) and `CACHE-005` (the Terraform `enable_managed_redis` toggle) are vendor-specific and held from work until the vendor decision is finalized — see `docs/governance/open-items-register.md` item #22.

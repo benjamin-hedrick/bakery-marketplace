@@ -1,6 +1,6 @@
 # Tech Stack Overview
 
-This is a reference document, not an ADR — it indexes the decisions made across ADR-0001 through ADR-0009 and links out to each for full rationale.
+This is a reference document, not an ADR — it indexes the decisions made across ADR-0001 through ADR-0010 and links out to each for full rationale.
 
 ## Guiding principles
 
@@ -18,9 +18,10 @@ This is a reference document, not an ADR — it indexes the decisions made acros
 | Frontend hosting | Azure Static Web Apps | Free tier, permanent | Confirmed |
 | Event backbone | Azure Event Grid | Permanent free grant (100k ops/mo) | Confirmed — see ADR-0003 |
 | Primary data store | Azure Cosmos DB (SQL API), container-per-bounded-context | Permanent free tier: 1000 RU/s + 25GB (single shared account) | Confirmed — see ADR-0004 |
-| Cache | Azure Cache for Redis, environment-conditional | Basic tier (no permanent free tier) | Confirmed — see ADR-0002 |
+| Cache | Azure Cache for Redis, environment-conditional — **vendor under reconsideration, see open item #22** | Basic tier (no permanent free tier) | Confirmed (abstraction) — see ADR-0002 |
 | Observability | Application Insights + Azure Monitor | Free 5GB/month ingestion | Confirmed |
-| Auth | Azure AD B2C | Free up to 50,000 MAU | Confirmed — see ADR-0006 |
+| Auth | Microsoft Entra External ID (successor to Azure AD B2C, which stopped accepting new tenants May 2025) | Free tier — exact figures pending verification | Confirmed — see ADR-0006 amendment note |
+| Language / Framework | C# / .NET 8, ASP.NET Core Web API | — (dev tooling, not a paid service) | Confirmed — see ADR-0010 |
 | Payments | Third-party processor — Stripe Connect (Express accounts) | N/A (external) | Confirmed — see ADR-0005 |
 | Secrets management | Azure Key Vault, per-environment, accessed via managed identity (no stored credential to reach it) | Free tier covers this scale (charged per operation, negligible cost) | Confirmed — see ADR-0007 |
 | API Gateway | Azure API Management, Consumption tier, zero-trust dual validation (edge fast-fail + authoritative per-service check) | Permanent free grant (1,000,000 calls/mo) | Confirmed — see ADR-0008 |
@@ -46,7 +47,7 @@ Local dev runs entirely via `docker-compose`. Not everything is optional the way
 | Event backbone | Redis Streams container | **Yes** — default service, not profile-gated (ADR-0003) | Contract-test suite runs against both Redis Streams and Event Grid to catch behavioral drift; `ChaosEventTransport` injects duplicate/out-of-order/delayed/dropped delivery (ADR-0003) |
 | Data store | Cosmos DB Linux emulator container | **Yes** — default service (ADR-0004); known to be resource-heavier than the other local services | `FakeRepository` (fast unit tests, bypasses the emulator entirely); contract tests run against the emulator for integration-level parity checks (ADR-0004) |
 | Payments | Stripe test mode + Stripe CLI (`stripe listen --forward-to`) forwarding real webhook events to a local endpoint | External SaaS — not a Compose service; no emulator needed (ADR-0005) | Stripe's own test-mode fixtures/test cards; webhook idempotency exercised by replaying Stripe's test events |
-| Auth | Local stub/mock OIDC issuer (config-driven issuer/JWKS URL swap, not a runtime fallback), no real Azure AD B2C dependency | Yes | Deterministic tests only (expired/tampered/malformed tokens) — no live chaos decorator, since auth has no fallback behavior to prove (ADR-0006) |
+| Auth | Local stub/mock OIDC issuer (config-driven issuer/JWKS URL swap, not a runtime fallback), no real Entra External ID dependency | Yes | Deterministic tests only (expired/tampered/malformed tokens) — no live chaos decorator, since auth has no fallback behavior to prove (ADR-0006) |
 | API Gateway | Skip locally, call services directly (safe under zero-trust dual validation) + thin reverse-proxy stand-in for URL/routing parity | Optional — reverse-proxy stand-in, not the real gateway | Static policy-config lint in CI (no live instance needed); real policy testing happens against a shared dev-tier cloud APIM instance, same shape as Stripe's test-mode approach (ADR-0008) |
 | Secrets | Git-ignored `.env` file with Stripe **test-mode** keys; no Key Vault dependency locally at all | Yes | Fail-fast startup validation tests (missing/malformed secret → refuse to start), not a live chaos decorator — no meaningful degraded mode for "can't get the Stripe key" (ADR-0007) |
 | Seed data | Fixture/seed script run on `docker-compose up` | Yes | — |
@@ -64,6 +65,8 @@ Extended command: `docker-compose --profile with-redis up` — additionally exer
 
 ## Open decisions
 
-All ADRs are now accepted: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), ADR-0006 (auth/authz model), ADR-0007 (secrets management), ADR-0008 (API gateway), and ADR-0009 (bounded-context-to-service mapping).
+All ADRs are now accepted: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), ADR-0006 (auth/authz model), ADR-0007 (secrets management), ADR-0008 (API gateway), ADR-0009 (bounded-context-to-service mapping), and ADR-0010 (service language/framework).
+
+**Two planned tech swaps in progress, not yet executed** — see `docs/governance/open-items-register.md` items #21 (Azure AD B2C → Entra External ID) and #22 (Redis vendor reconsideration). Neither changes any ADR's actual design; both are held from AI-agent assignment until finalized — see `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md`'s Agent-Ready Queue.
 
 No open architectural decisions remain from the original planning pass. Next steps move from planning into backlog/sprint scoping and actual build.

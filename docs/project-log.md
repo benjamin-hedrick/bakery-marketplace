@@ -35,8 +35,9 @@ Legend: ✅ Done · 🟡 Stub (exists, not fleshed out) · ⬜ Planned, not star
 | [0007 — Secrets Management](architecture/adr/0007-secrets-management.md) | ✅ Accepted | Key Vault + managed identity | Eliminate-the-secret-before-managing-it |
 | [0008 — API Gateway](architecture/adr/0008-api-gateway.md) | ✅ Accepted | Azure API Management (Consumption), zero-trust dual validation | Explicit departure from the adapter/chaos pattern, with a stated reason |
 | [0009 — Bounded-Context-to-Service Mapping](architecture/adr/0009-bounded-context-service-mapping.md) | ✅ Accepted | 13 bounded contexts grouped onto the 4 existing services | Modular monolith — same "isolate in code, split later" posture as ADR-0001/0004 |
+| [0010 — Service Language & Framework](architecture/adr/0010-service-language-framework.md) | ✅ Accepted | C# / .NET 8, ASP.NET Core Web API | Direct instruction, not a debate; unblocks real code for AI-agent assignment |
 
-All nine are cross-referenced in `architecture/adr/README.md`. General ADR discipline (state-assumptions-first, pattern-reuse-or-name-deviation, periodic audits) is documented in `project-process-framework/domains/software-systems/adr-template.md` — this repo is where that discipline was actually exercised.
+All ten are cross-referenced in `architecture/adr/README.md`. General ADR discipline (state-assumptions-first, pattern-reuse-or-name-deviation, periodic audits) is documented in `project-process-framework/domains/software-systems/adr-template.md` — this repo is where that discipline was actually exercised.
 
 ## Reference Documents
 
@@ -65,7 +66,7 @@ All nine are cross-referenced in `architecture/adr/README.md`. General ADR disci
 
 | Artifact | Status | Description |
 |---|---|---|
-| Backlog (epics/stories/acceptance criteria) | 🟡 Started | `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md` — 33 epics, high-level work-item titles across every hat, plus a rough suggested build order; 2 items fully detailed as validation examples |
+| Backlog (epics/stories/acceptance criteria) | 🟡 Started | `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md` — 33 epics; **Agent-Ready Queue** now has 6 fully-detailed C# work items safe for AI-agent assignment (`CACHE-001`, `EVT-001`, `DATA-001`, `AUTH-001`, `CACHE-003`, `CACHE-004`); `AUTH-004`/`CACHE-002`/`CACHE-005` explicitly held pending two tech swaps |
 | Prioritization (MoSCoW/RICE) | ⬜ Planned | Draws the story-level MVP line |
 | Sprint Plan | ⬜ Planned | |
 | Definition of Ready | `docs/process/definition-of-ready.md` ✅ | Real content — gates a work item into Ready status |

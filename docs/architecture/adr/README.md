@@ -13,5 +13,6 @@ One file per decision: `0001-title.md`, `0002-title.md`, etc. Use a standard ADR
 7. [0007 — Secrets Management](0007-secrets-management.md) — Azure Key Vault with managed identity, eliminate-the-secret-where-possible
 8. [0008 — API Gateway](0008-api-gateway.md) — Azure API Management (Consumption tier), zero-trust dual validation with ADR-0006
 9. [0009 — Bounded-Context-to-Service Mapping](0009-bounded-context-service-mapping.md) — 13 contexts onto 4 services, modular monolith rule
+10. [0010 — Service Language & Framework](0010-service-language-framework.md) — C# / .NET 8, ASP.NET Core Web API
 
 See `template.md` for the format used above (renamed from `0000-template.md` to avoid being mistaken for a real decision).

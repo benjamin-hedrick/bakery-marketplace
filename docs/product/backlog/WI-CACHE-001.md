@@ -29,18 +29,36 @@ ADR-0002 establishes an environment-conditional caching strategy: a `CacheProvid
 - Does not touch Terraform or Compose config (WI-CACHE-005)
 
 **Requirements / Acceptance Criteria**
-- `CacheProvider` interface defines `get(key)`, `set(key, value, ttl)`, `delete(key)`, `exists(key)`
-- A shared contract test suite exists (runnable against any implementation) covering at minimum:
+- `ICacheProvider` interface (C#, per ADR-0010):
+```csharp
+public interface ICacheProvider
+{
+    Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken ct = default);
+    Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default);
+    Task DeleteAsync(string key, CancellationToken ct = default);
+    Task<bool> ExistsAsync(string key, CancellationToken ct = default);
+}
+
+public readonly struct CacheResult<T>
+{
+    public bool Found { get; }
+    public T? Value { get; }
+    public static CacheResult<T> Miss() => new(false, default);
+    public static CacheResult<T> Hit(T value) => new(true, value);
+    private CacheResult(bool found, T? value) { Found = found; Value = value; }
+}
+```
+- A shared **xUnit abstract test base class** (`CacheProviderContractTests`), with a `protected abstract ICacheProvider CreateProvider();` factory method, covering at minimum:
   - set then get returns the value
-  - get on a missing key returns a clear "miss" result, not an exception
+  - get on a missing key returns `CacheResult<T>.Miss()`, not a thrown exception
   - delete removes a key such that a subsequent get is a miss
   - a key set with a TTL is a miss after the TTL elapses
-- Contract test suite is written to be run against a test double with zero modification — i.e., adding a new implementation later should mean "point the suite at it," not "rewrite the suite"
+- A new implementation "inherits" the contract suite by subclassing `CacheProviderContractTests` and overriding `CreateProvider()` — adding a new implementation later means writing one subclass, not rewriting the suite
 
 **Dependencies**
-- Blocks: WI-CACHE-002, WI-CACHE-003, WI-CACHE-004 (none of those can be usefully started without this interface being frozen)
+- Blocks: WI-CACHE-002 (held, see open item #22), WI-CACHE-003, WI-CACHE-004 (none of those can be usefully started without this interface being frozen)
 - Blocked by: none
-- Can be worked in parallel with: WI-CACHE-005 (infra work doesn't depend on the interface shape)
+- Can be worked in parallel with: WI-CACHE-005 (held, see open item #22)
 
 **Definition of Done**
 See `docs/process/definition-of-done.md`. Item-specific addition: the contract test suite itself must be reviewed and merged before any dependent item (WI-CACHE-002/003/004) is marked Ready — it's the shared foundation those items build on.
