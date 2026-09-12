@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BakeryMarketplace.Data.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+45c9a2ebcf8c0f4059c53256f569ba126cd1ed4e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4832a5332d3113c3c1dadd7083bfa944f684dc1f")]
 [assembly: System.Reflection.AssemblyProductAttribute("BakeryMarketplace.Data.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BakeryMarketplace.Data.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

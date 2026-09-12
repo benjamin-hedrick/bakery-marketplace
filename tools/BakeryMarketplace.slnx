@@ -4,9 +4,15 @@
     <Project Path="tests/BakeryMarketplace.Caching.Tests/BakeryMarketplace.Caching.Tests.csproj" />
     <Project Path="tests/BakeryMarketplace.Data.Tests/BakeryMarketplace.Data.Tests.csproj" />
     <Project Path="tests/BakeryMarketplace.Eventing.Tests/BakeryMarketplace.Eventing.Tests.csproj" />
+    <Project Path="tests/BakeryMarketplace.EventSchemas.Tests/BakeryMarketplace.EventSchemas.Tests.csproj" />
+    <Project Path="tests/BakeryMarketplace.Logging.Tests/BakeryMarketplace.Logging.Tests.csproj" />
+    <Project Path="tests/BakeryMarketplace.Secrets.Tests/BakeryMarketplace.Secrets.Tests.csproj" />
   </Folder>
   <Project Path="BakeryMarketplace.Auth/BakeryMarketplace.Auth.csproj" />
   <Project Path="BakeryMarketplace.Caching/BakeryMarketplace.Caching.csproj" />
   <Project Path="BakeryMarketplace.Data/BakeryMarketplace.Data.csproj" />
   <Project Path="BakeryMarketplace.Eventing/BakeryMarketplace.Eventing.csproj" />
+  <Project Path="BakeryMarketplace.EventSchemas/BakeryMarketplace.EventSchemas.csproj" />
+  <Project Path="BakeryMarketplace.Logging/BakeryMarketplace.Logging.csproj" />
+  <Project Path="BakeryMarketplace.Secrets/BakeryMarketplace.Secrets.csproj" />
 </Solution>
