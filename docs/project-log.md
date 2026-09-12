@@ -66,7 +66,7 @@ All ten are cross-referenced in `architecture/adr/README.md`. General ADR discip
 
 | Artifact | Status | Description |
 |---|---|---|
-| Backlog (epics/stories/acceptance criteria) | 🟡 Started | `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md` — 33 epics; **Agent-Ready Queue** now has 6 fully-detailed C# work items safe for AI-agent assignment (`CACHE-001`, `EVT-001`, `DATA-001`, `AUTH-001`, `CACHE-003`, `CACHE-004`); `AUTH-004`/`CACHE-002`/`CACHE-005` explicitly held pending two tech swaps |
+| Backlog (epics/stories/acceptance criteria) | 🟡 Started | `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md` — 33 epics; **Agent-Ready Queue** has Batch 1 (6 items, sent to agents, pending review) and Batch 2 (4 items: `TOOL-001`, `TOOL-002`, `SEC-001`, `SEC-003`, fully independent of Batch 1 by design); `AUTH-004`/`CACHE-002`/`CACHE-005` held pending two tech swaps |
 | Prioritization (MoSCoW/RICE) | ⬜ Planned | Draws the story-level MVP line |
 | Sprint Plan | ⬜ Planned | |
 | Definition of Ready | `docs/process/definition-of-ready.md` ✅ | Real content — gates a work item into Ready status |

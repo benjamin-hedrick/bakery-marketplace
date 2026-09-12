@@ -6,20 +6,31 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 
 ## Agent-Ready Queue (safe to assign to AI coding agents right now)
 
-Six items, fully detailed with real C# signatures (ADR-0010), verified independent of both pending tech swaps (open items #21 Entra External ID, #22 Redis vendor). Each can be worked in parallel — none blocks another except where noted.
+**Batch 1 — sent to agents, results not yet reviewed.** Contract tests should be run against whatever comes back before anything in Batch 2's Category-2-risk items (real domain logic depending on these interfaces) gets greenlit — see `ai-collaboration-playbook/open-questions.md`'s multi-agent coordination note.
+
+| Item | Type | What it produces | Status |
+|---|---|---|---|
+| `WI-CACHE-001` | Interface/Contract | `ICacheProvider` + contract test base | Sent to agent |
+| `WI-EVT-001` | Interface/Contract | `IEventPublisher`/`IEventSubscriber` + envelope | Sent to agent |
+| `WI-DATA-001` | Interface/Contract | `IRepository<T>` + contract test base | Sent to agent |
+| `WI-AUTH-001` | Interface/Contract | JWT middleware + `IResourceOwnershipChecker` | Sent to agent |
+| `WI-CACHE-003` | Service Implementation | `LocalCacheProvider` + `ResilientCacheProvider` | Sent to agent |
+| `WI-CACHE-004` | Test/Mock/Chaos | `ChaosCacheProvider` + fallback proof tests | Sent to agent |
+
+**Batch 2 — fully independent of Batch 1, zero coordination risk.** Deliberately chosen to not depend on any Batch 1 interface, since Batch 1's actual signatures haven't been verified against spec yet.
 
 | Item | Type | What it produces | Notes |
 |---|---|---|---|
-| `WI-CACHE-001` | Interface/Contract | `ICacheProvider` + contract test base | Blocks CACHE-003/004 |
-| `WI-EVT-001` | Interface/Contract | `IEventPublisher`/`IEventSubscriber` + envelope | Independent |
-| `WI-DATA-001` | Interface/Contract | `IRepository<T>` + contract test base | Independent |
-| `WI-AUTH-001` | Interface/Contract | JWT middleware + `IResourceOwnershipChecker` | Explicitly unaffected by the Entra swap |
-| `WI-CACHE-003` | Service Implementation | `LocalCacheProvider` + `ResilientCacheProvider` | Blocked by CACHE-001; vendor-agnostic |
-| `WI-CACHE-004` | Test/Mock/Chaos | `ChaosCacheProvider` + fallback proof tests | Blocked by CACHE-003; vendor-agnostic |
+| `WI-TOOL-001` | Interface/Contract | Domain event payload records | Independent — only needs `EVT-001`'s documented envelope shape, not its implementation |
+| `WI-TOOL-002` | Interface/Contract | Correlation-ID middleware + logging convention | Fully independent |
+| `WI-SEC-001` | Infra/Environment | Key Vault + managed identity Terraform | Fully independent — infra, not application code |
+| `WI-SEC-003` | Test/Mock/Chaos | Fail-fast secret-validation tests | Fully independent |
 
 **Explicitly held from agent assignment** — do not queue these until the noted decision finalizes:
 - `AUTH-004` (Entra External ID tenant/policy config) — open item #21
 - `CACHE-002` (RedisCacheProvider) and `CACHE-005` (Terraform Redis toggle) — open item #22
+
+**Deliberately not included in Batch 2**: real domain business logic (`CAT-001`, `ORD-002`, etc.) that would build against Batch 1's interfaces before those are verified. Recommended as the natural Batch 3, once Batch 1's actual code is checked against its spec's documented signatures.
 
 ## On Deck (decided priority — update this whenever priority changes)
 
@@ -131,10 +142,10 @@ Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engin
 - 🛑 AUTH-004 (Infra/Environment) — **HOLD — do not assign to agents.** Tenant + policy configuration — targets Microsoft Entra External ID, not Azure AD B2C, per open item #21. Held until that migration decision is finalized.
 
 ### EPIC-SECRETS — Secrets Management
-Scope: cross-cutting (all contexts) · Primary hat(s): Platform Engineering · Status: Not Started
-- 🟢 SEC-001 (Infra/Environment) — Per-environment Key Vault + managed identity RBAC grants (ADR-0007)
-- 🟢 SEC-002 (Service Implementation) — Cosmos DB access via managed identity (eliminating the connection-string secret, per ADR-0007)
-- 🟢 SEC-003 (Test/Mock/Chaos) — Fail-fast startup validation tests for missing/malformed secrets
+Scope: cross-cutting (all contexts) · Primary hat(s): Platform Engineering · Status: Started (2 of 3 items detailed, Ready for agents)
+- ✅ SEC-001 (Infra/Environment) — **Detailed, Ready for agents**, see `WI-SEC-001.md` — per-environment Key Vault + managed identity RBAC (ADR-0007)
+- 🟢 SEC-002 (Service Implementation) — Cosmos DB access via managed identity (eliminating the connection-string secret, per ADR-0007) — blocked by `DATA-002` (CosmosRepository implementation, not yet detailed)
+- ✅ SEC-003 (Test/Mock/Chaos) — **Detailed, Ready for agents**, see `WI-SEC-003.md` — fail-fast startup validation, deterministic tests only per ADR-0007
 
 ### EPIC-API-GATEWAY — Azure API Management
 Scope: cross-cutting (all frontend-to-service traffic) · Primary hat(s): Architect, Platform Engineering · Status: Not Started
@@ -146,10 +157,10 @@ Scope: cross-cutting (all frontend-to-service traffic) · Primary hat(s): Archit
 - 🟢 GW-006 (Infra/Environment) — Coarse per-subscription rate-limit policy — overlaps with `EPIC-RATE-LIMITING`'s `RATE-004`, deliberately cross-listed (see gap note below); Consumption tier does not support `rate-limit-by-key`, so this does not cover per-user/per-content abuse prevention
 
 ### EPIC-SHARED-TOOLING — Reusable Packages
-Scope: cross-cutting · Primary hat(s): Platform Engineering · Status: Not Started
-- ⚪ TOOL-001 (Interface/Contract) — `/tools/event-schemas` (shared event types, referenced by EPIC-EVENTING)
-- ⚪ TOOL-002 (Interface/Contract) — `/tools/logging-helper` (structured logging + correlation IDs)
-- 🟢 TOOL-003 (Interface/Contract) — `/tools/auth-middleware` (also listed under EPIC-AUTH — deliberate overlap, see gap note below)
+Scope: cross-cutting · Primary hat(s): Platform Engineering · Status: Started (2 of 4 items detailed, Ready for agents)
+- ✅ TOOL-001 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-TOOL-001.md` — domain event payload records, fully independent of batch 1
+- ✅ TOOL-002 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-TOOL-002.md` — correlation-ID middleware + structured logging convention
+- 🟢 TOOL-003 (Interface/Contract) — `/tools/auth-middleware` — same item as `AUTH-001`, already detailed and Ready for agents there (see `WI-AUTH-001.md`); this line stays as the deliberate cross-listing pointer, not a duplicate
 - ⚪ TOOL-004 (Service Implementation) — Shared fault-injection harness (used by EPIC-CACHING, EPIC-EVENTING, EPIC-DATA-STORE chaos items)
 
 ---
