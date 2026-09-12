@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "dgSpecHash": "CtghIpfDXR4=",
+  "success": true,
+  "projectFilePath": "c:\\git\\bakery-marketplace\\tools\\BakeryMarketplace.Caching\\BakeryMarketplace.Caching.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.caching.abstractions\\10.0.12\\microsoft.extensions.caching.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.caching.memory\\10.0.12\\microsoft.extensions.caching.memory.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\10.0.12\\microsoft.extensions.configuration.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.12\\microsoft.extensions.dependencyinjection.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.diagnostics.abstractions\\10.0.12\\microsoft.extensions.diagnostics.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.fileproviders.abstractions\\10.0.12\\microsoft.extensions.fileproviders.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.hosting.abstractions\\10.0.12\\microsoft.extensions.hosting.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.12\\microsoft.extensions.logging.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.options\\10.0.12\\microsoft.extensions.options.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\microsoft.extensions.primitives\\10.0.12\\microsoft.extensions.primitives.10.0.12.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\polly\\8.7.0\\polly.8.7.0.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\polly.core\\8.7.0\\polly.core.8.7.0.nupkg.sha512",
+    "C:\\Users\\Ben\\.nuget\\packages\\system.diagnostics.diagnosticsource\\10.0.12\\system.diagnostics.diagnosticsource.10.0.12.nupkg.sha512"
+  ],
+  "logs": []
+}

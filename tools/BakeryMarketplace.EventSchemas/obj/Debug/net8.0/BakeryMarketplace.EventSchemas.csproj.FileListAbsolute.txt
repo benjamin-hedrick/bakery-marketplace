@@ -1,0 +1,12 @@
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\bin\Debug\net8.0\BakeryMarketplace.EventSchemas.deps.json
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\bin\Debug\net8.0\BakeryMarketplace.EventSchemas.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\bin\Debug\net8.0\BakeryMarketplace.EventSchemas.pdb
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\BakeryMarketplace.EventSchemas.GeneratedMSBuildEditorConfig.editorconfig
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\BakeryMarketplace.EventSchemas.AssemblyInfoInputs.cache
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\BakeryMarketplace.EventSchemas.AssemblyInfo.cs
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\BakeryMarketplace.EventSchemas.csproj.CoreCompileInputs.cache
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\BakeryMarketplace.EventSchemas.sourcelink.json
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\BakeryMarketplace.EventSchemas.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\refint\BakeryMarketplace.EventSchemas.dll
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\BakeryMarketplace.EventSchemas.pdb
+c:\git\bakery-marketplace\tools\BakeryMarketplace.EventSchemas\obj\Debug\net8.0\ref\BakeryMarketplace.EventSchemas.dll
