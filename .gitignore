@@ -6,3 +6,7 @@ build/
 *.log
 .DS_Store
 __pycache__/
+
+# Ignore all bin and obj directories at any depth
+**/bin/
+**/obj/
