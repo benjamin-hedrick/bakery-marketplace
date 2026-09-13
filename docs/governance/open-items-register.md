@@ -95,3 +95,7 @@ The specific managed cache vendor (Azure Cache for Redis) may change. `CacheProv
 **23. Documentation cleanup: stale "Azure AD B2C" references in historical diagrams/docs**
 Type: Low-priority cosmetic cleanup · Source: this review pass · Hat: Architect
 `docs/architecture/c4/context.md`/`container.md`, `docs/management/budget-cost-estimate.md`, and a few closed work-item files still name Azure AD B2C directly rather than Entra External ID. Not functionally incorrect (the swap doesn't change any diagram's actual shape), just cosmetically stale. Living reference docs (`tech-stack.md`, ADR-0006) are already corrected — this item is for the rest, whenever it's convenient, not urgent.
+
+**24. No refresh-token / silent-renewal flow in the frontend auth pattern**
+Type: Known limitation (v1) · Source: ADR-0011, `WI-WEB-001`/`WI-AUTH-005` · Hat: Engineering/Build, Architect
+Access tokens are held in memory only and expire with no background refresh — a user simply gets logged out and must re-authenticate. Acceptable for a local/demo-scale app with short sessions; a real production frontend would need either silent-refresh-via-hidden-iframe or a refresh-token grant (the latter would also reopen the cookie-vs-header storage question closed in ADR-0006 §3.3's CSRF analysis, so isn't a drop-in addition). Named here explicitly rather than left as an unstated gap, consistent with `WI-NFR-001`'s "aspirational/future" discipline.

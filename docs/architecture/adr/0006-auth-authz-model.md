@@ -76,3 +76,9 @@ Azure AD B2C stopped accepting new tenants as of May 2025, and Premium P2/Identi
 ## Open item surfaced, not resolved here
 
 **Secrets management (e.g., Azure Key Vault)** has not been formally decided anywhere in the plan — relevant to Stripe API keys, database connection strings, and any future service secrets, though not to this ADR directly (JWT validation needs only the public JWKS endpoint, no shared secret). Worth its own short ADR or a `tech-stack.md` addition before the build phase.
+
+## Amendment note (ADR-0011 — local mock issuer's scope)
+
+ADR-0011 (frontend framework) requires a real browser redirect flow (Authorization Code + PKCE) for local development, not just direct claim-request token minting. This means the local mock OIDC issuer (`AUTH-005`) needs an actual `/authorize` endpoint (a minimal login page — pick a mock user/role) and a `/token` endpoint supporting the `authorization_code` grant with PKCE, in addition to whatever direct minting capability it already had.
+
+**This does not change this ADR's design.** The validation side (shared middleware, Authority/Audience config-driven per ADR-0010) is unaffected — only the mock issuer's own surface area grows. Nothing has started building `AUTH-005` yet, so this is folded directly into its work-item spec (revised, Size S→M) rather than treated as a correction to already-built code.
