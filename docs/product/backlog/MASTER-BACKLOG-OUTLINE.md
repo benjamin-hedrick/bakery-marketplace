@@ -6,49 +6,87 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 
 ## Agent-Ready Queue (safe to assign to AI coding agents right now)
 
-**Batch 1 — sent to agents, results not yet reviewed.** Contract tests should be run against whatever comes back before anything in Batch 2's Category-2-risk items (real domain logic depending on these interfaces) gets greenlit — see `ai-collaboration-playbook/open-questions.md`'s multi-agent coordination note.
+**Batch 1 — reviewed 2026-09-12.** All six items pass spec review (interface signatures match verbatim, required contract-test cases present) and passed the agents' own test runs. See `docs/ACTIVITY-LOG.md`'s 2026-09-12 entry for the detailed review notes, including one minor non-blocking nuance on `AUTH-001`'s issuer-swap test coverage.
 
 | Item | Type | What it produces | Status |
 |---|---|---|---|
-| `WI-CACHE-001` | Interface/Contract | `ICacheProvider` + contract test base | Sent to agent |
-| `WI-EVT-001` | Interface/Contract | `IEventPublisher`/`IEventSubscriber` + envelope | Sent to agent |
-| `WI-DATA-001` | Interface/Contract | `IRepository<T>` + contract test base | Sent to agent |
-| `WI-AUTH-001` | Interface/Contract | JWT middleware + `IResourceOwnershipChecker` | Sent to agent |
-| `WI-CACHE-003` | Service Implementation | `LocalCacheProvider` + `ResilientCacheProvider` | Sent to agent |
-| `WI-CACHE-004` | Test/Mock/Chaos | `ChaosCacheProvider` + fallback proof tests | Sent to agent |
+| `WI-CACHE-001` | Interface/Contract | `ICacheProvider` + contract test base | Done — reviewed |
+| `WI-EVT-001` | Interface/Contract | `IEventPublisher`/`IEventSubscriber` + envelope | Done — reviewed |
+| `WI-DATA-001` | Interface/Contract | `IRepository<T>` + contract test base | Done — reviewed |
+| `WI-AUTH-001` | Interface/Contract | JWT middleware + `IResourceOwnershipChecker` | Done — reviewed |
+| `WI-CACHE-003` | Service Implementation | `LocalCacheProvider` + `ResilientCacheProvider` | Done — reviewed |
+| `WI-CACHE-004` | Test/Mock/Chaos | `ChaosCacheProvider` + fallback proof tests | Done — reviewed |
 
-**Batch 2 — fully independent of Batch 1, zero coordination risk.** Deliberately chosen to not depend on any Batch 1 interface, since Batch 1's actual signatures haven't been verified against spec yet.
+**Batch 2 — done, reviewed.** Fully independent of Batch 1, zero coordination risk — this held up in review.
 
 | Item | Type | What it produces | Notes |
 |---|---|---|---|
-| `WI-TOOL-001` | Interface/Contract | Domain event payload records | Independent — only needs `EVT-001`'s documented envelope shape, not its implementation |
-| `WI-TOOL-002` | Interface/Contract | Correlation-ID middleware + logging convention | Fully independent |
-| `WI-SEC-001` | Infra/Environment | Key Vault + managed identity Terraform | Fully independent — infra, not application code |
-| `WI-SEC-003` | Test/Mock/Chaos | Fail-fast secret-validation tests | Fully independent |
+| `WI-TOOL-001` | Interface/Contract | Domain event payload records | Done — reviewed |
+| `WI-TOOL-002` | Interface/Contract | Correlation-ID middleware + logging convention | Done — reviewed |
+| `WI-SEC-001` | Infra/Environment | Key Vault + managed identity Terraform | Done — reviewed |
+| `WI-SEC-003` | Test/Mock/Chaos | Fail-fast secret-validation tests | Done — reviewed |
+
+**Batch 3 — foundational build toward full local end-to-end, ready for agents (added 2026-09-12).** Prioritized by a working session focused on getting the whole project running locally before any cloud-caching-vendor or cloud-gateway decisions matter. No internal dependencies between these five — fully parallel.
+
+| Item | Type | What it produces | Notes |
+|---|---|---|---|
+| `WI-DATA-002` | Service Implementation | `CosmosRepository<T>` | Blocks `SEC-002` |
+| `WI-CACHE-002` | Service Implementation | `RedisCacheProvider` | Unblocked — vendor question only affects `CACHE-005`, not this item (see open item #22) |
+| `WI-EVT-003` | Service Implementation | `RedisStreamsPublisher`/`Subscriber` | Prioritized ahead of `EVT-002` (EventGridPublisher, cloud-only, not needed for local e2e) |
+| `WI-AUTH-002` | Service Implementation | Per-service resource-ownership check pattern + reference example | — |
+| `WI-AUTH-005` | Service Implementation | Local mock OIDC/JWT issuer | **New item** — closed a real gap: ADR-0006 describes this, nothing had built it (see Gaps section, #6) |
+
+**Batch 3b — local environment wiring, depends on Batch 3 landing.**
+
+| Item | Type | What it produces | Notes |
+|---|---|---|---|
+| `WI-DEV-001` | Infra/Environment | Real `docker-compose.yml` | Soft-blocked by Batch 3 (can be drafted in parallel, needs Batch 3 to actually run) |
+| `WI-DEV-003` | Infra/Environment | Seed/fixture data script | Blocked by `DEV-001`, `DATA-002` |
+
+**Batch 4 — walking skeleton (Layer 3), ready for agents once Batch 3/3b land (added 2026-09-12).** This is the actual customer-browse-to-order path per `portfolio-plan.md`'s original Sprint 1/2 scope. `ORD-004` is the one true blocking node — everything Order-related waits on the fulfillment seam being frozen first.
+
+| Item | Type | What it produces | Blocked by |
+|---|---|---|---|
+| `WI-ORD-004` | Interface/Contract | `FulfillmentStrategy` seam (ACL boundary, ADR-0001) | none — top of this batch's critical path |
+| `WI-CAT-001` | Service Implementation | Listing CRUD + modifier/allergy model | `DATA-002`, `EVT-003`, `AUTH-002` |
+| `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | `ORD-004` |
+| `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | `ORD-004` |
+| `WI-ORD-006` | Integration | Order persistence via `Repository<T>` | `ORD-002`, `DATA-002` |
+| `WI-ORD-005` | Integration | Publish Order events via event backbone | `ORD-002`, `EVT-003` |
+| `WI-CAT-003` | Integration | Cache-aside integration for listing reads | `CAT-001`, `CACHE-002` |
+| `WI-ORD-001` | Service Implementation | Cart + checkout (payment stubbed — `EPIC-PAYMENTS` not yet built) | `CAT-001`, `ORD-002`, `ORD-006` |
+| `WI-QUE-001` | Service Implementation | Order-status read-model (event-fed, CQRS) | `ORD-005`, `EVT-003`, `DATA-002` |
+
+Two real design choices surfaced while detailing this batch, captured as Open Points on the relevant items rather than decided silently — see `WI-CAT-001.md` (where catalog-service stores derived vendor-verification status) and `WI-ORD-001.md` (the exact shape of the payment-step stub). Neither blocks starting the batch; both should be confirmed before/during implementation.
 
 **Explicitly held from agent assignment** — do not queue these until the noted decision finalizes:
 - `AUTH-004` (Entra External ID tenant/policy config) — open item #21
-- `CACHE-002` (RedisCacheProvider) and `CACHE-005` (Terraform Redis toggle) — open item #22
+- `CACHE-005` (Terraform Redis toggle / cloud cache vendor provisioning) — open item #22, cloud caching backend deliberately deferred per 2026-09-12 session
+- `EVT-002` (EventGridPublisher) — not held for a decision reason, just deprioritized behind `EVT-003` since it's cloud-only and not on the local-e2e critical path
+- `GW-*` (API Gateway items) — ADR-0008 already says skip the gateway locally; no local-e2e need for these yet
 
-**Deliberately not included in Batch 2**: real domain business logic (`CAT-001`, `ORD-002`, etc.) that would build against Batch 1's interfaces before those are verified. Recommended as the natural Batch 3, once Batch 1's actual code is checked against its spec's documented signatures.
+**Known gap, not yet a batch**: no work items exist for the `web-customer`/`web-admin` frontends beyond scaffolds — `QUE-002` is the only frontend item anywhere in the backlog and it's title-only. Logged to `PARKING-LOT.md`; needs its own scoping pass once Batch 4 is far enough along to have something for a frontend to call.
 
 ## On Deck (decided priority — update this whenever priority changes)
 
-1. **`ARCH-005`** (Component-level C4 diagrams) — the only item left in `EPIC-ARCH-DOCS`, low priority.
+1. **Batch 3** (`DATA-002`, `CACHE-002`, `EVT-003`, `AUTH-002`, `AUTH-005`) — assign to agents now, fully parallel.
+2. **Batch 3b** (`DEV-001`, `DEV-003`) — once Batch 3 lands.
+3. **Batch 4** (walking skeleton) — once Batch 3/3b land; start with `ORD-004` since everything Order-side waits on it.
+4. **`ARCH-005`** (Component-level C4 diagrams) — still the only item left in `EPIC-ARCH-DOCS`, still low priority, unchanged from before.
 
-`GOV-001`, `OPS-003`, `ARCH-002`, `ARCH-003`, and `ARCH-004` are all done. `OPS-001` (SLA/SLO) is done. `EPIC-PM-ARTIFACTS` has only `MGMT-003`/`MGMT-006` left, currently not on deck. Full history of prior reprioritizations is in `docs/ACTIVITY-LOG.md`, not repeated here each time.
+`GOV-001`, `OPS-003`, `ARCH-002`, `ARCH-003`, `ARCH-004`, `OPS-001` remain done. `EPIC-PM-ARTIFACTS` has only `MGMT-003`/`MGMT-006` left, not currently on deck. Full history of prior reprioritizations is in `docs/ACTIVITY-LOG.md`, not repeated here each time.
 
-Legend: 🟢 detail known now (from an existing ADR/decision) · ⚪ title only, detail TBD when picked up
+Legend: 🟢 detail known now (from an existing ADR/decision) · ⚪ title only, detail TBD when picked up · ✅ detailed and Ready/Done
 
 ---
 
 ## Domain / Product Epics
 
 ### EPIC-CATALOG — Catalog & Customization
-Scope: Catalog · Primary hat(s): Architect, Engineering/Build · Status: Not Started
-- 🟢 CAT-001 (Service Implementation) — Listing CRUD + modifier/add-in model, allergy flags per item (per glossary: Listing, Modifier, Allergy Flag)
+Scope: Catalog · Primary hat(s): Architect, Engineering/Build · Status: Started (2 of 4 items detailed, Ready for agents)
+- ✅ CAT-001 (Service Implementation) — **Detailed, Ready for agents**, see `WI-CAT-001.md` — Listing CRUD + modifier/add-in model, allergy flags per item (per glossary: Listing, Modifier, Allergy Flag); has two Open Points on vendor-verification-status storage and the local-dev seed dependency
 - ⚪ CAT-002 (Service Implementation) — Coffee/bakery customization flow (modifier selection UI + validation)
-- 🟢 CAT-003 (Integration) — Consumes `CacheProvider` (EPIC-CACHING) for listing reads
+- ✅ CAT-003 (Integration) — **Detailed, Ready for agents**, see `WI-CAT-003.md` — Consumes `CacheProvider` (EPIC-CACHING) for listing reads
 - ⚪ CAT-004 (Service Implementation) — Catalog moderation queue hooks (feeds EPIC-ADMIN)
 
 ### EPIC-SEARCH — Search & Discovery
@@ -63,18 +101,18 @@ Scope: Preferences & Dietary Safety · Primary hat(s): Architect, Digital PM · 
 - 🟢 PREF-002 (Integration) — Publish Preference Snapshot via Open Host Service (per bounded context map) to Search + Ordering
 
 ### EPIC-ORDERING — Ordering & Fulfillment (pickup v1)
-Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build · Status: Not Started
-- ⚪ ORD-001 (Service Implementation) — Cart + checkout
-- 🟢 ORD-002 (Service Implementation) — Order aggregate + lifecycle states (`Placed → Confirmed → InPreparation → ReadyForFulfillment → Completed`, per ADR-0001)
-- 🟢 ORD-003 (Service Implementation) — Pickup Window scheduling (PickupFulfillment strategy, per ADR-0001)
-- 🟢 ORD-004 (Interface/Contract) — `FulfillmentStrategy` interface (the ACL boundary itself, per ADR-0001) — this is the seam a future Delivery strategy would plug into
-- 🟢 ORD-005 (Integration) — Publish domain events (`OrderPlaced`, `OrderCustomized`, `PickupWindowScheduled`, `OrderReadyForPickup`, `OrderCompleted` per ADR-0003/glossary) via the event backbone (EPIC-EVENTING)
-- 🟢 ORD-006 (Integration) — Consumes `Repository<T>` for Cosmos-backed persistence (EPIC-DATA-STORE)
+Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build · Status: Started (6 of 6 walking-skeleton items detailed, Ready for agents)
+- ✅ ORD-001 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-001.md` — Cart + checkout, payment step explicitly stubbed pending `EPIC-PAYMENTS`
+- ✅ ORD-002 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-002.md` — Order aggregate + lifecycle states (`Placed → Confirmed → InPreparation → ReadyForFulfillment → Completed`, per ADR-0001)
+- ✅ ORD-003 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-003.md` — Pickup Window scheduling (PickupFulfillment strategy, per ADR-0001)
+- ✅ ORD-004 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-ORD-004.md` — `FulfillmentStrategy` interface (the ACL boundary itself, per ADR-0001) — this is the seam a future Delivery strategy would plug into, and the top of this epic's critical path
+- ✅ ORD-005 (Integration) — **Detailed, Ready for agents**, see `WI-ORD-005.md` — Publish domain events (`OrderPlaced`, `OrderCustomized`, `PickupWindowScheduled`, `OrderReadyForPickup`, `OrderCompleted` per ADR-0003/glossary) via the event backbone (EPIC-EVENTING)
+- ✅ ORD-006 (Integration) — **Detailed, Ready for agents**, see `WI-ORD-006.md` — Consumes `Repository<T>` for Cosmos-backed persistence (EPIC-DATA-STORE)
 
 ### EPIC-QUEUE-DISPLAY — Live Order-Queue Display
-Scope: Ordering & Fulfillment (read-side) · Primary hat(s): Architect, Engineering/Build · Status: Not Started
-- 🟢 QUE-001 (Service Implementation) — Read-model built from order events, not a direct query against the `orders` container (per ADR-0004's CQRS decision)
-- ⚪ QUE-002 (Service Implementation) — `web-queue-display` app — live UI
+Scope: Ordering & Fulfillment (read-side) · Primary hat(s): Architect, Engineering/Build · Status: Started (1 of 2 items detailed)
+- ✅ QUE-001 (Service Implementation) — **Detailed, Ready for agents**, see `WI-QUE-001.md` — Read-model built from order events, not a direct query against the `orders` container (per ADR-0004's CQRS decision)
+- ⚪ QUE-002 (Service Implementation) — `web-queue-display` app — live UI. **This is the only frontend item anywhere in the backlog** — see the frontend-scope gap noted above and in `PARKING-LOT.md`.
 
 ### EPIC-FULFILLMENT-EXT — Delivery/Dispatch (v2, deferred)
 Scope: Ordering & Fulfillment (future) · Primary hat(s): Architect · Status: Deferred (by design, not a gap)
@@ -83,7 +121,7 @@ Scope: Ordering & Fulfillment (future) · Primary hat(s): Architect · Status: D
 ### EPIC-VENDOR-ONBOARDING — Vendor Onboarding & Verification
 Scope: Vendor Onboarding & Verification · Primary hat(s): Architect, Digital PM · Status: Not Started · Hosted in: `admin-service` (ADR-0009)
 - ⚪ VEN-001 (Service Implementation) — Vendor profile + `VendorType` (Shop | Independent) per glossary
-- ⚪ VEN-002 (Service Implementation) — Verification status workflow (`Pending → Verified` / `Suspended`)
+- ⚪ VEN-002 (Service Implementation) — Verification status workflow (`Pending → Verified` / `Suspended`) — **note**: `CAT-001` and `DEV-003` currently work around this not existing yet by having the seed script publish `VendorVerified` directly for local e2e; this item is the real implementation that will eventually replace that workaround
 - 🟢 VEN-003 (Integration) — Stripe Connect Express onboarding flow (per ADR-0005) — store only the resulting connected-account ID + status, not raw KYC data
 
 ### EPIC-ADVERTISING — Advertising / Promotions
@@ -93,7 +131,7 @@ Scope: Advertising/Promotions · Primary hat(s): Digital PM, Architect · Status
 
 ### EPIC-PAYMENTS — Payments & Payouts
 Scope: Payments & Payouts · Primary hat(s): Architect, Engineering/Build · Status: Not Started
-- 🟢 PAY-001 (Integration) — Stripe Connect destination charges + `application_fee_amount` commission split (ADR-0005)
+- 🟢 PAY-001 (Integration) — Stripe Connect destination charges + `application_fee_amount` commission split (ADR-0005) — this is what `ORD-001`'s payment-step stub is designed to be replaced by
 - 🟢 PAY-002 (Service Implementation) — `payouts` container as reconciliation read-model, populated via Stripe webhooks (ADR-0004 + ADR-0005)
 - 🟢 PAY-003 (Test/Mock/Chaos) — Webhook idempotency tests (dedupe on Stripe event ID, same pattern as ADR-0003's event dedupe)
 - ⚪ PAY-004 (Service Implementation) — Basic refund initiation (chargebacks explicitly out of scope per ADR-0005 / Open Item #6)
@@ -117,35 +155,36 @@ Scope: Admin/Moderation · Primary hat(s): Engineering/Build, Operations · Stat
 
 ## Cross-Cutting Technical Epics
 
-### EPIC-CACHING — see `EPIC-CACHING.md` (existing, 3 of 5 items detailed — `CACHE-001`/`003`/`004` Ready for agents, `CACHE-002`/`005` held per open item #22)
+### EPIC-CACHING — see `EPIC-CACHING.md` (updated 2026-09-12: `CACHE-002` unblocked and Ready for agents; `CACHE-005` remains held)
 
 ### EPIC-EVENTING — Event-Driven Backbone
-Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (1 of 5 items detailed)
-- ✅ EVT-001 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-EVT-001.md` — `IEventPublisher`/`IEventSubscriber` interfaces + envelope shape (ADR-0003), real C# per ADR-0010
-- 🟢 EVT-002 (Service Implementation) — `EventGridPublisher`/`EventGridSubscriber` (cloud)
-- 🟢 EVT-003 (Service Implementation) — `RedisStreamsPublisher`/`RedisStreamsSubscriber` (local)
-- 🟢 EVT-004 (Test/Mock/Chaos) — Contract-test suite + `ChaosEventTransport` (duplicate/out-of-order/delayed/dropped delivery, per ADR-0003)
+Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (2 of 5 items detailed)
+- ✅ EVT-001 (Interface/Contract) — **Done**, see `WI-EVT-001.md` — `IEventPublisher`/`IEventSubscriber` interfaces + envelope shape (ADR-0003), real C# per ADR-0010
+- 🟢 EVT-002 (Service Implementation) — `EventGridPublisher`/`EventGridSubscriber` (cloud) — deprioritized behind `EVT-003`, not needed for local e2e
+- ✅ EVT-003 (Service Implementation) — **Detailed, Ready for agents**, see `WI-EVT-003.md` — `RedisStreamsPublisher`/`Subscriber` (local), prioritized for local end-to-end
+- ⚪ EVT-004 (Test/Mock/Chaos) — Contract-test suite + `ChaosEventTransport` (duplicate/out-of-order/delayed/dropped delivery, per ADR-0003) — blocked by `EVT-003`
 - ⚪ EVT-005 (Infra/Environment) — Terraform Event Grid custom topic + subscription filters
 
 ### EPIC-DATA-STORE — Cosmos DB Repositories
-Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (1 of 4 items detailed)
-- ✅ DATA-001 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-DATA-001.md` — `IRepository<T>` interface (ADR-0004), real C# per ADR-0010
-- 🟢 DATA-002 (Service Implementation) — `CosmosRepository<T>` per container (`catalog`, `orders`, `vendors`, `preferences`, `reviews`, `payouts`)
-- 🟢 DATA-003 (Test/Mock/Chaos) — `FakeRepository<T>` + contract tests against the Cosmos emulator
+Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (2 of 4 items detailed)
+- ✅ DATA-001 (Interface/Contract) — **Done**, see `WI-DATA-001.md` — `IRepository<T>` interface (ADR-0004), real C# per ADR-0010
+- ✅ DATA-002 (Service Implementation) — **Detailed, Ready for agents**, see `WI-DATA-002.md` — `CosmosRepository<T>` per container (`catalog`, `orders`, `vendors`, `preferences`, `reviews`, `payouts`)
+- 🟢 DATA-003 (Test/Mock/Chaos) — `FakeRepository<T>` + contract tests against the Cosmos emulator — `FakeRepository<T>` already exists from `DATA-001`; the emulator-based contract-test run is the remaining piece
 - ⚪ DATA-004 (Infra/Environment) — Terraform Cosmos account + per-container partition key config
 
 ### EPIC-AUTH — Auth/Authz
-Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (1 of 4 items detailed)
-- ✅ AUTH-001 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-AUTH-001.md` — JWT middleware + ownership checker, real C# per ADR-0010; explicitly unaffected by the pending Entra External ID swap (open item #21)
-- ⚪ AUTH-002 (Service Implementation) — Per-service role + resource-ownership checks (unchanged by `EPIC-API-GATEWAY` — APIM adds an edge fast-fail check per ADR-0008, this remains the authoritative one per zero-trust principles)
+Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (3 of 5 items detailed, Ready for agents)
+- ✅ AUTH-001 (Interface/Contract) — **Done**, see `WI-AUTH-001.md` — JWT middleware + ownership checker, real C# per ADR-0010; explicitly unaffected by the pending Entra External ID swap (open item #21)
+- ✅ AUTH-002 (Service Implementation) — **Detailed, Ready for agents**, see `WI-AUTH-002.md` — Per-service role + resource-ownership check pattern + reference application (unchanged by `EPIC-API-GATEWAY` — APIM adds an edge fast-fail check per ADR-0008, this remains the authoritative one per zero-trust principles)
 - 🟢 AUTH-003 (Test/Mock/Chaos) — Deterministic tests: expired/tampered/malformed token handling (ADR-0006 — explicitly not a live chaos decorator, see ADR's own reasoning)
-- 🛑 AUTH-004 (Infra/Environment) — **HOLD — do not assign to agents.** Tenant + policy configuration — targets Microsoft Entra External ID, not Azure AD B2C, per open item #21. Held until that migration decision is finalized.
+- 🛑 AUTH-004 (Infra/Environment) — **HOLD — do not assign to agents.** Tenant + policy configuration — targets Microsoft Entra External ID, not Azure AD B2C, per open item #21. Held until that migration decision is finalized. Confirmed 2026-09-12 that this hold is unaffected by anything in Batch 3/4 — Entra confirmation covers the *cloud* tenant only.
+- ✅ AUTH-005 (Service Implementation) — **New, Detailed, Ready for agents**, see `WI-AUTH-005.md` — Local mock OIDC/JWT issuer for dev. Closes a real gap identified 2026-09-12: ADR-0006/`tech-stack.md` describe this issuer, nothing had ever built it. Fully independent of the Entra swap.
 
 ### EPIC-SECRETS — Secrets Management
 Scope: cross-cutting (all contexts) · Primary hat(s): Platform Engineering · Status: Started (2 of 3 items detailed, Ready for agents)
-- ✅ SEC-001 (Infra/Environment) — **Detailed, Ready for agents**, see `WI-SEC-001.md` — per-environment Key Vault + managed identity RBAC (ADR-0007)
-- 🟢 SEC-002 (Service Implementation) — Cosmos DB access via managed identity (eliminating the connection-string secret, per ADR-0007) — blocked by `DATA-002` (CosmosRepository implementation, not yet detailed)
-- ✅ SEC-003 (Test/Mock/Chaos) — **Detailed, Ready for agents**, see `WI-SEC-003.md` — fail-fast startup validation, deterministic tests only per ADR-0007
+- ✅ SEC-001 (Infra/Environment) — **Done**, see `WI-SEC-001.md` — per-environment Key Vault + managed identity RBAC (ADR-0007)
+- 🟢 SEC-002 (Service Implementation) — Cosmos DB access via managed identity (eliminating the connection-string secret, per ADR-0007) — blocked by `DATA-002`, now Ready for agents in Batch 3
+- ✅ SEC-003 (Test/Mock/Chaos) — **Done**, see `WI-SEC-003.md` — fail-fast startup validation, deterministic tests only per ADR-0007
 
 ### EPIC-API-GATEWAY — Azure API Management
 Scope: cross-cutting (all frontend-to-service traffic) · Primary hat(s): Architect, Platform Engineering · Status: Not Started
@@ -156,11 +195,13 @@ Scope: cross-cutting (all frontend-to-service traffic) · Primary hat(s): Archit
 - 🟢 GW-005 (Infra/Environment) — Local reverse-proxy stand-in (Compose service) mirroring APIM's path-based routing for URL/structural parity
 - 🟢 GW-006 (Infra/Environment) — Coarse per-subscription rate-limit policy — overlaps with `EPIC-RATE-LIMITING`'s `RATE-004`, deliberately cross-listed (see gap note below); Consumption tier does not support `rate-limit-by-key`, so this does not cover per-user/per-content abuse prevention
 
+**Note (2026-09-12)**: per ADR-0008, local dev skips the gateway entirely and calls services directly — none of `EPIC-API-GATEWAY`'s items are needed for local end-to-end and none are in Batch 3/4.
+
 ### EPIC-SHARED-TOOLING — Reusable Packages
 Scope: cross-cutting · Primary hat(s): Platform Engineering · Status: Started (2 of 4 items detailed, Ready for agents)
-- ✅ TOOL-001 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-TOOL-001.md` — domain event payload records, fully independent of batch 1
-- ✅ TOOL-002 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-TOOL-002.md` — correlation-ID middleware + structured logging convention
-- 🟢 TOOL-003 (Interface/Contract) — `/tools/auth-middleware` — same item as `AUTH-001`, already detailed and Ready for agents there (see `WI-AUTH-001.md`); this line stays as the deliberate cross-listing pointer, not a duplicate
+- ✅ TOOL-001 (Interface/Contract) — **Done**, see `WI-TOOL-001.md` — domain event payload records, fully independent of batch 1
+- ✅ TOOL-002 (Interface/Contract) — **Done**, see `WI-TOOL-002.md` — correlation-ID middleware + structured logging convention
+- 🟢 TOOL-003 (Interface/Contract) — `/tools/auth-middleware` — same item as `AUTH-001`, already detailed and Done there (see `WI-AUTH-001.md`); this line stays as the deliberate cross-listing pointer, not a duplicate
 - ⚪ TOOL-004 (Service Implementation) — Shared fault-injection harness (used by EPIC-CACHING, EPIC-EVENTING, EPIC-DATA-STORE chaos items)
 
 ---
@@ -168,10 +209,10 @@ Scope: cross-cutting · Primary hat(s): Platform Engineering · Status: Started 
 ## Platform Engineering / Delivery Infrastructure Epics
 
 ### EPIC-LOCAL-DEV — Local Development Environment
-Scope: cross-cutting · Primary hat(s): Platform Engineering · Status: Not Started
-- 🟢 DEV-001 (Infra/Environment) — Real `docker-compose.yml`: Redis Streams (default), Cosmos emulator (default), cache Redis (profile-gated), per ADR-0002/0003/0004
-- 🟢 DEV-002 (Infra/Environment) — Stripe CLI webhook forwarding setup (ADR-0005)
-- ⚪ DEV-003 (Infra/Environment) — Seed/fixture data script
+Scope: cross-cutting · Primary hat(s): Platform Engineering · Status: Started (2 of 3 items detailed, Ready for agents)
+- ✅ DEV-001 (Infra/Environment) — **Detailed, Ready for agents**, see `WI-DEV-001.md` — Real `docker-compose.yml`: Redis Streams (default), Cosmos emulator (default), mock OIDC issuer (default, `AUTH-005`), cache Redis (profile-gated), per ADR-0002/0003/0004/0006. Priority raised 2026-09-12 — this is the environment the full local end-to-end run depends on.
+- 🟢 DEV-002 (Infra/Environment) — Stripe CLI webhook forwarding setup (ADR-0005) — deprioritized behind the walking skeleton, since `ORD-001`'s payment step is stubbed for now; needed once `PAY-001` is picked up
+- ✅ DEV-003 (Infra/Environment) — **Detailed, Ready for agents**, see `WI-DEV-003.md` — Seed/fixture data script, including publishing `VendorVerified` for seeded vendors as the interim local substitute for `EPIC-VENDOR-ONBOARDING` not existing yet
 
 ### EPIC-CI-CD — CI/CD Pipeline
 Scope: repo-level · Primary hat(s): Platform Engineering · Status: Not Started
@@ -279,7 +320,7 @@ Scope: cross-cutting-artifact · Primary hat(s): Platform Engineering, Operation
 
 ### EPIC-FRONTEND-QUALITY — Accessibility & Internationalization
 Scope: cross-cutting-artifact · Primary hat(s): Engineering/Build · Status: Not Started
-- ⚪ FE-001 (Service Implementation) — Baseline accessibility pass (`web-customer`, `web-admin`, `web-queue-display`) — named early as part of "a reasonably interesting UI," never resurfaced until now
+- ⚪ FE-001 (Service Implementation) — Baseline accessibility pass (`web-customer`, `web-admin`, `web-queue-display`) — named early as part of "a reasonably interesting UI," never resurfaced until now. **Note (2026-09-12): this presumes `web-customer`/`web-admin` themselves exist — they don't yet; see the frontend-scope gap above.**
 - ⚪ FE-002 (Service Implementation) — i18n scaffolding (even if only English is shipped for v1, per ADR-0005's single-region/currency assumption) — structure now, populate later
 
 ### EPIC-BACKLOG-PLANNING — Backlog Meta-Work
@@ -294,9 +335,9 @@ Scope: cross-cutting-artifact · Primary hat(s): Product Owner · Status: Not St
 Not a substitute for `PLAN-001`, just a rough sanity check so the outline isn't just an unordered pile:
 
 1. **Foundational/cross-cutting first**: `EPIC-EVENTING`, `EPIC-DATA-STORE`, `EPIC-AUTH`, `EPIC-SECRETS`, `EPIC-API-GATEWAY`, `EPIC-SHARED-TOOLING`, `EPIC-CACHING` — everything else depends on these existing
-2. **Core domain slice**: `EPIC-CATALOG`, `EPIC-PREFERENCES`, `EPIC-ORDERING`, `EPIC-QUEUE-DISPLAY` — the walking-skeleton path from `portfolio-plan.md`'s original Sprint 1/2
+2. **Core domain slice**: `EPIC-CATALOG`, `EPIC-PREFERENCES`, `EPIC-ORDERING`, `EPIC-QUEUE-DISPLAY` — the walking-skeleton path from `portfolio-plan.md`'s original Sprint 1/2 — **as of 2026-09-12, this is the active focus, targeting a full local end-to-end run (backend only — see the frontend gap noted above)**
 3. **Remaining domain epics**: `EPIC-VENDOR-ONBOARDING`, `EPIC-SEARCH`, `EPIC-ADVERTISING`, `EPIC-PAYMENTS`, `EPIC-REVIEWS`, `EPIC-NOTIFICATIONS`, `EPIC-ADMIN`
-4. **Delivery infrastructure**: `EPIC-LOCAL-DEV`, `EPIC-CI-CD`, `EPIC-CLOUD-INFRA`, `EPIC-REPO-OPS`
+4. **Delivery infrastructure**: `EPIC-LOCAL-DEV` (in progress, see Batch 3b above), `EPIC-CI-CD`, `EPIC-CLOUD-INFRA`, `EPIC-REPO-OPS`
 5. **Quality/hardening epics**: `EPIC-OBSERVABILITY`, `EPIC-RATE-LIMITING`, `EPIC-FEATURE-FLAGS`, `EPIC-DATA-PRIVACY`, `EPIC-BACKUP-DR`, `EPIC-FRONTEND-QUALITY` — can run partly in parallel with (3), not strictly after
 6. **Artifact epics** (`EPIC-ARCH-DOCS`, `EPIC-OPS-ARTIFACTS`, `EPIC-GOVERNANCE`, `EPIC-PM-ARTIFACTS`, `EPIC-PRODUCT-STRATEGY`) — largely parallel to everything else; not blocked by build progress
 7. **Launch**: `EPIC-GOLIVE-SUPPORT`, last
@@ -310,3 +351,6 @@ Not a substitute for `PLAN-001`, just a rough sanity check so the outline isn't 
 3. **API Gateway / BFF layer — resolved.** ADR-0008 decided Azure API Management (Consumption tier) with zero-trust dual validation — APIM performs an edge fast-fail check, every service still independently validates per ADR-0006. `EPIC-API-GATEWAY` added, `AUTH-002` and `RATE-004`/`GW-006` annotated to reflect the actual scope boundary (the gateway does not replace per-service auth or per-user rate limiting — Consumption tier's lack of `rate-limit-by-key` was the key finding that shaped this).
 4. **Context completeness (resolved, process-level)** — a "zero trust" assumption existed only in the human's head until an unrelated decision (API Gateway) surfaced it. Fixed at the process level, not just here: `project-process-framework/core/context-completeness.md` now names "surprise as a trigger," two front-loaded checklists (`templates/technology-decision-checklist.md`, `templates/business-decision-checklist.md`) exist for the preventive side, and the work-item template gained categorized (not flat) references, a "You do not need to know about" field, and a transient "Open Points (working)" section. Applied here: `vision.md` gained an explicit zero-trust principle, ADR-0006 gained an explicit token-storage/CSRF note, and `WI-NFR-001` now explicitly requires both plus injection-protection content.
 5. **Bounded-context-to-service mapping — resolved.** Formalized as ADR-0009: 13 bounded contexts grouped onto the 4 existing services (`catalog-service`, `ordering-service`, `admin-service`, `notification-service`), with a binding "modular monolith" rule that co-located contexts still communicate through the same interfaces/events they'd use if physically separate. The root cause (scaffolding making a real decision by default, before any decision-record discipline existed) is also fixed at the process level: `core/phase-sequence.md` Phase 4 now requires this mapping be explicit before scaffolding, and both `technology-decision-checklist.md` and `architecture-patterns.md` were updated to name the pattern.
+6. **Local mock OIDC issuer — resolved 2026-09-12.** ADR-0006 and `tech-stack.md` both describe a local mock OIDC/JWT issuer as local dev's Entra External ID stand-in, but no work item ever built it — `AUTH-001` referenced it as an environment dependency and assumed it existed. Same shape of gap as #5 above (described in an ADR, never actually tracked as buildable work). Closed by adding `AUTH-005`, fully independent of the pending Entra swap.
+7. **No frontend work items exist for `web-customer`/`web-admin` — identified 2026-09-12, not yet resolved.** `apps/web-customer` and `apps/web-admin` are scaffold-only folders; the only frontend item anywhere in the backlog is `QUE-002` (title-only). This means even a fully working Batch 3/4 backend gets you an API surface, not a browser-visible demo. Logged to `PARKING-LOT.md` rather than assumed away; needs a real scoping pass, most sensibly once Batch 4's endpoints exist for a frontend to actually call.
+8. **Two small local-scope design choices surfaced while detailing Batch 4 — not yet promoted, watch if they should be.** (a) Where `catalog-service` persists derived per-vendor verification status, given no admin-service exists yet to be the real source (`WI-CAT-001.md`'s Open Points; proposed default is a `CacheProvider`-backed entry). (b) The exact shape of `ORD-001`'s payment-step stub, so `PAY-001` has a clean seam later (`WI-ORD-001.md`'s Open Points). Neither rises to ADR-worthy yet — both are implementation-detail choices a work item's Open Points section is exactly meant to hold — but if either turns out to have wider implications once built, promote it rather than leaving it buried in a closed item's history.
