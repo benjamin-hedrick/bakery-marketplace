@@ -1,52 +1,52 @@
 ```
 WI ID:               AUTH-005
-Title:                Local mock OIDC/JWT issuer for dev
+Title:                Local mock OIDC issuer — token minting + PKCE authorization-code flow
 Type:                 Service Implementation
 Epic:                 EPIC-AUTH
-Shared with epic(s):  EPIC-LOCAL-DEV (DEV-001 wires this into Compose)
+Shared with epic(s):  EPIC-WEB-CUSTOMER (WEB-001 depends on this for the browser login flow)
 Hat/Owner:            Platform Engineering
 Status:               Ready
-Size:                 S
+Size:                 M (revised up from S — see Context/Why)
 ```
 
+**Revision note (2026-09-13)**: this spec supersedes an earlier, narrower draft of the same item (token-minting only, no PKCE, Size S). This file was drafted before ADR-0011 (frontend framework) existed and had not yet been updated to match ADR-0006's own amendment note describing the PKCE requirement — reconciled now so the spec and the ADR agree.
+
 **Context / Why**
-ADR-0006 and `tech-stack.md` both describe a local mock OIDC/JWT issuer as local dev's stand-in for Entra External ID — "issues signed tokens with configurable claims... a config swap, not a runtime fallback." No work item ever built it; `AUTH-001` references it as an environment dependency but assumes it exists. This gap was surfaced on 2026-09-12 while scoping what "run locally end-to-end" actually requires — the same shape of gap this project's process already treats as a trigger to fix explicitly, not patch quietly.
+`tech-stack.md`'s Auth row names a "local stub/mock OIDC issuer (config-driven issuer/JWKS URL swap)" as the local-dev equivalent of Entra External ID, per ADR-0006. This item builds that issuer. Its scope was revised after ADR-0011 (frontend framework) required a real browser redirect flow rather than only direct token minting — see ADR-0006's amendment note. Nothing had started building this item yet, so the expanded scope is folded directly into this spec rather than handled as a correction.
 
 **Inputs / References**
-- *Decisions*: ADR-0006 (the mock-issuer design and its "config swap" framing), ADR-0010 (C#/.NET)
-- *Interfaces*: none consumed — `AUTH-001`'s middleware is config-driven against whatever `Authority`/`Audience` it's pointed at; this item just needs a real JWKS + token endpoint
-- *Environment/tooling*: runs as a Compose service (wired in `DEV-001`), reachable at a fixed local URL every service's `Auth:Authority` points to
-- *Test/chaos methodology*: none beyond a smoke test proving issued tokens validate against `AUTH-001`'s middleware
-- *Business context*: none
+- *Decisions*: `docs/architecture/adr/0006-auth-authz-model.md` (including its ADR-0011 amendment note), ADR-0010 (C#/.NET), ADR-0011 (PKCE flow requirement)
+- *Interfaces*: none consumed — this issues tokens, it doesn't validate them (that's `AUTH-001`)
+- *Environment/tooling*: `docs/architecture/tech-stack.md`'s local-dev Auth row
+- *Test/chaos methodology*: deterministic tests only, same reasoning as `AUTH-001`/`AUTH-003` — no live chaos decorator, auth has no fallback behavior to prove
+- *Business context*: none needed
 
 **You do not need to know about**
-- Entra External ID's actual tenant/policy configuration (`AUTH-004`, separate, held)
+- Real Microsoft Entra External ID tenant/policy configuration (`AUTH-004`, held per open item #21) — this issuer never talks to Entra, it's a local-only substitute
+- Per-service resource-ownership rules (`AUTH-002`) — this item only issues tokens with configurable claims
 
 **Out of scope**
+- Does not implement refresh tokens or silent renewal — issued access tokens simply expire; a caller must re-run the login flow. See `docs/governance/open-items-register.md` item #24.
+- Does not implement real user accounts/passwords — the `/authorize` login page picks from a small fixed set of mock users/roles, no credential storage
 - Does not configure a real Entra External ID tenant (`AUTH-004`)
-- Does not implement a full OIDC authorization-code flow (no login UI/consent screen) — this is a token-minting test double, not a real IdP
-- Does not implement refresh tokens
 
 **Requirements / Acceptance Criteria**
-- Minimal ASP.NET Core service exposing a JWKS endpoint (`/.well-known/jwks.json`) and a token-issuing endpoint that accepts requested `sub`/`roles`/`vendorType` claims and returns a signed JWT
-- Signs with a local, non-secret RSA key generated for dev use only — never a real secret per ADR-0007's scope
-- Documented way to mint a token for a given role/user without a real login flow (simple HTTP POST with desired claims)
-- Smoke-tested against `AUTH-001`'s actual middleware, pointed at this issuer's JWKS URL
+- `/authorize` endpoint: minimal login page listing mock users (at least one per role — Customer, Vendor, Admin); redirects back to the client's `redirect_uri` with an authorization code, honoring PKCE's `code_challenge`/`code_challenge_method`
+- `/token` endpoint: supports the `authorization_code` grant (validates the PKCE `code_verifier`) and continues to support direct claim-request minting for non-browser test scenarios (existing `AUTH-003`/`AUTH-001` test usage)
+- `/.well-known/openid-configuration` and JWKS endpoint, so `AUTH-001`'s middleware can validate against this issuer identically to a real one (config-driven Authority swap, unchanged)
+- Issued tokens carry the same claim shape as production (`sub`, `roles`, `vendorType` where applicable), configurable per mock user
+- xUnit/integration tests: full PKCE flow issues a token `AUTH-001`'s middleware accepts; a request with a mismatched `code_verifier` is rejected; a request for a nonexistent mock user fails cleanly
 
 **Dependencies**
-- Blocks: any local end-to-end run needing a real token (effectively everything downstream)
+- Blocks: `WI-WEB-001` (needs a working `/authorize`+`/token` pair to build the redirect flow against)
 - Blocked by: none
-- Can be worked in parallel with: `DATA-002`, `CACHE-002`, `EVT-003`, `AUTH-002`
+- Can be worked in parallel with: `AUTH-002`, `AUTH-003`, `WI-DEV-001` (base .NET solution scaffold)
 
 **Definition of Done**
-See `docs/process/definition-of-done.md`. Item-specific addition: confirm nothing here references or requires any real Entra credential.
+See `docs/process/definition-of-done.md`. Item-specific addition: verify the full PKCE round-trip against `AUTH-001`'s actual middleware, not just against this issuer's own tests in isolation.
 
 **AI-agent suitability**
-Yes — fully specified by ADR-0006's own description; no open judgment calls.
-
-**Interfaces consumed**: none
-**Events published/consumed**: none
-**Data touched**: none
+Yes. Fully specified by ADR-0006/0011 plus the acceptance criteria above; the login page's UI is deliberately minimal (a pick-list, not a designed experience).
 
 **Open Points (working)**
-*(none currently)*
+- [ ] No refresh-token support anywhere in this flow — promoted to `docs/governance/open-items-register.md` (item #24) rather than left here, since it's a real v1 limitation that outlives this item

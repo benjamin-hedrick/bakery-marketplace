@@ -24,7 +24,7 @@ ADR-0011 picked React (Vite) as the frontend framework; this item is the actual 
 - `web-admin` — explicitly out of scope until its backend epics exist
 
 **Out of scope**
-- Does not implement refresh-token/silent-renewal — token expiry means re-login; no background refresh exists. See the open-items-register entry.
+- Does not implement refresh-token/silent-renewal — token expiry means re-login; no background refresh exists. See `docs/governance/open-items-register.md` item #24.
 - Does not extract a shared npm package across apps — this scaffold is duplicated (not centrally packaged) between `web-customer` and `web-queue-display` for now, per ADR-0011's stated reasoning
 - Does not implement any specific page/route beyond a login redirect and an authenticated shell
 
@@ -33,7 +33,6 @@ ADR-0011 picked React (Vite) as the frontend framework; this item is the actual 
 - Full PKCE authorization-code redirect flow against `AUTH-005`'s revised endpoints; access token held in memory only (a React context/store), never `localStorage`/cookies
 - No refresh-token handling — token expiry surfaces as a clean "please log in again" state, not a silent failure
 - Reusable authenticated-fetch wrapper (attaches the bearer token to outgoing requests) that both `web-customer` and `web-queue-display` import as source, not a package
-- CORS note: local backend services must accept requests from this app's local dev origin — flagged as an open point below, not solved here
 
 **Dependencies**
 - Blocks: `CUST-002`, `CUST-003`, `CUST-004`, `QUE-002`
@@ -47,4 +46,4 @@ See `docs/process/definition-of-done.md`.
 Yes. Fully specified by ADR-0011 plus the acceptance criteria above; no business judgment call remains.
 
 **Open Points (working)**
-- [ ] Local backend services (via `docker-compose`, `WI-DEV-001` once it exists — see `PARKING-LOT.md`) need CORS enabled for this app's local origin. `WI-DEV-001` itself isn't detailed yet (flagged in `worklog-2026-09-07.md`), so this can't cleanly attach to a real work item yet — tracked in the parking lot instead.
+*(none currently — the CORS dependency previously tracked here is resolved: `WI-DEV-001` (base .NET solution scaffold, added 2026-09-13) carries a concrete acceptance criterion requiring each service to register a CORS policy for this app's local dev origin. Removed from `PARKING-LOT.md` accordingly.)*

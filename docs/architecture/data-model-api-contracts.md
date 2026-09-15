@@ -40,7 +40,7 @@ PreferenceProfile {
 ### Events
 
 - **Consumes**: `VendorVerified`, `VendorSuspended` (from `admin-service`) — gates whether a vendor's listings can be `Published`; `ListingApproved`, `ListingRejected` (from `admin-service`) — moderation outcome for a submitted listing
-- **Publishes**: `ListingPublished` (consumed by `admin-service`'s moderation read-model), `ListingSponsored` (published even though Search consumes it in-process, per ADR-0009's modular monolith rule — the interface boundary is real even co-located)
+- **Publishes**: `ListingPublished` (consumed by `admin-service`'s moderation read-model), `ListingSponsored` (published even though Search consumes it in-process, per ADR-0009's modular monolith rule — the interface boundary is real even co-located), `PreferenceSnapshotPublished` (added by `WI-PREF-002.md`, Batch 5, 2026-09-13 — Open Host Service publication of a Preference Snapshot to Search (in-process, same modular-monolith rule as `ListingSponsored`) and to `ordering-service` (cross-service, over the real event backbone))
 
 ### API endpoints
 
@@ -49,7 +49,7 @@ PreferenceProfile {
 - `POST /catalog/listings` — Vendor role required
 - `PUT /catalog/listings/{id}` — Vendor role + resource-ownership check (ADR-0006)
 - `GET /catalog/preferences/{customerId}` — Customer role + resource-ownership check
-- `PUT /catalog/preferences/{customerId}`
+- `PUT /catalog/preferences/{customerId}` — Customer role + resource-ownership check; implicitly creates the profile on first write (`WI-PREF-001.md`)
 
 ---
 
@@ -97,7 +97,7 @@ Payout { id, vendorId, orderId, grossAmount, commission, netAmount, stripeTransf
 ### Events
 
 - **Publishes**: `OrderPlaced`, `OrderCustomized`, `PickupWindowScheduled`, `OrderReadyForPickup`, `OrderCompleted`, `ReviewSubmitted`, `PayoutReconciled` (all per glossary — the last two named during the event-storming exercise, `docs/architecture/ddd/event-storming.md`)
-- **Consumes**: its own published events, to populate `order-status-readmodel`
+- **Consumes**: its own published events, to populate `order-status-readmodel`; `PreferenceSnapshotPublished` (from `catalog-service`, added by `WI-PREF-002.md` — stored per-`customerId` for future checkout-time use; the actual consumption logic, e.g. an allergy warning at checkout, is out of scope of `PREF-002` and not yet built)
 
 ### API endpoints
 
@@ -139,9 +139,12 @@ ModerationItem { listingId, vendorId, submittedAt, reviewStatus: "Pending" | "Ap
 
 ### API endpoints
 
+- `POST /admin/vendors` — Vendor role required, creates a `VendorProfile` in `Pending` status (added by `WI-VEN-001.md`, Batch 5, 2026-09-13 — the `ApplyAsVendor` command named in `event-storming.md`'s Flow 1 had no corresponding endpoint anywhere until this item; small resolved gap, not a new decision)
+- `GET /admin/vendors/{vendorId}` — Vendor role + resource-ownership check (`WI-VEN-001.md`) — a vendor reads their own profile
+- `PUT /admin/vendors/{vendorId}` — Vendor role + resource-ownership check (`WI-VEN-001.md`) — `name`/`contactInfo`/`complianceChecklist` only; `verificationStatus` is server-controlled, not client-writable
 - `GET /admin/vendors/pending` — Admin role
-- `POST /admin/vendors/{id}/verify`
-- `POST /admin/vendors/{id}/suspend`
+- `POST /admin/vendors/{id}/verify` — Admin role
+- `POST /admin/vendors/{id}/suspend` — Admin role
 - `GET /admin/moderation-queue`
 - `POST /admin/moderation-queue/{listingId}/approve`
 - `POST /admin/moderation-queue/{listingId}/reject`
@@ -171,3 +174,4 @@ None — no owned business data. Uses `CacheProvider` for its own event-dedupe s
 - ADR-0009 — service groupings this document is organized by
 - `docs/architecture/ddd/glossary.md` — source of every field/event name
 - `docs/product/backlog/PARKING-LOT.md` — API versioning, still undecided
+- `docs/product/backlog/WI-PREF-002.md`, `WI-VEN-001.md` — sources of the two small additive updates made to this document on 2026-09-13 (`PreferenceSnapshotPublished`, vendor self-application endpoints)

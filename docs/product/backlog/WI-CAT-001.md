@@ -15,7 +15,7 @@ Core Catalog & Customization functionality per the glossary and `data-model-api-
 **Inputs / References**
 - *Decisions*: ADR-0004 (`catalog` container, `vendorId` partition key), ADR-0006 (Vendor role + ownership check)
 - *Interfaces*: `IRepository<T>`/`CosmosRepository<T>` (`DATA-002`), `IEventSubscriber` (`EVT-001`/`EVT-003`), `AUTH-002`'s ownership-check pattern
-- *Environment/tooling*: local Cosmos emulator, local event backbone (`DEV-001`)
+- *Environment/tooling*: local Cosmos emulator, local event backbone (`DEV-002`)
 - *Test/chaos methodology*: standard unit + integration tests, no adapter/chaos pattern (this is domain logic, not a swappable backend)
 - *Business context*: `docs/architecture/ddd/glossary.md` (Listing, Modifier, Allergy Flag), `data-model-api-contracts.md`
 
@@ -36,7 +36,7 @@ Core Catalog & Customization functionality per the glossary and `data-model-api-
 
 **Dependencies**
 - Blocks: `CAT-003`, `ORD-001` (needs listings to exist)
-- Blocked by: `DATA-002`, `EVT-003`, `AUTH-002`
+- Blocked by: `DATA-002`, `EVT-003`, `AUTH-002`, `DEV-001` (base .NET solution scaffold — this item needs a real `CatalogService` project to add code to)
 - Can be worked in parallel with: `ORD-004`, `ORD-002`, `ORD-003`
 
 **Definition of Done**
@@ -51,4 +51,4 @@ Partial. The CRUD/model/event-consumption logic is fully agent-suitable. The "wh
 
 **Open Points (working)**
 - [ ] Where does catalog-service persist derived per-vendor verification status (a cache entry keyed by vendorId, a dedicated small read-model container, or a field checked at publish-time only)? Not decided in any ADR — reasonable default is a `CacheProvider`-backed entry (reuses `CACHE-002`, no new container), but confirm before treating as settled.
-- [ ] For local end-to-end testing, no admin-service exists yet to publish `VendorVerified` for real. `DEV-003`'s seed step publishes this event directly onto the event backbone for seeded vendors, simulating what admin-service will do later — confirm this is acceptable as the interim local-dev path rather than blocking on `EPIC-ADMIN`.
+- [ ] For local end-to-end testing, no admin-service exists yet to publish `VendorVerified` for real. `DEV-004`'s seed step (renumbered 2026-09-13 from `DEV-003`) publishes this event directly onto the event backbone for seeded vendors, simulating what admin-service will do later — confirm this is acceptable as the interim local-dev path rather than blocking on `EPIC-ADMIN`.
