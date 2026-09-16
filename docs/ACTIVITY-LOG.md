@@ -4,6 +4,39 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-09-15 — Redis Streams Event Transport & Resource-Ownership Authorization Pattern built (WI-EVT-003, WI-AUTH-002 / Delegation Packet 03)**
+
+Implemented local event transport and reusable authorization pattern:
+- **`WI-EVT-003`**: Implemented `RedisStreamsEventTransport` in `BakeryMarketplace.Eventing` (`IEventPublisher` via `XADD`, `IEventSubscriber` via consumer groups `XREADGROUP`). Added eventType filtering, transparent envelope passthrough, and dead-letter stream support (`{eventType}:dead-letter`) on max retry attempts. Passed `EventTransportContractTests` (6 passed).
+- **`WI-AUTH-002`**: Implemented `ResourceOwnershipRequirement`, `ResourceOwnershipHandler<TResource>` and `IResourceWithOwnerId` in `BakeryMarketplace.Auth`. Enforced role-claim short-circuiting prior to calling `IResourceOwnershipChecker`. Added worked reference example (`ListingResource`, `ListingOwnershipHandler` for `PUT /catalog/listings/{id}`). Passed unit tests (11 passed).
+
+Files touched: `tools/BakeryMarketplace.Eventing/BakeryMarketplace.Eventing.csproj`, `tools/BakeryMarketplace.Eventing/RedisStreamsEventTransport.cs` (new), `tools/tests/BakeryMarketplace.Eventing.Tests/RedisStreamsEventTransportTests.cs` (new), `tools/BakeryMarketplace.Auth/IResourceWithOwnerId.cs` (new), `tools/BakeryMarketplace.Auth/ResourceOwnershipRequirement.cs` (new), `tools/BakeryMarketplace.Auth/ResourceOwnershipHandler.cs` (new), `tools/BakeryMarketplace.Auth/ListingOwnershipReferenceExample.cs` (new), `tools/tests/BakeryMarketplace.Auth.Tests/ResourceOwnershipHandlerTests.cs` (new).
+
+---
+
+**2026-09-15 — Concrete Adapter Implementations built for Cosmos DB and Redis (WI-DATA-002, WI-CACHE-002 / Delegation Packet 02)**
+
+Implemented concrete data store and caching adapters behind frozen interfaces:
+- **`WI-DATA-002`**: Implemented `CosmosRepository<T>` in `BakeryMarketplace.Data` using `Microsoft.Azure.Cosmos` SDK directly (no ORM, per ADR-0010). `QueryAsync` composes `Func<IQueryable<T>, IQueryable<T>>` over `container.GetItemLinqQueryable<T>` and streams results with `ToFeedIterator()`, strictly enforcing zero raw string query injection protection (`nfrs.md` §3.4). Added `CosmosRepositoryTests` passing the full contract test suite (8 passed).
+- **`WI-CACHE-002`**: Implemented `RedisCacheProvider` in `BakeryMarketplace.Caching` using `StackExchange.Redis`. Configured native TTL expiry, `System.Text.Json` serialization, and `AddRedisCacheProvider` DI extension method. Added `RedisCacheProviderTests` passing the full contract test suite (16 passed).
+
+Files touched: `tools/BakeryMarketplace.Data/BakeryMarketplace.Data.csproj`, `tools/BakeryMarketplace.Data/CosmosRepository.cs` (new), `tools/tests/BakeryMarketplace.Data.Tests/CosmosRepositoryTests.cs` (new), `tools/BakeryMarketplace.Caching/BakeryMarketplace.Caching.csproj`, `tools/BakeryMarketplace.Caching/RedisCacheProvider.cs` (new), `tools/BakeryMarketplace.Caching/CachingServiceExtensions.cs`, `tools/tests/BakeryMarketplace.Caching.Tests/RedisCacheProviderTests.cs` (new).
+
+---
+
+**2026-09-15 — Base .NET solution and service project scaffolding built (WI-DEV-001 / Delegation Packet 01)**
+
+Implemented Delegation Packet 01 (`WI-DEV-001`), scaffolding the root solution (`BakeryMarketplace.slnx`) and four empty, buildable ASP.NET Core Web API projects under `/services/<service>/src/`:
+- `CatalogService`, `OrderingService`, `AdminService`, `NotificationService` (net8.0, ASP.NET Core Web API).
+- Each project references only the `/tools/BakeryMarketplace.*` class libraries required by its documented domain role in `docs/architecture/data-model-api-contracts.md` (`NotificationService` references `.Caching`, `.Eventing`, `.EventSchemas`, `.Logging`; the remaining services also reference `.Auth` and `.Data`).
+- Registered `UseCorrelationId()` middleware from `BakeryMarketplace.Logging` and a configurable CORS policy (`Cors:AllowedOrigins`, defaulting to `http://localhost:5173` for local Vite/React SPA development) in each service's `Program.cs`.
+- Exposed `GET /health` endpoint on all four services.
+- Confirmed Batch 1 delivered code layout: Batch 1 code resides strictly under `/tools`, with no conflicting scaffold assumptions or files created under `/services/`.
+
+Files touched: `BakeryMarketplace.slnx` (new), `services/catalog-service/src/CatalogService.csproj` (new), `services/catalog-service/src/Program.cs` (new), `services/catalog-service/src/appsettings.json` (new), `services/ordering-service/src/OrderingService.csproj` (new), `services/ordering-service/src/Program.cs` (new), `services/ordering-service/src/appsettings.json` (new), `services/admin-service/src/AdminService.csproj` (new), `services/admin-service/src/Program.cs` (new), `services/admin-service/src/appsettings.json` (new), `services/notification-service/src/NotificationService.csproj` (new), `services/notification-service/src/Program.cs` (new), `services/notification-service/src/appsettings.json` (new).
+
+---
+
 **2026-09-14 — Local run functionality reviewed; M1-M5 milestone framework established; Batch 6 (M4) fully detailed**
 
 Reviewed what level of local, browser-visible functionality the currently-planned backlog actually delivers once built — distinct from the batch numbering (which tracks agent-assignment safety, not what a demo can show). Established a new tracking artifact, `docs/product/backlog/LOCAL-MILESTONES.md`:

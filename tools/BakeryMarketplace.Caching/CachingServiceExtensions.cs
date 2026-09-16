@@ -21,6 +21,25 @@ public static class CachingServiceExtensions
     }
 
     /// <summary>
+    /// Registers <see cref="RedisCacheProvider"/> with DI using a connection string.
+    /// </summary>
+    public static IServiceCollection AddRedisCacheProvider(
+        this IServiceCollection services,
+        string connectionString)
+    {
+        if (string.IsNullOrEmpty(connectionString))
+            throw new ArgumentException("Redis connection string cannot be null or empty.", nameof(connectionString));
+
+        services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(_ =>
+            StackExchange.Redis.ConnectionMultiplexer.Connect(connectionString));
+
+        services.AddSingleton<RedisCacheProvider>();
+        services.AddSingleton<ICacheProvider>(sp => sp.GetRequiredService<RedisCacheProvider>());
+
+        return services;
+    }
+
+    /// <summary>
     /// Registers a <see cref="ResilientCacheProvider"/> that wraps the given primary provider,
     /// falling back to <see cref="LocalCacheProvider"/> using a Polly circuit breaker.
     /// </summary>

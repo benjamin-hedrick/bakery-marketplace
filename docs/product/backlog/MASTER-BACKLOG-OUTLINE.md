@@ -195,21 +195,21 @@ Scope: Admin/Moderation · Primary hat(s): Engineering/Build, Operations · Stat
 Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (2 of 5 items detailed)
 - ✅ EVT-001 (Interface/Contract) — **Done**, see `WI-EVT-001.md` — `IEventPublisher`/`IEventSubscriber` interfaces + envelope shape (ADR-0003), real C# per ADR-0010
 - 🟢 EVT-002 (Service Implementation) — `EventGridPublisher`/`EventGridSubscriber` (cloud) — deprioritized behind `EVT-003`, not needed for local e2e
-- ✅ EVT-003 (Service Implementation) — **Detailed, Ready for agents**, see `WI-EVT-003.md` — `RedisStreamsPublisher`/`Subscriber` (local), prioritized for local end-to-end
+- ✅ EVT-003 (Service Implementation) — **Done (2026-09-15)**, see `WI-EVT-003.md` — `RedisStreamsPublisher`/`Subscriber` (local Redis Streams transport with consumer groups and dead-lettering)
 - ⚪ EVT-004 (Test/Mock/Chaos) — Contract-test suite + `ChaosEventTransport` (duplicate/out-of-order/delayed/dropped delivery, per ADR-0003) — blocked by `EVT-003`
 - ⚪ EVT-005 (Infra/Environment) — Terraform Event Grid custom topic + subscription filters
 
 ### EPIC-DATA-STORE — Cosmos DB Repositories
 Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (2 of 4 items detailed)
 - ✅ DATA-001 (Interface/Contract) — **Done**, see `WI-DATA-001.md` — `IRepository<T>` interface (ADR-0004), real C# per ADR-0010
-- ✅ DATA-002 (Service Implementation) — **Detailed, Ready for agents**, see `WI-DATA-002.md` — `CosmosRepository<T>` per container (`catalog`, `orders`, `vendors`, `preferences`, `reviews`, `payouts`)
+- ✅ DATA-002 (Service Implementation) — **Done (2026-09-15)**, see `WI-DATA-002.md` — `CosmosRepository<T>` implementation using Cosmos SDK directly with LINQ query provider
 - 🟢 DATA-003 (Test/Mock/Chaos) — `FakeRepository<T>` + contract tests against the Cosmos emulator — `FakeRepository<T>` already exists from `DATA-001`; the emulator-based contract-test run is the remaining piece
 - ⚪ DATA-004 (Infra/Environment) — Terraform Cosmos account + per-container partition key config
 
 ### EPIC-AUTH — Auth/Authz
 Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engineering · Status: Started (3 of 5 items detailed, Ready for agents)
 - ✅ AUTH-001 (Interface/Contract) — **Done**, see `WI-AUTH-001.md` — JWT middleware + ownership checker, real C# per ADR-0010; explicitly unaffected by the pending Entra External ID swap (open item #21)
-- ✅ AUTH-002 (Service Implementation) — **Detailed, Ready for agents**, see `WI-AUTH-002.md` — Per-service role + resource-ownership check pattern + reference application (unchanged by `EPIC-API-GATEWAY` — APIM adds an edge fast-fail check per ADR-0008, this remains the authoritative one per zero-trust principles)
+- ✅ AUTH-002 (Service Implementation) — **Done (2026-09-15)**, see `WI-AUTH-002.md` — ResourceOwnershipRequirement & ResourceOwnershipHandler<TResource> with role short-circuiting + reference example
 - 🟢 AUTH-003 (Test/Mock/Chaos) — Deterministic tests: expired/tampered/malformed token handling (ADR-0006 — explicitly not a live chaos decorator, see ADR's own reasoning)
 - 🛑 AUTH-004 (Infra/Environment) — **HOLD — do not assign to agents.** Tenant + policy configuration — targets Microsoft Entra External ID, not Azure AD B2C, per open item #21. Held until that migration decision is finalized. Confirmed 2026-09-12 that this hold is unaffected by anything in Batch 3/4 — Entra confirmation covers the *cloud* tenant only.
 - ✅ AUTH-005 (Service Implementation) — **Detailed, Ready for agents — revised 2026-09-13**, see `WI-AUTH-005.md` — Local mock OIDC/JWT issuer for dev. Closed a real gap identified 2026-09-12: ADR-0006/`tech-stack.md` describe this issuer, nothing had ever built it. Fully independent of the Entra swap. **Revised Size S→M on 2026-09-13**: ADR-0011 (frontend framework) requires a real browser PKCE authorization-code redirect flow, not just direct token minting — folded into this item's spec directly (see ADR-0006's corresponding amendment note) since nothing had started building it yet. Now shared with `EPIC-WEB-CUSTOMER` (`WEB-001` depends on it for the browser login flow).
@@ -244,7 +244,7 @@ Scope: cross-cutting · Primary hat(s): Platform Engineering · Status: Started 
 
 ### EPIC-LOCAL-DEV — Local Development Environment
 Scope: cross-cutting · Primary hat(s): Platform Engineering · Status: Started (2 of 4 items detailed, Ready for agents) · Renumbered 2026-09-13, see note below
-- ✅ DEV-001 (Infra/Environment) — **Detailed, Ready**, see `WI-DEV-001.md` — **New 2026-09-13**: base .NET solution/project scaffold (one Web API project per service, per ADR-0010) — resolves `worklog-2026-09-07.md`'s gap #1 (no work item ever existed for this, though every Batch 1/2/4 item silently assumed it). Also carries `WI-WEB-001`'s CORS open point as a concrete acceptance criterion. Blocks all of Batch 4.
+- ✅ DEV-001 (Infra/Environment) — **Done (2026-09-15)**, see `WI-DEV-001.md` — Base .NET solution/project scaffold (one Web API project per service, per ADR-0010) — resolves `worklog-2026-09-07.md`'s gap #1. Also carries `WI-WEB-001`'s CORS open point as a concrete acceptance criterion. Unblocks all of Batch 4.
 - ✅ DEV-002 (Infra/Environment) — **Detailed, Ready for agents**, see `WI-DEV-002.md` — Real `docker-compose.yml`: Redis Streams (default), Cosmos emulator (default), mock OIDC issuer (default, `AUTH-005`), cache Redis (profile-gated), per ADR-0002/0003/0004/0006. **Renumbered 2026-09-13 from `DEV-001` to `DEV-002`** — content unchanged, see the note below.
 - 🟢 DEV-003 (Infra/Environment) — Stripe CLI webhook forwarding setup (ADR-0005) — deprioritized behind the walking skeleton, since `ORD-001`'s payment step is stubbed for now; needed once `PAY-001` is picked up. **Renumbered 2026-09-13 from `DEV-002` to `DEV-003`** — title-only, no content to change.
 - ✅ DEV-004 (Infra/Environment) — **Detailed, Ready for agents**, see `WI-DEV-004.md` — Seed/fixture data script, including publishing `VendorVerified` for seeded vendors as the interim local substitute for `EPIC-VENDOR-ONBOARDING` not existing yet. **Renumbered 2026-09-13 from `DEV-003` to `DEV-004`** — content unchanged apart from updated cross-references.
