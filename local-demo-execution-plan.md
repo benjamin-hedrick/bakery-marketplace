@@ -15,10 +15,7 @@ existing solution and `/tools` libraries.
 Gate for everything else. Nothing below M1 can be verified until this milestone
 is real, not just spec'd.
 
-- [ ] **`WI-AUTH-005`** — Local mock OIDC issuer (PKCE). **Highest-risk item in M1**:
-      only a `MockUser.cs` data record exists today — no `/authorize`, `/token`,
-      or JWKS server code has been written despite the spec being Ready since
-      2026-09-13. Build and verify this *before* trusting `DEV-002`.
+- [x] **`WI-AUTH-005`** — Local mock OIDC issuer (PKCE). Completed via Delegation Packet 05 (rebuilt from data record, full PKCE endpoints & JWKS server verified against `AddBakeryAuth` middleware). Unblocks `DEV-002` and `WEB-001`.
 - [ ] **`WI-DEV-002`** — Real `docker-compose.yml` (Redis Streams, Cosmos
       emulator, mock OIDC issuer as default services; cache Redis profile-gated).
       Soft-blocked by `AUTH-005` above.

@@ -5,7 +5,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-AUTH
 Shared with epic(s):  EPIC-WEB-CUSTOMER (WEB-001 depends on this for the browser login flow)
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 M (revised up from S — see Context/Why)
 ```
 

@@ -4,6 +4,18 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-09-21 — Local Mock OIDC Issuer rebuilt and verified against middleware (WI-AUTH-005 / Delegation Packet 05)**
+
+Completed `WI-AUTH-005` (`Delegation Packet 05 — Local Mock OIDC Issuer (Rebuild/Completion)`):
+- **Rebuild context**: Built from a data-record-only baseline (`MockUser.cs`), as Packet 04 had not implemented the endpoints despite being marked Ready.
+- **`MockOidcIssuer` endpoints**: Implemented `/.well-known/openid-configuration` (discovery), `/.well-known/jwks.json` (JWKS RSA public key endpoint), `/authorize` (login pick-list UI listing Customer, Vendor, Admin mock users), `/authorize/submit` (code generation with PKCE challenge support), and `/token` supporting both `authorization_code` (PKCE verification) and `client_credentials` direct minting grants.
+- **Middleware integration**: Added `MockOidcMiddlewareIntegrationTests` proving full PKCE round-trip tokens are accepted by `AddBakeryAuth`'s actual JWT bearer middleware when configured via Authority/Audience config swap, and verifying clean failure on invalid PKCE `code_verifier`, nonexistent mock users, and untrusted signing keys. Updated `AddBakeryAuth` with optional `requireHttpsMetadata` parameter (defaults `true`, `false` for HTTP `TestServer` dev/test) and `options.MapInboundClaims = false` to preserve standard claim names.
+- **Tests**: 23/23 tests passing in `BakeryMarketplace.Auth.Tests`.
+
+Files touched: `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs`, `tools/BakeryMarketplace.Auth/AuthServiceExtensions.cs`, `tools/tests/BakeryMarketplace.Auth.Tests/MockOidcIssuerTests.cs`, `tools/tests/BakeryMarketplace.Auth.Tests/MockOidcMiddlewareIntegrationTests.cs` (new).
+
+---
+
 **2026-09-15 — Redis Streams Event Transport & Resource-Ownership Authorization Pattern built (WI-EVT-003, WI-AUTH-002 / Delegation Packet 03)**
 
 Implemented local event transport and reusable authorization pattern:

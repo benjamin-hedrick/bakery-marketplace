@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace BakeryMarketplace.Auth.Tests;
 
+[Collection("SequentialAuth")]
 public class MockOidcIssuerTests
 {
     private TestServer CreateServer()
@@ -67,7 +68,7 @@ public class MockOidcIssuerTests
         Assert.NotNull(keys);
         Assert.NotEmpty(keys);
 
-        var key = keys[0];
+        var key = keys[0]!;
         Assert.Equal("RSA", key["kty"]!.ToString());
         Assert.Equal("mock-key-1", key["kid"]!.ToString());
     }

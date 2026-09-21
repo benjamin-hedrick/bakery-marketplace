@@ -26,9 +26,18 @@ public static class AuthServiceExtensions
     ///   <item><description><c>Auth:Audience</c> — the expected audience claim</description></item>
     /// </list>
     /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configuration">App configuration supplying <c>Auth:Authority</c> and <c>Auth:Audience</c>.</param>
+    /// <param name="requireHttpsMetadata">
+    /// Whether the Authority URL must use HTTPS. Defaults to <c>true</c> (production).
+    /// Set to <c>false</c> only in integration tests where the mock OIDC issuer runs on a
+    /// plain-HTTP <c>TestServer</c> — this is the config-driven local-dev swap posture described
+    /// in ADR-0006; it is not a runtime fallback.
+    /// </param>
     public static IServiceCollection AddBakeryAuth(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        bool requireHttpsMetadata = true)
     {
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -36,10 +45,14 @@ public static class AuthServiceExtensions
             {
                 options.Authority = configuration["Auth:Authority"];
                 options.Audience = configuration["Auth:Audience"];
+                options.RequireHttpsMetadata = requireHttpsMetadata;
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
+                    ValidIssuer = configuration["Auth:Authority"],
                     ValidateAudience = true,
+                    ValidAudience = configuration["Auth:Audience"],
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromMinutes(2)
                 };

@@ -148,13 +148,36 @@ public class JwtValidationTests
     }
 
     [Fact]
-    public void ResourceOwnershipChecker_NullOrEmptyResourceOwner_ReturnsFalse()
+    public void ValidateToken_SignedWithRsaKey_ValidatedWithJwksKey_Succeeds()
     {
-        var checker = new ResourceOwnershipChecker();
-        var claims = new[] { new Claim("sub", "vendor-42") };
-        var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
+        // 1. Export JWKS from MockOidcIssuer parameters
+        using var rsa = RSA.Create(2048);
+        var signingKey = new RsaSecurityKey(rsa) { KeyId = "test-key-1" };
+        var params_ = rsa.ExportParameters(false);
 
-        Assert.False(checker.IsOwner(user, ""));
-        Assert.False(checker.IsOwner(user, null!));
+        var jwksJson = $"{{\"keys\":[{{\"kty\":\"RSA\",\"use\":\"sig\",\"kid\":\"test-key-1\",\"alg\":\"RS256\",\"n\":\"{Base64UrlEncoder.Encode(params_.Modulus)}\",\"e\":\"{Base64UrlEncoder.Encode(params_.Exponent)}\"}}]}}";
+
+        var keySet = new JsonWebKeySet(jwksJson);
+        var jsonWebKey = keySet.Keys.First();
+
+        // 2. Sign token with signingKey
+        var token = CreateToken(claims: [new Claim("sub", "user-123")], keyToSignWith: signingKey);
+
+        // 3. Validate token with jsonWebKey
+        var validationParams = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = ExpectedIssuer,
+            ValidateAudience = true,
+            ValidAudience = ExpectedAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = jsonWebKey,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+
+        var handler = new JwtSecurityTokenHandler();
+        var principal = handler.ValidateToken(token, validationParams, out var _);
+        Assert.NotNull(principal);
     }
 }

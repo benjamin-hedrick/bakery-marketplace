@@ -24,7 +24,7 @@ public static class MockOidcIssuer
     private static readonly RsaSecurityKey SecurityKey = new RsaSecurityKey(RsaKey) { KeyId = "mock-key-1" };
     
     // In-memory store for authorization codes
-    private static readonly Dictionary<string, AuthCodeData> AuthCodes = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, AuthCodeData> AuthCodes = new();
 
     private record AuthCodeData(string UserId, string RedirectUri, string? CodeChallenge, string? CodeChallengeMethod, DateTimeOffset ExpiresAt);
 
@@ -182,7 +182,7 @@ public static class MockOidcIssuer
                     }
                 }
 
-                AuthCodes.Remove(code);
+                AuthCodes.TryRemove(code, out _);
 
                 var user = MockUsers.All[authCodeData.UserId];
                 var tokenResponse = GenerateTokens(user, baseUrl, audience);
