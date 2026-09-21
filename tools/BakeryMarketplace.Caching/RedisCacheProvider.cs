@@ -6,6 +6,13 @@ namespace BakeryMarketplace.Caching;
 /// <summary>
 /// Managed Redis implementation of <see cref="ICacheProvider"/> using StackExchange.Redis.
 /// See ADR-0002, ADR-0010, and WI-CACHE-002.
+///
+/// IMPORTANT: this class must let connectivity/timeout exceptions propagate from every
+/// method (Get/Set/Delete/Exists) rather than swallowing them. ResilientCacheProvider
+/// (WI-CACHE-003) depends on the primary provider throwing on failure so its circuit
+/// breaker can detect the outage and route to LocalCacheProvider. Silently returning a
+/// "miss" on a connection failure would defeat that fallback — see fix note under
+/// GetAsync below (2026-09-16 review of Delegation Packet 02).
 /// </summary>
 public class RedisCacheProvider : ICacheProvider
 {
@@ -29,21 +36,35 @@ public class RedisCacheProvider : ICacheProvider
     {
         if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", nameof(key));
 
+        // NOTE: Redis I/O (StringGetAsync) is intentionally NOT wrapped in a try/catch.
+        // A connection failure, timeout, or other RedisException must propagate to the
+        // caller (ResilientCacheProvider) so its circuit breaker trips and falls back
+        // to LocalCacheProvider, exactly as it already does for SetAsync/DeleteAsync/
+        // ExistsAsync below. The previous version of this method caught all exceptions
+        // here and returned CacheResult<T>.Miss(), which made a real Redis outage
+        // indistinguishable from a normal cache miss: the breaker never tripped, no
+        // fallback warning was ever logged, and reads silently stopped being served
+        // from cache at all instead of failing over. Only genuine "this value isn't a
+        // cache miss, it's just not deserializable" cases are handled locally, below.
+        RedisValue value = await _database.StringGetAsync(key);
+        if (!value.HasValue || value.IsNull)
+        {
+            return CacheResult<T>.Miss();
+        }
+
         try
         {
-            RedisValue value = await _database.StringGetAsync(key);
-            if (!value.HasValue || value.IsNull)
-            {
-                return CacheResult<T>.Miss();
-            }
-
             T? deserialized = JsonSerializer.Deserialize<T>((string)value!, _jsonOptions);
             return deserialized is not null
                 ? CacheResult<T>.Hit(deserialized)
                 : CacheResult<T>.Miss();
         }
-        catch
+        catch (JsonException)
         {
+            // The value came back from Redis successfully but isn't valid JSON for T
+            // (e.g. a stale/incompatible shape written by an older version). This is a
+            // data problem, not a connectivity problem, so it's correct to treat it as
+            // a miss rather than trip the circuit breaker over it.
             return CacheResult<T>.Miss();
         }
     }
