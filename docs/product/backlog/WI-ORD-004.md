@@ -5,7 +5,7 @@ Type:                 Interface/Contract
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  EPIC-FULFILLMENT-EXT (the seam this ADR-0001 extension point plugs into)
 Hat/Owner:            Architect, Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 

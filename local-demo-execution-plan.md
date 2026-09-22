@@ -35,7 +35,7 @@ All items below are Ready. Suggested build order reflects real dependencies,
 not epic grouping.
 
 **Ordering critical path**
-- [ ] `WI-ORD-004` — FulfillmentStrategy seam (ACL boundary) — blocks everything else in Ordering
+- [x] `WI-ORD-004` — FulfillmentStrategy seam (ACL boundary) — done (unblocks `ORD-002` and `ORD-003`)
 - [ ] `WI-CAT-001` — Listing CRUD + modifier/allergy model (blocked by DATA-002, EVT-003, AUTH-002 — all done — and DEV-001, done)
 - [ ] `WI-ORD-002` — Order aggregate + lifecycle states (blocked by ORD-004)
 - [ ] `WI-ORD-003` — PickupFulfillment strategy (blocked by ORD-004, parallel with ORD-002)

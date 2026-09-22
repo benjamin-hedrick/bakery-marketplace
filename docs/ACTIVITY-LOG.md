@@ -4,6 +4,19 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-09-21 — FulfillmentStrategy Seam / ACL Boundary built (WI-ORD-004 / Delegation Packet 06)**
+
+Completed `WI-ORD-004` (`Delegation Packet 06 — FulfillmentStrategy Seam (ACL Boundary)`):
+- **`FulfillmentType` Enum**: Defined `Pickup` (v1 active strategy) and `Delivery` (v2 deferred strategy seam) in `BakeryMarketplace.EventSchemas`.
+- **`OrderStatus` Enum**: Standardized the fulfillment-agnostic lifecycle vocabulary matching ADR-0001, `WI-ORD-004`, and `glossary.md`: `Placed → Confirmed → InPreparation → ReadyForFulfillment → Completed` (or `Cancelled`).
+- **`FulfillmentDetails` Value Object**: Implemented discriminated value object container storing strategy-specific details (`PickupFulfillmentDetails`, `DeliveryFulfillmentDetails`) opaquely on the Order aggregate without inspecting strategy internals.
+- **Event Schemas**: Defined `OrderReadyForFulfillmentPayload` and `OrderFulfillmentCompletedPayload` as the pure domain event communication contract boundary between Ordering and concrete fulfillment strategies.
+- **Tests**: Added `FulfillmentContractsTests` in `BakeryMarketplace.EventSchemas.Tests` verifying serialization, factory methods, enum definitions, and schema roundtrips (10/10 tests passing).
+
+Files touched: `tools/BakeryMarketplace.EventSchemas/FulfillmentContracts.cs` (new), `tools/tests/BakeryMarketplace.EventSchemas.Tests/FulfillmentContractsTests.cs` (new).
+
+---
+
 **2026-09-21 — Local Mock OIDC Issuer rebuilt and verified against middleware (WI-AUTH-005 / Delegation Packet 05)**
 
 Completed `WI-AUTH-005` (`Delegation Packet 05 — Local Mock OIDC Issuer (Rebuild/Completion)`):
