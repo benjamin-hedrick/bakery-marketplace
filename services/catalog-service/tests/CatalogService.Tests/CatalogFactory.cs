@@ -1,0 +1,98 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using BakeryMarketplace.Data;
+using BakeryMarketplace.EventSchemas;
+using BakeryMarketplace.Eventing;
+using CatalogService.Domain;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
+
+namespace CatalogService.Tests;
+
+/// <summary>
+/// Hosts the real catalog-service in-process with the real shared JWT middleware (<c>AddBakeryAuth</c>). Only the
+/// signing key source differs from production: tokens are signed with a test key supplied as static OIDC
+/// configuration, so issuer, audience, lifetime and signature are all genuinely validated and no mock server is needed.
+/// Data and events use the in-memory defaults.
+/// </summary>
+public sealed class CatalogFactory : WebApplicationFactory<Program>
+{
+    public const string Issuer = "https://issuer.test";
+    public const string Audience = "bakery-marketplace";
+
+    private static readonly RsaSecurityKey SigningKey = new(RSA.Create(2048)) { KeyId = "test-key" };
+    private static readonly RsaSecurityKey OtherKey = new(RSA.Create(2048)) { KeyId = "other-key" };
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Auth:Authority"] = Issuer,
+            ["Auth:Audience"] = Audience,
+        }));
+
+        builder.ConfigureServices(services =>
+            services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                options.Configuration = new OpenIdConnectConfiguration { Issuer = Issuer };
+                options.TokenValidationParameters.IssuerSigningKey = SigningKey;
+            }));
+    }
+
+    public string Token(string sub, string role, TimeSpan? lifetime = null, bool wrongKey = false, string audience = Audience)
+    {
+        var now = DateTime.UtcNow;
+        var life = lifetime ?? TimeSpan.FromMinutes(10);
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Issuer = Issuer,
+            Audience = audience,
+            NotBefore = now.AddMinutes(-30), // earlier than any test lifetime, so an "expired" token is expired, not premature
+            Expires = now + life,
+            Subject = new ClaimsIdentity(new[] { new Claim("sub", sub), new Claim("roles", role) }),
+            SigningCredentials = new SigningCredentials(wrongKey ? OtherKey : SigningKey, SecurityAlgorithms.RsaSha256),
+        };
+        var handler = new JwtSecurityTokenHandler { SetDefaultTimesOnTokenCreation = false };
+        return handler.WriteToken(handler.CreateToken(descriptor));
+    }
+
+    public HttpClient ClientFor(string sub, string role)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token(sub, role));
+        return client;
+    }
+
+    public IRepository<ListingDocument> Listings => Services.GetRequiredService<IRepository<ListingDocument>>();
+
+    /// <summary>Publishes a VendorVerified event through the real transport and subscription path.</summary>
+    public Task VerifyVendorAsync(string vendorId, long sequence = 1) =>
+        Services.GetRequiredService<IEventPublisher>().PublishAsync(new DomainEventEnvelope<VendorVerifiedPayload>(
+            Guid.NewGuid(), "VendorVerified", 1, DateTimeOffset.UtcNow, "Vendor", vendorId, sequence,
+            new VendorVerifiedPayload(vendorId)));
+
+    public Task SuspendVendorAsync(string vendorId, long sequence) =>
+        Services.GetRequiredService<IEventPublisher>().PublishAsync(new DomainEventEnvelope<VendorSuspendedPayload>(
+            Guid.NewGuid(), "VendorSuspended", 1, DateTimeOffset.UtcNow, "Vendor", vendorId, sequence,
+            new VendorSuspendedPayload(vendorId, "test")));
+
+    public async Task<ListingDocument> SeedListingAsync(
+        string vendorId, string id, string name = "Country Sourdough", string status = ListingStatuses.Published, int priceCents = 800)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return await Listings.SaveAsync(new ListingDocument
+        {
+            Id = id, VendorId = vendorId, Name = name, Category = "Bread", PriceCents = priceCents,
+            Status = status, CreatedAt = now, UpdatedAt = now, Version = 1,
+            AllergenFlags = new() { "gluten" },
+            Modifiers = new() { new ModifierDocument { Id = "mod-seeds", Name = "Seed crust", PriceDeltaCents = 100, Allergens = new() { "sesame" } } },
+        }, vendorId);
+    }
+}
