@@ -1,0 +1,50 @@
+# WI-PORT-001 proof schema: the read-only subset of docs/architecture/first-slice-contract.md §5.
+# ListingConnection/ListingEdge/PageInfo are the standard Relay connection types the contract left implicit.
+
+interface Node {
+  id: ID!
+}
+
+type Query {
+  node(id: ID!): Node
+  listings(first: Int = 20, after: String): ListingConnection!
+  listing(id: ID!): Listing
+}
+
+type Listing implements Node {
+  id: ID!
+  vendorId: ID!
+  name: String!
+  description: String
+  category: String!
+  price: Money!
+  modifiers: [Modifier!]!
+  allergenFlags: [String!]!
+}
+
+type Modifier {
+  id: ID!
+  name: String!
+  priceDelta: Money!
+  allergens: [String!]!
+}
+
+type Money {
+  cents: Int!
+  currency: String!
+}
+
+type ListingConnection {
+  edges: [ListingEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ListingEdge {
+  cursor: String!
+  node: Listing!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
