@@ -111,3 +111,19 @@ In v1, only public listing pages use SSR. Authenticated pages render client-side
 **27. Per-user throttling at the BFF — not decided**
 Type: Open question · Source: ADR-0013 (2026-10-26) · Hat: Architect
 APIM Consumption still lacks `rate-limit-by-key` (ADR-0008). Whether the GraphQL BFF takes on any per-user or per-query-cost limiting is left to `EPIC-RATE-LIMITING`.
+
+**28. Catalog public reads probe one partition per verified vendor**
+Type: Known limitation · Source: `WI-CAT-001` (2026-10-26) · Hat: Architect
+Browse and lookup-by-id cost grows with the number of verified vendors. Options when it matters: vendor embedded in the listing id, a cross-partition query on `IRepository<T>` (shared contract), or a browse read model. See `docs/evidence/WI-CAT-001/findings.md`.
+
+**29. Redis Streams consumer groups are named per event type, not per service**
+Type: Tech debt / latent defect · Source: `WI-EVT-003` code, found by `WI-CAT-001` · Hat: Platform Engineering
+`RedisStreamsEventTransport` uses group `cg:{eventType}`. Two services subscribing to the same event would compete for messages instead of each receiving all of them. Harmless while a single service consumes each event; fix before `ordering-service` or `notification-service` subscribes to a shared one (group name should include the service).
+
+**30. No outbox for publish-after-save, and no optimistic concurrency**
+Type: Known limitation · Source: `WI-CAT-001` · Hat: Architect
+Catalog saves then publishes `ListingPublished`; a failed publish is logged and never re-sent. `IRepository<T>` exposes no ETag, so concurrent writes are last-write-wins and concurrent event deliveries for one vendor are a read-modify-write.
+
+**31. Existing Cosmos adapter tests may not exercise the real serializer path**
+Type: Verification gap · Source: reconciliation finding A8 + `WI-CAT-001` · Hat: Platform Engineering
+`CosmosRepositoryTests` use PascalCase `Id`/`PartitionKey`, but Cosmos' default serializer requires a lowercase `id`. Confirm against the emulator once `WI-DEV-002` exists; catalog avoids the issue with explicit property names.

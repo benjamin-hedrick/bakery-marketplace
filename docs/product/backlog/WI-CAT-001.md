@@ -5,7 +5,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-CATALOG
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               Done 2026-10-26 (merged 0c904b0) — evidence in docs/evidence/WI-CAT-001/findings.md
 Size:                 M
 ```
 
@@ -53,5 +53,5 @@ Partial. The CRUD/model/event-consumption logic is fully agent-suitable. The "wh
 **Data touched**: `catalog` container
 
 **Open Points (working)**
-- [ ] Where does catalog-service persist derived per-vendor verification status (a cache entry keyed by vendorId, a dedicated small read-model container, or a field checked at publish-time only)? Not decided in any ADR — reasonable default is a `CacheProvider`-backed entry (reuses `CACHE-002`, no new container), but confirm before treating as settled.
-- [ ] For local end-to-end testing, no admin-service exists yet to publish `VendorVerified` for real. `DEV-004`'s seed step (renumbered 2026-09-13 from `DEV-003`) publishes this event directly onto the event backbone for seeded vendors, simulating what admin-service will do later — confirm this is acceptable as the interim local-dev path rather than blocking on `EPIC-ADMIN`.
+- [x] Where does catalog-service persist derived per-vendor verification status (a cache entry keyed by vendorId, a dedicated small read-model container, or a field checked at publish-time only)? Not decided in any ADR — reasonable default is a `CacheProvider`-backed entry (reuses `CACHE-002`, no new container), but confirm before treating as settled. **Resolved 2026-10-26:** none of the three. A cache entry is evictable (a lost entry would silently unpublish a vendor's listings) and cannot enumerate vendors, so status is one document per vendor in a reserved partition (`_vendor-status`) of the `catalog` container, written only from events. See `docs/evidence/WI-CAT-001/findings.md`.
+- [x] For local end-to-end testing, no admin-service exists yet to publish `VendorVerified` for real. `DEV-004`'s seed step (renumbered 2026-09-13 from `DEV-003`) publishes this event directly onto the event backbone for seeded vendors, simulating what admin-service will do later — confirm this is acceptable as the interim local-dev path rather than blocking on `EPIC-ADMIN`. **Resolved 2026-10-26:** accepted. The service subscribes through `IEventSubscriber`, so a seed that publishes `VendorVerified` onto the backbone works as built (not yet exercised; needs `WI-DEV-002`).

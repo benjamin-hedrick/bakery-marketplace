@@ -59,11 +59,12 @@ Parallelism: a listing detail page may fetch `listing` and `pickupWindows` concu
 Money follows D-1: **integer cents, USD**. To avoid unit ambiguity the REST fields are named `priceCents` / `priceDeltaCents` (a rename of the model's `price` / `priceDelta`, to be applied to `data-model-api-contracts.md` in `WI-PORT-006` pass 2).
 
 ```jsonc
-// GET /catalog/listings/{id}  → Listing (existing shape, data-model-api-contracts.md)
+// GET /catalog/listings/{id}  → Listing (as implemented by WI-CAT-001; adds "currency").
+// GET /catalog/listings?limit=&after=  → { "items": [Listing], "nextCursor": "<last id>" | null }  (limit 1-100, default 20; ordered by id)
 {
   "id": "listing-sourdough-001", "vendorId": "vendor-shop-001",
   "name": "Country Sourdough", "description": "...", "category": "Bread",
-  "priceCents": 800,
+  "priceCents": 800, "currency": "USD",
   "modifiers": [ { "id": "mod-seeds", "name": "Seed crust", "priceDeltaCents": 100, "allergens": ["sesame"] } ],
   "allergenFlags": ["gluten"],
   "sponsored": false, "status": "Published"
@@ -225,12 +226,14 @@ Expected totals for tests (cents): 2× sourdough + `mod-seeds` = **1800**; crois
 3. **Listing reads' auth requirement is unstated.** ADR-0012 renders listing pages with SSR for anonymous visitors, so `GET /catalog/listings*` must allow anonymous access for `Published` data → D-4.
 4. **Money type was unspecified** (`price` had no declared type or currency in the model). ADR-0005 / open item #7 settle USD, single currency; D-1 (accepted) settles integer cents and no tax.
 5. **`WI-DEV-004` seeds `VendorVerified` via the event backbone**, so the catalog publish gate depends on Redis Streams being up. The seed and the compose file (`DEV-002`) must therefore ship together.
+6. **Public reads are not single-partition (found by `WI-CAT-001`).** `catalog` is partitioned by `vendorId`; browse and lookup-by-id have no vendor. The service reads or probes one partition per verified vendor. Fine for the slice; to scale, embed the vendor in the listing id, add a cross-partition query to `IRepository<T>` (shared-contract change), or add a browse read model.
+7. **No seed mechanism can run yet.** `catalog-service` defaults to in-memory storage with no data, and `WI-DEV-004` (seed script) needs `WI-DEV-002` (Compose, Cosmos emulator, Redis). The first end-to-end run needs either those or an interim in-memory dev seed (a decision for `WI-PORT-002`).
 
 ## 11. Decision log
 
 | # | Decision | Recommended default | Owner | Blocks |
 |---|---|---|---|---|
-| D-1 | Money representation, tax/fees, rounding | **ACCEPTED 2026-10-26.** USD (settled by ADR-0005). Amounts are **integer minor units (cents)** over REST; GraphQL `Money` exposes `amount` as that integer in a string-safe form plus `currency: "USD"`; never binary floats. No tax/fees/discounts in the slice. Round half-up to the cent at line level. | Human lead (decided) | `CAT-001` DTOs, `PORT-002` schema |
+| D-1 | Money representation, tax/fees, rounding | **ACCEPTED 2026-10-26.** USD (settled by ADR-0005). Amounts are **integer minor units (cents)** over REST; GraphQL `Money` is `{ cents: Int!, currency }` with currency `USD`; never binary floats. No tax/fees/discounts in the slice. Round half-up to the cent at line level. | Human lead (decided) | `CAT-001` DTOs, `PORT-002` schema |
 | D-2 | Cart | **ACCEPTED 2026-10-26.** Slice skips `POST /ordering/cart`; the cart lives in browser (Relay/UI) state and `checkout` takes line items. The endpoint stays in the contract as deferred. | Human lead (decided) | `ORD-001`, `CUST-003` |
 | D-3 | Pickup-window source | **DECIDED 2026-10-26 (simple):** add `GET /ordering/pickup-windows?vendorId=` returning deterministic, clock-injected 15-minute slots within a single configured set of hours. **Deferred:** per-vendor hours, per-slot capacity, stock tied to a window, and rules for late or early pickup. Owned by `ordering-service`/`PickupFulfillment`. | Human lead (decided) | `ORD-003`, `CUST-003` |
 | D-4 | Anonymous reads | **ACCEPTED 2026-10-26.** `GET /catalog/listings*` allows anonymous callers for `Published` listings only; everything else requires a token (`CAT-001` acceptance amended by reconciliation note). | Human lead (decided) | `CAT-001`, `PORT-002`, SSR |

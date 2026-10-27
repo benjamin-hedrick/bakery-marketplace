@@ -4,6 +4,19 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-26 — WI-CAT-001 done: catalog listing CRUD with vendor-verification publish gate (merged 0c904b0)**
+
+`catalog-service`: anonymous `GET /catalog/listings[/{id}]` (Published listings of Verified vendors only, integer cents, paging), `POST`/`PUT` for the Vendor role with ownership (owner always from the token), `VendorVerified`/`VendorSuspended` consumed in sequence order (duplicates and late events ignored), `ListingPublished` emitted on Draft → Published. 28 integration tests over the real pipeline and JWT middleware pass; shared-library suites unchanged. Removing the publish gate, the stale-event check and the Published filter each failed the matching test.
+- Open Point resolved: vendor status is a document per vendor in a reserved partition, **not** a cache entry (evictable, cannot enumerate).
+- Suspension is a read-time filter (listings stay stored as Published; reverification restores them).
+- Found, not fixed (open items #28–#31): public reads probe one partition per verified vendor; Redis consumer groups are per event type, not per service; no outbox or optimistic concurrency; existing Cosmos tests may not exercise the real serializer.
+- Not verified: Cosmos and Redis backends (wired, never run); mock-issuer discovery flow.
+- `WI-PORT-002` now Ready except for how the first end-to-end run is seeded (`DEV-004` needs `DEV-002`).
+
+Evidence: `docs/evidence/WI-CAT-001/findings.md`.
+
+---
+
 **2026-10-26 — WI-PORT-001 done: Next.js Pages Router + Relay SSR proof (merged 6175e05)**
 
 Proof in `apps/web-customer` against a mock GraphQL server (real graphql-js, schema from the first-slice contract). **Result: proceed.** All five acceptance criteria met on Next.js 16.4.3, React 19.3.0, Relay 21.0.1, Node 25.9.0: SSR HTML without JavaScript, no hydration warnings and no first-paint GraphQL request, client navigation and refetch, and no leakage across 200 concurrent requests. Tests were verified against deliberate leak and hydration faults. Clean-checkout build and `npm audit` (0 vulnerabilities) pass.

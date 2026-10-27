@@ -4,19 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. The four services under `services/` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` is a stub. The only frontend code is the `WI-PORT-001` proof in `apps/web-customer` (Next.js + Relay against a mock GraphQL server); `web-admin` and `web-queue-display` are empty. Don't describe anything as working unless you've run it.
+A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. `catalog-service` has real listing endpoints (`WI-CAT-001`, in-memory backends by default; Cosmos/Redis wired but unrun). `ordering-service`, `admin-service` and `notification-service` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` is a stub. The only frontend code is the `WI-PORT-001` proof in `apps/web-customer` (Next.js + Relay against a mock GraphQL server); `web-admin` and `web-queue-display` are empty. Don't describe anything as working unless you've run it.
 
 ## Commands
 
 .NET 8 (the SDK installed locally is 10.x; projects target `net8.0`). There are two solutions:
 
-- `BakeryMarketplace.slnx` (root): the 4 service projects and the 7 `tools/` libraries. **No test projects.**
-- `tools/BakeryMarketplace.slnx`: the 7 test projects under `tools/tests/`.
+- `BakeryMarketplace.slnx` (root): the 4 service projects, the 7 `tools/` libraries, and the catalog-service test project (`services/catalog-service/tests/`).
+- `tools/BakeryMarketplace.slnx`: the 7 library test projects under `tools/tests/` (**not** the service tests; run those via their own path or the root solution).
 
 ```
 dotnet build BakeryMarketplace.slnx
 dotnet test tools/BakeryMarketplace.slnx
 dotnet test tools/tests/BakeryMarketplace.Auth.Tests --filter "FullyQualifiedName~MockOidcIssuerTests"
+dotnet test services/catalog-service/tests/CatalogService.Tests   # 28 tests; hosts the real service in-process
 ```
 
 The framework is xUnit. The Redis and Cosmos adapter tests read `REDIS_CONNECTION_STRING` (default `localhost:6379`), and some fall back to in-memory fakes when Docker dependencies aren't running (reconciliation finding A8). A green run without Docker doesn't prove the real adapters work.
