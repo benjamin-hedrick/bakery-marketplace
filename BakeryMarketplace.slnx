@@ -5,6 +5,9 @@
     <Project Path="services/admin-service/src/AdminService.csproj" />
     <Project Path="services/notification-service/src/NotificationService.csproj" />
   </Folder>
+  <Folder Name="/services/tests/">
+    <Project Path="services/catalog-service/tests/CatalogService.Tests/CatalogService.Tests.csproj" />
+  </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/BakeryMarketplace.Auth/BakeryMarketplace.Auth.csproj" />
     <Project Path="tools/BakeryMarketplace.Caching/BakeryMarketplace.Caching.csproj" />
