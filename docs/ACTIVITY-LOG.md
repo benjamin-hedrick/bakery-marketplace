@@ -4,6 +4,18 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-26 — WI-PORT-001 done: Next.js Pages Router + Relay SSR proof (merged 6175e05)**
+
+Proof in `apps/web-customer` against a mock GraphQL server (real graphql-js, schema from the first-slice contract). **Result: proceed.** All five acceptance criteria met on Next.js 16.4.3, React 19.3.0, Relay 21.0.1, Node 25.9.0: SSR HTML without JavaScript, no hydration warnings and no first-paint GraphQL request, client navigation and refetch, and no leakage across 200 concurrent requests. Tests were verified against deliberate leak and hydration faults. Clean-checkout build and `npm audit` (0 vulnerabilities) pass.
+- `relay-nextjs` **rejected** (high-severity `serialize-javascript` advisories, no fix, stale); small in-repo pattern used instead.
+- Next.js 16.4.0 has critical advisories; pinned 16.4.3.
+- Untested: Node LTS, Firefox/WebKit, `next dev`, auth, mutations, error rendering.
+- Main updated: WI-PORT-001 Done, WI-PORT-002 unblocked from the SSR proof (now waits on `CAT-001`'s listing read), ADR-0012 validation outcome, contract connection types, `CLAUDE.md` frontend commands.
+
+Evidence: `docs/evidence/WI-PORT-001/findings.md`.
+
+---
+
 **2026-10-26 — Owners/defaults adopted; first-slice contract drafted (WI-PORT-007)**
 
 - `docs/management/portfolio-slice/09-owners-and-defaults.md`: human lead is the accountable integrator for each shared area; npm workspaces, strict TypeScript, Jaeger, Playwright; `relay-nextjs` is a candidate to evaluate in `WI-PORT-001` against stated criteria (not adopted).

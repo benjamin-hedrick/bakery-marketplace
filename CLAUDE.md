@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. The four services under `services/` are empty scaffolds (`Program.cs` only), `apps/*/src` is empty, and `docker-compose.yml` is a stub. Don't describe anything as working unless you've run it.
+A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. The four services under `services/` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` is a stub. The only frontend code is the `WI-PORT-001` proof in `apps/web-customer` (Next.js + Relay against a mock GraphQL server); `web-admin` and `web-queue-display` are empty. Don't describe anything as working unless you've run it.
 
 ## Commands
 
@@ -20,6 +20,20 @@ dotnet test tools/tests/BakeryMarketplace.Auth.Tests --filter "FullyQualifiedNam
 ```
 
 The framework is xUnit. The Redis and Cosmos adapter tests read `REDIS_CONNECTION_STRING` (default `localhost:6379`), and some fall back to in-memory fakes when Docker dependencies aren't running (reconciliation finding A8). A green run without Docker doesn't prove the real adapters work.
+
+Frontend proof (`apps/web-customer`, Node 25.9.0 was used; exact LTS pin is still open). Run from that directory:
+
+```
+npm ci
+npm run typecheck        # relay-compiler, then tsc
+npm run build            # relay-compiler + next build
+npm run mock             # mock GraphQL on :4000
+ENABLE_TEST_HOOKS=1 npx next start -p 3000
+npm run test:isolation   # 200 concurrent SSR requests, two fixtures
+npm run test:e2e         # Playwright (Chromium); `npx playwright install chromium` first
+```
+
+Generated Relay artifacts (`src/__generated__/`) are gitignored; `npm run relay` recreates them. `ENABLE_TEST_HOOKS` must never be set outside tests. Details: `apps/web-customer/README.md`.
 
 Docs site: `mkdocs.yml` (Material theme, `docs_dir: docs`). mkdocs isn't installed here, so the nav is unbuilt.
 

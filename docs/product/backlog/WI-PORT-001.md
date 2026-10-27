@@ -7,7 +7,7 @@ Type:                 Test/Mock/Chaos (technical proof)
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-WEB-CUSTOMER
 Hat/Owner:            Engineering/Build (one owner)
-Status:               Ready
+Status:               Done 2026-10-26 (merged 6175e05) — all acceptance criteria met; evidence in docs/evidence/WI-PORT-001/findings.md
 Size:                 TBD
 ```
 

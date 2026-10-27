@@ -23,7 +23,7 @@ This is a solo-led project, so the human lead is the accountable integrator for 
 | Package manager | npm workspaces | Nothing extra to install in CI; add pnpm only if a concrete need appears |
 | Language | TypeScript, `strict: true` | |
 | Workspace layout | Root `package.json` with workspaces `apps/*` and `services/graphql-bff` | BFF is a backend, so it sits beside the C# services; confirm in `WI-PORT-001` |
-| Relay + Next.js integration | Evaluate the `relay-nextjs` package first; fall back to a small hand-rolled per-request environment | See `WI-PORT-001` criteria below |
+| Relay + Next.js integration | Small in-repo per-request environment pattern (`apps/web-customer/src/lib/relay/`). `relay-nextjs` was evaluated and rejected | See the outcome below |
 | Local trace viewer | Jaeger, via Compose (OTLP in) | Simple, container-only, vendor-neutral |
 | Browser tests | Playwright (TypeScript) | Target-role evidence |
 | .NET | `net8.0`, unchanged | ADR-0010 |
@@ -31,6 +31,8 @@ This is a solo-led project, so the human lead is the accountable integrator for 
 | Evidence artifacts | Entries in `docs/ACTIVITY-LOG.md`; raw outputs (trace exports, test reports) under `docs/evidence/<WI-ID>/` | One log, no second ledger |
 
 ## `relay-nextjs` evaluation criteria (for `WI-PORT-001`)
+
+**Outcome (2026-10-26): rejected.** It fails criterion 4: its `serialize-javascript@^5` dependency has high-severity advisories with no fix available, and it was last published in January 2025. It was not exercised functionally. The in-repo fallback was built and passed the proof; see `docs/evidence/WI-PORT-001/findings.md`. The criteria below are kept for evaluating any similar package later.
 
 Not adopted yet. A candidate is acceptable only if it:
 

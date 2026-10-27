@@ -122,6 +122,11 @@ type Money { cents: Int! currency: String! }        # D-1: integer cents, curren
 
 type PickupWindow { start: DateTime! end: DateTime! }
 
+# Standard Relay connection types (added after WI-PORT-001, which proved them)
+type ListingConnection { edges: [ListingEdge!]! pageInfo: PageInfo! }
+type ListingEdge { cursor: String! node: Listing! }
+type PageInfo { hasNextPage: Boolean! endCursor: String }
+
 type Order implements Node {
   id: ID!
   status: OrderStatus!

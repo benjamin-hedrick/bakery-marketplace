@@ -7,7 +7,7 @@ Type:                 Integration
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-WEB-CUSTOMER, EPIC-CATALOG, EPIC-CI-CD, EPIC-OBSERVABILITY
 Hat/Owner:            Engineering/Build (one implementation owner)
-Status:               Blocked (by WI-PORT-001, WI-PORT-007)
+Status:               Blocked (by WI-CAT-001 listing read endpoint). WI-PORT-001 is done; WI-PORT-007 decisions D-1 to D-4 are accepted. May start against the mock BFF.
 Size:                 TBD
 ```
 

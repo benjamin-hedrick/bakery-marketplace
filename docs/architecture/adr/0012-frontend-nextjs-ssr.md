@@ -49,3 +49,12 @@ The project's evidence goals have since changed (see `docs/management/portfolio-
 - ADR-0014 — cache layers (HTTP and Relay layers)
 - ADR-0006 — auth model, unchanged
 - `open-items-register.md` #24 (no refresh token) — still applies unchanged
+
+## Validation outcome (WI-PORT-001, 2026-10-26)
+
+The proof **passed**: SSR content before hydration, no hydration warnings, client navigation and refetch, and no cross-request leakage under 200 concurrent requests, on Next.js 16.4.3 (Pages Router), React 19.3.0 and Relay 21.0.1. The decision stands; no framework change was needed. Two details to carry forward:
+
+- **`relay-nextjs` was rejected**, not adopted. It depends on `serialize-javascript@5`, which has high-severity advisories with no fix available, and it has not been published since January 2025. The Relay integration is a small in-repo pattern (`apps/web-customer/src/lib/relay/`): a new Relay environment per `getServerSideProps` call, records returned as ordinary page props, and one environment per browser session.
+- **Next.js must be 16.4.3 or later** (16.4.0 has critical advisories).
+
+Not yet verified: a Node LTS runtime, Firefox/WebKit, `next dev` StrictMode behavior, authenticated pages, mutations. Evidence: `docs/evidence/WI-PORT-001/findings.md`.

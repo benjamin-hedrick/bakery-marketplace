@@ -9,13 +9,13 @@ Goal:                Prove one production-shaped browse-to-order slice end to en
 Related references:  ADR-0012 to ADR-0016; docs/management/portfolio-slice/ (implementation plans);
                      docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md
 Constituent work items:
-  - WI-PORT-001 (Test/Mock/Chaos — Next.js Pages Router + Relay SSR proof) — Ready; blocking prerequisite for frontend work
-  - WI-PORT-002 (Integration — walking skeleton, one listing read path) — blocked by PORT-001, PORT-007
+  - WI-PORT-001 (Test/Mock/Chaos — Next.js Pages Router + Relay SSR proof) — Done 2026-10-26; proceed, in-repo Relay pattern (relay-nextjs rejected)
+  - WI-PORT-002 (Integration — walking skeleton, one listing read path) — blocked by CAT-001 (listing read endpoint); PORT-001 done
   - WI-PORT-003 (Infra/Environment — quality + Azure Pipelines CI baseline) — Ready; supersedes CI-001
   - WI-PORT-004 (Interface/Contract — cache contract for the listing path, three layers) — blocked by PORT-002
   - WI-PORT-005 (Integration — trace propagation + safe logs) — blocked by PORT-002; supersedes OBS-002
   - WI-PORT-006 (Document/Artifact — reconcile existing artifacts) — In Progress (pass 1 done 2026-10-26)
-  - WI-PORT-007 (Interface/Contract — first-slice contract + GraphQL mapping) — Ready; prerequisite to broad delegation
+  - WI-PORT-007 (Interface/Contract — first-slice contract + GraphQL mapping) — In Progress (draft; D-1 to D-4 accepted); prerequisite to broad delegation
 Status:              Started (7 of 7 items detailed; 1 in progress)
 ```
 
