@@ -7,7 +7,7 @@ Type:                 Integration
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-WEB-CUSTOMER, EPIC-CATALOG, EPIC-CI-CD, EPIC-OBSERVABILITY
 Hat/Owner:            Engineering/Build (one implementation owner)
-Status:               Ready (listing endpoints done: WI-CAT-001; SSR proof done: WI-PORT-001; contract decisions D-1 to D-4 accepted). Open: how the first end-to-end run is seeded. WI-DEV-004 needs WI-DEV-002 (Compose/Cosmos emulator); decide an interim in-memory dev seed or wait.
+Status:               Ready (listing endpoints done: WI-CAT-001; SSR proof done: WI-PORT-001; contract decisions D-1 to D-4 accepted). Open: how the first end-to-end run is seeded. WI-DEV-002 (Compose, verified) is done, so WI-DEV-004 is unblocked; recommended: build it as the single seed source rather than an interim in-memory seed.
 Size:                 TBD
 ```
 

@@ -9,6 +9,13 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — UNBLOCKED, with constraints found by WI-DEV-002.** `WI-DEV-002` is done and verified, so this item can now be built and run. Facts to design against (details in `docs/operations/local-dev.md`):
+> - Seed events go onto the real Redis stream `events:{eventType}` as a JSON `envelope` field (camelCase), with the per-aggregate `sequenceNumber` that `catalog-service` uses to ignore stale events. `VendorVerified` for each seeded vendor works as built.
+> - The `catalog` Cosmos container (partition key `/vendorId`) is created by `catalog-service` when `Cosmos:EnsureCreated` is on; the seed must create it too or run after the service has started once.
+> - **Seed vendor ids must be reconciled with the mock users.** Ownership needs the token `sub` to equal the listing's `vendorId`, and the mock vendor's `sub` is `user-vendor-1`, so seed vendors such as `vendor-shop-001` cannot be edited by any mock user. Either seed with the mock user's id or add matching users to the issuer.
+> - Use the deterministic ids and expected totals in `docs/architecture/first-slice-contract.md` §7. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Renumbering note (2026-09-13)**: this item was `DEV-003` prior to 2026-09-13, shifted to `DEV-004` in the same renumbering that introduced `WI-DEV-001` (base .NET solution/project scaffold) and moved the real `docker-compose.yml` item from `DEV-001` to `DEV-002`. No content changed beyond the ID itself and the cross-references below.
 
 **Context / Why**

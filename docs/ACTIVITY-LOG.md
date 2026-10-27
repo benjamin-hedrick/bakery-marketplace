@@ -4,6 +4,19 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-26 — WI-DEV-002 done: local environment Compose file, verified under Docker (merged c945b18)**
+
+`docker compose up` runs `redis-events`, the Cosmos vNext emulator (pinned `vnext-EN20261019`) and the mock OIDC issuer, with `redis-cache` behind `--profile with-redis`; ports bind to 127.0.0.1 only. Added `tools/BakeryMarketplace.MockOidcHost` (the issuer had endpoints but no runnable host; it refuses to start in Production), `scripts/dev/check-env.mjs` and `docs/operations/local-dev.md`. A real `catalog-service` ran end to end against the real Cosmos emulator, Redis Streams and the issuer container from a fresh stack: draft create, publish gate (409), `VendorVerified` delivered via a Redis stream, publish, public read from Cosmos, `ListingPublished` on the stream.
+- **Cosmos SDK 3.38.1 → 3.63.2** in `BakeryMarketplace.Data` (shared library): older SDKs throw while decoding whole-document query results from the emulator, which broke every LINQ query. Found with a probe over 17 query shapes; 3.50.0 also fails.
+- `catalog-service`: `Cosmos:GatewayMode` and `Cosmos:EnsureCreated` (local only).
+- Readiness script no longer crashes with exit 127 on Windows (`process.exit()` replaced by `process.exitCode`).
+- Found, not fixed (open items #31–#34): the Cosmos adapter tests pass without touching Cosmos and 3 of 4 fail against the real emulator (`Id` vs `id`); mock issuer login page reflects query values unescaped; mock users and seed vendor ids do not line up; emulator and SDK versions are coupled.
+- Unblocked: `WI-DEV-004` (seed script) and `WI-DATA-003` (emulator contract tests). `WI-PORT-002` now waits only on the seed decision (recommended: build `DEV-004`).
+
+Evidence: `docs/operations/local-dev.md`.
+
+---
+
 **2026-10-26 — WI-CAT-001 done: catalog listing CRUD with vendor-verification publish gate (merged 0c904b0)**
 
 `catalog-service`: anonymous `GET /catalog/listings[/{id}]` (Published listings of Verified vendors only, integer cents, paging), `POST`/`PUT` for the Vendor role with ownership (owner always from the token), `VendorVerified`/`VendorSuspended` consumed in sequence order (duplicates and late events ignored), `ListingPublished` emitted on Draft → Published. 28 integration tests over the real pipeline and JWT middleware pass; shared-library suites unchanged. Removing the publish gate, the stale-event check and the Published filter each failed the matching test.

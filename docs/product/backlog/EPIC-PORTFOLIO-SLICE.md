@@ -10,7 +10,7 @@ Related references:  ADR-0012 to ADR-0016; docs/management/portfolio-slice/ (imp
                      docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md
 Constituent work items:
   - WI-PORT-001 (Test/Mock/Chaos — Next.js Pages Router + Relay SSR proof) — Done 2026-10-26; proceed, in-repo Relay pattern (relay-nextjs rejected)
-  - WI-PORT-002 (Integration — walking skeleton, one listing read path) — Ready; CAT-001 and PORT-001 done. Open: seeding for the first end-to-end run (DEV-004 needs DEV-002)
+  - WI-PORT-002 (Integration — walking skeleton, one listing read path) — Ready; CAT-001 and PORT-001 done. Open: seeding for the first end-to-end run (DEV-002 done; DEV-004 now unblocked and recommended)
   - WI-PORT-003 (Infra/Environment — quality + Azure Pipelines CI baseline) — Ready; supersedes CI-001
   - WI-PORT-004 (Interface/Contract — cache contract for the listing path, three layers) — blocked by PORT-002
   - WI-PORT-005 (Integration — trace propagation + safe logs) — blocked by PORT-002; supersedes OBS-002

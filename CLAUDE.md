@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. `catalog-service` has real listing endpoints (`WI-CAT-001`, in-memory backends by default; Cosmos/Redis wired but unrun). `ordering-service`, `admin-service` and `notification-service` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` is a stub. The only frontend code is the `WI-PORT-001` proof in `apps/web-customer` (Next.js + Relay against a mock GraphQL server); `web-admin` and `web-queue-display` are empty. Don't describe anything as working unless you've run it.
+A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. `catalog-service` has real listing endpoints (`WI-CAT-001`; in-memory backends by default, Cosmos and Redis verified against the local Compose stack). `ordering-service`, `admin-service` and `notification-service` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` runs the local infrastructure (Redis Streams, Cosmos vNext emulator, mock OIDC issuer; `docs/operations/local-dev.md`) but no application containers. The only frontend code is the `WI-PORT-001` proof in `apps/web-customer` (Next.js + Relay against a mock GraphQL server); `web-admin` and `web-queue-display` are empty. Don't describe anything as working unless you've run it.
 
 ## Commands
 
@@ -35,6 +35,17 @@ npm run test:e2e         # Playwright (Chromium); `npx playwright install chromi
 ```
 
 Generated Relay artifacts (`src/__generated__/`) are gitignored; `npm run relay` recreates them. `ENABLE_TEST_HOOKS` must never be set outside tests. Details: `apps/web-customer/README.md`.
+
+Local infrastructure (needs Docker; full guide and verification status in `docs/operations/local-dev.md`):
+
+```
+docker compose up -d --build                # redis-events, cosmos, mock-oidc
+docker compose --profile with-redis up -d   # plus the cache Redis
+node scripts/dev/check-env.mjs --wait 90    # exit 0 when up, 1 otherwise
+docker compose down                         # resets all state
+```
+
+Run services on the host against these ports. The Cosmos emulator needs Cosmos SDK 3.63.x+ (older versions fail on whole-document queries), and the existing `CosmosRepositoryTests` skip silently by default and fail against the real emulator (open item #31).
 
 Docs site: `mkdocs.yml` (Material theme, `docs_dir: docs`). mkdocs isn't installed here, so the nav is unbuilt.
 

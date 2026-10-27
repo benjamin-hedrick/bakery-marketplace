@@ -44,7 +44,7 @@ Key Vault's automatic rotation policies are the natural v2 enhancement.
 
 **10. `docker-compose.yml` is still a stub**
 Type: Not started · Source: repo scaffold · Hat: Platform Engineering
-Needs: Redis Streams service (default), Cosmos emulator service (default), cache service (profile-gated), Stripe CLI wiring, seed/fixture data script.
+Needs: Redis Streams service (default), Cosmos emulator service (default), cache service (profile-gated), Stripe CLI wiring, seed/fixture data script. **Resolved 2026-10-26 (WI-DEV-002):** the file now runs Redis Streams, the Cosmos vNext emulator and the mock OIDC issuer, plus the cache Redis behind `--profile with-redis`, verified under Docker. Still open: Stripe CLI wiring (`DEV-003`), seed script (`DEV-004`), application containers.
 
 **11. Reusable tooling packages not yet scaffolded**
 Type: Not started · Source: ADR-0003, ADR-0006 · Hat: Platform Engineering
@@ -126,4 +126,16 @@ Catalog saves then publishes `ListingPublished`; a failed publish is logged and 
 
 **31. Existing Cosmos adapter tests may not exercise the real serializer path**
 Type: Verification gap · Source: reconciliation finding A8 + `WI-CAT-001` · Hat: Platform Engineering
-`CosmosRepositoryTests` use PascalCase `Id`/`PartitionKey`, but Cosmos' default serializer requires a lowercase `id`. Confirm against the emulator once `WI-DEV-002` exists; catalog avoids the issue with explicit property names.
+`CosmosRepositoryTests` use PascalCase `Id`/`PartitionKey`, but Cosmos' default serializer requires a lowercase `id`. Confirm against the emulator once `WI-DEV-002` exists; catalog avoids the issue with explicit property names. **Confirmed 2026-10-26 (WI-DEV-002):** by default the tests cannot connect (https vs the emulator's http) and return early, passing without touching Cosmos; pointed at the real emulator, 3 of 4 fail with `Document does not contain an id field`. Fix is `WI-DATA-003`; see docs/operations/local-dev.md.
+
+**32. Mock OIDC issuer login page reflects query parameters unescaped**
+Type: Security defect (dev-only) · Source: `WI-AUTH-005` code, confirmed by `WI-DEV-002` (2026-10-26) · Hat: Platform Engineering
+`/authorize` interpolates `redirect_uri`, `state` and `code_challenge` into HTML without encoding, so a crafted link injects script (confirmed with a payload). The issuer is dev-only, loopback-bound in Compose and refuses to start in Production, but the fix is small: HTML-encode the values in `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs`.
+
+**33. Mock users and seed vendor ids do not line up**
+Type: Design gap · Source: `WI-DEV-002` / `WI-DEV-004` (2026-10-26) · Hat: Platform Engineering
+Ownership requires the token `sub` to equal the listing's `vendorId`; the mock vendor's `sub` is `user-vendor-1`, so seed vendors such as `vendor-shop-001` cannot be edited by any mock user. Resolve in `WI-DEV-004`: seed with the mock user's id, or add matching users to the issuer.
+
+**34. Cosmos SDK and emulator versions are coupled; shared package versions are mixed**
+Type: Dependency risk · Source: `WI-DEV-002` (2026-10-26) · Hat: Platform Engineering
+The vNext emulator needs Cosmos SDK 3.63.x or newer (3.38.1 and 3.50.0 throw while decoding whole-document queries). `BakeryMarketplace.Data` is now on 3.63.2 with an explicit `Newtonsoft.Json` reference, and the emulator image is pinned to `vnext-EN20261019`. Bump them together, and re-run the catalog journey in docs/operations/local-dev.md when either changes. Related: mixed package versions across tools (reconciliation finding B5, central package management recommended).

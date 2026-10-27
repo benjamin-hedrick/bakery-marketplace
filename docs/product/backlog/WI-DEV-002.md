@@ -5,7 +5,7 @@ Type:                 Infra/Environment
 Epic:                 EPIC-LOCAL-DEV
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready (sequence after Layer-1 items land; can be drafted in parallel)
+Status:               Done 2026-10-26 (merged c945b18) — verified under Docker; see docs/operations/local-dev.md
 Size:                 M
 ```
 
