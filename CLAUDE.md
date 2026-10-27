@@ -1,0 +1,53 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this repo is
+
+A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. The four services under `services/` are empty scaffolds (`Program.cs` only), `apps/*/src` is empty, and `docker-compose.yml` is a stub. Don't describe anything as working unless you've run it.
+
+## Commands
+
+.NET 8 (the SDK installed locally is 10.x; projects target `net8.0`). There are two solutions:
+
+- `BakeryMarketplace.slnx` (root): the 4 service projects and the 7 `tools/` libraries. **No test projects.**
+- `tools/BakeryMarketplace.slnx`: the 7 test projects under `tools/tests/`.
+
+```
+dotnet build BakeryMarketplace.slnx
+dotnet test tools/BakeryMarketplace.slnx
+dotnet test tools/tests/BakeryMarketplace.Auth.Tests --filter "FullyQualifiedName~MockOidcIssuerTests"
+```
+
+The framework is xUnit. The Redis and Cosmos adapter tests read `REDIS_CONNECTION_STRING` (default `localhost:6379`), and some fall back to in-memory fakes when Docker dependencies aren't running (reconciliation finding A8). A green run without Docker doesn't prove the real adapters work.
+
+Docs site: `mkdocs.yml` (Material theme, `docs_dir: docs`). mkdocs isn't installed here, so the nav is unbuilt.
+
+There is no formatter or linter choice yet (`docs/process/engineering-standards.md`). `.github/workflows/ci.yml` is a placeholder; CI is moving to Azure Pipelines (ADR-0015) and the placeholder must stay until that ADR's exit criteria are met.
+
+## Architecture (needs several files to see)
+
+**Decisions live in `docs/architecture/adr/` (0001–0016).** Read the ADR index first. Amendments are appended as dated notes at the bottom of the ADR, never by rewriting its decision text. Superseded ADRs stay in place with a status line (ADR-0011 is superseded by ADR-0012).
+
+**Target shape (ADR-0012/0013, adopted 2026-10-26, not yet built):** Next.js Pages Router apps (SSR only for public listing pages) → Node/TypeScript GraphQL BFF with a Relay client → C# REST services. In the cloud the BFF calls services through Azure API Management; locally it calls them directly. **C# services own all business rules, pricing, availability and order state; the BFF is composition and error mapping only.** Don't put domain logic in the BFF or let the GraphQL schema become a second domain model.
+
+**Services (ADR-0009):** 13 bounded contexts are grouped onto 4 services (`catalog`, `ordering`, `admin`, `notification`) under a modular-monolith rule: co-located contexts still talk through the same interfaces and events they would use if they were separate.
+
+**`tools/` shared libraries follow an adapter + fallback + contract-test pattern**, and new infrastructure code should too: an interface (`ICacheProvider`, `IRepository<T>`, `IEventPublisher`/`IEventSubscriber`), a real and a local/fake implementation, a shared abstract contract-test base that every implementation inherits (e.g. `CacheProviderContractTests`), and a chaos decorator where resilience matters. Auth, secrets and payments deliberately sit outside this pattern (ADR-0005/0006/0007).
+
+**Caching is three layers (ADR-0014):** the server cache is ADR-0002's `ICacheProvider` + `ResilientCacheProvider` (built and tested). Relay's client store and HTTP/CDN caching are governed by ADR-0014. Authenticated or personalized responses default to `private, no-store`. Order and cart data is never cached.
+
+**Correlation (ADR-0016):** W3C `traceparent` is the only propagated mechanism. `X-Correlation-Id` becomes a response-only alias of the trace ID. The existing `CorrelationIdMiddleware` still trusts an inbound header; changing that is `WI-PORT-005`.
+
+**Auth:** `tools/BakeryMarketplace.Auth` holds the JWT/ownership middleware and a local mock OIDC issuer (PKCE). Every service validates tokens and ownership itself, even behind the gateway (zero trust, ADR-0006/0008).
+
+## Working conventions
+
+- **Work items are the unit of work.** Specs are `docs/product/backlog/WI-*.md`; PRs map to one work item; branches are `feature/<WI-ID>-short-description` (trunk-based, `docs/process/branching-strategy.md`). Start from `docs/project-log.md` and the On Deck section of `MASTER-BACKLOG-OUTLINE.md`.
+- **Don't rewrite historical `WI-*.md` specs.** Record supersession or adjustment as a dated reconciliation note at the top of the file, and mark it in `MASTER-BACKLOG-OUTLINE.md`. **That outline, not the `Status:` field in a WI file, is authoritative for status** (many WI headers are stale).
+- **Reconciliation records** go in `docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-<date>.md`. Log what happened in `docs/ACTIVITY-LOG.md` (newest first, don't edit history).
+- Shared-file edits (schema, lockfile, root config, pipeline YAML, central docs) need a single owner at a time: `docs/management/portfolio-slice/07-shared-file-ownership-and-coordination.md`.
+- Cosmos access uses parameterized queries via the SDK only; no raw query string construction (`nfrs.md` §3.4).
+- Report passed, failed, not-run and blocked results distinctly. Don't claim an endpoint, pipeline or deployment is operational without evidence.
+- `_incoming/` is a transient staging folder for packets awaiting reconciliation; don't treat its contents as repo truth.
+- `.claude/settings.json` denies reads of `dist/`, `build/`, `*.generated.*` and `vendor/`.
