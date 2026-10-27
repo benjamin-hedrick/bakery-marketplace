@@ -4,6 +4,15 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-26 — Owners/defaults adopted; first-slice contract drafted (WI-PORT-007)**
+
+- `docs/management/portfolio-slice/09-owners-and-defaults.md`: human lead is the accountable integrator for each shared area; npm workspaces, strict TypeScript, Jaeger, Playwright; `relay-nextjs` is a candidate to evaluate in `WI-PORT-001` against stated criteria (not adopted).
+- `docs/architecture/first-slice-contract.md` (DRAFT): GraphQL schema, REST mapping, seed fixtures with expected totals, error/state table, contract tests, trace rules, and decisions D-1 to D-10.
+- Gaps found in existing docs: no pickup-window availability endpoint; cart persistence unspecified; anonymous listing reads not stated (required by SSR); money representation/tax unspecified.
+- Docs only; awaiting approval before `WI-CAT-001` and `WI-PORT-001` start.
+
+---
+
 **2026-10-26 — Portfolio-slice decisions adopted; reconciliation pass 1 (WI-PORT-006)**
 
 Reviewed the portfolio planning packet staged in `_incoming/` against the repo. The lead accepted all five decisions:

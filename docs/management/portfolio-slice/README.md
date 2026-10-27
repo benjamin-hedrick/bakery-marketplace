@@ -14,5 +14,6 @@ Implementation-approach documents for the portfolio vertical slice (Next.js SSR 
 | `06-open-items-before-delegation.md` | Readiness checklist before broad delegation |
 | `07-shared-file-ownership-and-coordination.md` | What "one owner" means; shared-file merge ownership |
 | `08-existing-models-and-maps-inventory.md` | Existing models/maps to reuse rather than redraw |
+| `09-owners-and-defaults.md` | Owners, toolchain defaults and `relay-nextjs` evaluation criteria (2026-10-26) |
 
 The packet's original `01-reconciliation-register.md` was folded into `WI-PORT-006` rather than kept as a second register.

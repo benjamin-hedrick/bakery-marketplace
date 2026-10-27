@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 M
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** (D-2) The first slice has **no `POST /ordering/cart`**: the cart lives in browser state and `POST /ordering/checkout` takes line items directly (`listingId`, `modifierIds`, `quantity`), a pickup window, and an idempotency key. The server computes all prices in integer cents (D-1) and takes `customerId` from the token. The cart endpoint and its storage stay deferred. The payment stub requirement is unchanged. See `docs/architecture/first-slice-contract.md` (decisions D-n) and `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 The customer-facing entry point into the order lifecycle. `data-model-api-contracts.md` specifies `POST /ordering/checkout` as triggering a Stripe destination charge (ADR-0005) — but `EPIC-PAYMENTS` isn't built yet, so this item explicitly stubs the payment step rather than either building Stripe integration early (out of sequence) or silently skipping it without saying so.
 

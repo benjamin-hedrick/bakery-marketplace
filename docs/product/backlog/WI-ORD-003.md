@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** (D-3) Adds a simple window source: `GET /ordering/pickup-windows?vendorId=` returns deterministic, clock-injected 15-minute slots within one configured set of hours, with a minimum lead time (D-8). Per-vendor hours, per-slot capacity and stock tied to a window are deferred. See `docs/architecture/first-slice-contract.md` (decisions D-n) and `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 ADR-0001 names exactly one concrete strategy for v1: pickup. This item implements it against the seam `ORD-004` defines — schedules a Pickup Window, transitions `ReadyForFulfillment → Completed` on pickup confirmation.
 

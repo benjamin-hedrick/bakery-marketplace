@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 M
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** (D-4) `GET /catalog/listings` and `GET /catalog/listings/{id}` allow **anonymous** callers and return `Published` listings only (listings of a non-`Verified` vendor are excluded); all other endpoints still require a token and role. (D-1) Money is integer cents, USD: fields `priceCents` and `modifiers[].priceDeltaCents`, replacing the unspecified `price`/`priceDelta`. Deterministic seed IDs for the first slice are in the contract's §7. See `docs/architecture/first-slice-contract.md` (decisions D-n) and `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 Core Catalog & Customization functionality per the glossary and `data-model-api-contracts.md` — Listings, Modifiers, Allergy Flags. This is also where the vendor-verification publish gate lives (ADR-0009/`data-model-api-contracts.md`: catalog-service consumes `VendorVerified`/`VendorSuspended` to gate `Published` status), which creates a real local-dev dependency question — see Open Points.
 

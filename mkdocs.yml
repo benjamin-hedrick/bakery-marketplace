@@ -14,6 +14,7 @@ nav:
       - Tech Stack Overview: architecture/tech-stack.md
       - Capability Map: architecture/capability-map.md
       - Data Model / API Contracts: architecture/data-model-api-contracts.md
+      - First-Slice Contract (draft): architecture/first-slice-contract.md
       - C4 Diagrams: architecture/c4/README.md
       - ADRs: architecture/adr/README.md
       - DDD: architecture/ddd/README.md

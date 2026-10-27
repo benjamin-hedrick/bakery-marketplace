@@ -94,7 +94,7 @@ Explicitly still deferred (M5 and beyond, per `LOCAL-MILESTONES.md`): admin cons
 |---|---|---|---|
 | `WI-PORT-001` | Test/Mock/Chaos | Next.js Pages Router + Relay SSR proof | Ready — blocking prerequisite for frontend work |
 | `WI-PORT-006` | Document/Artifact | Reconcile existing artifacts with ADR-0012 to ADR-0016 | In Progress — pass 1 (decision level) done 2026-10-26 |
-| `WI-PORT-007` | Interface/Contract | First-slice contract + GraphQL↔REST mapping, seed contract, error/state behavior | Ready — must complete before broad frontend/service delegation |
+| `WI-PORT-007` | Interface/Contract | First-slice contract + GraphQL↔REST mapping, seed contract, error/state behavior | In Progress — draft written 2026-10-26 (`docs/architecture/first-slice-contract.md`), awaiting approval of D-1 to D-4; must complete before broad frontend/service delegation |
 | `WI-PORT-002` | Integration | Walking skeleton: SSR → BFF → C# listing read, test, pipeline, trace | `PORT-001`, `PORT-007` |
 | `WI-PORT-003` | Infra/Environment | Quality + Azure Pipelines CI baseline (supersedes `CI-001`) | Ready |
 | `WI-PORT-004` | Interface/Contract | Cache contract for the listing path, three layers | `PORT-002` |

@@ -49,6 +49,9 @@ Items are kept. Detailed items carry a dated note; title-only items are marked i
 | `WI-CAT-003` | **Adjusted (minor)** | Retained as layer 1; record ADR-0014 per-cache fields |
 | `WI-TOOL-002` | **Adjusted (follow-up change)** | ID source becomes the trace ID; code change in `PORT-005` |
 | `WI-EVT-001` | **Adjusted (follow-up change)** | Envelope gains `traceparent`; change in `PORT-005` |
+| `WI-CAT-001` | **Adjusted** | Anonymous reads of `Published` listings (D-4); money as integer cents (D-1) — first-slice contract |
+| `WI-ORD-001` | **Adjusted** | No cart endpoint in the first slice (D-2); checkout takes line items; server-side pricing in cents |
+| `WI-ORD-003` | **Adjusted** | Adds simple generated pickup-window source (D-3); capacity/per-vendor hours deferred |
 | `WI-DEV-002` | **Adjusted** | Compose adds the Next.js app(s), BFF and trace viewer; no APIM stand-in |
 | `EPIC-WEB-CUSTOMER`, `EPIC-CACHING` | **Adjusted (epic notes)** | References updated; constituent items retained |
 | `CI-001` | **Superseded** | By `WI-PORT-003` |

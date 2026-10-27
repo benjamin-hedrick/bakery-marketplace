@@ -7,7 +7,7 @@ Type:                 Interface/Contract
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-CATALOG, EPIC-ORDERING, EPIC-WEB-CUSTOMER
 Hat/Owner:            Architect (one contract integrator)
-Status:               Ready
+Status:               In Progress — draft at docs/architecture/first-slice-contract.md, awaiting approval
 Size:                 TBD
 ```
 
