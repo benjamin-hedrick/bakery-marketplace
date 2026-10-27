@@ -77,4 +77,6 @@ for (const c of checks) {
   console.log(`${r.ok ? 'UP  ' : 'DOWN'}  ${c.name.padEnd(34)} ${c.target}  ${r.detail}`);
 }
 console.log(allOk ? '\nEnvironment is up.' : '\nEnvironment is NOT fully up.');
-process.exit(allOk ? 0 : 1);
+// Set the exit code and let the event loop drain: calling process.exit() while sockets are still closing
+// crashes Node on Windows (libuv assertion, exit 127) even when every check passed.
+process.exitCode = allOk ? 0 : 1;

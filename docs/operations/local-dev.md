@@ -2,18 +2,18 @@
 
 How to run the local infrastructure from `docker-compose.yml` (`WI-DEV-002`). Application services are **not** containers yet: run them on the host with `dotnet run` against the ports below.
 
-> **Verification status (2026-10-26):** the Compose file's structure, the mock issuer container's host process, and the readiness script were verified. **`docker compose up` itself has not been run**, because the Docker engine was not running on the machine where this was written. The Cosmos emulator image tag and its flags are unverified. See "What is and is not verified".
+> **Verification status (2026-10-26):** `docker compose up` was run and verified on Docker Desktop (Windows), including the `with-redis` profile. A real `catalog-service` ran against the real Cosmos emulator, Redis Streams and the mock issuer container end to end. See "What is and is not verified".
 
 ## Start, check, stop
 
 ```
-docker compose up -d                        # event backbone + Cosmos emulator + mock OIDC issuer
+docker compose up -d --build                # event backbone + Cosmos emulator + mock OIDC issuer
 docker compose --profile with-redis up -d   # additionally the cache Redis (ADR-0002)
 node scripts/dev/check-env.mjs --wait 90    # add --with-redis when using the profile
 docker compose down                         # data is not persisted
 ```
 
-Requires Docker and Node 18+. Without the `with-redis` profile, services should use `CACHE_BACKEND=local` (ADR-0002).
+Requires Docker and Node 18+. Without the `with-redis` profile, services should use `CACHE_BACKEND=local` (ADR-0002). `check-env.mjs` exits 0 when everything is up and 1 otherwise. Between runs, `docker compose down && docker compose up -d` resets all state (the emulator keeps data while its container lives).
 
 ## Services and ports
 
@@ -22,13 +22,13 @@ All ports bind to `127.0.0.1` only. The mock issuer signs tokens for anyone who 
 | Service | Port (override variable) | ADR | Notes |
 |---|---|---|---|
 | `redis-events` | 6379 (`REDIS_EVENTS_PORT`) | 0003 | Redis Streams event backbone. Default |
-| `cosmos` | 8081 (`COSMOS_PORT`), explorer 1234 (`COSMOS_EXPLORER_PORT`) | 0004 | Cosmos vNext emulator, plain HTTP, partial API coverage (open item #2). Default |
+| `cosmos` | 8081 (`COSMOS_PORT`), explorer 1234 (`COSMOS_EXPLORER_PORT`) | 0004 | Cosmos vNext emulator, image pinned to `vnext-EN20261019`, plain HTTP, partial API coverage (open item #2). Default |
 | `mock-oidc` | 5100 (`MOCK_OIDC_PORT`) | 0006 | Built from `tools/BakeryMarketplace.MockOidcHost`. Default. Refuses to start in the Production environment |
 | `redis-cache` | 6380 (`REDIS_CACHE_PORT`) | 0002 | Profile `with-redis` only. Separate from `redis-events` so cache eviction can never touch the event streams |
 
 ## Environment variables for services run on the host
 
-ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/service.env.example`.
+ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/service.env.example`. In Development, `catalog-service` already enables `Auth:Authority`, `Cosmos:EnsureCreated` and `Cosmos:GatewayMode` from `appsettings.Development.json`, so only the backend selectors and connection strings below are needed.
 
 | Variable | Value | Used by |
 |---|---|---|
@@ -39,23 +39,30 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | `Data__Backend` | `cosmos` | catalog-service (default is `fake`) |
 | `Cosmos__ConnectionString` | `AccountEndpoint=http://localhost:8081/;AccountKey=<the emulator's documented fixed key>` | catalog-service |
 | `Cosmos__Database` | `bakery` | catalog-service |
+| `Cosmos__GatewayMode` | `true` (emulator only) | the emulator only works over the gateway; deployed environments keep direct mode |
+| `Cosmos__EnsureCreated` | `true` (local only) | creates the database and `catalog` container (partition key `/vendorId`); deployed environments use Terraform |
 
 **The authority must be exactly `http://localhost:5100`.** The mock issuer takes its issuer URL from the request's own host, so tokens carry `iss=http://localhost:5100`, and services reject any token whose issuer differs from their configured authority. A service running *inside* a container could not reach the issuer at that URL; this matters when services are containerized.
+
+**The Cosmos SDK must be 3.63.x or newer.** The shared `BakeryMarketplace.Data` library was on 3.38.1, which throws `IndexOutOfRangeException` while decoding any whole-document query (`SELECT *`, and therefore every LINQ query through `CosmosRepository`) from this emulator; 3.50.0 fails differently; 3.63.0 and 3.63.2 pass. Point reads, writes, projections and `COUNT` work on every version. The library is now on 3.63.2.
 
 ## What is and is not verified
 
 | Item | State |
 |---|---|
-| Default set is exactly `redis-events`, `cosmos`, `mock-oidc`; `--profile with-redis` adds `redis-cache`; all ports are loopback-bound | Verified with `docker compose config` |
-| Mock issuer host: refuses to start in Production, serves discovery in Development; a real catalog-service validates its tokens through discovery (vendor token → 201, customer → 403, garbage → 401) | Verified, run as host processes (not as the container) |
-| Readiness script: reports UP/DOWN per service and exits non-zero when any default service is down | Verified against the live issuer and against missing Redis and Cosmos |
-| `docker compose up`, the mock-oidc image build, Redis containers, the Cosmos emulator starting and answering on 8081 | **Not verified** (Docker engine not running) |
-| catalog-service against the Cosmos emulator or Redis Streams | **Not verified** |
+| Default set is exactly `redis-events`, `cosmos`, `mock-oidc`; `--profile with-redis` adds `redis-cache`; all ports are loopback-bound | Verified (`docker compose config` and `docker compose ps`) |
+| `docker compose up`: mock-oidc image builds and runs; Redis (events and cache) healthy; Cosmos emulator reaches readiness | Verified |
+| Readiness script: UP/DOWN per service, exit 0 when up and 1 when down, no crash (fixed a Windows `process.exit()` crash found here) | Verified over repeated runs in both states |
+| Mock issuer container: serves discovery; tokens it issues are accepted by a real catalog-service (vendor → 201, customer → 403, garbage → 401) | Verified |
+| catalog-service against the real Cosmos emulator and real Redis Streams: draft create, publish gate (409), `VendorVerified` delivered via a Redis stream, publish, public read from Cosmos, `ListingPublished` on the stream | Verified, one clean pass from a fresh stack |
+| The emulator's documented fixed account key works | Verified (authenticated operations succeeded) |
+| The Cosmos emulator over HTTPS, Linux/macOS hosts, and Docker Desktop on other machines | **Not verified** |
+| Emulator persistence across `down`, resource usage under load, startup time on a cold pull | **Not measured** |
 
 ## Known gaps in this environment
 
-1. **No database or container is created in the emulator.** `catalog-service` expects a `catalog` container with partition key `/vendorId`. Nothing provisions it yet (`WI-DEV-004` or an `EnsureCreated` step in the service; production uses Terraform, `DATA-004`).
-2. **The catalog Cosmos client uses default settings.** The emulator over HTTP likely needs gateway connection mode and endpoint limiting on the `CosmosClient`. Unverified until the emulator runs.
-3. **Mock users and seed vendors do not line up.** The issuer's vendor user has subject `user-vendor-1`, and ownership requires the token subject to equal the listing's `vendorId`. Seed vendors such as `vendor-shop-001` therefore cannot be edited by any mock user. `WI-DEV-004` must either seed vendors with the mock user's id or the issuer needs matching users.
-4. **The mock issuer's login page reflects query parameters unescaped** (`redirect_uri`, `state`, `code_challenge`), so a crafted link injects script into the page. Dev-only and loopback-bound here, but it is a defect in `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs` (`WI-AUTH-005`); fix with HTML encoding.
+1. **The Cosmos adapter tests do not actually test Cosmos by default.** `CosmosRepositoryTests` default to `https://localhost:8081`, but this emulator serves HTTP, so the tests cannot connect and silently return early: they report 4/4 passing without touching Cosmos. Pointed at the real emulator (`COSMOS_CONNECTION_STRING=AccountEndpoint=http://localhost:8081/;...`), **3 of 4 fail** with `Document does not contain an id field`, because the test entity serializes as `Id` and Cosmos requires lowercase `id`. The adapter itself works (catalog uses it with explicit property names). Fixing the tests and removing the silent skip is `WI-DATA-003`, which this item unblocks (open item #31).
+2. **Mock users and seed vendors do not line up.** The issuer's vendor user has subject `user-vendor-1`, and ownership requires the token subject to equal the listing's `vendorId`. Seed vendors such as `vendor-shop-001` therefore cannot be edited by any mock user. `WI-DEV-004` must either seed vendors with the mock user's id or the issuer needs matching users.
+3. **The mock issuer's login page reflects query parameters unescaped** (`redirect_uri`, `state`, `code_challenge`; confirmed by sending a script payload). Dev-only and loopback-bound here, but it is a defect in `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs` (`WI-AUTH-005`); fix with HTML encoding.
+4. **The Redis Streams transport acknowledges messages it cannot deserialize without dead-lettering them** (reconciliation finding B2, still open). Not exercised here.
 5. **No Stripe CLI wiring** (`WI-DEV-003`), **no seed data** (`WI-DEV-004`), **no application containers**, and no Next.js, BFF or trace viewer yet; those arrive with `WI-PORT-002`/`005`.

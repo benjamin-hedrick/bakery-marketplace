@@ -24,10 +24,11 @@ services:
       retries: 10
 
   # Primary data store locally: Cosmos DB Linux emulator, vNext (ADR-0004). Default service.
-  # vNext serves plain HTTP and has partial API coverage (open item #2). Data is not persisted:
-  # `down` discards it, which is fine because seeding (WI-DEV-004) is idempotent.
+  # vNext serves plain HTTP and has partial API coverage (open item #2). Pinned to a dated build rather than the
+  # floating `vnext-preview` tag, because emulator and Cosmos SDK versions must match (this build needs SDK 3.63.x+).
+  # Data is not persisted across `down`, which is fine because seeding (WI-DEV-004) is idempotent.
   cosmos:
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-EN20261019
     ports:
       - "127.0.0.1:${COSMOS_PORT:-8081}:8081"
       - "127.0.0.1:${COSMOS_EXPLORER_PORT:-1234}:1234"

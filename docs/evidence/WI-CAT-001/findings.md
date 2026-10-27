@@ -1,6 +1,6 @@
 # WI-CAT-001 Findings — Listing CRUD + modifier/allergy model
 
-**Date:** 2026-10-26 · **Branch:** `feature/CAT-001-listing-crud` · **Code:** `services/catalog-service/` · **Result:** acceptance criteria met against in-memory backends; Cosmos and Redis paths wired but not run
+**Date:** 2026-10-26 · **Branch:** `feature/CAT-001-listing-crud` · **Code:** `services/catalog-service/` · **Result:** acceptance criteria met against in-memory backends; Cosmos and Redis paths later run end to end against the local emulator and Redis Streams (WI-DEV-002, 2026-10-26)
 
 ## Acceptance results
 
@@ -35,11 +35,11 @@
 2. **The shared Redis transport's consumer group is named per event type (`cg:{eventType}`), not per service.** If two services subscribe to the same event they would compete for messages instead of each receiving all of them. Harmless today (only catalog consumes `VendorVerified`); it will bite when `ordering-service` or `notification-service` subscribes to a shared event. Belongs to `WI-EVT-003`'s code.
 3. **No outbox.** Save and `ListingPublished` publish are two steps; a failed publish is logged and never re-emitted. Acceptable for the slice; needed before anything depends on the event.
 4. **No optimistic concurrency.** `IRepository<T>` exposes no ETag, so concurrent PUTs are last-write-wins, and concurrent deliveries for one vendor are a read-modify-write.
-5. **Existing Cosmos tests use PascalCase `Id`/`PartitionKey`** with Cosmos' default serializer, which requires lowercase `id`. They may only be passing through the fake fallback (reconciliation finding A8). Worth confirming when the emulator is in `WI-DEV-002`. This service avoids the issue with explicit property names.
+5. **Existing Cosmos tests use PascalCase `Id`/`PartitionKey`** with Cosmos' default serializer, which requires lowercase `id`. **Confirmed 2026-10-26** against the real emulator: the tests silently skip by default (they cannot connect over https) and 3 of 4 fail when pointed at it with `Document does not contain an id field`. See `docs/operations/local-dev.md`; fixing them is `WI-DATA-003`. This service avoids the issue with explicit property names.
 
 ## Not verified
 
-- `Data:Backend=cosmos` and `Events:Backend=redis` are wired but never run (no emulator or Redis in this environment); the `catalog` container's partition-key path must be `/vendorId`, and the Cosmos LINQ translation of the status filter is untested.
+- **Update 2026-10-26 (WI-DEV-002):** `Data:Backend=cosmos` and `Events:Backend=redis` were then run against the local Cosmos emulator and Redis Streams: container provisioning, writes, LINQ queries, the publish gate, event delivery and public reads all worked. Doing so required raising the Cosmos SDK from 3.38.1 to 3.63.2 (older versions cannot decode whole-document query results from the emulator). Still unverified: real Azure Cosmos DB and a managed Redis.
 - The real mock OIDC issuer: tests use the real `AddBakeryAuth` middleware with a test signing key, not the issuer's discovery flow. The Development authority `http://localhost:5100` is a placeholder.
 - Request-size limits, rate limiting, and logging of request bodies (none are logged).
 - `nfrs.md` latency targets; no performance test.
