@@ -60,7 +60,7 @@ Type: Not started · Source: portfolio-plan.md · Hat: Engineering/Build
 
 **14. CI workflow is still a placeholder**
 Type: Not started · Source: repo scaffold · Hat: Platform Engineering
-`.github/workflows/ci.yml` has no real build/test/deploy stages yet.
+`.github/workflows/ci.yml` has no real build/test/deploy stages yet. **2026-10-26**: CI/CD moves to Azure Pipelines (ADR-0015). The real stages are built there (`WI-PORT-003`), and this placeholder is removed in one migration commit (`CI-004`) once ADR-0015's exit criteria are met.
 
 **15. No working ephemeral/preview environment example**
 Type: Not started · Source: tech-stack.md · Hat: Platform Engineering
@@ -82,7 +82,7 @@ Defined and validated against two real examples; see `project-process-framework/
 
 **20. API Gateway / BFF layer — resolved**
 Type: Done · Source: this planning conversation · Hat: Architect
-Azure API Management, Consumption tier, with zero-trust dual validation (edge fast-fail + authoritative per-service check unchanged from ADR-0006). See ADR-0008.
+Azure API Management, Consumption tier, with zero-trust dual validation (edge fast-fail + authoritative per-service check unchanged from ADR-0006). See ADR-0008. **Revisited 2026-10-26**: ADR-0013 adds a Node/TypeScript GraphQL BFF as the browser apps' single entry point; APIM stays in front of the service APIs (BFF → APIM → services in the cloud).
 
 **21. Azure AD B2C → Microsoft Entra External ID — planned, not yet executed**
 Type: Planned tech swap · Source: user direction, ADR-0006 amendment, ADR-0010 · Hat: Architect
@@ -97,5 +97,17 @@ Type: Low-priority cosmetic cleanup · Source: this review pass · Hat: Architec
 `docs/architecture/c4/context.md`/`container.md`, `docs/management/budget-cost-estimate.md`, and a few closed work-item files still name Azure AD B2C directly rather than Entra External ID. Not functionally incorrect (the swap doesn't change any diagram's actual shape), just cosmetically stale. Living reference docs (`tech-stack.md`, ADR-0006) are already corrected — this item is for the rest, whenever it's convenient, not urgent.
 
 **24. No refresh-token / silent-renewal flow in the frontend auth pattern**
-Type: Known limitation (v1) · Source: ADR-0011, `WI-WEB-001`/`WI-AUTH-005` · Hat: Engineering/Build, Architect
+Type: Known limitation (v1) · Source: ADR-0011 (carried forward unchanged by ADR-0012), `WI-WEB-001`/`WI-AUTH-005` · Hat: Engineering/Build, Architect
 Access tokens are held in memory only and expire with no background refresh — a user simply gets logged out and must re-authenticate. Acceptable for a local/demo-scale app with short sessions; a real production frontend would need either silent-refresh-via-hidden-iframe or a refresh-token grant (the latter would also reopen the cookie-vs-header storage question closed in ADR-0006 §3.3's CSRF analysis, so isn't a drop-in addition). Named here explicitly rather than left as an unstated gap, consistent with `WI-NFR-001`'s "aspirational/future" discipline.
+
+**25. Frontend/BFF hosting not yet decided**
+Type: Open decision · Source: ADR-0012, ADR-0013 (2026-10-26) · Hat: Architect / Platform Engineering
+Next.js SSR and the GraphQL BFF need Node-capable hosting; the Static Web Apps permanent free tier no longer fits. Azure Container Apps is the default candidate (already in the stack). Decide when deployment is introduced (`INFRA-002`), and update `budget-cost-estimate.md` at the same time.
+
+**26. Server-side rendering of authenticated pages deferred**
+Type: Deferred architecture · Source: ADR-0012 (2026-10-26) · Hat: Architect
+In v1, only public listing pages use SSR. Authenticated pages render client-side, so the Next.js server never holds user tokens and ADR-0006's in-memory, header-only token posture is unchanged. SSR for authenticated pages would need a server-side session (cookie), which reopens ADR-0006's cookie/CSRF analysis and interacts with #24.
+
+**27. Per-user throttling at the BFF — not decided**
+Type: Open question · Source: ADR-0013 (2026-10-26) · Hat: Architect
+APIM Consumption still lacks `rate-limit-by-key` (ADR-0008). Whether the GraphQL BFF takes on any per-user or per-query-cost limiting is left to `EPIC-RATE-LIMITING`.

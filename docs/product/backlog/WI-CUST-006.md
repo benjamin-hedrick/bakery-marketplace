@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements are retained. **Implementation changes**: built on `CUST-002`'s Next.js/Relay browse view. Personalized results come through the GraphQL BFF using the caller's token, so personalized responses are `private, no-store` and must not reuse the public SSR listing cache (ADR-0014). See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 `CUST-002` already shows generic allergen flags/modifiers on every listing, but nothing personalizes that to the logged-in customer's own preferences — the actual "impossible to miss" promise from vision principle 1 (Dana's persona in `docs/product/personas.md`) isn't real until a customer's *own* conflicts are visibly distinguished from everyone else's generic flags. `SRCH-001` computes this; this item is where it actually becomes visible.
 

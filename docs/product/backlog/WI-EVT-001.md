@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED (follow-up change).** Delivered. ADR-0016 adds a `traceparent` field to `DomainEventEnvelope` so asynchronous hops are traceable. Consumers use span links. The change is tracked in `WI-PORT-005`. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 ADR-0003 establishes the event-driven backbone design: Azure Event Grid (cloud) / Redis Streams (local), at-least-once delivery, per-aggregate sequencing, and a standard envelope. This item defines the interface and envelope in real C# (per ADR-0010) and the contract tests every transport implementation must pass — it doesn't build either transport implementation itself (separate items, not yet detailed).
 

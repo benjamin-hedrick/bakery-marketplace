@@ -1,6 +1,6 @@
 # ADR-0011: Frontend Framework — React (Vite) SPA
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0012](0012-frontend-nextjs-ssr.md) (2026-10-26). Kept unchanged below as the historical record.
 
 ## Context
 
@@ -40,3 +40,7 @@ Surfaced while scoping the first customer-facing work items (`WI-WEB-001` onward
 - ADR-0008 — confirms frontend calls services directly, no gateway, locally
 - ADR-0006 (amendment below) — the mock issuer's expanded scope this ADR's auth choice depends on
 - `docs/governance/open-items-register.md` — new entry for the no-refresh-token limitation
+
+## Supersession note (ADR-0012, 2026-10-26)
+
+Superseded by ADR-0012 (Next.js Pages Router + SSR) and ADR-0013 (GraphQL BFF + Relay), after the project's evidence goals changed to require SSR, GraphQL and Relay. What carries forward unchanged: Authorization Code + PKCE against `AUTH-005`/Entra External ID, the in-memory-only token storage, the absence of refresh-token handling (open item #24), and no premature shared frontend package. What no longer holds: Vite, Static Web Apps hosting, and direct browser-to-service calls. Nothing was built under this ADR (`apps/*/src` are empty), so no code is affected.

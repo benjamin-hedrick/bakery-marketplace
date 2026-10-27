@@ -14,3 +14,5 @@ Constituent work items:
   - WI-CUST-006 (Service Implementation — personalized allergen highlighting on browse) — shared with EPIC-SEARCH, added 2026-09-14 (Batch 6, M4)
 Status:              Started (6 of 6 items detailed, none built yet)
 ```
+
+> **Reconciliation note (2026-10-26).** ADR-0012 (Next.js Pages Router + SSR) supersedes ADR-0011, and ADR-0013 routes all browser data through a GraphQL BFF via Relay. Within this epic: `WI-WEB-001` is **SUPERSEDED** by `WI-PORT-001`/`WI-PORT-002`; `WI-CUST-002`–`006` are **ADJUSTED** (requirements retained; implementation and dependencies change, see each file's note). The epic's goal is unchanged. The "Related references" above (ADR-0011; ADR-0008 direct-to-service calls) are historical. Current references: ADR-0012, ADR-0013, ADR-0014, ADR-0006 (unchanged). See `docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.

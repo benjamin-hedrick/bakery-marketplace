@@ -59,6 +59,8 @@ vendor onboarding. No browser UI involved yet.
 
 ## M3 — Browser-Visible Demo
 
+> **2026-10-26:** `WI-WEB-001` below is superseded by `WI-PORT-001` (Next.js + Relay SSR proof) and `WI-PORT-002` (walking skeleton through the GraphQL BFF), per ADR-0012/0013. The `CUST-*` and `QUE-002` items are adjusted to block on those instead. The exit test is unchanged. Re-sequencing this plan is tracked in `WI-PORT-006` pass 2.
+
 - [ ] **`WI-WEB-001`** — Shared React/Vite scaffold + PKCE auth pattern.
       **Single blocking node** for this entire milestone. Blocked by `AUTH-005`
       (its real server, not just the spec).

@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements are retained. **Implementation changes**: a client-rendered Next.js page (authenticated); preference reads and writes go through the GraphQL BFF (ADR-0012/0013). Dietary data is quasi-health data: never logged or traced (ADR-0016), never shared-cached (ADR-0014). **Dependencies change**: blocked by `WI-PORT-002` instead of `WI-WEB-001`. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 `PREF-001` gives every customer a real `PreferenceProfile`, but nothing in `EPIC-WEB-CUSTOMER` lets a customer actually view or edit it through the browser — the only way to set preferences today is a direct API call. This is the gap `LOCAL-MILESTONES.md`'s M4 names explicitly: the backend data existing isn't the same as a real customer being able to use it.
 

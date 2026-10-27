@@ -1,6 +1,6 @@
 # ADR-0008: API Gateway — Azure API Management (Consumption Tier), Zero-Trust Dual Validation
 
-**Status:** Accepted
+**Status:** Accepted — amended by [ADR-0013](0013-graphql-bff-relay.md) (2026-10-26)
 
 ## Context
 
@@ -53,3 +53,12 @@ Azure Front Door and Application Gateway were both ruled out early — neither h
 - `tech-stack.md` — resolves the API Gateway row
 - `docs/governance/open-items-register.md` — resolves Open Item #20
 - `EPIC-RATE-LIMITING` — clarifies the gateway only partially overlaps with this epic's scope
+
+## Amendment note (ADR-0013 — GraphQL BFF, 2026-10-26)
+
+ADR-0013 adopts Alternative 2 above (a self-hosted BFF on Container Apps), **in addition to APIM, not instead of it**:
+- **Browser apps no longer call APIM or the services directly.** Their single API entry point is the GraphQL BFF.
+- **APIM stays the gateway for service APIs.** In the cloud, the BFF calls the C# services through APIM, so the `Validate JWT` fast-fail and coarse role routing still apply. Locally, the BFF calls services directly (point 1 under "Local development" above).
+- **Zero-trust dual validation is unchanged.** The BFF forwards the caller's bearer token; every service still fully validates it (ADR-0006).
+- **The local reverse-proxy stand-in (point 2 under "Local development", `GW-005`) is no longer needed.** Its purpose was URL-shape parity for frontend code, and frontend code now only talks to the BFF.
+- The "single entry point simplifies CORS across three frontend apps" benefit now comes from the BFF rather than APIM.

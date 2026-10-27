@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 M
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements (cart/checkout UI against `ORD-001`'s stubbed payment, demo/test-mode banner) are retained. **Implementation changes**: a client-rendered Next.js page (authenticated); checkout is a GraphQL mutation through the BFF, with idempotency, error mapping and Relay store updates defined by `WI-PORT-007`. Price and availability are revalidated server-side by `ordering-service`, never trusted from the client (ADR-0013/0014). **Dependencies change**: blocked by `WI-PORT-002` and `WI-PORT-007` instead of `WI-WEB-001`. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 `ORD-001` provides cart/checkout backend logic against Stripe (ADR-0005). This item is the UI on top of it. `ORD-001`'s own spec requires its Stripe integration be unmistakably a demo/test-mode stub, not a real charge path — that requirement must be visibly enforced at the UI layer too, not just left as a backend-only disclaimer.
 

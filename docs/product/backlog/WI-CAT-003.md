@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED (minor).** Retained as **layer 1** (server/data-source) of ADR-0014's three cache layers; ADR-0002's design is unchanged. **Addition**: record this cache's owner, key/scope, freshness (60s TTL), invalidation trigger, failure behavior (resilient local fallback), privacy classification (public listing data only) and test, per ADR-0014. `WI-PORT-004` documents it alongside the Relay and HTTP layers. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 ADR-0002 scopes caching to catalog/search reads specifically. This item wires `CAT-001`'s read endpoints through `ICacheProvider`'s cache-aside pattern.
 

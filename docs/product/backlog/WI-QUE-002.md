@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements (polling-based live queue UI, 5–10s, push deferred to v2) are retained. **Implementation changes**: Next.js per ADR-0012 (client-rendered, no SSR need), with data through the GraphQL BFF (ADR-0013); polling uses Relay refetch. **Dependencies change**: builds on `WI-PORT-002`'s scaffold instead of `WI-WEB-001`. Still reads `order-status-readmodel` only (ADR-0004). See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 `QUE-001` builds the event-fed `order-status-readmodel` read side; this item is the actual counter/kitchen display against it. Uses the same scaffold and auth pattern as `web-customer` (`WEB-001`) rather than a second bespoke implementation.
 

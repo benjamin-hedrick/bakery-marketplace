@@ -1,6 +1,6 @@
 # ADR-0002: Cache Strategy — Environment-Conditional Managed Redis with Local Fallback
 
-**Status:** Accepted
+**Status:** Accepted — extended by [ADR-0014](0014-cache-layers.md) (2026-10-26)
 
 ## Context
 
@@ -86,3 +86,7 @@ Selected via `CACHE_BACKEND=redis|local` config. The `ResilientCacheProvider` wr
 ## Amendment note (Redis vendor under reconsideration)
 
 The specific managed cache vendor (Azure Cache for Redis) is under reconsideration and may change. **This does not affect this ADR's core design.** The `CacheProvider` interface, `LocalCacheProvider`, `ResilientCacheProvider` fallback decorator, and the contract-test suite are all vendor-agnostic — none of them know or care which managed service backs the "cloud" implementation. Only `CACHE-002` (the concrete `RedisCacheProvider` implementation) and `CACHE-005` (the Terraform `enable_managed_redis` toggle) are vendor-specific and held from work until the vendor decision is finalized — see `docs/governance/open-items-register.md` item #22.
+
+## Amendment note (ADR-0014 — cache layers, 2026-10-26)
+
+ADR-0014 names this ADR's cache as **layer 1 (server/data-source)** of three, and adds governance for the Relay client store (layer 2) and HTTP/browser/CDN caching (layer 3) introduced by ADR-0012/0013. **Nothing in this ADR's design changes**: `ICacheProvider`, the Redis/local providers, `ResilientCacheProvider`, `ChaosCacheProvider`, cache-aside on listings and search, the 60s TTL, and the rule that order/cart data is never cached all stand. The one addition: each cache entry point (e.g. `WI-CAT-003`'s listing reads) now records owner, key/scope, freshness, invalidation, failure behavior, privacy classification and a test, per ADR-0014.

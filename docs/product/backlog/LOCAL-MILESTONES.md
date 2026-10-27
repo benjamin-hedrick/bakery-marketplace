@@ -23,6 +23,7 @@ Ready) · **Partially scoped** (some items exist, some named but not detailed)
 
 ## M3 — Browser-visible demo
 **Status: Scoped.** `EPIC-WEB-CUSTOMER` (`WEB-001`, `CUST-002`, `CUST-003`, `CUST-004`) + `QUE-002`.
+*(2026-10-26: `WEB-001` is superseded by `WI-PORT-001`/`WI-PORT-002` (Next.js SSR + GraphQL BFF, ADR-0012/0013); the other items are adjusted. The milestone's "done looks like" is unchanged. Full milestone re-sequencing is tracked in `WI-PORT-006` pass 2.)*
 **Done looks like**: a person opens a browser, logs in via the mock issuer's PKCE flow, browses seeded listings, adds to cart, checks out (visibly stubbed payment), sees an order confirmation and history, and watches the corresponding vendor queue display update. This is the demo moment `portfolio-plan.md` originally scoped for Sprint 1/2.
 
 ## M4 — Preferences UI + dietary filtering

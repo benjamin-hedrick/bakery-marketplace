@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 M
 ```
 
+> **Reconciliation note (2026-10-26) — SUPERSEDED.** Superseded by `WI-PORT-001` (Next.js + Relay SSR proof) and `WI-PORT-002` (walking skeleton, the first real frontend scaffold), per ADR-0012, which supersedes ADR-0011. The Vite scaffold and direct-to-service base URLs no longer apply. **Carried forward**: Authorization Code + PKCE against `AUTH-005`, the in-memory-only access token, no refresh-token handling (open item #24), and an authenticated-fetch wrapper. Requests now go to the GraphQL BFF (ADR-0013) rather than to services. The spec below is kept unchanged as the historical record. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 ADR-0011 picked React (Vite) as the frontend framework; this item is the actual scaffold every customer-facing and queue-display page builds on, including the PKCE login flow against the (revised) mock OIDC issuer. Deliberately not split per-app — `web-customer` and `web-queue-display` need the identical pattern, and building it twice before a third real instance existed would violate the "don't extract the abstraction before a second real use" discipline in reverse (here, building near-duplicate code instead of a premature abstraction).
 

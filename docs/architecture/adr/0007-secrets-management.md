@@ -1,6 +1,6 @@
 # ADR-0007: Secrets Management
 
-**Status:** Accepted
+**Status:** Accepted — amended by [ADR-0015](0015-azure-pipelines-ci-cd.md) (2026-10-26)
 
 ## Context
 
@@ -52,3 +52,11 @@ Several concerns need real secrets: Stripe's API secret key and webhook signing 
 - ADR-0005 — Stripe keys are the primary unavoidable secret this ADR manages
 - ADR-0006 — surfaced this gap; JWT validation itself still needs no shared secret (public JWKS only)
 - `tech-stack.md` — resolves the previously open secrets-management item
+
+## Amendment note (ADR-0015 — Azure Pipelines, 2026-10-26)
+
+CI/CD moves from GitHub Actions to Azure Pipelines (ADR-0015). The principles here are unchanged; only the CI mechanics move:
+- **Cloud auth from CI**: GitHub Actions OIDC federated login becomes Azure Resource Manager service connections using **workload identity federation**, so there is still no stored long-lived Azure credential.
+- **Build/test-time Stripe test-mode keys**: GitHub Actions encrypted secrets become Azure Pipelines secret variables, or a variable group linked to the environment's Key Vault. Never in YAML, never echoed to logs.
+
+Until ADR-0015's migration exit criteria are met, the GitHub Actions placeholder remains but holds no secrets.

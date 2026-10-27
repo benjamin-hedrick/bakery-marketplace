@@ -1,6 +1,6 @@
 # Tech Stack Overview
 
-This is a reference document, not an ADR — it indexes the decisions made across ADR-0001 through ADR-0010 and links out to each for full rationale.
+This is a reference document, not an ADR — it indexes the decisions made across ADR-0001 through ADR-0016 (ADR-0011 superseded by ADR-0012) and links out to each for full rationale.
 
 ## Guiding principles
 
@@ -15,18 +15,21 @@ This is a reference document, not an ADR — it indexes the decisions made acros
 | Concern | Technology | Tier | Status |
 |---|---|---|---|
 | Compute (services) | Azure Container Apps | Consumption plan, permanent free grant | Confirmed |
-| Frontend hosting | Azure Static Web Apps | Free tier, permanent | Confirmed |
+| Frontend framework | React + TypeScript + Next.js (Pages Router), SSR for public listing pages; Relay client | — | Confirmed — see ADR-0012 (supersedes ADR-0011); validation pending `WI-PORT-001` |
+| Frontend hosting | Node-capable host required (Next.js SSR) — Azure Container Apps is the default candidate; **Static Web Apps no longer fits** (ADR-0012) | Container Apps consumption free grant (to confirm) | Open — decide when deployment is introduced (`INFRA-002`) |
+| GraphQL BFF | Node.js/TypeScript GraphQL server; browser apps' single API entry point; calls C# services via APIM in cloud, directly locally | Container Apps (same as services) | Confirmed — see ADR-0013 |
 | Event backbone | Azure Event Grid | Permanent free grant (100k ops/mo) | Confirmed — see ADR-0003 |
 | Primary data store | Azure Cosmos DB (SQL API), container-per-bounded-context | Permanent free tier: 1000 RU/s + 25GB (single shared account) | Confirmed — see ADR-0004 |
 | Cache | Azure Cache for Redis, environment-conditional — **vendor under reconsideration, see open item #22** | Basic tier (no permanent free tier) | Confirmed (abstraction) — see ADR-0002 |
-| Observability | Application Insights + Azure Monitor | Free 5GB/month ingestion | Confirmed |
+| Observability | OpenTelemetry instrumentation + W3C Trace Context; Application Insights + Azure Monitor as cloud backend (Azure Monitor OTel exporter); local trace viewer for dev | Free 5GB/month ingestion | Confirmed — see ADR-0016 |
 | Auth | Microsoft Entra External ID (successor to Azure AD B2C, which stopped accepting new tenants May 2025) | Free tier — exact figures pending verification | Confirmed — see ADR-0006 amendment note |
 | Language / Framework | C# / .NET 8, ASP.NET Core Web API | — (dev tooling, not a paid service) | Confirmed — see ADR-0010 |
 | Payments | Third-party processor — Stripe Connect (Express accounts) | N/A (external) | Confirmed — see ADR-0005 |
 | Secrets management | Azure Key Vault, per-environment, accessed via managed identity (no stored credential to reach it) | Free tier covers this scale (charged per operation, negligible cost) | Confirmed — see ADR-0007 |
 | API Gateway | Azure API Management, Consumption tier, zero-trust dual validation (edge fast-fail + authoritative per-service check) | Permanent free grant (1,000,000 calls/mo) | Confirmed — see ADR-0008 |
 | IaC | Terraform, `azurerm` provider | — | Confirmed |
-| CI/CD | GitHub Actions, OIDC federated login to Azure (no stored secrets) | — | Confirmed |
+| Source control | GitHub | — | Confirmed |
+| CI/CD | Azure Pipelines, workload identity federation to Azure (no stored secrets) — **migration in progress**; `.github/workflows/ci.yml` placeholder stays until ADR-0015's exit criteria are met | — | Confirmed — see ADR-0015 |
 | IaC environment structure | Per-environment `.tfvars` in `/infra/environments` (`dev`, `staging`, `prod`) | — | Confirmed |
 
 ## Caching — environment-conditional design (see ADR-0002)
@@ -48,9 +51,11 @@ Local dev runs entirely via `docker-compose`. Not everything is optional the way
 | Data store | Cosmos DB Linux emulator container | **Yes** — default service (ADR-0004); known to be resource-heavier than the other local services | `FakeRepository` (fast unit tests, bypasses the emulator entirely); contract tests run against the emulator for integration-level parity checks (ADR-0004) |
 | Payments | Stripe test mode + Stripe CLI (`stripe listen --forward-to`) forwarding real webhook events to a local endpoint | External SaaS — not a Compose service; no emulator needed (ADR-0005) | Stripe's own test-mode fixtures/test cards; webhook idempotency exercised by replaying Stripe's test events |
 | Auth | Local stub/mock OIDC issuer (config-driven issuer/JWKS URL swap, not a runtime fallback), no real Entra External ID dependency | Yes | Deterministic tests only (expired/tampered/malformed tokens) — no live chaos decorator, since auth has no fallback behavior to prove (ADR-0006) |
-| API Gateway | Skip locally, call services directly (safe under zero-trust dual validation) + thin reverse-proxy stand-in for URL/routing parity | Optional — reverse-proxy stand-in, not the real gateway | Static policy-config lint in CI (no live instance needed); real policy testing happens against a shared dev-tier cloud APIM instance, same shape as Stripe's test-mode approach (ADR-0008) |
+| API Gateway | Skip locally; the BFF calls services directly (safe under zero-trust dual validation). The reverse-proxy stand-in is no longer needed now that browser apps only talk to the BFF (ADR-0013) | No | Static policy-config lint in CI (no live instance needed); real policy testing happens against a shared dev-tier cloud APIM instance, same shape as Stripe's test-mode approach (ADR-0008) |
 | Secrets | Git-ignored `.env` file with Stripe **test-mode** keys; no Key Vault dependency locally at all | Yes | Fail-fast startup validation tests (missing/malformed secret → refuse to start), not a live chaos decorator — no meaningful degraded mode for "can't get the Stripe key" (ADR-0007) |
 | Seed data | Fixture/seed script run on `docker-compose up` | Yes | — |
+| Web apps + BFF | Next.js dev server(s) and the GraphQL BFF (ADR-0012/0013) — Compose wiring tracked in `WI-DEV-002` (adjusted) | Yes, once built | Contract tests between BFF and C# APIs (`WI-PORT-007`) |
+| Tracing | Local OpenTelemetry trace viewer (Jaeger or .NET Aspire dashboard — chosen in `WI-PORT-005`) | Yes, once built | — |
 
 Default command: `docker-compose up` — brings up the event backbone (Redis Streams) and data store (Cosmos emulator) automatically, since both are non-optional local dependencies per ADR-0003/ADR-0004. Still zero cost and fully offline-capable; only the managed-Redis cache path requires an extra flag.
 Extended command: `docker-compose --profile with-redis up` — additionally exercises the real Redis cache path before it hits staging.
@@ -65,8 +70,10 @@ Extended command: `docker-compose --profile with-redis up` — additionally exer
 
 ## Open decisions
 
-All ADRs are now accepted: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), ADR-0006 (auth/authz model), ADR-0007 (secrets management), ADR-0008 (API gateway), ADR-0009 (bounded-context-to-service mapping), and ADR-0010 (service language/framework).
+All ADRs through ADR-0010 were accepted in the original planning pass: ADR-0001 (fulfillment strategy extensibility), ADR-0002 (cache strategy), ADR-0003 (event-driven backbone), ADR-0004 (data store choice), ADR-0005 (payments buy-vs-build), ADR-0006 (auth/authz model), ADR-0007 (secrets management), ADR-0008 (API gateway), ADR-0009 (bounded-context-to-service mapping), and ADR-0010 (service language/framework).
 
 **Two planned tech swaps in progress, not yet executed** — see `docs/governance/open-items-register.md` items #21 (Azure AD B2C → Entra External ID) and #22 (Redis vendor reconsideration). Neither changes any ADR's actual design; both are held from AI-agent assignment until finalized — see `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md`'s Agent-Ready Queue.
 
-No open architectural decisions remain from the original planning pass. Next steps move from planning into backlog/sprint scoping and actual build.
+**2026-10-26 portfolio-slice decisions** — ADR-0012 (Next.js SSR, supersedes ADR-0011), ADR-0013 (GraphQL BFF + Relay), ADR-0014 (cache layers), ADR-0015 (Azure Pipelines), ADR-0016 (OpenTelemetry). Frontend hosting is the one row above left open, to be decided when deployment is introduced. See `docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+No other open architectural decisions remain from the original planning pass. Next steps move from planning into backlog/sprint scoping and actual build.

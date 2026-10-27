@@ -4,6 +4,21 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-26 — Portfolio-slice decisions adopted; reconciliation pass 1 (WI-PORT-006)**
+
+Reviewed the portfolio planning packet staged in `_incoming/` against the repo. The lead accepted all five decisions:
+- **ADR-0012**: Next.js Pages Router + SSR; **supersedes ADR-0011** (React/Vite SPA). SSR for public listing pages only; authenticated pages render client-side, so the auth posture is unchanged.
+- **ADR-0013**: Node/TypeScript GraphQL BFF + Relay; amends ADR-0008 (BFF is the browser's entry point; APIM stays in front of service APIs).
+- **ADR-0014**: three cache layers. ADR-0002 is retained unchanged as layer 1; Relay and HTTP layers added.
+- **ADR-0015**: Azure Pipelines is the CI/CD system of record; GitHub stays source control; amends ADR-0007. `ci.yml` stays until the exit criteria are met.
+- **ADR-0016**: OpenTelemetry. W3C `traceparent` is the only propagated correlation mechanism; `X-Correlation-Id` becomes a response-only alias of the trace ID (no inbound adoption); event envelope gains `traceparent` with span links.
+
+Imported `WI-PORT-001`–`007` and `EPIC-PORTFOLIO-SLICE`, plus plans under `docs/management/portfolio-slice/`. Packet defects fixed on import: a reference to a nonexistent eighth work item; unnumbered ADRs; a parallel register; a duplicate evidence ledger; and "no server cache by default", which conflicted with built work. Existing backlog items were kept and annotated: `WEB-001`, `CI-001` and `OBS-002` superseded; `GW-005` obsolete; the `CUST-*` items, `QUE-002`, `CAT-003`, `TOOL-002`, `EVT-001`, `DEV-002`, `CI-002`/`003`, `OBS-001`, `INFRA-002` and `REPO-001` adjusted; `CI-004` added. Open items #25–#27 added.
+
+Full record: `docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`. Docs only; no code changed. Pass 2 (C4, data-model contracts, plans/roadmap, cost) is deferred to `WI-PORT-006`.
+
+---
+
 **2026-09-21 — FulfillmentStrategy Seam / ACL Boundary built (WI-ORD-004 / Delegation Packet 06)**
 
 Completed `WI-ORD-004` (`Delegation Packet 06 — FulfillmentStrategy Seam (ACL Boundary)`):

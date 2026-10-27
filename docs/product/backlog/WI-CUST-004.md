@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements are retained. **Implementation changes**: a client-rendered Next.js page (authenticated), with data through the GraphQL BFF via Relay (ADR-0012/0013). Order status shown is the persisted, authoritative state from `ordering-service` (`WI-PORT-007`). Responses are `private, no-store` (ADR-0014). **Dependencies change**: blocked by `WI-PORT-002` and `WI-PORT-007` instead of `WI-WEB-001`. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 Completes the customer-facing order lifecycle view: confirmation right after checkout, and a history/status view for orders already placed, against endpoints `ARCH-003` already contracted.
 

@@ -36,5 +36,6 @@ nav:
       - Risk Register: management/risk-register.md
       - Budget / Cost Estimate: management/budget-cost-estimate.md
       - Stakeholder Communications Plan: management/stakeholder-communications-plan.md
+      - Portfolio Slice Plans: management/portfolio-slice/README.md
 theme:
   name: material

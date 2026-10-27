@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED (follow-up change).** Delivered and reviewed (Done per `MASTER-BACKLOG-OUTLINE.md`). ADR-0016 changes the correlation ID's **source**: it becomes `Activity.Current.TraceId`; an inbound `X-Correlation-Id` is no longer adopted (currently any client-supplied string is trusted and logged); the header is still emitted on responses; and the `CorrelationId` log-scope key stays as a transition alias. The code change is tracked in `WI-PORT-005`, not by reopening this item. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 Multiple services need consistent structured logging with correlation-ID propagation, but nothing has built the shared piece yet. `tech-stack.md` names Application Insights as the observability tooling; this item is the thin, shared convention layer every service uses on top of it. **Fully independent of batch 1** — no reference to `ICacheProvider`, `IRepository<T>`, `IEventPublisher`, or the auth middleware.
 

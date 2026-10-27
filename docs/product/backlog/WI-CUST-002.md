@@ -9,6 +9,9 @@ Status:               Ready
 Size:                 M
 ```
 
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements (browse/detail, allergy flags and modifiers surfaced prominently) are retained. **Implementation changes**: a Next.js page rendered with SSR (public, no token), with data from the GraphQL BFF via Relay (ADR-0012/0013), and HTTP cache policy per ADR-0014. **Dependencies change**: blocked by `WI-PORT-002` and `WI-PORT-007` instead of `WI-WEB-001` (superseded). The first listing read path is proven by `WI-PORT-002`; this item completes the full view. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+
+
 **Context / Why**
 `CAT-001` provides listing CRUD with allergy flags/modifiers; nothing yet renders it for a customer. Per vision principle 1, allergy/dietary information must be surfaced prominently at browse and detail views, not buried — this is the direct UI-layer enforcement of that principle.
 
