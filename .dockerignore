@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.next/
+.git/
+.claude/
+_incoming/
+docs/
+apps/
+infra/

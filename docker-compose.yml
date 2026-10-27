@@ -1,6 +1,61 @@
-# Local development environment
-# TODO: add services (catalog, ordering, notification, admin), a datastore,
-# an event backbone (e.g., Redis Streams/Kafka), and a cache (Redis),
-# plus seed/fixture data for a realistic local dataset.
-version: "3.9"
-services: {}
+# Local development environment (WI-DEV-002). Local only: nothing here is hardened.
+#
+#   docker compose up -d                       # default set: event backbone, Cosmos emulator, mock OIDC issuer
+#   docker compose --profile with-redis up -d  # plus the cache Redis (ADR-0002), opt-in
+#   node scripts/dev/check-env.mjs             # readiness check (add --with-redis when using the profile)
+#
+# Application services are NOT containers yet: run them on the host (`dotnet run`) against these ports.
+# See docs/operations/local-dev.md for the environment variables each service expects.
+#
+# All ports bind to 127.0.0.1 only. The mock issuer signs tokens for anyone who asks and the Redis
+# instances have no password, so none of this may be reachable from the network.
+name: bakery-marketplace
+
+services:
+  # Event backbone locally: Redis Streams (ADR-0003). Default service.
+  redis-events:
+    image: redis:7.4-alpine
+    ports:
+      - "127.0.0.1:${REDIS_EVENTS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Primary data store locally: Cosmos DB Linux emulator, vNext (ADR-0004). Default service.
+  # vNext serves plain HTTP and has partial API coverage (open item #2). Pinned to a dated build rather than the
+  # floating `vnext-preview` tag, because emulator and Cosmos SDK versions must match (this build needs SDK 3.63.x+).
+  # Data is not persisted across `down`, which is fine because seeding (WI-DEV-004) is idempotent.
+  cosmos:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-EN20261019
+    ports:
+      - "127.0.0.1:${COSMOS_PORT:-8081}:8081"
+      - "127.0.0.1:${COSMOS_EXPLORER_PORT:-1234}:1234"
+
+  # Local stand-in for Entra External ID (ADR-0006, WI-AUTH-005). Default service.
+  # The issuer URL is taken from the request host, so Auth__Authority must be exactly
+  # http://localhost:${MOCK_OIDC_PORT} for any client that validates tokens it issues.
+  mock-oidc:
+    build:
+      context: .
+      dockerfile: tools/BakeryMarketplace.MockOidcHost/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development # the host refuses to start in Production
+      Auth__Audience: bakery-marketplace
+    ports:
+      - "127.0.0.1:${MOCK_OIDC_PORT:-5100}:5100"
+
+  # Cache Redis (ADR-0002). Opt-in via --profile with-redis; without it CACHE_BACKEND=local applies.
+  # Deliberately a separate instance from redis-events so cache eviction can never touch the event streams.
+  redis-cache:
+    image: redis:7.4-alpine
+    profiles: ["with-redis"]
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:${REDIS_CACHE_PORT:-6380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

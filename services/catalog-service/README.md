@@ -32,8 +32,8 @@ Configuration (all optional; defaults are in-memory so the service runs with no 
 
 | Key | Values | Default |
 |---|---|---|
-| `Data:Backend` | `fake`, `cosmos` (needs `Cosmos:ConnectionString`, `Cosmos:Database`) | `fake` |
+| `Data:Backend` | `fake`, `cosmos` (needs `Cosmos:ConnectionString`, `Cosmos:Database`; local emulator also `Cosmos:GatewayMode`, `Cosmos:EnsureCreated`) | `fake` |
 | `Events:Backend` | `inmemory`, `redis` (`Redis:ConnectionString`) | `inmemory` |
 | `Auth:Authority`, `Auth:Audience` | OIDC issuer and audience | Development: `http://localhost:5100`, `bakery-marketplace` (provisional until `WI-DEV-002` decides where the mock issuer runs) |
 
-The `cosmos` and `redis` backends are wired but **have not been run** against the emulator or a Redis server.
+The `cosmos` and `redis` backends were run end to end against the local Cosmos emulator and Redis Streams from `docker-compose.yml` (2026-10-26; see `docs/operations/local-dev.md`). That needed the shared Cosmos SDK raised to 3.63.x. Both backends are unverified against real Azure services.

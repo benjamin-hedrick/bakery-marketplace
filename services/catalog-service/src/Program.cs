@@ -31,13 +31,31 @@ builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !bui
 builder.Services.AddSingleton<IAuthorizationHandler, ListingOwnershipHandler>();
 
 // Data (ADR-0004). "fake" is the in-memory default for local dev and tests; "cosmos" uses the shared Cosmos adapter
-// (not yet exercised against the emulator; that needs WI-DEV-002). Listings and vendor status share the `catalog`
+// (exercised against the local emulator from docker-compose.yml; needs Cosmos SDK 3.63.x+). Listings and vendor status share the `catalog`
 // container and are separated by partition: listings by vendorId, vendor status in one reserved partition.
 if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringComparison.OrdinalIgnoreCase))
 {
-    var cosmos = new CosmosClient(builder.Configuration["Cosmos:ConnectionString"]
-        ?? throw new InvalidOperationException("Cosmos:ConnectionString is required when Data:Backend=cosmos."));
+    // The local emulator only works over the gateway; deployed environments keep the SDK default (direct mode).
+    var cosmosOptions = new CosmosClientOptions();
+    if (builder.Configuration.GetValue<bool>("Cosmos:GatewayMode"))
+    {
+        cosmosOptions.ConnectionMode = ConnectionMode.Gateway;
+        cosmosOptions.LimitToEndpoint = true;
+    }
+    var cosmos = new CosmosClient(
+        builder.Configuration["Cosmos:ConnectionString"]
+            ?? throw new InvalidOperationException("Cosmos:ConnectionString is required when Data:Backend=cosmos."),
+        cosmosOptions);
     var database = builder.Configuration["Cosmos:Database"] ?? "bakery";
+
+    // Local-development convenience only (enabled in appsettings.Development.json). Deployed environments get their
+    // database and containers from Terraform (DATA-004), so this stays off there.
+    if (builder.Configuration.GetValue<bool>("Cosmos:EnsureCreated"))
+    {
+        var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
+        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId"));
+    }
+
     builder.Services.AddSingleton<IRepository<ListingDocument>>(new CosmosRepository<ListingDocument>(cosmos, database, "catalog"));
     builder.Services.AddSingleton<IRepository<VendorStatusDocument>>(new CosmosRepository<VendorStatusDocument>(cosmos, database, "catalog"));
 }
