@@ -65,7 +65,7 @@ graph LR
     A1 --> E6[OrderCompleted]:::event
     E6 --> P4["Policy: eligible for review; triggers payout reconciliation"]:::policy
 
-    C6["CancelOrder - customer, vendor (also decline) or system (timeout)"]:::command --> A1
+    C6["CancelOrder - customer, or vendor (also a decline)"]:::command --> A1
     A1 --> E7[OrderCancelled]:::event
     E7 --> P5["Policy: release authorization and stock; notify the other party"]:::policy
     E7 --> P3

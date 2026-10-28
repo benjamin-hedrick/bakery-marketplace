@@ -7,7 +7,7 @@ Pending --Place--> Placed --Confirm--> Confirmed --StartPreparation--> InPrepara
 (customer arranging)  (options, customization,   (vendor accepts; the requested
                        requested window)          window is scheduled)
 
-Cancel (actor and reason code):   Placed, Confirmed                    --> Cancelled   by the customer, the vendor, or the system
+Cancel (actor and reason code):   Placed, Confirmed                    --> Cancelled   by the customer or the vendor
                                   InPreparation, ReadyForFulfillment   --> Cancelled   by the vendor only
 ```
 
@@ -23,8 +23,8 @@ Cancel (actor and reason code):   Placed, Confirmed                    --> Cance
 |---|---|---|
 | Customer | Placed, Confirmed | `CustomerRequested` |
 | Vendor | Placed (a decline), Confirmed, InPreparation, ReadyForFulfillment | `VendorDeclined` (Placed only), `VendorCancelled` |
-| System | Placed (the vendor never responded) | `ResponseTimeout` |
 
+- **No system cancellation (2026-10-28).** A response timeout that auto-cancels a `Placed` order was considered and deferred (open item 55): it would need an owner (a timer in `ordering-service`) and a duration nobody has chosen. Until then a customer can cancel their own `Placed` order. A pickup no-show is handled by the vendor cancelling a `ReadyForFulfillment` order.
 - A Pending order cannot be cancelled (it is abandoned), and Completed and Cancelled are final. Any other transition, including repeating the current one, throws `InvalidOrderTransitionException`.
 - **Sequence numbers** count events, not transitions. Each raised event takes the next number, so consumers (ADR-0003) see no gaps. `Place` raises event 1; `Confirm` raises two (`OrderConfirmed`, then `PickupWindowScheduled` when there is a window).
 - **Authorization is not in the aggregate.** It knows the actor of a cancellation, but who may call which transition (a vendor only for their own orders) is enforced by the service layer (ADR-0006).

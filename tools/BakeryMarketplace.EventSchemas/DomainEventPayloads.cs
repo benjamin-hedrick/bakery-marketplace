@@ -36,8 +36,7 @@ public record PickupWindowScheduledPayload(
 public enum OrderCancelActor
 {
     Customer,
-    Vendor,
-    System
+    Vendor
 }
 
 /// <summary>
@@ -48,8 +47,7 @@ public enum OrderCancelReason
 {
     CustomerRequested,
     VendorDeclined,
-    VendorCancelled,
-    ResponseTimeout
+    VendorCancelled
 }
 
 /// <summary>The vendor accepted a placed order.</summary>

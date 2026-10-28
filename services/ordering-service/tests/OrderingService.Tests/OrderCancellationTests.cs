@@ -16,7 +16,6 @@ public class OrderCancellationTests
     [
         (OrderStatus.Placed, OrderCancelActor.Customer, OrderCancelReason.CustomerRequested),
         (OrderStatus.Placed, OrderCancelActor.Vendor, OrderCancelReason.VendorDeclined),
-        (OrderStatus.Placed, OrderCancelActor.System, OrderCancelReason.ResponseTimeout),
         (OrderStatus.Confirmed, OrderCancelActor.Customer, OrderCancelReason.CustomerRequested),
         (OrderStatus.Confirmed, OrderCancelActor.Vendor, OrderCancelReason.VendorCancelled),
         (OrderStatus.InPreparation, OrderCancelActor.Vendor, OrderCancelReason.VendorCancelled),

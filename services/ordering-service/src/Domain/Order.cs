@@ -140,7 +140,8 @@ public sealed class Order
     /// <summary>
     /// Cancels the order. Allowed combinations (docs/architecture/order-lifecycle.md): the customer while Placed or Confirmed;
     /// the vendor from Placed (a decline, <see cref="OrderCancelReason.VendorDeclined"/>) and from Confirmed, InPreparation or
-    /// ReadyForFulfillment (<see cref="OrderCancelReason.VendorCancelled"/>); the system from Placed when the vendor never answered.
+    /// ReadyForFulfillment (<see cref="OrderCancelReason.VendorCancelled"/>). There is no system cancellation: a response timeout was
+    /// considered and deferred (open item 55).
     /// </summary>
     public void Cancel(OrderCancelActor actor, OrderCancelReason reason, DateTimeOffset now)
     {
@@ -171,7 +172,6 @@ public sealed class Order
         {
             (OrderStatus.Placed, OrderCancelActor.Customer, OrderCancelReason.CustomerRequested) => true,
             (OrderStatus.Placed, OrderCancelActor.Vendor, OrderCancelReason.VendorDeclined) => true,
-            (OrderStatus.Placed, OrderCancelActor.System, OrderCancelReason.ResponseTimeout) => true,
             (OrderStatus.Confirmed, OrderCancelActor.Customer, OrderCancelReason.CustomerRequested) => true,
             (OrderStatus.Confirmed or OrderStatus.InPreparation or OrderStatus.ReadyForFulfillment,
                 OrderCancelActor.Vendor, OrderCancelReason.VendorCancelled) => true,

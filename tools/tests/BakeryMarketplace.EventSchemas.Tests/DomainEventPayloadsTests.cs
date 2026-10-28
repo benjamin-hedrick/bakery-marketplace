@@ -92,7 +92,7 @@ public class DomainEventPayloadsTests
     public void OrderCancelReason_IsACodeSet_NotFreeText()
     {
         Assert.Equal(
-            new[] { "CustomerRequested", "VendorDeclined", "VendorCancelled", "ResponseTimeout" },
+            new[] { "CustomerRequested", "VendorDeclined", "VendorCancelled" },
             Enum.GetNames(typeof(OrderCancelReason)));
     }
 }
