@@ -77,6 +77,7 @@ Formatting and linting (decided 2026-10-28, `docs/process/quality-gates.md`): `d
 - **Don't rewrite historical `WI-*.md` specs.** Record supersession or adjustment as a dated reconciliation note at the top of the file, and mark it in `MASTER-BACKLOG-OUTLINE.md`. **That outline, not the `Status:` field in a WI file, is authoritative for status** (many WI headers are stale).
 - **Reconciliation records** go in `docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-<date>.md`. Log what happened in `docs/ACTIVITY-LOG.md` (newest first, don't edit history).
 - Shared-file edits (schema, lockfile, root config, pipeline YAML, central docs) need a single owner at a time: `docs/management/portfolio-slice/07-shared-file-ownership-and-coordination.md`.
+- **Unreconciled items go in `docs/governance/open-items-register.md`** (the running list) in the same change that finds them, so nothing is dropped and later sessions don't re-analyze it. Mark resolved items `Resolved <date>`; don't delete them.
 - Cosmos access uses parameterized queries via the SDK only; no raw query string construction (`nfrs.md` §3.4).
 - Report passed, failed, not-run and blocked results distinctly. Don't claim an endpoint, pipeline or deployment is operational without evidence.
 - `_incoming/` is a transient staging folder for packets awaiting reconciliation; don't treat its contents as repo truth.

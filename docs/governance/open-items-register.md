@@ -6,6 +6,8 @@ Suggested Issue fields per item: Title, Type, Source, Suggested hat/owner, Notes
 
 ---
 
+**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 came from the 2026-10-28 session.
+
 **1. Redis Basic tier has no AAD data-plane auth**
 Type: Tech debt / future work · Source: ADR-0002 · Hat: Architect
 If a higher Redis tier is ever justified, switch to AAD-based auth and drop the access-key secret entirely (ties to ADR-0007's "eliminate the secret" principle).
@@ -143,3 +145,59 @@ The vNext emulator needs Cosmos SDK 3.63.x or newer (3.38.1 and 3.50.0 throw whi
 **35. Eventing Redis tests are not repeatable on one Redis instance; Redis adapter tests can silently use fakes**
 Type: Test isolation / verification gap · Source: `WI-PORT-003` (2026-10-28) · Hat: Platform Engineering
 `RedisStreamsEventTransportTests` pass on a fresh Redis and `DuplicateEventId_IsDeliveredTwice_ConsumerObservesBoth` fails on an immediate re-run (state left in streams or consumer groups). Separately, with the default `localhost:6379` the Redis cache and event tests connected nothing on the Windows dev machine and ran against in-memory fakes while reporting green; `127.0.0.1:6379` reaches Redis. **Update 2026-10-28:** the test-isolation half is fixed (per-test event types in `EventTransportContractTests`; 5 consecutive runs on one Redis pass; it had become a frequent failure after the .NET 10 upgrade). The silent fallback to fakes remains. CI sidesteps that (fresh container, `127.0.0.1`, and `scripts/ci/redis-touch.mjs` fails the job if Redis saw too few commands). Not fixed: needs per-test stream/group names or cleanup, and an explicit failure instead of a fallback when Redis is expected. Related: #31, finding A8.
+
+**36. BFF exports traces with a hand-rolled OTLP/JSON exporter, not the Node SDK**
+Type: Decision deviation · Source: `WI-PORT-005` (2026-10-28), ADR-0016 item 1 · Hat: Platform Engineering
+`services/graphql-bff/src/otlp.ts` posts one server span per successful request; the BFF already owns its trace context (`trace.ts`), and the SDK would need ESM loader hooks. Reconcile by either adopting the OpenTelemetry Node SDK (spans for the catalog client call too) or amending ADR-0016 to accept the exporter. Until then it is small and replaceable. Also: no span for 400/404 responses.
+
+**37. Cloud trace backend and DEV backend are undecided**
+Type: Open decision / cost · Source: ADR-0016 amendment (2026-10-28) · Hat: Architect, Platform Engineering
+Aspire locally is decided. UAT/Prod Jaeger is stated intent only: does it replace Application Insights or run alongside, who hosts it, where traces are stored, and what it costs (not in `budget-cost-estimate.md`). DEV is open. `tech-stack.md` Observability row still says Application Insights.
+
+**38. The catalog span records `url.query`**
+Type: Data-safety follow-up · Source: `WI-PORT-005` evidence (2026-10-28), ADR-0016 item 6 · Hat: Security / Platform Engineering
+Fine for pagination parameters. Decide whether to drop it before search or preference endpoints exist.
+
+**39. No vendor time-zone field exists (D-7)**
+Type: Contract gap · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build
+D-7 says display in the vendor's local zone from vendor config; the vendor model, seed and DTOs have no zone. Add with `ORD-003`.
+
+**40. Money representation is not uniform (D-1)**
+Type: Contract inconsistency · Source: first-slice contract implementation check (2026-10-28) · Hat: Architect
+`PayoutReconciledPayload.NetAmount` is `decimal`; `data-model-api-contracts.md` still uses unqualified `price`, `priceDelta`, `grossAmount`. Part of `WI-PORT-006` pass 2.
+
+**41. Scope of the GraphQL global-ID rule (D-9) is unconfirmed**
+Type: Open decision · Source: D-9 fix (2026-10-28) · Hat: Architect
+Only `Listing.id` is a global ID. `vendorId`, `Modifier.id` and pagination cursors stay raw service ids. Confirm, especially for `vendorId` as the argument of the future `pickupWindows` query.
+
+**42. Tracing gaps in the walking skeleton**
+Type: Verification gap · Source: `WI-PORT-005` evidence (2026-10-28) · Hat: Platform Engineering
+The Next.js server does not export a span, so browser-driven traces start at the BFF; no event-consumer span has a listener in any service; log lines were not checked for `TraceId` in the C# services; no log export; the skeleton smoke was not run with tracing on.
+
+**43. Mock e2e and the skeleton smoke share `.next`**
+Type: Test isolation · Source: e2e investigation (2026-10-28) · Hat: Platform Engineering
+`GRAPHQL_URL` is baked into the build, so running the skeleton smoke breaks the mock-backed e2e until a rebuild. Documented in the web-customer README. Reconcile with a separate `distDir` (touches `next.config.js` and the smoke script).
+
+**44. The green Azure run has no recorded run ID, and `ubuntu-26.04` is untested**
+Type: Evidence gap · Source: `WI-PORT-003` (2026-10-28) · Hat: Platform Engineering
+Add the run link to `docs/evidence/WI-PORT-003/findings.md`. The pipeline is pinned to `ubuntu-24.04`; move deliberately after a run on 26.04.
+
+**45. The Azure Pipelines check is a soft gate, not a GitHub required check**
+Type: Accepted risk · Source: ADR-0015 amendment (2026-10-28) · Hat: Manager/Lead
+GitHub rulesets need an enterprise plan, so nothing blocks a merge with a red or missing Azure check. The human lead reads it at PR approval. Revisit if the plan changes.
+
+**46. `WI-PORT-006` pass 2 and `WI-PORT-007` closure are open**
+Type: Documentation reconciliation · Source: first-slice contract §12 (2026-10-28) · Hat: Architect
+Move contract §4/§5 into `data-model-api-contracts.md`; then `WI-PORT-007` can be marked Done. D-1 to D-10 are all accepted.
+
+**47. `CorrelationId` log-scope alias has no retirement date**
+Type: Tech debt · Source: ADR-0016 item 2 (2026-10-28) · Hat: Platform Engineering
+`TraceId` is the identifier; `CorrelationId` is kept for one transition period. Retire it once no log query depends on it.
+
+**48. Not built: D-5, D-6, D-8, D-10**
+Type: Tracking · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build
+Quantity limits, idempotency scope, pickup-window lead time and the payment-decline test hook are accepted but unimplemented (`ordering-service` is an empty scaffold). Verify against the code when `ORD-001`, `ORD-003` land.
+
+**49. Other C# services do not call `AddBakeryTelemetry`**
+Type: Tracking · Source: `WI-PORT-005` (2026-10-28) · Hat: Platform Engineering
+Only catalog-service is wired. `ordering-service`, `admin-service` and `notification-service` are empty scaffolds; wire them when they gain endpoints.
