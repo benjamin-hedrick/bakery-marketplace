@@ -1,3 +1,5 @@
+> **Outcome note (2026-10-28):** built on `feature/service-auth` as the persistence prerequisite of `ORD-001`. `Order.ToSnapshot` / `Order.Restore` (restore refuses states the aggregate could not reach), `OrderDocument` for the `orders` container (partition `/customerId`, readable enum strings, camelCase names, idempotency key and request fingerprint on the document rather than the aggregate), and `OrderStore` (create-only creation, ETag-guarded updates, customer-scoped reads). 136 ordering tests plus 3 emulator-gated tests that pass on the real Cosmos vNext emulator (every status round-trips through Cosmos' serializer; a duplicate create fails; exactly one of 10 contending confirms wins). **Not done:** wiring in `ordering-service`'s `Program.cs` (the service has no host composition yet), `EnsureCreated` for the container, a run on Azure. The spec's "no direct Cosmos SDK usage outside the repository abstraction" holds for the service code; only the emulator test touches the SDK.
+
 ```
 WI ID:               ORD-006
 Title:                Order persistence via Repository<T>

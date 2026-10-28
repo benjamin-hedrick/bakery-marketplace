@@ -53,7 +53,7 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 | `WI-CAT-001` | Service Implementation | Listing CRUD + modifier/allergy model | `DATA-002`, `EVT-003`, `AUTH-002`, `DEV-001` |
 | `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | **Built 2026-10-28, pending review/merge** (branch `feature/slice-ordering`): in-memory aggregate, 114 local tests, not run on Azure. Lifecycle changed from the spec after a review with the human lead: `docs/architecture/order-lifecycle.md` |
 | `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | `ORD-004` |
-| `WI-ORD-006` | Integration | Order persistence via `Repository<T>` | `ORD-002`, `DATA-002` |
+| `WI-ORD-006` | Integration | Order persistence via `Repository<T>` | **Built 2026-10-28, pending review/merge** (136 local tests + 3 on the real Cosmos emulator; not yet wired into the service host) |
 | `WI-ORD-005` | Integration | Publish Order events via event backbone | `ORD-002`, `EVT-003` |
 | `WI-CAT-003` | Integration | Cache-aside integration for listing reads | `CAT-001`, `CACHE-002` |
 | `WI-ORD-001` | Service Implementation | Cart + checkout (payment stubbed — `EPIC-PAYMENTS` not yet built) | `CAT-001`, `ORD-002`, `ORD-006` |
