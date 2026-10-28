@@ -1,0 +1,47 @@
+# Formatting and style baseline. Honored by `dotnet format`, Prettier and most editors.
+# Decided 2026-10-28 (docs/process/quality-gates.md). Rules below are limited to formatting and a few
+# conventions the code already follows; stricter analyzer rules are opt-in later, one at a time.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{cs,csx,csproj,props,targets,slnx}]
+indent_size = 4
+
+[*.{csproj,props,targets,slnx}]
+indent_size = 2
+
+[*.cs]
+# Conventions the existing code follows.
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_space_after_keywords_in_control_flow_statements = true
+
+# Tracked by the formatter only as suggestions: reported, never failing the build.
+csharp_style_var_for_built_in_types = false:none
+csharp_style_var_when_type_is_apparent = true:none
+csharp_style_var_elsewhere = true:none
+csharp_prefer_braces = true:none
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+
+# Analyzer tuning for this repo. Everything else from AnalysisLevel latest-recommended stays a visible warning.
+# High-performance logging delegates are not a goal here.
+dotnet_diagnostic.CA1848.severity = suggestion
+
+[**/tests/**.cs]
+# xUnit test names use underscores (Method_condition_result) throughout.
+dotnet_diagnostic.CA1707.severity = none

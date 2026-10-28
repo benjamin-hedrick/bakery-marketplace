@@ -4,17 +4,27 @@
   "private": true,
   "description": "GraphQL BFF (ADR-0013): composition and safe error mapping only. Business rules stay in the C# services.",
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --test \"test/**/*.test.ts\"",
-    "start": "node src/main.ts"
+    "start": "node src/main.ts",
+    "lint": "eslint .",
+    "format": "prettier --write . --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore"
   },
   "dependencies": {
     "graphql": "16.14.2"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@types/node": "25.9.9",
-    "typescript": "5.9.3"
+    "eslint": "10.13.0",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
   }
 }

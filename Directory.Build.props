@@ -1,0 +1,11 @@
+<Project>
+
+  <!-- Roslyn analyzers on for every project (WI-PORT-003 follow-up, 2026-10-28). Warnings are NOT errors yet: turn on
+       TreatWarningsAsErrors only after the first clean pass, and add stricter rules one at a time in .editorconfig. -->
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>
