@@ -213,7 +213,10 @@ public class ClientCredentialsTokenProviderTests
     [InlineData("https://auth.example.com/token", true)]
     [InlineData("http://localhost:5100/token", true)] // the local mock issuer
     [InlineData("http://127.0.0.1:5100/token", true)]
-    [InlineData("/relative", false)]
+    [InlineData("/relative", false)] // parses as a file:// URI on Linux, so it must be refused by scheme, not by parsing
+    [InlineData("file:///etc/token", false)]
+    [InlineData("ftp://localhost/token", false)]
+    [InlineData("https://localhost/token", true)]
     public void TheTokenEndpointMustBeHttpsUnlessLoopback(string endpoint, bool allowed)
     {
         var options = Options();
@@ -283,6 +286,22 @@ public class ClientCredentialsTokenProviderTests
         var e = Assert.Throws<SecretValidationException>(() => new ServiceCollection().AddBakeryServiceAuth(Config(values)));
 
         Assert.Contains(missing, e.Message);
+    }
+
+    [Theory]
+    [InlineData("http://auth.example.com/token")] // plain http to a remote host
+    [InlineData("/relative")]
+    [InlineData("file:///etc/token")]
+    [InlineData("ftp://localhost/token")]
+    public void AddBakeryServiceAuth_RefusesAnUnsafeTokenEndpointAtStartup_NotAtFirstUse(string endpoint)
+    {
+        var values = FullConfig();
+        values["ServiceAuth:TokenEndpoint"] = endpoint;
+
+        // Which guard fires first depends on the platform: "/relative" is not an absolute URI on Windows (SecretValidator refuses it) but is a
+        // file:// URI on Linux (our scheme check refuses it). Either way, registration fails.
+        var e = Record.Exception(() => new ServiceCollection().AddBakeryServiceAuth(Config(values)));
+        Assert.True(e is SecretValidationException or InvalidOperationException, e?.GetType().Name ?? "no exception");
     }
 
     [Fact]

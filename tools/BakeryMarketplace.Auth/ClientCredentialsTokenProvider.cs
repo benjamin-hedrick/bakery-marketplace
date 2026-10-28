@@ -159,10 +159,13 @@ public sealed class ClientCredentialsTokenProvider
         }
     }
 
-    private static void Validate(ClientCredentialsOptions o)
+    internal static void Validate(ClientCredentialsOptions o)
     {
-        if (!Uri.TryCreate(o.TokenEndpoint, UriKind.Absolute, out var endpoint))
-            throw new InvalidOperationException("ServiceAuth:TokenEndpoint must be an absolute URL.");
+        // Only http(s). On Linux a string like "/relative" parses as an absolute file:// URI (and a file URI counts as loopback), so the
+        // scheme has to be checked explicitly rather than trusting UriKind.Absolute.
+        if (!Uri.TryCreate(o.TokenEndpoint, UriKind.Absolute, out var endpoint)
+            || (endpoint.Scheme != Uri.UriSchemeHttps && endpoint.Scheme != Uri.UriSchemeHttp))
+            throw new InvalidOperationException("ServiceAuth:TokenEndpoint must be an absolute http(s) URL.");
         // A secret or assertion is only ever sent over TLS, except to a loopback address (the local mock issuer).
         if (endpoint.Scheme != Uri.UriSchemeHttps && !endpoint.IsLoopback)
             throw new InvalidOperationException("ServiceAuth:TokenEndpoint must use https unless it is a loopback address.");
