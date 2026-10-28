@@ -94,7 +94,7 @@ All ten are cross-referenced in `architecture/adr/README.md`. General ADR discip
 | `docker-compose.yml` | repo root | 🟡 Stub — needs Redis Streams, Cosmos emulator, cache profile, Stripe CLI wiring, seed data (Open Item #10) |
 | Reusable tooling (`/tools`) | `tools/event-schemas`, `tools/logging-helper` | 🟡 Scaffolded, empty; `/tools/auth-middleware` and fault-injection harness not yet created (Open Item #11) |
 | Branching/Release Strategy | `docs/process/branching-strategy.md` | ✅ Done — trunk-based + feature flags, repo-wide versioning; surfaced API/URL versioning via APIM as a new open item |
-| CI Workflow | `.github/workflows/ci.yml` | 🟡 Placeholder only (Open Item #14) |
+| CI Workflow | `azure-pipelines.yml` | ✅ Runs green on Azure DevOps (2026-10-28); GitHub `ci.yml` placeholder removed |
 | Ephemeral/Preview Environments | *(not yet created)* | ⬜ (Open Item #15) |
 
 ## Governance

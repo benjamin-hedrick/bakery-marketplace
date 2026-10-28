@@ -6,6 +6,10 @@
 
 The pipeline definition and the scripts it calls are written, and **every command was run locally**. The pipeline itself **has not run on Azure DevOps**, so the acceptance item "runs from clean checkout" on the real system is **not met**. Local environment: Windows 11, Docker Desktop 29.1, Node 25.9.0, .NET SDK 10.
 
+## Update 2026-10-28: Azure DevOps run
+
+After the pipeline fixes (results directory, .NET 10, `UseNode@1`, `ubuntu-24.04` pin, Relay compile before the web build), the human lead reported a **green run on Azure DevOps** with only the deliberate Cosmos-adapter warning. So the acceptance item "runs from clean checkout" is met on the real system. Not recorded: run ID or link (add it here). Not verified: `ubuntu-26.04`. GitHub required checks could not be set (rulesets need an enterprise plan), so the human lead gates PRs by hand; `.github/workflows/ci.yml` was removed anyway (ADR-0015 amendment).
+
 ## Local runs
 
 | Step | Result |

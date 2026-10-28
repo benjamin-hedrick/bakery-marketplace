@@ -4,6 +4,14 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — First green Azure Pipelines run recorded (branch `docs/azure-green-evidence`)**
+
+The human lead reported a green run on Azure DevOps after the warnings PR merged; only the deliberate Cosmos-adapter warning remains. Updated the evidence (`CLAUDE.md`, `quality-gates.md`, `WI-PORT-003` findings and spec note, `WI-PORT-002` note, master outline). `PORT-002`/`PORT-003` statuses in the outline now say the Azure run is met; whether to mark them Done is left to the human lead.
+- **`ci.yml` removed** and docs adjusted (`azure-pipelines.yml` comment, `tech-stack.md`, open item #14, `quality-gates.md`, `project-log.md`, outline `CI-004`). ADR-0015 exit criterion 2 (required checks) is waived: GitHub rulesets need an enterprise plan, so the "Azure Pipelines" check (5 checks) is a soft gate the human lead reads at PR approval. Amendment appended to ADR-0015.
+- Not recorded: run ID or link. Not verified: `ubuntu-26.04`.
+
+---
+
 **2026-10-28 — Pipeline warnings from the first Azure run addressed (branch `chore/pipeline-warnings`, PR pending)**
 
 The first run (on a pre-.NET 10 commit) completed with warnings and no errors. `NodeTool@0` is deprecated: all four uses are now `UseNode@1` (`version`, checked against the task reference). `ubuntu-latest` migrates to Ubuntu 26.04 between 2026-10-19 and about 2026-11-19 with jobs possibly landing on either image: pinned to `ubuntu-24.04`. The Cosmos-adapter warning is deliberate and stays. Output gaps fixed in the same PR: the skeleton summary JSON is now written into the published `skeleton-logs` artifact; Playwright traces and screenshots are published on failure (`web-playwright-traces`, `skeleton-playwright-traces`); the Redis guard output is kept as `redis-touch.txt`; and the two steps that pipe through `tee` now use `set -o pipefail` (without it a failing summary reported success: shown locally, exit 0 vs 1). The skeleton job failed on Azure: `next build` type-check could not find `src/__generated__/*` (gitignored Relay output; local runs had stale copies). `skeleton-smoke.mjs` now runs the Relay compiler first; reproduced by deleting the folder, then passed from a clean state. Not verified: a run on the changed file; whether the pipeline passes on `ubuntu-26.04`.
