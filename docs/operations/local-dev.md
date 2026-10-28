@@ -110,6 +110,22 @@ The token request authenticates the client (form fields or HTTP Basic), asks for
 
 The calling service reads `ServiceAuth__TokenEndpoint`, `ServiceAuth__ClientId`, `ServiceAuth__Scope` and `ServiceAuth__ClientSecret` (see `infra/local/service.env.example`) and stops at startup if one is missing. Nothing in the repository holds a secret; the pipeline generates its own per run when a job needs one. DEV uses a different credential (ADR-0018, phase 2).
 
+## Running ordering-service (WI-ORD-001)
+
+```
+node scripts/dev/init-env.mjs                 # once: creates ORDERING_CLIENT_SECRET in .env
+docker compose up -d --build                  # includes the mock issuer, which registers the ordering client from that secret
+# catalog-service on :5200 as above, then:
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 \
+  Data__Backend=cosmos Cosmos__ConnectionString="<emulator connection string>" \
+  ServiceAuth__ClientSecret="<ORDERING_CLIENT_SECRET from .env>" \
+  dotnet run --no-launch-profile --project services/ordering-service/src
+```
+
+`appsettings.Development.json` supplies the authority, the catalog URL and the non-secret service-auth settings; the service stops at startup if the client secret (or any required value) is missing or the token endpoint is not https/loopback. Without `Data__Backend=cosmos` orders are kept in memory. The `orders` container is created locally by `Cosmos__EnsureCreated` (deployed environments use Terraform).
+
+Checkout needs a customer token (log in through the PKCE flow as `user-customer-1`), an `Idempotency-Key` header, and a pickup window from the schedule: 15-minute slots between 08:00 and 17:00 `America/New_York` (converted to UTC for each date, so they shift an hour with daylight saving), at least 30 minutes ahead. `X-Test-Payment: decline` makes the payment stub decline (ignored in Production). The host needs time-zone data to resolve the zone; the .NET SDK container has it, and no ordering-service container image exists yet (open item 71).
+
 ## Seeding
 
 ```
