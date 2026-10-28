@@ -82,3 +82,8 @@ Azure AD B2C stopped accepting new tenants as of May 2025, and Premium P2/Identi
 ADR-0011 (frontend framework) requires a real browser redirect flow (Authorization Code + PKCE) for local development, not just direct claim-request token minting. This means the local mock OIDC issuer (`AUTH-005`) needs an actual `/authorize` endpoint (a minimal login page — pick a mock user/role) and a `/token` endpoint supporting the `authorization_code` grant with PKCE, in addition to whatever direct minting capability it already had.
 
 **This does not change this ADR's design.** The validation side (shared middleware, Authority/Audience config-driven per ADR-0010) is unaffected — only the mock issuer's own surface area grows. Nothing has started building `AUTH-005` yet, so this is folded directly into its work-item spec (revised, Size S→M) rather than treated as a correction to already-built code.
+
+## Amendment note (ADR-0018 — service callers)
+
+Service-to-service calls use the OAuth2 client credentials grant (ADR-0018). The shared middleware validates the resulting app-only token like any other; the new `ServiceStockReserve` policy needs the `Stock.Reserve` app role **and** an app-only token (`idtyp=app` plus a client id), so a user token never passes it and a service token never passes the user policies. `Auth:Audiences` lets a service accept more than one audience. The local mock issuer gained real client authentication, and its earlier unauthenticated `client_credentials` shortcut that returned user tokens (including Admin) was removed (2026-10-28, `WI-AUTH-006` phase 1). The decision above is otherwise unchanged.
+

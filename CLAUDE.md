@@ -45,6 +45,7 @@ Local infrastructure (needs Docker; full guide and verification status in `docs/
 docker compose up -d --build                # redis-events, cosmos, mock-oidc
 docker compose --profile with-redis up -d   # plus the cache Redis
 node scripts/dev/check-env.mjs --wait 90    # exit 0 when up, 1 otherwise
+node scripts/dev/init-env.mjs               # creates local secrets in the git-ignored .env (service client secret for the mock issuer)
 docker compose down                         # resets all state
 ```
 

@@ -1,6 +1,6 @@
 # ADR-0018: Service-to-Service Authentication (OAuth2 Client Credentials)
 
-**Status:** Proposed (2026-10-28). The direction (OAuth2 client credentials, chosen by the human lead for demonstration) is settled; the **credential type for DEV and later is not**. Final selection waits on the verification list below.
+**Status:** Proposed (2026-10-28); **phase 1 (local) built 2026-10-28 on `feature/service-auth`**, DEV not started. The direction (OAuth2 client credentials, chosen by the human lead for demonstration) is settled; the **credential type for DEV and later is not**. Final selection waits on the verification list below.
 
 ## Context
 
@@ -70,7 +70,7 @@ What exists today:
 1. Entra External ID tenants support application permissions (app roles), client credentials and federated identity credentials on app registrations, as in a workforce tenant.
 2. A managed identity in the Azure subscription's tenant can act as the federated credential for an app registration in the External ID tenant (the cross-tenant case). If not, option A or B applies.
 3. Whether plain HTTP to the token endpoint is enough, or `Azure.Identity`/MSAL is worth the dependency for the assertion flow (plain HTTP keeps the mock and Entra on one code path).
-4. The `roles` claim and issuer format in a real app-only token from the External ID tenant.
+4. The `roles` claim, the `azp`/`appid` client id and the issuer format in a real app-only token from the External ID tenant, and whether `idtyp` (an optional claim in Entra, which the service policy requires) has to be switched on for the API registration.
 
 ## Consequences
 

@@ -1,6 +1,7 @@
 # Local development only. Build context is the repository root (see docker-compose.yml).
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY tools/BakeryMarketplace.Secrets/ tools/BakeryMarketplace.Secrets/
 COPY tools/BakeryMarketplace.Auth/ tools/BakeryMarketplace.Auth/
 COPY tools/BakeryMarketplace.MockOidcHost/ tools/BakeryMarketplace.MockOidcHost/
 RUN dotnet publish tools/BakeryMarketplace.MockOidcHost/BakeryMarketplace.MockOidcHost.csproj \

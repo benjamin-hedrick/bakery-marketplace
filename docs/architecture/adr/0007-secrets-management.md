@@ -60,3 +60,8 @@ CI/CD moves from GitHub Actions to Azure Pipelines (ADR-0015). The principles he
 - **Build/test-time Stripe test-mode keys**: GitHub Actions encrypted secrets become Azure Pipelines secret variables, or a variable group linked to the environment's Key Vault. Never in YAML, never echoed to logs.
 
 Until ADR-0015's migration exit criteria are met, the GitHub Actions placeholder remains but holds no secrets.
+
+## Amendment note (ADR-0018 — service client secrets locally)
+
+The local mock issuer's service client secret is generated per developer by `node scripts/dev/init-env.mjs` into the git-ignored `.env`, passed to the mock issuer by Compose, and read by the calling service from `ServiceAuth__ClientSecret`; it is never in a committed file, never printed and never logged. A service that needs it fails at startup when it is missing (`SecretValidator`). For DEV and later, the preferred credential is one that holds no secret at all (a federated identity credential), with a Key Vault secret as the fallback; that choice is still open (ADR-0018). (2026-10-28)
+
