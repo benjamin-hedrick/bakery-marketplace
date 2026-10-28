@@ -13,6 +13,22 @@ if (app.Environment.IsProduction())
 }
 
 app.MapGet("/healthz", () => Results.Ok(new { status = "Healthy" }));
-app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace");
+// Service clients for the client credentials grant (ADR-0018). Secrets come from configuration (MockOidc__Clients__<id>__Secret,
+// generated into .env by scripts/dev/init-env.mjs); a client with no secret, or one that is too short, is skipped. Only client ids are logged.
+var clients = new List<MockClient>();
+foreach (var entry in builder.Configuration.GetSection("MockOidc:Clients").GetChildren())
+{
+    var secret = entry["Secret"] ?? "";
+    if (secret.Length < MockClient.MinimumSecretLength)
+    {
+        app.Logger.LogWarning("Mock client '{ClientId}' not registered: no secret of at least {Min} characters configured.", entry.Key, MockClient.MinimumSecretLength);
+        continue;
+    }
+    var client = new MockClient(entry.Key, secret, entry.GetSection("Roles").Get<string[]>() ?? [], entry["Audience"]);
+    clients.Add(client);
+    app.Logger.LogInformation("Mock client registered: {Client}", client);
+}
+
+app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients);
 
 app.Run();

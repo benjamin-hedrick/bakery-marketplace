@@ -24,7 +24,10 @@ public static class AuthServiceExtensions
     /// <list type="bullet">
     ///   <item><description><c>Auth:Authority</c> — the OIDC issuer URL (Entra External ID or local mock)</description></item>
     ///   <item><description><c>Auth:Audience</c> — the expected audience claim</description></item>
+    ///   <item><description><c>Auth:Audiences</c> — optional further accepted audiences (a list), for example a service API's own</description></item>
     /// </list>
+    /// A token is valid when its audience is any of these. Service (client credentials) callers are authorized by the
+    /// <see cref="ServicePolicies"/> policies, which need an app-only token with the matching app role (ADR-0018).
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">App configuration supplying <c>Auth:Authority</c> and <c>Auth:Audience</c>.</param>
@@ -39,6 +42,10 @@ public static class AuthServiceExtensions
         IConfiguration configuration,
         bool requireHttpsMetadata = true)
     {
+        var audiences = new List<string>();
+        if (!string.IsNullOrWhiteSpace(configuration["Auth:Audience"])) audiences.Add(configuration["Auth:Audience"]!);
+        audiences.AddRange(configuration.GetSection("Auth:Audiences").Get<string[]>() ?? []);
+
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -52,7 +59,7 @@ public static class AuthServiceExtensions
                     ValidateIssuer = true,
                     ValidIssuer = configuration["Auth:Authority"],
                     ValidateAudience = true,
-                    ValidAudience = configuration["Auth:Audience"],
+                    ValidAudiences = audiences.Distinct(StringComparer.Ordinal).ToList(),
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromMinutes(2)
                 };
@@ -68,6 +75,11 @@ public static class AuthServiceExtensions
 
             options.AddPolicy("CustomerRole", policy =>
                 policy.RequireClaim("roles", "Customer"));
+
+            // A calling service, not a user (ADR-0018): the app role AND an app-only token (idtyp=app plus a client id).
+            options.AddPolicy(ServicePolicies.StockReserve, policy => policy
+                .RequireClaim("roles", ServiceRoles.StockReserve)
+                .RequireAssertion(context => ServiceCaller.IsAppOnly(context.User)));
         });
 
         services.AddSingleton<IResourceOwnershipChecker, ResourceOwnershipChecker>();
