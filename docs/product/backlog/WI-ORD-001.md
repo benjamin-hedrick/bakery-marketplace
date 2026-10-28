@@ -2,7 +2,7 @@
 >
 > **Idempotency (D-6):** the order id is derived from `(customerId, key)`, so the create-only write decides a race, the catalog reservation (keyed by the same id) is repeatable, and a retry returns the original order (`200`). A hash of the request is stored with the order; the same key with a different request is `422 idempotency_key_reuse`. This replaces the contract's candidate "Cosmos unique-key constraint".
 >
-> **Pickup windows (D-3, D-8):** `PickupSchedule` offers 15-minute slots from 08:00 to 17:00 **Eastern**, converted to UTC for each date with the zone's rules (so daylight saving moves them: 13:00Z in winter, 12:00Z in summer), at least 30 minutes ahead, for today and two more days; all of it is configuration (`Pickup:*`). The window is optional. The `GET /ordering/pickup-windows` endpoint and the `PickupFulfillment` events remain `ORD-003`.
+> **Pickup windows (D-3, D-8):** `PickupSchedule` offers 15-minute slots from 08:00 to 17:00 **Eastern**, converted to UTC for each date with the zone's rules (so daylight saving moves them: 13:00Z in winter, 12:00Z in summer), at least 30 minutes ahead, for today and two more days; all of it is configuration (`Pickup:*`). The window is optional. `GET /ordering/pickup-windows` (see `WI-ORD-003`) was added afterwards on the same schedule; the `PickupFulfillment` events remain `ORD-003`.
 >
 > **Error codes** follow the contract (`listing_unavailable`, `invalid_modifier`, `invalid_quantity`, `pickup_window_unavailable`, `payment_declined` 402, `idempotency_key_reuse`). Added: `insufficient_stock` (409, with the quantity available per line), `validation_failed` (422) and `downstream_unavailable` (503).
 >

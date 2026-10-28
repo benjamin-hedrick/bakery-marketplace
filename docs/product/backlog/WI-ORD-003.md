@@ -9,7 +9,7 @@ Status:               Ready
 Size:                 S
 ```
 
-> **Progress note (2026-10-28):** `PickupSchedule` (the deterministic window source and the lead-time check, 8:00 to 17:00 Eastern in UTC) was built with `WI-ORD-001` because checkout must validate the window. Still `ORD-003`: the `GET /ordering/pickup-windows?vendorId=` endpoint on top of it, and `PickupFulfillment` (its events and the pickup-confirmed command).
+> **Progress note (2026-10-28):** `PickupSchedule` (the deterministic window source and the lead-time check, 8:00 to 17:00 Eastern in UTC) was built with `WI-ORD-001` because checkout must validate the window. **Update, same day:** the `GET /ordering/pickup-windows?vendorId=` endpoint is built on it (anonymous, `Cache-Control: no-store`, UTC, today's remaining slots plus two more days; the vendor id is required but does not change the answer in the slice; 9 tests, including that every edge of the list is accepted by checkout and slots just outside it are refused; compared on the real stack with an independent calculation in Node). Still `ORD-003`: `PickupFulfillment` (its events and the pickup-confirmed command).
 >
 > **Reconciliation note (2026-10-28) — ADJUSTED (event layering, open item 59).** `PickupFulfillment` raises the pickup-specific events: `PickupWindowScheduled` on `OrderConfirmed` (which now carries the fulfillment details) and `OrderReadyForPickup` on `OrderReadyForFulfillment`. The Order no longer raises either. Completion: a *pickup confirmed* command (the vendor's `complete` endpoint, `WI-ORD-007`) is handled here and publishes `OrderFulfillmentCompleted`; the Order's handler calls `Complete`. See `docs/architecture/order-lifecycle.md`.
 >

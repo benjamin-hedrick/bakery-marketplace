@@ -124,7 +124,7 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 \
 
 `appsettings.Development.json` supplies the authority, the catalog URL and the non-secret service-auth settings; the service stops at startup if the client secret (or any required value) is missing or the token endpoint is not https/loopback. Without `Data__Backend=cosmos` orders are kept in memory. The `orders` container is created locally by `Cosmos__EnsureCreated` (deployed environments use Terraform).
 
-Checkout needs a customer token (log in through the PKCE flow as `user-customer-1`), an `Idempotency-Key` header, and a pickup window from the schedule: 15-minute slots between 08:00 and 17:00 `America/New_York` (converted to UTC for each date, so they shift an hour with daylight saving), at least 30 minutes ahead. `X-Test-Payment: decline` makes the payment stub decline (ignored in Production). The host needs time-zone data to resolve the zone; the .NET SDK container has it, and no ordering-service container image exists yet (open item 71).
+Checkout needs a customer token (log in through the PKCE flow as `user-customer-1`), an `Idempotency-Key` header, and a pickup window from `GET /ordering/pickup-windows?vendorId=...` (anonymous, UTC, never cached): 15-minute slots between 08:00 and 17:00 `America/New_York` (converted to UTC for each date, so they shift an hour with daylight saving), at least 30 minutes ahead. `X-Test-Payment: decline` makes the payment stub decline (ignored in Production). The host needs time-zone data to resolve the zone; the .NET SDK container has it, and no ordering-service container image exists yet (open item 71).
 
 ## Seeding
 

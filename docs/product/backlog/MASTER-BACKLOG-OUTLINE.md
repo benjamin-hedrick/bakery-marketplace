@@ -52,7 +52,7 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 | `WI-ORD-004` | Interface/Contract | `FulfillmentStrategy` seam (ACL boundary, ADR-0001) | `DEV-001` |
 | `WI-CAT-001` | Service Implementation | Listing CRUD + modifier/allergy model | `DATA-002`, `EVT-003`, `AUTH-002`, `DEV-001` |
 | `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | **Built 2026-10-28, pending review/merge** (branch `feature/slice-ordering`): in-memory aggregate, 114 local tests, not run on Azure. Lifecycle changed from the spec after a review with the human lead: `docs/architecture/order-lifecycle.md` |
-| `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | partly built 2026-10-28: the pickup schedule (window source, lead time, Eastern hours in UTC) came with `ORD-001`; the endpoint and the strategy remain |
+| `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | partly built 2026-10-28: the pickup schedule (window source, lead time, Eastern hours in UTC) came with `ORD-001`, and `GET /ordering/pickup-windows` is built on it; `PickupFulfillment` (events, pickup-confirmed command) remains |
 | `WI-ORD-006` | Integration | Order persistence via `Repository<T>` | **Built 2026-10-28, pending review/merge** (136 local tests + 3 on the real Cosmos emulator; not yet wired into the service host) |
 | `WI-ORD-005` | Integration | Publish Order events via event backbone | `ORD-002`, `EVT-003` |
 | `WI-CAT-003` | Integration | Cache-aside integration for listing reads | `CAT-001`, `CACHE-002` |
