@@ -76,6 +76,19 @@ ASPNETCORE_ENVIRONMENT=Development Data__Backend=cosmos Events__Backend=redis AS
 
 `GRAPHQL_URL` is read at build time (the `/api/graphql` rewrite) and at run time (SSR), so set it for both. Trace ids appear in the BFF's JSON log and in catalog-service's console log in Development (`TraceId:` in the scope). Evidence: `docs/evidence/WI-PORT-002/`.
 
+## Viewing traces (WI-PORT-005)
+
+Locally the trace viewer is the .NET Aspire dashboard (ADR-0016 amendment 2026-10-28; UAT/Prod are planned for Jaeger, not built). It is opt-in:
+
+```
+docker compose --profile tracing up -d aspire-dashboard   # UI http://localhost:18888, OTLP/HTTP :4318, OTLP/gRPC :4317
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+# then start catalog-service and the BFF from the same shell (commands above); the BFF reads the endpoint too
+```
+
+Services export only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Traces are kept in memory and lost when the dashboard restarts. The dashboard has no password locally, so it is bound to 127.0.0.1.
+Gaps: the Next.js server does not export its own span yet, so a browser-driven trace starts at the BFF with a parent that the dashboard never received; the BFF exports one span per successful GraphQL request (not for 400/404); no log export, traces only.
+
 ## Seeding
 
 ```

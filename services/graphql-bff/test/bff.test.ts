@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { fromGlobalId, toGlobalId } from '../src/global-id.ts';
+import type { SpanRecord } from '../src/otlp.ts';
 import { createServer, type Logger } from '../src/server.ts';
 
 const gid = (serviceId: string) => toGlobalId('Listing', serviceId);
@@ -75,6 +76,7 @@ const catalog = http.createServer((req, res) => {
 
 const logs: Record<string, unknown>[] = [];
 const log: Logger = { info: (e) => logs.push(e), error: (e) => logs.push(e) };
+const spans: SpanRecord[] = [];
 let bff: http.Server;
 let bffUrl: string;
 let catalogUrl: string;
@@ -82,7 +84,7 @@ let catalogUrl: string;
 before(async () => {
   await new Promise<void>((r) => catalog.listen(0, '127.0.0.1', r));
   catalogUrl = `http://127.0.0.1:${(catalog.address() as AddressInfo).port}`;
-  bff = createServer({ port: 0, catalogUrl, timeoutMs: 300 }, { log });
+  bff = createServer({ port: 0, catalogUrl, timeoutMs: 300 }, { log, exporter: (s) => spans.push(s) });
   await new Promise<void>((r) => bff.listen(0, '127.0.0.1', r));
   bffUrl = `http://127.0.0.1:${(bff.address() as AddressInfo).port}/graphql`;
 });
@@ -259,6 +261,22 @@ describe('trace propagation (ADR-0016)', () => {
     assert.notEqual(down.split('-')[2], '00f067aa0ba902b7');
     assert.equal(res.headers.get('x-correlation-id'), '4bf92f3577b34da6a3ce929d0e0e4736');
     assert.equal(res.headers.get('traceparent'), down, 'response and downstream carry the same BFF span');
+  });
+
+  test('the request span is exported as a child of the inbound span, without query text', async () => {
+    catalogMode = 'ok';
+    spans.length = 0;
+    await gql(`query Browse { listings(first: 1) { edges { cursor } } }`, undefined, { traceparent: inbound });
+    const span = spans.at(-1)!;
+    assert.equal(span.trace.traceId, '4bf92f3577b34da6a3ce929d0e0e4736');
+    assert.equal(span.trace.parentSpanId, '00f067aa0ba902b7');
+    assert.equal(
+      span.trace.spanId,
+      seen.at(-1)!.traceparent!.split('-')[2],
+      'the catalog call is parented by the exported span',
+    );
+    assert.equal(span.failed, false);
+    assert.equal(JSON.stringify(span).includes('listings'), false, 'no query text in the span record');
   });
 
   test('without (or with a malformed) traceparent a new trace starts, and bad input is not echoed', async () => {

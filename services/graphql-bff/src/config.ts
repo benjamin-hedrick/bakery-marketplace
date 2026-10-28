@@ -4,6 +4,8 @@ export interface Config {
   catalogUrl: string;
   /** Downstream timeout in milliseconds. */
   timeoutMs: number;
+  /** OTLP/HTTP base URL (`OTEL_EXPORTER_OTLP_ENDPOINT`). Unset means traces are not exported. */
+  otlpEndpoint?: string | undefined;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -11,5 +13,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: Number(env.BFF_PORT ?? 4100),
     catalogUrl: (env.CATALOG_URL ?? 'http://localhost:5200').replace(/\/+$/, ''),
     timeoutMs: Number(env.DOWNSTREAM_TIMEOUT_MS ?? 5000),
+    otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
   };
 }

@@ -11,6 +11,9 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Tracing (ADR-0016, WI-PORT-005): exports over OTLP only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
+builder.Services.AddBakeryTelemetry(builder.Configuration, "catalog-service");
+
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:5173" };
 

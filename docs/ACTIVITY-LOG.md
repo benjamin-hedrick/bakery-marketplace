@@ -4,6 +4,15 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — WI-PORT-005 phase 1: OTLP export to the local Aspire dashboard (same branch, uncommitted)**
+
+Decided by the human lead: Aspire locally, Jaeger for UAT/Prod, DEV undecided. Recorded as an ADR-0016 amendment and in `tech-stack.md`. Open for the human lead: whether Jaeger replaces Application Insights in the cloud or runs alongside it, and who hosts it and where traces are stored (not in the budget estimate).
+- Built: compose service `aspire-dashboard` (profile `tracing`, pinned 13.6.2, 127.0.0.1 only); `AddBakeryTelemetry` in the Logging library (ASP.NET Core, HttpClient, event-consumer source; OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set) wired into catalog-service; the BFF exports one OTLP/JSON span per successful request (`src/otlp.ts`, no new dependency; a deliberate deviation from "use the Node SDK" because the BFF already owns its trace context).
+- Verified locally: a request through BFF and catalog shows as one trace with correct parents in the dashboard; hostile `X-Correlation-Id` ignored; BFF 20/20 tests. Evidence: `docs/evidence/WI-PORT-005/findings.md`.
+- Not done: Next.js server span, Jaeger, log-correlation check, nothing run on Azure.
+
+---
+
 **2026-10-28 — WI-PORT-005 part 1: trace ID in correlation middleware, `traceparent` on event envelopes (branch `feature/WI-PORT-005-trace-propagation`, uncommitted)**
 
 - `CorrelationIdMiddleware` (ADR-0016): value is `Activity.Current.TraceId` (a fresh trace id when there is no W3C activity); an inbound `X-Correlation-Id` is no longer adopted, closing the "caller chooses our log identifier" gap. Response header kept; log scope now has `TraceId` and the old `CorrelationId` as an alias. 3 tests (was 2).

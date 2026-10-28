@@ -8,6 +8,8 @@ export interface TraceContext {
   /** Span id of this service's span; sent downstream as the parent id. */
   spanId: string;
   flags: string;
+  /** Span id of the caller's span, when an inbound traceparent was continued; the parent of this service's span. */
+  parentSpanId?: string;
   /** True when an inbound, valid traceparent was continued rather than a new trace started. */
   continued: boolean;
 }
@@ -19,7 +21,7 @@ const isZero = (s: string) => /^0+$/.test(s);
 export function startTrace(inbound: string | undefined): TraceContext {
   const m = inbound ? TRACEPARENT.exec(inbound.trim()) : null;
   if (m && !isZero(m[1]!) && !isZero(m[2]!)) {
-    return { traceId: m[1]!, spanId: hex(8), flags: m[3]!, continued: true };
+    return { traceId: m[1]!, spanId: hex(8), parentSpanId: m[2]!, flags: m[3]!, continued: true };
   }
   return { traceId: hex(16), spanId: hex(8), flags: '01', continued: false };
 }

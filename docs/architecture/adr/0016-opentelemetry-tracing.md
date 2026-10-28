@@ -48,3 +48,16 @@ Running a custom correlation ID alongside OpenTelemetry trace IDs would create t
 - `WI-TOOL-002`, `OBS-001`, `OBS-002`, `WI-PORT-005`
 - ADR-0003 — event envelope and delivery semantics
 - ADR-0013 — BFF hop
+
+## Amendment 2026-10-28: trace backends by environment, phased
+
+Decided by the human lead; refines decision 5 (Backends). All services emit **OTLP only** (standard `OTEL_EXPORTER_OTLP_*` settings), so the backend is configuration and no service code depends on a viewer.
+
+| Environment | Backend | Phase |
+|---|---|---|
+| Local | .NET Aspire dashboard (compose profile `tracing`) | 1: built with `WI-PORT-005` |
+| DEV | Undecided: Aspire or Jaeger, to be chosen when DEV exists | 3 |
+| UAT, Prod | Jaeger | 2: with the deployment work items; not built, not designed |
+
+**Open, to confirm with the human lead:** this replaces the Azure Monitor exporter / Application Insights named in decision 5 for UAT and Prod. If Application Insights is kept as well, it is a second OTLP/exporter target, not a change to the instrumentation. Self-hosting Jaeger in Azure needs a container host and a storage choice (memory only loses traces on restart; Badger, Elasticsearch or Cassandra persist them), neither of which is in `budget-cost-estimate.md` (~$0-32/month, driven by Redis). Record the cost and storage choice when the UAT/Prod phase is planned. The `tech-stack.md` Observability row still says Application Insights until that is confirmed.
+
