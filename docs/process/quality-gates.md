@@ -7,7 +7,7 @@
 | Gate | Command (repo root unless noted) | Needs | Pipeline job |
 |---|---|---|---|
 | .NET format and style | `dotnet format whitespace BakeryMarketplace.slnx --verify-no-changes` and `dotnet format style ... --verify-no-changes`; fix with the same commands without the flag | .NET SDK | `dotnet` |
-| .NET build (Roslyn analyzers on) | `dotnet build BakeryMarketplace.slnx` | .NET SDK 9+ for `.slnx` (10.x used locally); projects target `net8.0` | `dotnet` |
+| .NET build (Roslyn analyzers on) | `dotnet build BakeryMarketplace.slnx` | .NET 10 SDK (projects target `net10.0`) | `dotnet` |
 | Shared-library tests | `dotnet test tools/BakeryMarketplace.slnx` | Redis on `127.0.0.1:6379` for real adapter coverage | `dotnet` |
 | catalog-service tests | `dotnet test services/catalog-service/tests/CatalogService.Tests` | nothing (in-process, in-memory backends) | `dotnet` |
 | Redis really reached | `node scripts/ci/redis-touch.mjs snapshot <f>` before, `... assert <f> 50` after | Redis | `dotnet` |
@@ -37,7 +37,7 @@ Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config
 ## Findings that shaped the pipeline
 
 1. `localhost` can silently defeat the Redis tests. On the Windows machine used, `REDIS_CONNECTION_STRING` unset (default `localhost:6379`) connected nothing: all 16 Caching tests passed while Redis saw 2 commands. With `127.0.0.1:6379` they ran against Redis (86 commands for the Caching + Eventing suites). The pipeline sets `127.0.0.1:6379`.
-2. The Eventing Redis suite is not repeatable on one Redis instance: it passes on a fresh Redis and `DuplicateEventId_IsDeliveredTwice_ConsumerObservesBoth` (line 83) failed on an immediate re-run (open item #35). CI is safe because each job gets a fresh container; local runs need `docker compose down` or `redis-cli flushall` between runs.
+2. The Eventing Redis suite was not repeatable: tests shared one event type, hence one Redis consumer group, and competed for each other's messages. It was already failing on re-runs and became a frequent failure on a fresh Redis under .NET 10 (2 of 3 runs; 4 of 4 passed on .NET 8). **Fixed 2026-10-28**: every test uses event types of its own; 5 consecutive runs on one Redis pass. The silent fallback to fakes (finding 1) is still open (#35).
 
 ## Branch protection (manual, not done)
 

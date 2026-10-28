@@ -23,7 +23,7 @@ This is a reference document, not an ADR — it indexes the decisions made acros
 | Cache | Azure Cache for Redis, environment-conditional — **vendor under reconsideration, see open item #22** | Basic tier (no permanent free tier) | Confirmed (abstraction) — see ADR-0002 |
 | Observability | OpenTelemetry instrumentation + W3C Trace Context; Application Insights + Azure Monitor as cloud backend (Azure Monitor OTel exporter); local trace viewer for dev | Free 5GB/month ingestion | Confirmed — see ADR-0016 |
 | Auth | Microsoft Entra External ID (successor to Azure AD B2C, which stopped accepting new tenants May 2025) | Free tier — exact figures pending verification | Confirmed — see ADR-0006 amendment note |
-| Language / Framework | C# / .NET 8, ASP.NET Core Web API | — (dev tooling, not a paid service) | Confirmed — see ADR-0010 |
+| Language / Framework | C# / .NET 10 (was .NET 8; amended 2026-10-28), ASP.NET Core Web API | — (dev tooling, not a paid service) | Confirmed — see ADR-0010 |
 | Payments | Third-party processor — Stripe Connect (Express accounts) | N/A (external) | Confirmed — see ADR-0005 |
 | Secrets management | Azure Key Vault, per-environment, accessed via managed identity (no stored credential to reach it) | Free tier covers this scale (charged per operation, negligible cost) | Confirmed — see ADR-0007 |
 | API Gateway | Azure API Management, Consumption tier, zero-trust dual validation (edge fast-fail + authoritative per-service check) | Permanent free grant (1,000,000 calls/mo) | Confirmed — see ADR-0008 |

@@ -13,7 +13,7 @@ One file per decision: `0001-title.md`, `0002-title.md`, etc. Use a standard ADR
 7. [0007 — Secrets Management](0007-secrets-management.md) — Azure Key Vault with managed identity, eliminate-the-secret-where-possible
 8. [0008 — API Gateway](0008-api-gateway.md) — Azure API Management (Consumption tier), zero-trust dual validation with ADR-0006
 9. [0009 — Bounded-Context-to-Service Mapping](0009-bounded-context-service-mapping.md) — 13 contexts onto 4 services, modular monolith rule
-10. [0010 — Service Language & Framework](0010-service-language-framework.md) — C# / .NET 8, ASP.NET Core Web API
+10. [0010 — Service Language & Framework](0010-service-language-framework.md) — C# / .NET 8 (amended 2026-10-28: .NET 10), ASP.NET Core Web API
 11. [0012 — Frontend Framework: Next.js Pages Router + SSR](0012-frontend-nextjs-ssr.md) — React/TypeScript/Next.js for all browser apps; SSR for public listing pages; supersedes 0011
 12. [0013 — GraphQL BFF + Relay](0013-graphql-bff-relay.md) — Node/TypeScript BFF as the browser's API entry point; C# services stay domain authorities; amends 0008
 13. [0014 — Cache Layers](0014-cache-layers.md) — server (ADR-0002, unchanged), Relay store, and HTTP/CDN as three owned layers
