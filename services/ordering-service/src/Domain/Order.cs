@@ -6,8 +6,9 @@ namespace OrderingService.Domain;
 /// The Order aggregate (WI-ORD-002): lifecycle, invariants and the events each transition raises. Behaviour is specified in
 /// docs/architecture/order-lifecycle.md. It is in-memory only: persistence is <c>ORD-006</c>, publishing is <c>ORD-005</c>.
 /// <para>
-/// Fulfillment-agnostic (ADR-0001): <see cref="Fulfillment"/> is stored opaquely; only the pickup window is read out, to raise
-/// <c>PickupWindowScheduled</c>. Time is always passed in, so nothing here reads the wall clock. Who may call a transition
+/// Fulfillment-agnostic (ADR-0001): <see cref="Fulfillment"/> is stored opaquely and handed to the fulfillment strategy inside the
+/// events (<c>OrderConfirmed</c>, <c>OrderReadyForFulfillment</c>); the Order never reads a pickup window itself. The strategy answers
+/// with <c>OrderFulfillmentCompleted</c>, whose handler calls <see cref="Complete"/>. Time is always passed in, so nothing here reads the wall clock. Who may call a transition
 /// (a vendor only for their own orders, and so on) is authorization and belongs to the service layer; the aggregate checks only
 /// status rules and, for cancellation, the actor.
 /// </para>
@@ -100,18 +101,13 @@ public sealed class Order
             TotalCents, Currency), now);
     }
 
-    /// <summary>The vendor accepts the order. A requested pickup window is scheduled with it.</summary>
+    /// <summary>The vendor accepts the order. The strategy (pickup: <c>PickupFulfillment</c>) reacts to the event and schedules what was requested.</summary>
     public void Confirm(DateTimeOffset now)
     {
         Require(OrderStatus.Placed, "confirm");
 
         Status = OrderStatus.Confirmed;
-        Raise(OrderEventTypes.Confirmed, new OrderConfirmedPayload(Id), now);
-        if (Fulfillment?.Pickup is { } window)
-        {
-            Raise(OrderEventTypes.PickupWindowScheduled,
-                new PickupWindowScheduledPayload(Id, window.WindowStart, window.WindowEnd), now);
-        }
+        Raise(OrderEventTypes.Confirmed, new OrderConfirmedPayload(Id, FulfillmentType, Fulfillment), now);
     }
 
     public void StartPreparation(DateTimeOffset now)
@@ -127,9 +123,11 @@ public sealed class Order
         Require(OrderStatus.InPreparation, "mark ready");
 
         Status = OrderStatus.ReadyForFulfillment;
-        Raise(OrderEventTypes.ReadyForPickup, new OrderReadyForPickupPayload(Id), now);
+        Raise(OrderEventTypes.ReadyForFulfillment, new OrderReadyForFulfillmentPayload(
+            Id, VendorId, FulfillmentType, Fulfillment ?? new FulfillmentDetails(FulfillmentType)), now);
     }
 
+    /// <summary>Called when the strategy reports the fulfillment done (<c>OrderFulfillmentCompleted</c>); raises <c>OrderCompleted</c>.</summary>
     public void Complete(DateTimeOffset now)
     {
         Require(OrderStatus.ReadyForFulfillment, "complete");

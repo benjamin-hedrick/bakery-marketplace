@@ -101,6 +101,20 @@ public class DomainEventPayloadsTests
     }
 
     [Fact]
+    public void OrderConfirmedPayload_CarriesFulfillmentDetailsAndStillReadsWithoutThem()
+    {
+        var start = new DateTimeOffset(2026, 11, 2, 9, 0, 0, TimeSpan.Zero);
+        var payload = new OrderConfirmedPayload("order-9", FulfillmentType.Pickup, FulfillmentDetails.ForPickup(start, start.AddMinutes(15)));
+
+        var back = JsonSerializer.Deserialize<OrderConfirmedPayload>(JsonSerializer.Serialize(payload));
+
+        Assert.Equal(start, back?.Details?.Pickup?.WindowStart);
+        var older = JsonSerializer.Deserialize<OrderConfirmedPayload>("{\"OrderId\":\"order-9\"}");
+        Assert.Null(older?.Details);
+        Assert.Null(older?.FulfillmentType);
+    }
+
+    [Fact]
     public void OrderCancelReason_IsACodeSet_NotFreeText()
     {
         Assert.Equal(

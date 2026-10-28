@@ -56,9 +56,15 @@ public enum OrderCancelReason
     VendorCancelled
 }
 
-/// <summary>The vendor accepted a placed order.</summary>
+/// <summary>
+/// The vendor accepted a placed order. <c>FulfillmentType</c> and <c>Details</c> let the fulfillment strategy (for pickup,
+/// <c>PickupFulfillment</c>) schedule what was requested without calling back into Ordering (ADR-0001). Optional, so a
+/// message without them still deserializes.
+/// </summary>
 public record OrderConfirmedPayload(
-    string OrderId
+    string OrderId,
+    FulfillmentType? FulfillmentType = null,
+    FulfillmentDetails? Details = null
 );
 
 /// <summary>The vendor started preparing the order.</summary>
