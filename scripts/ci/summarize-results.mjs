@@ -5,7 +5,7 @@
 // Understands dotnet `.trx` and JUnit XML (Playwright's `junit` reporter, Node's `--test-reporter=junit`).
 // Prints a markdown table; passed, failed, skipped (and not-run) are separate columns, never merged.
 // With --json, also writes one record per suite plus run metadata, for comparing runs (execution time, flakes).
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const args = process.argv.slice(2);
@@ -79,6 +79,7 @@ if (jsonOut) {
     node: process.version,
     suites: rows,
   };
+  mkdirSync(path.dirname(jsonOut), { recursive: true });
   writeFileSync(jsonOut, JSON.stringify(record, null, 2));
   console.log(`\nWrote ${jsonOut}`);
 }

@@ -31,6 +31,8 @@ jobs:
   - job: dotnet
     displayName: .NET build and tests
     steps:
+      - script: mkdir -p $(RESULTS)
+        displayName: Create results directory
       - task: UseDotNet@2
         displayName: .NET SDK (the .slnx format needs a recent SDK; projects still target net8.0)
         inputs:
@@ -78,6 +80,8 @@ jobs:
   - job: bff
     displayName: GraphQL BFF
     steps:
+      - script: mkdir -p $(RESULTS)
+        displayName: Create results directory
       - task: NodeTool@0
         inputs:
           versionSpec: $(NODE_VERSION)
@@ -114,6 +118,8 @@ jobs:
   - job: web
     displayName: web-customer (mock BFF)
     steps:
+      - script: mkdir -p $(RESULTS)
+        displayName: Create results directory
       - task: NodeTool@0
         inputs:
           versionSpec: $(NODE_VERSION)
@@ -155,6 +161,8 @@ jobs:
   - job: skeleton
     displayName: Walking skeleton (real stack)
     steps:
+      - script: mkdir -p $(RESULTS)
+        displayName: Create results directory
       - task: UseDotNet@2
         inputs:
           version: '10.0.x'
