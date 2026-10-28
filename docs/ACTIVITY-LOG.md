@@ -4,6 +4,12 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — First-slice contract decisions D-5 to D-10 accepted as written (branch `docs/azure-green-evidence`)**
+
+The human lead accepted D-5 to D-10 (quantity limits, idempotency scope, UTC time zone, pickup-window lead time, Relay global IDs, stub-payment test hook) without changes. Recorded in `first-slice-contract.md` §11, with §12 brought up to date; outline and epic rows for `WI-PORT-007` updated. `WI-PORT-007` is not marked Done: the move of §4/§5 into `data-model-api-contracts.md` (`PORT-006` pass 2) is open.
+
+---
+
 **2026-10-28 — First green Azure Pipelines run recorded (branch `docs/azure-green-evidence`)**
 
 The human lead reported a green run on Azure DevOps after the warnings PR merged; only the deliberate Cosmos-adapter warning remains. Updated the evidence (`CLAUDE.md`, `quality-gates.md`, `WI-PORT-003` findings and spec note, `WI-PORT-002` note, master outline). `PORT-002`/`PORT-003` statuses in the outline now say the Azure run is met; whether to mark them Done is left to the human lead.
