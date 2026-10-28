@@ -8,7 +8,7 @@ A portfolio project: a pickup-based bakery/coffee marketplace, built to show arc
 
 ## Commands
 
-.NET 8 (the SDK installed locally is 10.x; projects target `net8.0`). There are two solutions:
+.NET 10 (projects target `net10.0`; the `.slnx` format needs SDK 9+). There are two solutions:
 
 - `BakeryMarketplace.slnx` (root): the 4 service projects, the 7 `tools/` libraries, and the catalog-service test project (`services/catalog-service/tests/`).
 - `tools/BakeryMarketplace.slnx`: the 7 library test projects under `tools/tests/` (**not** the service tests; run those via their own path or the root solution).

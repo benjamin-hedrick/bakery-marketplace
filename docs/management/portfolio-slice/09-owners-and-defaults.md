@@ -26,9 +26,11 @@ This is a solo-led project, so the human lead is the accountable integrator for 
 | Relay + Next.js integration | Small in-repo per-request environment pattern (`apps/web-customer/src/lib/relay/`). `relay-nextjs` was evaluated and rejected | See the outcome below |
 | Local trace viewer | Jaeger, via Compose (OTLP in) | Simple, container-only, vendor-neutral |
 | Browser tests | Playwright (TypeScript) | Test automation evidence goal |
-| .NET | `net8.0`, unchanged | ADR-0010 |
+| .NET | `net10.0` (changed 2026-10-28 from `net8.0`; see the note below) | ADR-0010 |
 | Branches | `feature/<WI-ID>-short-description`, per `docs/process/branching-strategy.md` | Existing convention |
 | Evidence artifacts | Entries in `docs/ACTIVITY-LOG.md`; raw outputs (trace exports, test reports) under `docs/evidence/<WI-ID>/` | One log, no second ledger |
+
+> **Change 2026-10-28:** the .NET default moved from `net8.0` to `net10.0` by the human lead (ADR-0010 amendment).
 
 ## `relay-nextjs` evaluation criteria (for `WI-PORT-001`)
 

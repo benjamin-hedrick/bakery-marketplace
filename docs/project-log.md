@@ -35,7 +35,7 @@ Legend: ✅ Done · 🟡 Stub (exists, not fleshed out) · ⬜ Planned, not star
 | [0007 — Secrets Management](architecture/adr/0007-secrets-management.md) | ✅ Accepted | Key Vault + managed identity | Eliminate-the-secret-before-managing-it |
 | [0008 — API Gateway](architecture/adr/0008-api-gateway.md) | ✅ Accepted | Azure API Management (Consumption), zero-trust dual validation | Explicit departure from the adapter/chaos pattern, with a stated reason |
 | [0009 — Bounded-Context-to-Service Mapping](architecture/adr/0009-bounded-context-service-mapping.md) | ✅ Accepted | 13 bounded contexts grouped onto the 4 existing services | Modular monolith — same "isolate in code, split later" posture as ADR-0001/0004 |
-| [0010 — Service Language & Framework](architecture/adr/0010-service-language-framework.md) | ✅ Accepted | C# / .NET 8, ASP.NET Core Web API | Direct instruction, not a debate; unblocks real code for AI-agent assignment |
+| [0010 — Service Language & Framework](architecture/adr/0010-service-language-framework.md) | ✅ Accepted | C# / .NET 8 (amended 2026-10-28: .NET 10), ASP.NET Core Web API | Direct instruction, not a debate; unblocks real code for AI-agent assignment |
 
 All ten are cross-referenced in `architecture/adr/README.md`. General ADR discipline (state-assumptions-first, pattern-reuse-or-name-deviation, periodic audits) is documented in `project-process-framework/domains/software-systems/adr-template.md` — this repo is where that discipline was actually exercised.
 

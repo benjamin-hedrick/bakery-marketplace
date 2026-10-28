@@ -14,10 +14,17 @@ public abstract class EventTransportContractTests
     /// </summary>
     protected abstract (IEventPublisher Publisher, IEventSubscriber Subscriber) CreateTransportPair();
 
-    private static DomainEventEnvelope<T> MakeEnvelope<T>(T payload, string eventType = "TestEvent") =>
+    // xUnit creates one instance of this class per test, so every test gets event types of its own. The Redis transport
+    // names its consumer group after the event type and the transport instance is shared, so tests that reused one type
+    // competed for each other's messages (and for backlog left in Redis by earlier runs): open item #35.
+    private readonly string _unique = Guid.NewGuid().ToString("N");
+
+    private string TestEventType => $"TestEvent-{_unique}";
+
+    private DomainEventEnvelope<T> MakeEnvelope<T>(T payload, string? eventType = null) =>
         new(
             EventId: Guid.NewGuid(),
-            EventType: eventType,
+            EventType: eventType ?? TestEventType,
             SchemaVersion: 1,
             OccurredAt: DateTimeOffset.UtcNow,
             AggregateType: "TestAggregate",
@@ -70,7 +77,7 @@ public abstract class EventTransportContractTests
         var received = new List<DomainEventEnvelope<string>>();
         var countReached = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        await subscriber.SubscribeAsync<string>("TestEvent", (env, _) =>
+        await subscriber.SubscribeAsync<string>(TestEventType, (env, _) =>
         {
             lock (received) received.Add(env);
             if (received.Count >= 2) countReached.TrySetResult(true);
@@ -92,14 +99,15 @@ public abstract class EventTransportContractTests
     {
         // Arrange
         var (publisher, subscriber) = CreateTransportPair();
-        var orderPlaced = MakeEnvelope("order-data", "OrderPlaced");
-        var orderCancelled = MakeEnvelope("cancel-data", "OrderCancelled");
+        var orderPlacedType = $"OrderPlaced-{_unique}";
+        var orderPlaced = MakeEnvelope("order-data", orderPlacedType);
+        var orderCancelled = MakeEnvelope("cancel-data", $"OrderCancelled-{_unique}");
 
         var receivedByOrderPlacedSub = new List<DomainEventEnvelope<string>>();
         var firstReceived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Subscribe only to OrderPlaced
-        await subscriber.SubscribeAsync<string>("OrderPlaced", (env, _) =>
+        await subscriber.SubscribeAsync<string>(orderPlacedType, (env, _) =>
         {
             lock (receivedByOrderPlacedSub) receivedByOrderPlacedSub.Add(env);
             firstReceived.TrySetResult(true);
@@ -116,6 +124,6 @@ public abstract class EventTransportContractTests
 
         // Assert — only the OrderPlaced event was delivered to this subscriber
         Assert.Single(receivedByOrderPlacedSub);
-        Assert.Equal("OrderPlaced", receivedByOrderPlacedSub[0].EventType);
+        Assert.Equal(orderPlacedType, receivedByOrderPlacedSub[0].EventType);
     }
 }

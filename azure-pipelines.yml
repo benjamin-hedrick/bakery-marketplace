@@ -34,11 +34,7 @@ jobs:
       - script: mkdir -p $(RESULTS)
         displayName: Create results directory
       - task: UseDotNet@2
-        displayName: .NET 8 SDK and runtime (every project targets net8.0, so tests and tools run on it)
-        inputs:
-          version: '8.0.x'
-      - task: UseDotNet@2
-        displayName: .NET 10 SDK (the .slnx solution format needs a recent SDK)
+        displayName: .NET 10 SDK (every project targets net10.0)
         inputs:
           version: '10.0.x'
       - task: NodeTool@0
@@ -168,9 +164,9 @@ jobs:
       - script: mkdir -p $(RESULTS)
         displayName: Create results directory
       - task: UseDotNet@2
-        displayName: .NET 8 SDK and runtime (seed tool and catalog-service target net8.0)
+        displayName: .NET 10 SDK (seed tool and catalog-service target net10.0)
         inputs:
-          version: '8.0.x'
+          version: '10.0.x'
       - task: NodeTool@0
         inputs:
           versionSpec: $(NODE_VERSION)

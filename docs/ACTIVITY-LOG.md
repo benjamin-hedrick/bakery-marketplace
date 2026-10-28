@@ -4,6 +4,14 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — Pipeline fixes from the first Azure runs; upgrade to .NET 10 (branch `fix/pipeline-results-dir`, PR pending)**
+
+First Azure runs failed on a missing `results` directory (every job now creates it; summarizer reports missing files clearly) and on the agent having only .NET 10 while projects targeted `net8.0`. Human lead approved upgrading to .NET 10: all 21 projects now `net10.0`, JwtBearer/Mvc.Testing/Configuration packages to 10.x, `System.IdentityModel.Tokens.Jwt` 8.19.2, mock OIDC Dockerfile on the 10.0 images, one SDK install in the pipeline. Fixes needed: Seed tool explicit entry point (global `Program` collision), and Eventing contract tests now use per-test event types (they became flaky on a fresh Redis under .NET 10; 4 of 4 passed on .NET 8, 5 of 5 pass now on one Redis). ADR-0010 amended with a dated note.
+- Verified locally: format and style, all .NET suites (Redis really reached: 325 commands), mock-oidc image build, skeleton smoke 5/5.
+- Not verified: a green run on Azure DevOps.
+
+---
+
 **2026-10-28 — Formatters and linters adopted (branch `chore/formatters-linters`, PR pending)**
 
 Human lead approved the defaults: `dotnet format` + `.editorconfig` + Roslyn analyzers for C#; Prettier + ESLint for TypeScript. Config and the mechanical reformat are separate commits (8 C# files, 27 other files). Gates added to `azure-pipelines.yml` (still never run on Azure). Locally: format, style, lint, typecheck, 16 BFF tests, 32 catalog tests, 6 mock e2e and the 5-test skeleton smoke all pass after the reformat. 46 analyzer warnings remain, visible and not gating. Seed event ids moved from MD5 to SHA-256 (CA5351).

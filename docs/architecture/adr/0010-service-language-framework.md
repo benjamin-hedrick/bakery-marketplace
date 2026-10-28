@@ -40,3 +40,7 @@ Not a real debate — this was a direct instruction, not an open technology eval
 - ADR-0002, ADR-0003, ADR-0004 — the interfaces this ADR gives concrete signatures to
 - ADR-0006's amendment note — how this ADR's auth library choice derisks the Entra External ID swap
 - Every Interface/Contract work item prepared for agent assignment in this same round
+
+## Amendment 2026-10-28: target .NET 10 (LTS)
+
+Human lead approved moving every project from .NET 8 to **.NET 10** (`net10.0`). The decision above (C#, ASP.NET Core Web API, the library choices) stands; only the framework version changes. Reasons: the local SDK and the Azure Pipelines agent were already on 10, the pipeline otherwise needed both SDKs, and .NET 8 support ends in November 2026. Container Apps images move to `mcr.microsoft.com/dotnet/aspnet:10.0` (the mock OIDC host already did). Effects found while upgrading: `Microsoft.AspNetCore.Authentication.JwtBearer` 10.x requires `System.IdentityModel.Tokens.Jwt` 8.19.2 or newer, and a project may no longer reference two assemblies that each define a global `Program` (the Seed tool now has an explicit entry point). Evidence: `docs/evidence/WI-PORT-003/findings.md`.
