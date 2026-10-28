@@ -218,7 +218,7 @@ Catalog owns a running quantity counter (absent = made to order); vendors set or
 Type: Decision to amend · Source: lifecycle review (2026-10-28), ADR-0005, `event-storming.md` · Hat: Architect
 Event-storming charges at checkout. With a vendor confirm step the agreed direction is authorize at `Place`, capture at `Confirm`, release on decline, expiry or cancellation. ADR-0005 needs a dated amendment; `ORD-001`'s stubbed payment step should follow it. Refund rules beyond basic initiation stay deferred (item 6).
 
-**54. Vendor order-action endpoints** — **Approved 2026-10-28 for design and implementation, to be iterated**
+**54. Vendor order-action endpoints** — **Built 2026-10-28 (`WI-ORD-007`, pending review/merge); the approved design is recorded there**
 Type: Missing API · Source: lifecycle review (2026-10-28) · Hat: Engineering/Build
 Drafted in `order-lifecycle.md` and specified as `WI-ORD-007`. Authorization (role plus ownership) is auth logic: the human lead approved adding it; details will be iterated. Remaining: who completes an order (item 59), and item 33 (mock vendor ids) for testing.
 
@@ -308,3 +308,7 @@ Events publish in sequence order and stop at the first failure, so one entry tha
 **75. Redis event streams have no retention, and `OrderPlaced` has no consumer yet**
 Type: Tracking · Source: `WI-ORD-005` (2026-10-28) · Hat: Platform Engineering
 `RedisStreamsEventTransport` adds with `XADD` and never trims, so `events:OrderPlaced` and the other streams grow without bound. Local and CI Redis are throwaway, so it only matters for a long-lived Redis. No service subscribes to the order events yet (`QUE-001`, `NOT-001`); the consumer-group naming concern (item 29: group per event type rather than per service) applies when they do. Later order transitions (`ORD-007`) must write through `OrderStore.TryUpdateAsync` and then call `OrderEventPublisher.PublishPendingAsync`, never publish directly.
+
+**76. A vendor's order lookup fans out across every customer's partition, and there is no "my orders" list**
+Type: Known limitation · Source: `WI-ORD-007` (2026-10-28) · Hat: Architect, Engineering/Build
+Orders are partitioned by customer (ADR-0004), but a vendor acting on an order knows only the order id. `OrderStore.GetForVendorAsync` therefore queries `id` and `vendorId` across all partitions on every vendor action. That costs more request units as orders grow, and it is on a request path (the empty partition key was meant for background work). Options when it matters: a vendor-keyed read model fed by the order events (the `QUE-001` direction), a second container or lookup document partitioned by vendor, or having the vendor client pass the customer id. The same read model would give vendors the "my orders" list that does not exist yet; nothing shows a vendor which orders are waiting. Not measured against real Cosmos.
