@@ -15,7 +15,7 @@ Constituent work items:
   - WI-PORT-004 (Interface/Contract — cache contract for the listing path, three layers) — blocked by PORT-002
   - WI-PORT-005 (Integration — trace propagation + safe logs) — blocked by PORT-002; supersedes OBS-002
   - WI-PORT-006 (Document/Artifact — reconcile existing artifacts) — In Progress (pass 1 done 2026-10-26)
-  - WI-PORT-007 (Interface/Contract — first-slice contract + GraphQL mapping) — Decisions complete (D-1 to D-10 accepted; mapping move into `data-model-api-contracts.md` still open); prerequisite to broad delegation
+  - WI-PORT-007 (Interface/Contract — first-slice contract + GraphQL mapping) — Done 2026-10-28 (D-1 to D-10 accepted; mapping moved into `data-model-api-contracts.md`); prerequisite to broad delegation
 Status:              Started (7 of 7 items detailed; 1 in progress)
 ```
 

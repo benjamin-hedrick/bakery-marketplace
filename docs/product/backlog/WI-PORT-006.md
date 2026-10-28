@@ -37,6 +37,8 @@ Recorded in `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`: 
 
 ## Pass 2 — document content (remaining register)
 
+> **Progress (2026-10-28):** the first row (`data-model-api-contracts.md`) is done: a "First-slice mapping" section holds the REST shapes and GraphQL schema draft moved from `first-slice-contract.md`, with a table of differences from the per-service shapes and dated notes on the preserved shapes. All other rows below are still open.
+
 | File / area | What to check | Disposition to consider |
 |---|---|---|
 | `docs/architecture/data-model-api-contracts.md` | Existing domain entities/endpoints vs the first-slice API; separate authoritative C# REST/domain contracts from the client-facing GraphQL schema | Preserve the domain model; add an explicit mapping/contract section, using `WI-PORT-007`'s output |
