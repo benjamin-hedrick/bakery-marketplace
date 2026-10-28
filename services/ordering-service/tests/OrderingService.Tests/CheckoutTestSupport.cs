@@ -118,7 +118,16 @@ internal sealed class FlakyOrderRepository(IRepository<OrderDocument> inner) : I
 {
     public bool FailWrites { get; set; }
 
-    public Task<OrderDocument?> GetAsync(string id, string partitionKey, CancellationToken ct = default) => inner.GetAsync(id, partitionKey, ct);
+    /// <summary>Pretends another request created the order first: the next conditional save reports a conflict.</summary>
+    public bool ConflictOnNextCreate { get; set; }
+
+    /// <summary>After a conflict was reported, reads fail (to prove a lost race never releases the winner's stock).</summary>
+    public bool FailReadsAfterConflict { get; set; }
+
+    private bool _conflictReported;
+
+    public Task<OrderDocument?> GetAsync(string id, string partitionKey, CancellationToken ct = default) =>
+        _conflictReported && FailReadsAfterConflict ? throw new InvalidOperationException("scripted read failure") : inner.GetAsync(id, partitionKey, ct);
     public Task<OrderDocument> SaveAsync(OrderDocument entity, string partitionKey, CancellationToken ct = default) => inner.SaveAsync(entity, partitionKey, ct);
     public Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default) => inner.DeleteAsync(id, partitionKey, ct);
 
@@ -126,8 +135,17 @@ internal sealed class FlakyOrderRepository(IRepository<OrderDocument> inner) : I
         string partitionKey, Func<IQueryable<OrderDocument>, IQueryable<OrderDocument>> query, CancellationToken ct = default) =>
         inner.QueryAsync(partitionKey, query, ct);
 
-    public Task<OrderDocument?> SaveIfUnchangedAsync(OrderDocument entity, string partitionKey, CancellationToken ct = default) =>
-        FailWrites ? throw new InvalidOperationException("scripted store failure") : inner.SaveIfUnchangedAsync(entity, partitionKey, ct);
+    public Task<OrderDocument?> SaveIfUnchangedAsync(OrderDocument entity, string partitionKey, CancellationToken ct = default)
+    {
+        if (FailWrites) throw new InvalidOperationException("scripted store failure");
+        if (ConflictOnNextCreate)
+        {
+            ConflictOnNextCreate = false;
+            _conflictReported = true;
+            return Task.FromResult<OrderDocument?>(null);
+        }
+        return inner.SaveIfUnchangedAsync(entity, partitionKey, ct);
+    }
 }
 
 internal sealed class CheckoutFixture
