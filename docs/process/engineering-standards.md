@@ -21,4 +21,4 @@ Per `docs/architecture/nfrs.md` §3.4: all Cosmos DB access uses parameterized q
 
 ## Explicitly not covered here
 
-- Linter/formatter tool choice — a technical tooling decision, not covered by this process document. Not yet made; add to `docs/product/backlog/PARKING-LOT.md` if it becomes a blocker.
+- Linter/formatter tool choice — a technical tooling decision, not covered by this process document. Decided 2026-10-28; see `docs/process/quality-gates.md`.

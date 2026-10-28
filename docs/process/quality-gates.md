@@ -6,19 +6,28 @@
 
 | Gate | Command (repo root unless noted) | Needs | Pipeline job |
 |---|---|---|---|
-| .NET build | `dotnet build BakeryMarketplace.slnx` | .NET SDK 9+ for `.slnx` (10.x used locally); projects target `net8.0` | `dotnet` |
+| .NET format and style | `dotnet format whitespace BakeryMarketplace.slnx --verify-no-changes` and `dotnet format style ... --verify-no-changes`; fix with the same commands without the flag | .NET SDK | `dotnet` |
+| .NET build (Roslyn analyzers on) | `dotnet build BakeryMarketplace.slnx` | .NET SDK 9+ for `.slnx` (10.x used locally); projects target `net8.0` | `dotnet` |
 | Shared-library tests | `dotnet test tools/BakeryMarketplace.slnx` | Redis on `127.0.0.1:6379` for real adapter coverage | `dotnet` |
 | catalog-service tests | `dotnet test services/catalog-service/tests/CatalogService.Tests` | nothing (in-process, in-memory backends) | `dotnet` |
 | Redis really reached | `node scripts/ci/redis-touch.mjs snapshot <f>` before, `... assert <f> 50` after | Redis | `dotnet` |
-| BFF typecheck, tests | `npm ci && npm run typecheck && npm test` in `services/graphql-bff` | Node >= 24 | `bff` |
-| Web typecheck (runs `relay-compiler`) | `npm ci && npm run typecheck` in `apps/web-customer` | Node >= 24 | `web` |
+| BFF format, lint, typecheck, tests | `npm ci && npm run format:check && npm run lint && npm run typecheck && npm test` in `services/graphql-bff` | Node >= 24 | `bff` |
+| Web format (also `scripts/` and `azure-pipelines.yml`), lint, typecheck (runs `relay-compiler`) | `npm ci && npm run format:check && npm run lint && npm run typecheck` in `apps/web-customer` | Node >= 24 | `web` |
 | Web build + mock e2e | `npm run test:e2e` in `apps/web-customer` (builds, starts a mock BFF, Chromium) | `npx playwright install chromium` | `web` |
 | Walking skeleton, real stack | `node scripts/ci/skeleton-smoke.mjs` (Compose, seed, catalog, BFF, Next.js, Playwright, teardown) | Docker, .NET, Node, the two `npm ci` runs | `skeleton` |
 | Result summary | `node scripts/ci/summarize-results.mjs [--json out] <trx or junit files>` | | all |
 
+## Formatter and linter decision (2026-10-28)
+
+Human lead approved the defaults. **C#:** `dotnet format` (whitespace and style) with a root `.editorconfig`, Roslyn analyzers via `Directory.Build.props` (`AnalysisLevel latest-recommended`). **TypeScript:** Prettier (root `.prettierrc.json`: single quotes, semicolons, width 120) and ESLint 10 flat config per package (`typescript-eslint` recommended; `eslint-config-next` for `web-customer`, which includes React, hooks and a11y rules). Tools are installed per package because there is no root workspace. Alternative considered: Biome (single tool); not chosen because the Next.js and React rule sets live in ESLint.
+
+Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config.mjs` are the place to tighten.
+
 ## What is not a gate (and why)
 
-- **Formatter / linter: none chosen** (`engineering-standards.md`). `dotnet format --verify-no-changes` was tried on 2026-10-28 and reports whitespace errors across the solution (there is no `.editorconfig`), so adopting it is a separate decision plus a one-off reformat, not something to switch on silently. No ESLint/Prettier config exists.
+- **Analyzer warnings are not errors.** The .NET build reports 46 `CA` warnings (mostly `CA1510`, `CA1861`, `CA1873`). They are visible, not gating; fix them in a separate pass, then turn on `TreatWarningsAsErrors`.
+- **ESLint is the `recommended` set only** (not type-checked); `tsc --noEmit` covers types. `scripts/` is formatted but not linted (ESLint config lives in each package).
+- **Docs, Markdown and `.graphql` are not formatted** (`.prettierignore`).
 - **Cosmos adapter tests** (`BakeryMarketplace.Data.Tests`): they do **not** run against Cosmos. They default to `https://localhost:8081`, the emulator speaks HTTP, and they fall back to `FakeRepository`; against the real emulator 3 of 4 fail. The pipeline logs a warning saying so. Fix is `WI-DATA-003` (open item #31).
 - **Redis adapter tests** fall back to in-memory fakes if the connection fails, with no signal. The pipeline starts Redis, uses `127.0.0.1` (see below) and fails the job if Redis saw fewer than 50 commands during the tests.
 - **Security scanning, deployment, post-deploy smoke, contract tests beyond those in the suites above, load/chaos**: not built.

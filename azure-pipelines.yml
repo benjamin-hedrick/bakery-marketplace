@@ -4,8 +4,8 @@
 # .NET SDK 10, Docker Desktop); see docs/evidence/WI-PORT-003/findings.md for what passed and what was not run.
 # Commands, gaps and the results format: docs/process/quality-gates.md.
 #
-# Gates here: build, type-check, unit/integration tests, the real-stack walking-skeleton smoke. There is no formatter or
-# linter gate because none has been chosen. Do not read a green run as "covered": the Cosmos adapter tests do not touch Cosmos.
+# Gates here: format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
+# Do not read a green run as "covered": the Cosmos adapter tests do not touch Cosmos.
 #
 # .github/workflows/ci.yml stays as the placeholder until ADR-0015's exit criteria are met (this pipeline green from a clean
 # checkout, required checks migrated, docs updated); then it is removed in one explicit migration commit.
@@ -44,6 +44,10 @@ jobs:
         displayName: Start Redis for the adapter tests (fresh container per run)
       - script: dotnet build BakeryMarketplace.slnx --configuration Release
         displayName: Build
+      - script: |
+          dotnet format whitespace BakeryMarketplace.slnx --verify-no-changes
+          dotnet format style BakeryMarketplace.slnx --verify-no-changes
+        displayName: Format and style check (fix locally with dotnet format)
       - script: dotnet test tools/BakeryMarketplace.slnx --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test shared libraries
       - script: dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
@@ -80,6 +84,12 @@ jobs:
       - script: npm ci
         workingDirectory: services/graphql-bff
         displayName: Install
+      - script: npm run format:check
+        workingDirectory: services/graphql-bff
+        displayName: Format check (Prettier)
+      - script: npm run lint
+        workingDirectory: services/graphql-bff
+        displayName: Lint (ESLint)
       - script: npm run typecheck
         workingDirectory: services/graphql-bff
         displayName: Typecheck
@@ -110,6 +120,12 @@ jobs:
       - script: npm ci
         workingDirectory: apps/web-customer
         displayName: Install
+      - script: npm run format:check
+        workingDirectory: apps/web-customer
+        displayName: Format check (Prettier; also covers scripts/ and this file)
+      - script: npm run lint
+        workingDirectory: apps/web-customer
+        displayName: Lint (ESLint, Next.js rules)
       - script: npm run typecheck
         workingDirectory: apps/web-customer
         displayName: Typecheck (runs relay-compiler first)

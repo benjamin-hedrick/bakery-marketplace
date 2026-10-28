@@ -4,6 +4,13 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — Formatters and linters adopted (branch `chore/formatters-linters`, PR pending)**
+
+Human lead approved the defaults: `dotnet format` + `.editorconfig` + Roslyn analyzers for C#; Prettier + ESLint for TypeScript. Config and the mechanical reformat are separate commits (8 C# files, 27 other files). Gates added to `azure-pipelines.yml` (still never run on Azure). Locally: format, style, lint, typecheck, 16 BFF tests, 32 catalog tests, 6 mock e2e and the 5-test skeleton smoke all pass after the reformat. 46 analyzer warnings remain, visible and not gating. Seed event ids moved from MD5 to SHA-256 (CA5351).
+- `.git-blame-ignore-revs` not added: a squash merge changes the commit hash.
+
+---
+
 **2026-10-28 — WI-PORT-003 CI baseline written and verified locally (branch `feature/WI-PORT-003-ci-baseline`, PR pending)**
 
 `azure-pipelines.yml` now has four jobs (dotnet, bff, web, skeleton) with published test results and logs. New `scripts/ci/`: `skeleton-smoke.mjs` (whole stack, one command, runs locally in 36 s), `redis-touch.mjs` (fails the job if the Redis tests did not reach Redis), `summarize-results.mjs` (trx/JUnit to a table and a JSON evidence record). `docs/process/quality-gates.md` lists the commands, the gaps and the evidence format.
