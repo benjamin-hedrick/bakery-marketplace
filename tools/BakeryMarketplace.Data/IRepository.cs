@@ -15,6 +15,17 @@ public interface IRepository<T> where T : class
 
     Task<T> SaveAsync(T entity, string partitionKey, CancellationToken ct = default);
 
+    /// <summary>
+    /// Optimistic concurrency for entities that implement <see cref="IETagged"/>: saves only if the stored entity still has the
+    /// <see cref="IETagged.ETag"/> the caller read. An entity with no ETag is created, and fails if one already exists.
+    /// Returns the saved entity (with its new ETag), or <c>null</c> when the precondition failed because someone else changed
+    /// (or created, or deleted) it first; the caller re-reads and retries. A plain <see cref="SaveAsync"/> still overwrites
+    /// unconditionally and also changes the ETag, so a stale conditional save after it fails.
+    /// Throws <see cref="NotSupportedException"/> for an implementation or entity type that does not support it.
+    /// </summary>
+    Task<T?> SaveIfUnchangedAsync(T entity, string partitionKey, CancellationToken ct = default) =>
+        throw new NotSupportedException($"{GetType().Name} does not support conditional saves.");
+
     Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default);
 
     /// <summary>

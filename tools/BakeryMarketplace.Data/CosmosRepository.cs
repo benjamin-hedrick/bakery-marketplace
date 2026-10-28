@@ -57,6 +57,29 @@ public class CosmosRepository<T> : IRepository<T> where T : class
         return response.Resource;
     }
 
+    public async Task<T?> SaveIfUnchangedAsync(T entity, string partitionKey, CancellationToken ct = default)
+    {
+        if (entity is not IETagged tagged)
+            throw new NotSupportedException($"{typeof(T).Name} does not implement IETagged, so it cannot be saved conditionally.");
+
+        var key = new PartitionKey(partitionKey ?? string.Empty);
+        try
+        {
+            ItemResponse<T> response = string.IsNullOrEmpty(tagged.ETag)
+                ? await _container.CreateItemAsync(entity, key, cancellationToken: ct)
+                : await _container.ReplaceItemAsync(
+                    entity, tagged.Id, key, new ItemRequestOptions { IfMatchEtag = tagged.ETag }, ct);
+            return response.Resource;
+        }
+        catch (CosmosException ex) when (ex.StatusCode is HttpStatusCode.PreconditionFailed
+                                             or HttpStatusCode.Conflict
+                                             or HttpStatusCode.NotFound)
+        {
+            // Changed, created or deleted by someone else since it was read.
+            return null;
+        }
+    }
+
     public async Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(id)) throw new ArgumentException("Id cannot be null or empty.", nameof(id));
