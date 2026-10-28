@@ -6,7 +6,7 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 **2026-10-28 — First-slice contract decisions D-5 to D-10 accepted as written (branch `docs/azure-green-evidence`)**
 
-The human lead accepted D-5 to D-10 (quantity limits, idempotency scope, UTC time zone, pickup-window lead time, Relay global IDs, stub-payment test hook) without changes. Recorded in `first-slice-contract.md` §11, with §12 brought up to date; outline and epic rows for `WI-PORT-007` updated. `WI-PORT-007` is not marked Done: the move of §4/§5 into `data-model-api-contracts.md` (`PORT-006` pass 2) is open.
+The human lead accepted D-5 to D-10 (quantity limits, idempotency scope, UTC time zone, pickup-window lead time, Relay global IDs, stub-payment test hook) without changes. Recorded in `first-slice-contract.md` §11, with §12 brought up to date; outline and epic rows for `WI-PORT-007` updated. `WI-PORT-007` is not marked Done: the move of §4/§5 into `data-model-api-contracts.md` (`PORT-006` pass 2) is open. Code check (read only, nothing run): D-5, D-6, D-8, D-10 have no implementation yet (`ordering-service` is empty), so no mismatch. **Mismatches:** D-9 (BFF returns raw catalog ids, no base64 `Type:serviceId` global IDs) and D-7 (no vendor time-zone field). D-1 spillover: `PayoutReconciledPayload.NetAmount` is `decimal`; `data-model-api-contracts.md` still has unqualified `price`. Details in `first-slice-contract.md` §11 "Implementation check".
 
 ---
 
