@@ -16,6 +16,7 @@
     <Project Path="tools/BakeryMarketplace.EventSchemas/BakeryMarketplace.EventSchemas.csproj" />
     <Project Path="tools/BakeryMarketplace.Logging/BakeryMarketplace.Logging.csproj" />
     <Project Path="tools/BakeryMarketplace.MockOidcHost/BakeryMarketplace.MockOidcHost.csproj" />
+    <Project Path="tools/BakeryMarketplace.Seed/BakeryMarketplace.Seed.csproj" />
     <Project Path="tools/BakeryMarketplace.Secrets/BakeryMarketplace.Secrets.csproj" />
   </Folder>
 </Solution>

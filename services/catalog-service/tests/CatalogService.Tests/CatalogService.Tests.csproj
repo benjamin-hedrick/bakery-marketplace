@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CatalogService.csproj" />
+    <ProjectReference Include="..\..\..\..\tools\BakeryMarketplace.Seed\BakeryMarketplace.Seed.csproj" />
   </ItemGroup>
 
 </Project>

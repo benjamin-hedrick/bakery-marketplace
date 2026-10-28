@@ -43,7 +43,7 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 | Item | Type | What it produces | Notes |
 |---|---|---|---|
 | `WI-DEV-002` | Infra/Environment | Real `docker-compose.yml` | **Done 2026-10-26** (verified under Docker; `docs/operations/local-dev.md`). Was: soft-blocked by Batch 3. Renumbered 2026-09-13 from `DEV-001` to `DEV-002` — `DEV-001` is now the base .NET solution/project scaffold (see `WI-DEV-001.md`), which needed to sit ahead of this item numerically since real service projects are a harder prerequisite than the Compose file itself. |
-| `WI-DEV-004` | Infra/Environment | Seed/fixture data script | **Unblocked 2026-10-26** (`DEV-002` and `DATA-002` done); recommended seed source for the first end-to-end run. Renumbered 2026-09-13 from `DEV-003` to `DEV-004` — see the `DEV-001`/`DEV-002` renumbering note above; this shift is purely cosmetic, no content changed. |
+| `WI-DEV-004` | Infra/Environment | Seed/fixture data script | **Done 2026-10-27** (branch `feature/WI-DEV-004-seed-script`, pending PR): `tools/BakeryMarketplace.Seed`; verified against the real Cosmos emulator and Redis Streams. Preference profiles deferred to `PREF-001`. Seed source for the first end-to-end run. Renumbered 2026-09-13 from `DEV-003` to `DEV-004` — see the `DEV-001`/`DEV-002` renumbering note above; this shift is purely cosmetic, no content changed. |
 
 **Batch 4 — walking skeleton (Layer 3), ready for agents once Batch 3/3b land (added 2026-09-12).** This is the actual customer-browse-to-order path per `portfolio-plan.md`'s original Sprint 1/2 scope. `ORD-004` is the one true blocking node — everything Order-related waits on the fulfillment seam being frozen first. **Also blocked on `WI-DEV-001`** (base .NET solution scaffold, added 2026-09-13) — every item below needs a real service project to add code to, not just the shared `/tools` libraries Batch 1/2 already scaffolded.
 
@@ -95,7 +95,7 @@ Explicitly still deferred (M5 and beyond, per `LOCAL-MILESTONES.md`): admin cons
 | `WI-PORT-001` | Test/Mock/Chaos | Next.js Pages Router + Relay SSR proof | **Done 2026-10-26** — proceed; in-repo Relay pattern, `relay-nextjs` rejected on security grounds. Evidence: `docs/evidence/WI-PORT-001/findings.md` |
 | `WI-PORT-006` | Document/Artifact | Reconcile existing artifacts with ADR-0012 to ADR-0016 | In Progress — pass 1 (decision level) done 2026-10-26 |
 | `WI-PORT-007` | Interface/Contract | First-slice contract + GraphQL↔REST mapping, seed contract, error/state behavior | In Progress — draft written 2026-10-26 (`docs/architecture/first-slice-contract.md`), awaiting approval of D-1 to D-4; must complete before broad frontend/service delegation |
-| `WI-PORT-002` | Integration | Walking skeleton: SSR → BFF → C# listing read, test, pipeline, trace Ready — `CAT-001` and `PORT-001` done; open: seed for the first end-to-end run — `DEV-004` is now unblocked (`DEV-002` done) and is recommended over an interim seed |
+| `WI-PORT-002` | Integration | Walking skeleton: SSR → BFF → C# listing read, test, pipeline, trace Ready — `CAT-001` and `PORT-001` done; open: seed for the first end-to-end run — `DEV-004` seed done 2026-10-27, so the seed no longer blocks it |
 | `WI-PORT-003` | Infra/Environment | Quality + Azure Pipelines CI baseline (supersedes `CI-001`) | Ready |
 | `WI-PORT-004` | Interface/Contract | Cache contract for the listing path, three layers | `PORT-002` |
 | `WI-PORT-005` | Integration | Trace propagation + safe logs; `TOOL-002`/envelope follow-ups (supersedes `OBS-002`) | `PORT-002` |
@@ -108,7 +108,7 @@ Explicitly still deferred (M5 and beyond, per `LOCAL-MILESTONES.md`): admin cons
 1. **`WI-DEV-001`** (base .NET solution/project scaffold) — unblocks all of Batch 4 and resolves `WI-WEB-001`'s CORS open point; natural next pick-up since it depends on nothing unreviewed. Also reconcile against Batch 1's actual delivered project structure once reviewed (see its own Open Points).
 2. **Batch 3** (`DATA-002`, `CACHE-002`, `EVT-003`, `AUTH-002`, `AUTH-005` revised) — assign to agents now, fully parallel; `AUTH-005`'s PKCE revision is a real scope change worth confirming with whoever picks it up.
 3. ~~**`WI-WEB-001`** (shared frontend scaffold/PKCE) — ready in parallel with `WI-DEV-001`; blocked by `AUTH-005` (revised).~~ **SUPERSEDED 2026-10-26** by `WI-PORT-001`/`WI-PORT-002` (ADR-0012).
-4. **Batch 3b** — `DEV-002` **done 2026-10-26**; `DEV-004` now unblocked.
+4. **Batch 3b** — `DEV-002` **done 2026-10-26**; `DEV-004` **done 2026-10-27**.
 5. **Batch 4** (walking skeleton) — once Batch 3/3b/`WI-DEV-001` land; start with `ORD-004` since everything Order-side waits on it.
 6. **Batch 5** (`PREF-001`, `PREF-002`, `VEN-001`, `VEN-002`) — detailed and Ready 2026-09-13; sequence alongside or just after Batch 4, since it depends on the same `WI-DEV-001` precondition but has no dependency on Batch 4's items themselves.
 7. **Batch 6** (`SRCH-001`, `CUST-005`, `CUST-006`) — detailed and Ready 2026-09-14 (M4 per `LOCAL-MILESTONES.md`); sequence after Batch 5 and `EPIC-WEB-CUSTOMER` land, since it depends on both `PREF-002` and the already-built `CUST-002`.

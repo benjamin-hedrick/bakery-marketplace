@@ -4,6 +4,15 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-27 — WI-DEV-004 seed script built (branch `feature/WI-DEV-004-seed-script`, PR pending)**
+
+`tools/BakeryMarketplace.Seed` writes the contract §7 fixtures (7 listings, 2 vendors) through `IRepository<T>` and publishes `VendorVerified` for both vendors. Run against a fresh Compose stack: first run created 7 listings, second created 0; `catalog-service` (Cosmos + Redis) then returned the 6 Published listings and 404 for the Draft. 3 new `SeederTests` (31 catalog tests pass). D-1 to D-4 of `WI-PORT-007` approved by the human lead; they will own shared-file changes via PR with no concurrent edits to start.
+- Mock users `vendor-shop-001` / `vendor-indep-001` added to the issuer (approved) so each seeded vendor is editable only by its own login; new ownership test. Seed project added to `BakeryMarketplace.slnx`.
+- Not done: preference profiles (no model yet); auto-run on `compose up`.
+- `WI-PORT-002` is no longer blocked on seed data.
+
+---
+
 **2026-10-26 — WI-DEV-002 done: local environment Compose file, verified under Docker (merged c945b18)**
 
 `docker compose up` runs `redis-events`, the Cosmos vNext emulator (pinned `vnext-EN20261019`) and the mock OIDC issuer, with `redis-cache` behind `--profile with-redis`; ports bind to 127.0.0.1 only. Added `tools/BakeryMarketplace.MockOidcHost` (the issuer had endpoints but no runnable host; it refuses to start in Production), `scripts/dev/check-env.mjs` and `docs/operations/local-dev.md`. A real `catalog-service` ran end to end against the real Cosmos emulator, Redis Streams and the issuer container from a fresh stack: draft create, publish gate (409), `VendorVerified` delivered via a Redis stream, publish, public read from Cosmos, `ListingPublished` on the stream.

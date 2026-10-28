@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using BakeryMarketplace.Auth;
 using BakeryMarketplace.EventSchemas;
 using BakeryMarketplace.Eventing;
 using CatalogService.Api;
@@ -311,6 +312,21 @@ public sealed class ListingApiTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
         Assert.Equal(await missing.Content.ReadAsStringAsync(), await attempt.Content.ReadAsStringAsync());
         Assert.Equal(800, (await _factory.Listings.GetAsync(created.Id, _vendor))!.PriceCents);
+    }
+
+    [Fact]
+    public async Task Seeded_vendors_are_editable_only_by_their_own_mock_user()
+    {
+        await new BakeryMarketplace.Seed.Seeder(_factory.Listings, _factory.Services.GetRequiredService<IEventPublisher>()).SeedAsync();
+        var shop = _factory.ClientFor(MockUsers.ShopVendor.Id, MockUsers.ShopVendor.Role);
+        var indie = _factory.ClientFor(MockUsers.IndependentVendor.Id, MockUsers.IndependentVendor.Role);
+
+        var own = await shop.PutAsJsonAsync("/catalog/listings/listing-sourdough-001", ValidListing(status: "Published", priceCents: 850));
+        var other = await indie.PutAsJsonAsync("/catalog/listings/listing-sourdough-001", ValidListing(priceCents: 1));
+
+        Assert.Equal(HttpStatusCode.OK, own.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, other.StatusCode);
+        Assert.Equal(850, (await _factory.Listings.GetAsync("listing-sourdough-001", MockUsers.ShopVendor.Id))!.PriceCents);
     }
 
     [Fact]
