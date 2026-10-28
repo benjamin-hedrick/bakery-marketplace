@@ -88,8 +88,9 @@ public class MockOidcIssuerTests
     }
 
     [Fact]
-    public async Task Token_ClientCredentials_ReturnsToken()
+    public async Task Token_ClientCredentials_WithoutClientCredentials_IsRefused_EvenWithAMockUserId()
     {
+        // The unauthenticated user-minting shortcut was removed (ADR-0018); see ClientCredentialsIssuerTests for the real grant.
         using var server = CreateServer();
         using var client = server.CreateClient();
 
@@ -100,14 +101,9 @@ public class MockOidcIssuerTests
         });
 
         var response = await client.PostAsync("/token", content);
-        response.EnsureSuccessStatusCode();
 
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var json = JsonNode.Parse(responseContent);
-
-        Assert.NotNull(json);
-        Assert.NotNull(json["access_token"]);
-        Assert.Equal("Bearer", json["token_type"]!.ToString());
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.DoesNotContain("access_token", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]

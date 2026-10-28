@@ -257,10 +257,10 @@ public class MockOidcMiddlewareIntegrationTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// DoD requirement: a request for a nonexistent mock user must fail cleanly (400 from issuer).
+    /// A direct mint request naming a mock user must fail cleanly (400 from issuer): the user-minting shortcut no longer exists (ADR-0018).
     /// </summary>
     [Fact]
-    public async Task NonexistentMockUser_DirectMintRequest_IsRejectedByIssuer()
+    public async Task MockUserDirectMintRequest_IsRejectedByIssuer()
     {
         var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {

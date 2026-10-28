@@ -15,8 +15,8 @@ namespace BakeryMarketplace.Auth;
 
 /// <summary>
 /// Implements a local mock OIDC issuer for dev/testing.
-/// Provides endpoints for discovery, JWKS, authorization (mock UI), and token minting with PKCE support.
-/// See WI-AUTH-005.
+/// Provides endpoints for discovery, JWKS, authorization (mock UI), and token minting with PKCE support (WI-AUTH-005), and an
+/// OAuth2 client credentials grant for registered service clients (ADR-0018, WI-AUTH-006).
 /// </summary>
 public static class MockOidcIssuer
 {
@@ -33,8 +33,16 @@ public static class MockOidcIssuer
     /// </summary>
     /// <param name="endpoints">The route builder</param>
     /// <param name="audience">The audience claim to put in tokens, defaults to 'bakery-marketplace'</param>
-    public static IEndpointRouteBuilder MapMockOidcIssuer(this IEndpointRouteBuilder endpoints, string audience = "bakery-marketplace")
+    /// <param name="clients">
+    /// Service clients allowed to use the client credentials grant. With none registered the grant refuses every request.
+    /// A client's secret must be at least <see cref="MockClient.MinimumSecretLength"/> characters.
+    /// </param>
+    public static IEndpointRouteBuilder MapMockOidcIssuer(
+        this IEndpointRouteBuilder endpoints, string audience = "bakery-marketplace", IReadOnlyCollection<MockClient>? clients = null)
     {
+        var registeredClients = (clients ?? Array.Empty<MockClient>()).ToDictionary(c => c.ClientId, StringComparer.Ordinal);
+        foreach (var client in registeredClients.Values) client.Validate();
+
         endpoints.MapGet("/.well-known/openid-configuration", (HttpRequest request) =>
         {
             var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
@@ -48,7 +56,8 @@ public static class MockOidcIssuer
                 subject_types_supported = new[] { "public" },
                 id_token_signing_alg_values_supported = new[] { "RS256" },
                 code_challenge_methods_supported = new[] { "plain", "S256" },
-                grant_types_supported = new[] { "authorization_code", "client_credentials" }
+                grant_types_supported = new[] { "authorization_code", "client_credentials" },
+                token_endpoint_auth_methods_supported = new[] { "none", "client_secret_basic", "client_secret_post" }
             });
         });
 
@@ -190,25 +199,112 @@ public static class MockOidcIssuer
             }
             else if (grantType == "client_credentials")
             {
-                var mockUserId = form["mock_user_id"].ToString();
-                if (string.IsNullOrEmpty(mockUserId))
-                {
-                    mockUserId = MockUsers.Customer.Id; // Default
-                }
-
-                if (!MockUsers.All.TryGetValue(mockUserId, out var user))
-                {
-                    return Results.BadRequest(new { error = "invalid_grant", error_description = "Invalid mock_user_id." });
-                }
-
-                var tokenResponse = GenerateTokens(user, baseUrl, audience);
-                return Results.Ok(tokenResponse);
+                return ClientCredentialsGrant(request, form, registeredClients, baseUrl, audience);
             }
 
             return Results.BadRequest(new { error = "unsupported_grant_type" });
         });
 
         return endpoints;
+    }
+
+    // ---- client credentials (ADR-0018) ------------------------------------------------------------------------------------
+
+    private static IResult ClientCredentialsGrant(
+        HttpRequest request, IFormCollection form, IReadOnlyDictionary<string, MockClient> registered, string issuer, string defaultAudience)
+    {
+        var (clientId, secret, viaHeader) = ReadClientCredentials(request, form);
+        registered.TryGetValue(clientId ?? "", out var client);
+
+        // Always compare something, so an unknown client id and a wrong secret cost the same.
+        var expected = client?.Secret ?? "unregistered-client";
+        var matches = SecretsEqual(secret ?? "", expected);
+        if (client is null || !matches)
+        {
+            return InvalidClient(request, viaHeader);
+        }
+
+        var allowedAudience = client.Audience ?? defaultAudience;
+        var requestedAudience = RequestedAudience(form["scope"].ToString()) ?? allowedAudience;
+        if (!string.Equals(requestedAudience, allowedAudience, StringComparison.Ordinal))
+        {
+            return Results.Json(new { error = "invalid_scope", error_description = "That audience is not allowed for this client." },
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, client.ClientId),
+            new("client_id", client.ClientId),
+            new("idtyp", "app"),
+        };
+        claims.AddRange(client.Roles.Select(role => new Claim("roles", role)));
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: allowedAudience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: new SigningCredentials(SecurityKey, SecurityAlgorithms.RsaSha256));
+
+        // No id_token and no user claims: this is an app-only token.
+        return Results.Ok(new
+        {
+            access_token = new JwtSecurityTokenHandler().WriteToken(token),
+            token_type = "Bearer",
+            expires_in = 3600
+        });
+    }
+
+    private static (string? ClientId, string? Secret, bool ViaHeader) ReadClientCredentials(HttpRequest request, IFormCollection form)
+    {
+        var authorization = request.Headers.Authorization.ToString();
+        if (authorization.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(authorization[6..].Trim()));
+                var colon = decoded.IndexOf(':');
+                if (colon > 0)
+                {
+                    // RFC 6749 section 2.3.1: both parts are form-urlencoded before the base64 step.
+                    return (Unescape(decoded[..colon]), Unescape(decoded[(colon + 1)..]), true);
+                }
+            }
+            catch (FormatException)
+            {
+                // fall through: treated as no credentials
+            }
+            return (null, null, true);
+        }
+
+        return (form["client_id"].ToString(), form["client_secret"].ToString(), false);
+    }
+
+    private static string Unescape(string value) => Uri.UnescapeDataString(value.Replace('+', ' '));
+
+    /// <summary>"api://catalog/.default" and "bakery-marketplace" both mean the audience before any "/.default" suffix.</summary>
+    private static string? RequestedAudience(string scope)
+    {
+        var first = scope.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        if (first is null) return null;
+        return first.EndsWith("/.default", StringComparison.Ordinal) ? first[..^"/.default".Length] : first;
+    }
+
+    private static bool SecretsEqual(string supplied, string expected) =>
+        CryptographicOperations.FixedTimeEquals(
+            SHA256.HashData(Encoding.UTF8.GetBytes(supplied)),
+            SHA256.HashData(Encoding.UTF8.GetBytes(expected)));
+
+    private static IResult InvalidClient(HttpRequest request, bool viaHeader)
+    {
+        // RFC 6749 section 5.2: 401 with a challenge when the client authenticated through the Authorization header, otherwise 400.
+        if (viaHeader)
+        {
+            request.HttpContext.Response.Headers.WWWAuthenticate = "Basic realm=\"mock-oidc\"";
+            return Results.Json(new { error = "invalid_client" }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+        return Results.Json(new { error = "invalid_client" }, statusCode: StatusCodes.Status400BadRequest);
     }
 
     private static object GenerateTokens(MockUser user, string issuer, string audience)
