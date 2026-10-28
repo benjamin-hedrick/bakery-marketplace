@@ -20,9 +20,20 @@ function fromTrx(xml, file) {
   const total = Number(attr(counters, 'total') ?? 0);
   const executed = Number(attr(counters, 'executed') ?? 0);
   return {
-    suite: /codeBase="([^"]*\.dll)"/.exec(xml)?.[1].split(/[\\/]/).pop().replace(/\.dll$/, '') ?? path.basename(file), kind: 'trx', total, passed: Number(attr(counters, 'passed') ?? 0),
-    failed: Number(attr(counters, 'failed') ?? 0), skipped: Math.max(0, total - executed), notRun: Number(attr(counters, 'notExecuted') ?? 0),
-    seconds: Number.isFinite(seconds) ? seconds : null, retries: 0,
+    suite:
+      /codeBase="([^"]*\.dll)"/
+        .exec(xml)?.[1]
+        .split(/[\\/]/)
+        .pop()
+        .replace(/\.dll$/, '') ?? path.basename(file),
+    kind: 'trx',
+    total,
+    passed: Number(attr(counters, 'passed') ?? 0),
+    failed: Number(attr(counters, 'failed') ?? 0),
+    skipped: Math.max(0, total - executed),
+    notRun: Number(attr(counters, 'notExecuted') ?? 0),
+    seconds: Number.isFinite(seconds) ? seconds : null,
+    retries: 0,
   };
 }
 
@@ -30,12 +41,21 @@ function fromJunit(xml, file) {
   // Attribute values may contain ">" (a suite named "A <-> B"), so skip over quoted strings instead of stopping at the first ">".
   const suites = [...xml.matchAll(/<testsuite\b(?:[^>"]|"[^"]*")*>/g)].map((m) => m[0]);
   const sum = (name) => suites.reduce((n, s) => n + Number(attr(s, name) ?? 0), 0);
-  const total = sum('tests'), failed = sum('failures') + sum('errors'), skipped = sum('skipped');
+  const total = sum('tests'),
+    failed = sum('failures') + sum('errors'),
+    skipped = sum('skipped');
   // Playwright marks a test that failed then passed on retry as a flaky pass; keep that visible.
   const flaky = (xml.match(/<flakyTest\b/g) ?? []).length;
   return {
-    suite: path.basename(file).replace(/\.xml$/, ''), kind: 'junit', total, passed: total - failed - skipped, failed, skipped, notRun: 0,
-    seconds: Math.round(sum('time') * 1000) / 1000, retries: flaky,
+    suite: path.basename(file).replace(/\.xml$/, ''),
+    kind: 'junit',
+    total,
+    passed: total - failed - skipped,
+    failed,
+    skipped,
+    notRun: 0,
+    seconds: Math.round(sum('time') * 1000) / 1000,
+    retries: flaky,
   };
 }
 
@@ -46,7 +66,10 @@ const rows = args.map((file) => {
 
 console.log('| Suite | Total | Passed | Failed | Skipped | Not run | Seconds | Flaky retries |');
 console.log('|---|---:|---:|---:|---:|---:|---:|---:|');
-for (const r of rows) console.log(`| ${r.suite} | ${r.total} | ${r.passed} | ${r.failed} | ${r.skipped} | ${r.notRun} | ${r.seconds ?? 'n/a'} | ${r.retries} |`);
+for (const r of rows)
+  console.log(
+    `| ${r.suite} | ${r.total} | ${r.passed} | ${r.failed} | ${r.skipped} | ${r.notRun} | ${r.seconds ?? 'n/a'} | ${r.retries} |`,
+  );
 
 if (jsonOut) {
   const record = {

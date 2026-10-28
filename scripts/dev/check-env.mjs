@@ -25,9 +25,17 @@ function redisPing(p) {
     const socket = net.connect({ host: '127.0.0.1', port: p, timeout: 2000 });
     let data = '';
     socket.on('connect', () => socket.write('PING\r\n'));
-    socket.on('data', (d) => { data += d; if (data.includes('\r\n')) socket.end(); });
-    socket.on('end', () => (data.startsWith('+PONG') ? resolve('PONG') : reject(new Error(`unexpected reply: ${JSON.stringify(data)}`))));
-    socket.on('timeout', () => { socket.destroy(); reject(new Error('timeout')); });
+    socket.on('data', (d) => {
+      data += d;
+      if (data.includes('\r\n')) socket.end();
+    });
+    socket.on('end', () =>
+      data.startsWith('+PONG') ? resolve('PONG') : reject(new Error(`unexpected reply: ${JSON.stringify(data)}`)),
+    );
+    socket.on('timeout', () => {
+      socket.destroy();
+      reject(new Error('timeout'));
+    });
     socket.on('error', reject);
   });
 }
@@ -41,11 +49,13 @@ const checks = [
   { name: 'event backbone (Redis Streams)', target: `127.0.0.1:${ports.events}`, run: () => redisPing(ports.events) },
   {
     // Any HTTP answer (even 4xx) proves the emulator process is listening and speaking HTTP.
-    name: 'Cosmos DB emulator', target: `http://127.0.0.1:${ports.cosmos}`,
+    name: 'Cosmos DB emulator',
+    target: `http://127.0.0.1:${ports.cosmos}`,
     run: async () => `HTTP ${(await http(`http://127.0.0.1:${ports.cosmos}/`)).status}`,
   },
   {
-    name: 'mock OIDC issuer', target: `http://localhost:${ports.oidc}`,
+    name: 'mock OIDC issuer',
+    target: `http://localhost:${ports.oidc}`,
     run: async () => {
       const res = await http(`http://localhost:${ports.oidc}/.well-known/openid-configuration`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -55,7 +65,11 @@ const checks = [
   },
 ];
 if (withRedis) {
-  checks.push({ name: 'cache Redis (profile with-redis)', target: `127.0.0.1:${ports.cache}`, run: () => redisPing(ports.cache) });
+  checks.push({
+    name: 'cache Redis (profile with-redis)',
+    target: `127.0.0.1:${ports.cache}`,
+    run: () => redisPing(ports.cache),
+  });
 }
 
 const deadline = Date.now() + waitSeconds * 1000;
@@ -63,8 +77,11 @@ const results = new Map();
 do {
   for (const c of checks) {
     if (results.get(c.name)?.ok) continue;
-    try { results.set(c.name, { ok: true, detail: await c.run() }); }
-    catch (e) { results.set(c.name, { ok: false, detail: e.cause?.code ?? e.message }); }
+    try {
+      results.set(c.name, { ok: true, detail: await c.run() });
+    } catch (e) {
+      results.set(c.name, { ok: false, detail: e.cause?.code ?? e.message });
+    }
   }
   if ([...results.values()].every((r) => r.ok)) break;
   if (Date.now() < deadline) await new Promise((r) => setTimeout(r, 2000));

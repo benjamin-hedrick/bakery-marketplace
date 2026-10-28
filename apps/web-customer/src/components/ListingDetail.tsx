@@ -10,12 +10,18 @@ export const listingDetailQuery = graphql`
       name
       description
       category
-      price { cents currency }
+      price {
+        cents
+        currency
+      }
       allergenFlags
       modifiers {
         id
         name
-        priceDelta { cents currency }
+        priceDelta {
+          cents
+          currency
+        }
         allergens
       }
     }
@@ -24,10 +30,17 @@ export const listingDetailQuery = graphql`
 
 export function ListingDetail({ id }: { id: string }) {
   const { listing } = useLazyLoadQuery<ListingDetailQuery>(listingDetailQuery, { id });
-  if (!listing) return <main><p>Listing not found.</p></main>;
+  if (!listing)
+    return (
+      <main>
+        <p>Listing not found.</p>
+      </main>
+    );
   return (
     <main>
-      <p><Link href="/">← All listings</Link></p>
+      <p>
+        <Link href="/">← All listings</Link>
+      </p>
       <h1>{listing.name}</h1>
       <p>{listing.description}</p>
       <p data-testid="detail-price">{formatMoney(listing.price)}</p>

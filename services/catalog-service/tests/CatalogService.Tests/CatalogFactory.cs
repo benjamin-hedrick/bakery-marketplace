@@ -3,8 +3,8 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using BakeryMarketplace.Data;
-using BakeryMarketplace.EventSchemas;
 using BakeryMarketplace.Eventing;
+using BakeryMarketplace.EventSchemas;
 using CatalogService.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -89,8 +89,15 @@ public sealed class CatalogFactory : WebApplicationFactory<Program>
         var now = DateTimeOffset.UtcNow;
         return await Listings.SaveAsync(new ListingDocument
         {
-            Id = id, VendorId = vendorId, Name = name, Category = "Bread", PriceCents = priceCents,
-            Status = status, CreatedAt = now, UpdatedAt = now, Version = 1,
+            Id = id,
+            VendorId = vendorId,
+            Name = name,
+            Category = "Bread",
+            PriceCents = priceCents,
+            Status = status,
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
             AllergenFlags = new() { "gluten" },
             Modifiers = new() { new ModifierDocument { Id = "mod-seeds", Name = "Seed crust", PriceDeltaCents = 100, Allergens = new() { "sesame" } } },
         }, vendorId);

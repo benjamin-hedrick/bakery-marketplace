@@ -21,9 +21,15 @@ function commandsProcessed() {
     socket.on('data', (d) => {
       data += d;
       const m = /total_commands_processed:(\d+)/.exec(data);
-      if (m) { socket.end(); resolve(Number(m[1])); }
+      if (m) {
+        socket.end();
+        resolve(Number(m[1]));
+      }
     });
-    socket.on('timeout', () => { socket.destroy(); reject(new Error(`timeout talking to ${host}:${port}`)); });
+    socket.on('timeout', () => {
+      socket.destroy();
+      reject(new Error(`timeout talking to ${host}:${port}`));
+    });
     socket.on('error', reject);
   });
 }
@@ -37,10 +43,14 @@ try {
     const before = Number(readFileSync(file, 'utf8'));
     const grew = now - before;
     if (grew < min) {
-      console.error(`FAIL: Redis saw ${grew} commands during the tests (needed >= ${min}). The adapter tests probably fell back to in-memory fakes.`);
+      console.error(
+        `FAIL: Redis saw ${grew} commands during the tests (needed >= ${min}). The adapter tests probably fell back to in-memory fakes.`,
+      );
       process.exitCode = 1;
     } else {
-      console.log(`OK: Redis ${host}:${port} processed ${grew} commands during the tests, so they ran against the real adapter.`);
+      console.log(
+        `OK: Redis ${host}:${port} processed ${grew} commands during the tests, so they ran against the real adapter.`,
+      );
     }
   } else {
     console.error('usage: redis-touch.mjs snapshot|assert <file> ...');

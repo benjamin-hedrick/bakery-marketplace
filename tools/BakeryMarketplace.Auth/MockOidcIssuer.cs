@@ -22,7 +22,7 @@ public static class MockOidcIssuer
 {
     private static readonly RSA RsaKey = RSA.Create(2048);
     private static readonly RsaSecurityKey SecurityKey = new RsaSecurityKey(RsaKey) { KeyId = "mock-key-1" };
-    
+
     // In-memory store for authorization codes
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, AuthCodeData> AuthCodes = new();
 

@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using BakeryMarketplace.Auth;
-using BakeryMarketplace.EventSchemas;
 using BakeryMarketplace.Eventing;
+using BakeryMarketplace.EventSchemas;
 using CatalogService.Api;
 using CatalogService.Domain;
 using Microsoft.Extensions.DependencyInjection;
@@ -185,8 +185,14 @@ public sealed class ListingApiTests : IDisposable
         var client = _factory.ClientFor(_vendor, "Vendor");
         var body = new
         {
-            name = "Almond Croissant", category = "Pastry", priceCents = 450,
-            vendorId = "someone-else", id = "attacker-chosen-id", sponsored = true, version = 99, status = (string?)null,
+            name = "Almond Croissant",
+            category = "Pastry",
+            priceCents = 450,
+            vendorId = "someone-else",
+            id = "attacker-chosen-id",
+            sponsored = true,
+            version = 99,
+            status = (string?)null,
         };
 
         var response = await client.PostAsJsonAsync("/catalog/listings", body);

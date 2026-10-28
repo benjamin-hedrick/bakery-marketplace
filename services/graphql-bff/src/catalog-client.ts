@@ -2,7 +2,12 @@ import { DownstreamError } from './errors.ts';
 import { toTraceparent, type TraceContext } from './trace.ts';
 
 // REST shapes of catalog-service (first-slice contract section 4). Money is integer cents, USD (D-1).
-export interface CatalogModifier { id: string; name: string; priceDeltaCents: number; allergens: string[] }
+export interface CatalogModifier {
+  id: string;
+  name: string;
+  priceDeltaCents: number;
+  allergens: string[];
+}
 export interface CatalogListing {
   id: string;
   vendorId: string;
@@ -14,7 +19,10 @@ export interface CatalogListing {
   modifiers: CatalogModifier[];
   allergenFlags: string[];
 }
-export interface CatalogPage { items: CatalogListing[]; nextCursor: string | null }
+export interface CatalogPage {
+  items: CatalogListing[];
+  nextCursor: string | null;
+}
 
 export interface CatalogClient {
   list(args: { limit: number; after?: string | undefined }, trace: TraceContext): Promise<CatalogPage>;
@@ -22,7 +30,11 @@ export interface CatalogClient {
   get(id: string, trace: TraceContext): Promise<CatalogListing | null>;
 }
 
-export function createCatalogClient(baseUrl: string, timeoutMs: number, fetchImpl: typeof fetch = fetch): CatalogClient {
+export function createCatalogClient(
+  baseUrl: string,
+  timeoutMs: number,
+  fetchImpl: typeof fetch = fetch,
+): CatalogClient {
   async function request(path: string, trace: TraceContext): Promise<Response> {
     try {
       return await fetchImpl(`${baseUrl}${path}`, {

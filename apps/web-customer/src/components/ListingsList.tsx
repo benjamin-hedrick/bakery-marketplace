@@ -12,7 +12,10 @@ const fragment = graphql`
           id
           name
           category
-          price { cents currency }
+          price {
+            cents
+            currency
+          }
           allergenFlags
         }
       }
@@ -28,7 +31,11 @@ export function ListingsList({ query }: { query: ListingsList_query$key }) {
     <section aria-busy={isPending}>
       <button
         type="button"
-        onClick={() => startTransition(() => { refetch({}, { fetchPolicy: 'network-only' }); })}
+        onClick={() =>
+          startTransition(() => {
+            refetch({}, { fetchPolicy: 'network-only' });
+          })
+        }
       >
         Refresh
       </button>
@@ -37,7 +44,10 @@ export function ListingsList({ query }: { query: ListingsList_query$key }) {
           <li key={node.id} data-testid="listing">
             <Link href={`/listings/${encodeURIComponent(node.id)}`}>{node.name}</Link>{' '}
             <span data-testid="price">{formatMoney(node.price)}</span>{' '}
-            <small>{node.category}{node.allergenFlags.length ? ` · contains ${node.allergenFlags.join(', ')}` : ''}</small>
+            <small>
+              {node.category}
+              {node.allergenFlags.length ? ` · contains ${node.allergenFlags.join(', ')}` : ''}
+            </small>
           </li>
         ))}
       </ul>

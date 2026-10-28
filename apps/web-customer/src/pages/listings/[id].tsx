@@ -8,8 +8,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req, params }) =>
   const id = String(params?.id ?? '');
   const environment = createServerEnvironment(forwardTestHeaders(req.headers));
   const data = (await fetchQuery(environment, listingDetailQuery, { id }).toPromise()) as
-    | ListingDetailQuery$data
-    | undefined;
+    ListingDetailQuery$data | undefined;
   if (!data?.listing) return { notFound: true };
   return { props: { relayRecords: snapshotRecords(environment), id } };
 };

@@ -2,11 +2,14 @@ import { expect, test } from '@playwright/test';
 import type { ConsoleMessage } from '@playwright/test';
 
 const MOCK_CONTROL = 'http://localhost:4000/__control';
-const setRevision = (revision: number) =>
-  fetch(MOCK_CONTROL, { method: 'POST', body: JSON.stringify({ revision }) });
+const setRevision = (revision: number) => fetch(MOCK_CONTROL, { method: 'POST', body: JSON.stringify({ revision }) });
 
-test.beforeEach(async () => { await setRevision(0); });
-test.afterAll(async () => { await setRevision(0); });
+test.beforeEach(async () => {
+  await setRevision(0);
+});
+test.afterAll(async () => {
+  await setRevision(0);
+});
 
 test('listing content is in the server HTML before any JavaScript runs', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
@@ -26,7 +29,9 @@ test('hydration produces no console warnings or errors and no browser-side Graph
   page.on('console', onConsole);
   page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
   const graphqlCalls: string[] = [];
-  page.on('request', (r) => { if (r.url().includes('/api/graphql')) graphqlCalls.push(r.url()); });
+  page.on('request', (r) => {
+    if (r.url().includes('/api/graphql')) graphqlCalls.push(r.url());
+  });
 
   await page.goto('/');
   await expect(page.getByTestId('listing')).toHaveCount(3);
@@ -39,7 +44,9 @@ test('hydration produces no console warnings or errors and no browser-side Graph
 
 test('client navigation to a detail page and back works without a full reload', async ({ page }) => {
   await page.goto('/');
-  await page.evaluate(() => { (window as unknown as { __marker: string }).__marker = 'same-document'; });
+  await page.evaluate(() => {
+    (window as unknown as { __marker: string }).__marker = 'same-document';
+  });
 
   await page.getByRole('link', { name: 'Almond Croissant' }).click();
   await expect(page).toHaveURL(/\/listings\//);
@@ -61,7 +68,9 @@ test('detail page is server-rendered when opened directly, and unknown IDs retur
   expect(res.status()).toBe(200);
   expect(await res.text()).toContain('Oat Milk Latte');
 
-  const missing = await request.get('/listings/' + encodeURIComponent(Buffer.from('Listing:does-not-exist').toString('base64')));
+  const missing = await request.get(
+    '/listings/' + encodeURIComponent(Buffer.from('Listing:does-not-exist').toString('base64')),
+  );
   expect(missing.status()).toBe(404);
 });
 
@@ -75,7 +84,7 @@ test('refetch pulls fresh data from the network into the Relay store', async ({ 
   await expect(page.getByTestId('price').first()).toHaveText('$8.25');
 });
 
-test('two browser contexts with different fixtures never see each other\'s data', async ({ browser }) => {
+test("two browser contexts with different fixtures never see each other's data", async ({ browser }) => {
   const [a, b] = await Promise.all([
     browser.newContext({ extraHTTPHeaders: { 'x-fixture': 'A', 'x-delay-ms': '150' } }),
     browser.newContext({ extraHTTPHeaders: { 'x-fixture': 'B', 'x-delay-ms': '50' } }),
