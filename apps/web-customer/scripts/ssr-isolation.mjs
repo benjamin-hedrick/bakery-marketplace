@@ -33,7 +33,9 @@ const started = Date.now();
 const results = await Promise.all(Array.from({ length: total }, (_, i) => one(i)));
 const failed = results.filter((r) => r.problems.length);
 
-console.log(`requests=${total} fixtureA=${results.filter((r) => r.fixture === 'A').length} fixtureB=${results.filter((r) => r.fixture === 'B').length} elapsedMs=${Date.now() - started}`);
+console.log(
+  `requests=${total} fixtureA=${results.filter((r) => r.fixture === 'A').length} fixtureB=${results.filter((r) => r.fixture === 'B').length} elapsedMs=${Date.now() - started}`,
+);
 if (failed.length) {
   for (const f of failed.slice(0, 10)) console.log(`FAIL #${f.i} (${f.fixture}): ${f.problems.join('; ')}`);
   console.log(`FAILED: ${failed.length}/${total}`);

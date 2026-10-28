@@ -1,5 +1,5 @@
-using BakeryMarketplace.EventSchemas;
 using BakeryMarketplace.Eventing;
+using BakeryMarketplace.EventSchemas;
 using CatalogService.Domain;
 
 namespace CatalogService.Services;

@@ -18,7 +18,12 @@ const toListing = (l: CatalogListing) => ({
   description: l.description,
   category: l.category,
   price: money(l.priceCents, l.currency),
-  modifiers: l.modifiers.map((m) => ({ id: m.id, name: m.name, priceDelta: money(m.priceDeltaCents, l.currency), allergens: m.allergens })),
+  modifiers: l.modifiers.map((m) => ({
+    id: m.id,
+    name: m.name,
+    priceDelta: money(m.priceDeltaCents, l.currency),
+    allergens: m.allergens,
+  })),
   allergenFlags: l.allergenFlags,
 });
 
@@ -27,7 +32,10 @@ export const rootValue = {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
     const page = await ctx.catalog.list({ limit: first, after: args.after ?? undefined }, ctx.trace);
     const edges = page.items.map((l) => ({ cursor: l.id, node: toListing(l) }));
-    return { edges, pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null } };
+    return {
+      edges,
+      pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null },
+    };
   },
   async listing(args: { id: string }, ctx: Context) {
     const l = await ctx.catalog.get(args.id, ctx.trace);

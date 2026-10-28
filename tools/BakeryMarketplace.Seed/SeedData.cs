@@ -66,8 +66,18 @@ public static class SeedData
         string[] allergenFlags, string status, params ModifierDocument[] modifiers) =>
         new()
         {
-            Id = id, VendorId = vendorId, Name = name, Category = category, PriceCents = priceCents,
-            Description = description, AllergenFlags = allergenFlags.ToList(), Modifiers = modifiers.ToList(),
-            Sponsored = false, Status = status, CreatedAt = Stamp, UpdatedAt = Stamp, Version = 1,
+            Id = id,
+            VendorId = vendorId,
+            Name = name,
+            Category = category,
+            PriceCents = priceCents,
+            Description = description,
+            AllergenFlags = allergenFlags.ToList(),
+            Modifiers = modifiers.ToList(),
+            Sponsored = false,
+            Status = status,
+            CreatedAt = Stamp,
+            UpdatedAt = Stamp,
+            Version = 1,
         };
 }

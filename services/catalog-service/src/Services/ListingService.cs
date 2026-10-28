@@ -1,6 +1,6 @@
 using BakeryMarketplace.Data;
-using BakeryMarketplace.EventSchemas;
 using BakeryMarketplace.Eventing;
+using BakeryMarketplace.EventSchemas;
 using CatalogService.Api;
 using CatalogService.Domain;
 

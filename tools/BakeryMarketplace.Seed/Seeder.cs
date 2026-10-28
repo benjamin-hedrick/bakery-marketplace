@@ -1,6 +1,6 @@
 using BakeryMarketplace.Data;
-using BakeryMarketplace.EventSchemas;
 using BakeryMarketplace.Eventing;
+using BakeryMarketplace.EventSchemas;
 using CatalogService.Domain;
 
 namespace BakeryMarketplace.Seed;
@@ -56,7 +56,7 @@ public sealed class Seeder
 
     private static Guid DeterministicEventId(string vendorId)
     {
-        var hash = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes("seed:VendorVerified:" + vendorId));
-        return new Guid(hash);
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("seed:VendorVerified:" + vendorId));
+        return new Guid(hash.AsSpan(0, 16));
     }
 }

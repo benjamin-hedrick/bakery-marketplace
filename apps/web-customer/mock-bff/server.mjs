@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 import { buildSchema, graphql } from 'graphql';
 import { fixtures } from './fixtures.mjs';
 
-const schema = buildSchema(readFileSync(fileURLToPath(new URL('../../../services/graphql-bff/schema/schema.graphql', import.meta.url)), 'utf8'));
+const schema = buildSchema(
+  readFileSync(fileURLToPath(new URL('../../../services/graphql-bff/schema/schema.graphql', import.meta.url)), 'utf8'),
+);
 let revision = 0;
 
 const money = (cents) => ({ cents, currency: 'USD' });
@@ -32,7 +34,10 @@ function rootFor(fixture) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const server = http.createServer(async (req, res) => {
-  const send = (code, body) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
+  const send = (code, body) => {
+    res.writeHead(code, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(body));
+  };
   const chunks = [];
   for await (const c of req) chunks.push(c);
   const raw = Buffer.concat(chunks).toString('utf8');
@@ -49,7 +54,10 @@ const server = http.createServer(async (req, res) => {
   const { query, variables } = JSON.parse(raw);
   const fixture = String(req.headers['x-fixture'] ?? 'A').toUpperCase();
   const result = await graphql({
-    schema, source: query, variableValues: variables, rootValue: rootFor(fixture),
+    schema,
+    source: query,
+    variableValues: variables,
+    rootValue: rootFor(fixture),
     typeResolver: (value) => value.__typename,
   });
   send(200, result);

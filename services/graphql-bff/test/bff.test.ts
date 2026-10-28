@@ -6,23 +6,57 @@ import { createServer, type Logger } from '../src/server.ts';
 
 // A fake catalog-service (ordered by id, like the real one) speaking the real REST shapes (first-slice contract section 4), so the real HTTP client is exercised.
 const sourdough = {
-  id: 'listing-sourdough-001', vendorId: 'vendor-shop-001', name: 'Country Sourdough', description: 'A naturally leavened country loaf.',
-  category: 'bread', priceCents: 800, currency: 'USD',
-  modifiers: [{ id: 'mod-seeds', name: 'Add seeds', priceDeltaCents: 100, allergens: ['sesame'] }, { id: 'mod-sliced', name: 'Sliced', priceDeltaCents: 0, allergens: [] }],
-  allergenFlags: ['gluten'], sponsored: false, status: 'Published', createdAt: '2026-01-01T00:00:00+00:00', updatedAt: '2026-01-01T00:00:00+00:00',
+  id: 'listing-sourdough-001',
+  vendorId: 'vendor-shop-001',
+  name: 'Country Sourdough',
+  description: 'A naturally leavened country loaf.',
+  category: 'bread',
+  priceCents: 800,
+  currency: 'USD',
+  modifiers: [
+    { id: 'mod-seeds', name: 'Add seeds', priceDeltaCents: 100, allergens: ['sesame'] },
+    { id: 'mod-sliced', name: 'Sliced', priceDeltaCents: 0, allergens: [] },
+  ],
+  allergenFlags: ['gluten'],
+  sponsored: false,
+  status: 'Published',
+  createdAt: '2026-01-01T00:00:00+00:00',
+  updatedAt: '2026-01-01T00:00:00+00:00',
 };
-const croissant = { ...sourdough, id: 'listing-croissant-001', name: 'Almond Croissant', priceCents: 450, modifiers: [], allergenFlags: ['gluten', 'dairy', 'tree-nut'] };
+const croissant = {
+  ...sourdough,
+  id: 'listing-croissant-001',
+  name: 'Almond Croissant',
+  priceCents: 450,
+  modifiers: [],
+  allergenFlags: ['gluten', 'dairy', 'tree-nut'],
+};
 
-interface Seen { url: string; traceparent: string | undefined; correlation: string | undefined }
+interface Seen {
+  url: string;
+  traceparent: string | undefined;
+  correlation: string | undefined;
+}
 const seen: Seen[] = [];
 let catalogMode: 'ok' | 'empty' | 'error' | 'badjson' | 'hang' = 'ok';
 
 const catalog = http.createServer((req, res) => {
-  seen.push({ url: req.url ?? '', traceparent: req.headers.traceparent as string | undefined, correlation: req.headers['x-correlation-id'] as string | undefined });
-  const json = (code: number, body: unknown) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
+  seen.push({
+    url: req.url ?? '',
+    traceparent: req.headers.traceparent as string | undefined,
+    correlation: req.headers['x-correlation-id'] as string | undefined,
+  });
+  const json = (code: number, body: unknown) => {
+    res.writeHead(code, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(body));
+  };
   const url = new URL(req.url ?? '/', 'http://x');
-  if (catalogMode === 'error') return json(500, { code: 'boom', message: 'secret internal detail at http://cosmos.internal:8081' });
-  if (catalogMode === 'badjson') { res.writeHead(200); return res.end('<html>nope'); }
+  if (catalogMode === 'error')
+    return json(500, { code: 'boom', message: 'secret internal detail at http://cosmos.internal:8081' });
+  if (catalogMode === 'badjson') {
+    res.writeHead(200);
+    return res.end('<html>nope');
+  }
   if (catalogMode === 'hang') return; // never answers
   if (url.pathname === '/catalog/listings') {
     if (catalogMode === 'empty') return json(200, { items: [], nextCursor: null });
@@ -49,11 +83,23 @@ before(async () => {
   await new Promise<void>((r) => bff.listen(0, '127.0.0.1', r));
   bffUrl = `http://127.0.0.1:${(bff.address() as AddressInfo).port}/graphql`;
 });
-after(() => { bff.close(); catalog.close(); });
+after(() => {
+  bff.close();
+  catalog.close();
+});
+
+// Query results are ad hoc per test, so the response body is deliberately loosely typed (the only `any` in this file).
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type GqlBody = { data?: any; errors?: any[] };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 async function gql(query: string, variables?: object, headers: Record<string, string> = {}) {
-  const res = await fetch(bffUrl, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify({ query, variables }) });
-  return { res, body: (await res.json()) as { data?: any; errors?: any[] } };
+  const res = await fetch(bffUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify({ query, variables }),
+  });
+  return { res, body: (await res.json()) as GqlBody };
 }
 
 const LISTINGS = `query($first: Int, $after: String) { listings(first: $first, after: $after) {
@@ -66,9 +112,13 @@ describe('BFF <-> service agreement (first-slice contract section 8, test 2)', (
     catalogMode = 'ok';
     const { body } = await gql(LISTINGS);
     assert.equal(body.errors, undefined);
-    const first = body.data.listings.edges.find((e: any) => e.node.id === sourdough.id);
+    const first = body.data.listings.edges.find((e: { node: { id: string } }) => e.node.id === sourdough.id);
     assert.deepEqual(first.node, {
-      id: sourdough.id, vendorId: sourdough.vendorId, name: sourdough.name, description: sourdough.description, category: sourdough.category,
+      id: sourdough.id,
+      vendorId: sourdough.vendorId,
+      name: sourdough.name,
+      description: sourdough.description,
+      category: sourdough.category,
       price: { cents: 800, currency: 'USD' },
       modifiers: [
         { id: 'mod-seeds', name: 'Add seeds', priceDelta: { cents: 100, currency: 'USD' }, allergens: ['sesame'] },
@@ -105,7 +155,11 @@ describe('BFF <-> service agreement (first-slice contract section 8, test 2)', (
   test('listing(id) returns the listing; a missing or non-public id is null, not an error', async () => {
     catalogMode = 'ok';
     const q = 'query($id: ID!) { listing(id: $id) { id name price { cents } } }';
-    assert.deepEqual((await gql(q, { id: croissant.id })).body.data.listing, { id: croissant.id, name: 'Almond Croissant', price: { cents: 450 } });
+    assert.deepEqual((await gql(q, { id: croissant.id })).body.data.listing, {
+      id: croissant.id,
+      name: 'Almond Croissant',
+      price: { cents: 450 },
+    });
     const missing = await gql(q, { id: 'listing-draft-001' });
     assert.equal(missing.body.errors, undefined);
     assert.equal(missing.body.data.listing, null);
@@ -134,7 +188,10 @@ describe('client-safe errors (contract section 6)', () => {
       for (const secret of ['cosmos.internal', '8081', catalogUrl, 'secret internal detail', 'stack', 'nope']) {
         assert.ok(!wire.includes(secret), `response leaked "${secret}"`);
       }
-      assert.ok(logs.some((l) => l.msg === 'resolver failed' && l.traceId === err.extensions.reference), 'detail is kept in the server log');
+      assert.ok(
+        logs.some((l) => l.msg === 'resolver failed' && l.traceId === err.extensions.reference),
+        'detail is kept in the server log',
+      );
     });
   }
 
@@ -142,7 +199,8 @@ describe('client-safe errors (contract section 6)', () => {
     const dead = createServer({ port: 0, catalogUrl: 'http://127.0.0.1:1', timeoutMs: 300 }, { log });
     await new Promise<void>((r) => dead.listen(0, '127.0.0.1', r));
     const res = await fetch(`http://127.0.0.1:${(dead.address() as AddressInfo).port}/graphql`, {
-      method: 'POST', body: JSON.stringify({ query: '{ listings { edges { cursor } } }' }),
+      method: 'POST',
+      body: JSON.stringify({ query: '{ listings { edges { cursor } } }' }),
     });
     const body = (await res.json()) as { errors: { extensions: { code: string } }[] };
     assert.equal(body.errors[0]!.extensions.code, 'INTERNAL');

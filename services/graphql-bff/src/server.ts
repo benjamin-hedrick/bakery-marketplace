@@ -11,7 +11,10 @@ import { startTrace, toTraceparent } from './trace.ts';
 const schema = buildSchema(readFileSync(fileURLToPath(new URL('../schema/schema.graphql', import.meta.url)), 'utf8'));
 const MAX_BODY_BYTES = 64 * 1024;
 
-export interface Logger { info(entry: Record<string, unknown>): void; error(entry: Record<string, unknown>): void }
+export interface Logger {
+  info(entry: Record<string, unknown>): void;
+  error(entry: Record<string, unknown>): void;
+}
 export const jsonLogger: Logger = {
   info: (e) => console.log(JSON.stringify({ level: 'info', ...e })),
   error: (e) => console.error(JSON.stringify({ level: 'error', ...e })),
@@ -43,7 +46,11 @@ export function createServer(config: Config, deps: { catalog?: CatalogClient; lo
     let variables: Record<string, unknown> | undefined;
     let operationName: string | undefined;
     try {
-      const body = JSON.parse(await readBody(req)) as { query?: unknown; variables?: Record<string, unknown>; operationName?: string };
+      const body = JSON.parse(await readBody(req)) as {
+        query?: unknown;
+        variables?: Record<string, unknown>;
+        operationName?: string;
+      };
       if (typeof body.query !== 'string') throw new Error('query missing');
       source = body.query;
       variables = body.variables;
@@ -54,15 +61,24 @@ export function createServer(config: Config, deps: { catalog?: CatalogClient; lo
 
     const result = await run(source, variables, operationName, { catalog, trace }, log);
     log.info({
-      msg: 'graphql request', traceId: trace.traceId, spanId: trace.spanId, continuedTrace: trace.continued,
-      operation: operationName ?? null, ok: !result.errors, durationMs: Math.round(performance.now() - started),
+      msg: 'graphql request',
+      traceId: trace.traceId,
+      spanId: trace.spanId,
+      continuedTrace: trace.continued,
+      operation: operationName ?? null,
+      ok: !result.errors,
+      durationMs: Math.round(performance.now() - started),
     });
     send(200, result);
   });
 }
 
 async function run(
-  source: string, variables: Record<string, unknown> | undefined, operationName: string | undefined, ctx: Context, log: Logger,
+  source: string,
+  variables: Record<string, unknown> | undefined,
+  operationName: string | undefined,
+  ctx: Context,
+  log: Logger,
 ): Promise<ExecutionResult> {
   let document;
   try {
@@ -74,7 +90,12 @@ async function run(
   if (invalid.length) return { errors: invalid };
 
   const result = await execute({
-    schema, document, rootValue, contextValue: ctx, variableValues: variables, operationName,
+    schema,
+    document,
+    rootValue,
+    contextValue: ctx,
+    variableValues: variables,
+    operationName,
     fieldResolver: (src, args, context, info) => {
       const v = (src as Record<string, unknown>)[info.fieldName];
       return typeof v === 'function' ? (v as (a: unknown, c: unknown) => unknown).call(src, args, context) : v;
@@ -88,8 +109,13 @@ async function run(
     const cause = err.originalError;
     if (!cause) return err;
     log.error({
-      msg: 'resolver failed', traceId: ctx.trace.traceId, path: err.path,
-      error: cause instanceof DownstreamError ? { name: cause.name, message: cause.message, status: cause.status } : { name: cause.name },
+      msg: 'resolver failed',
+      traceId: ctx.trace.traceId,
+      path: err.path,
+      error:
+        cause instanceof DownstreamError
+          ? { name: cause.name, message: cause.message, status: cause.status }
+          : { name: cause.name },
     });
     return internalError(ctx.trace.traceId);
   });

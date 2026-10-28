@@ -18,7 +18,8 @@ const isWin = process.platform === 'win32';
 
 // The Cosmos emulator's documented, publicly known fixed key (not a secret). Override with Cosmos__ConnectionString.
 const EMULATOR_KEY = 'C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==';
-const cosmos = process.env.Cosmos__ConnectionString ?? `AccountEndpoint=http://localhost:8081/;AccountKey=${EMULATOR_KEY}`;
+const cosmos =
+  process.env.Cosmos__ConnectionString ?? `AccountEndpoint=http://localhost:8081/;AccountKey=${EMULATOR_KEY}`;
 const ports = { catalog: 5200, bff: 4100, web: 3000 };
 const bffUrl = `http://localhost:${ports.bff}/graphql`;
 
@@ -33,7 +34,13 @@ function run(label, cmd, args, opts = {}) {
 
 function start(name, cmd, args, opts) {
   const file = createWriteStream(path.join(out, `${name}.log`));
-  const child = spawn(cmd, args, { cwd: root, ...opts, env: { ...process.env, ...opts.env }, stdio: ['ignore', 'pipe', 'pipe'], detached: !isWin });
+  const child = spawn(cmd, args, {
+    cwd: root,
+    ...opts,
+    env: { ...process.env, ...opts.env },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: !isWin,
+  });
   child.stdout.pipe(file);
   child.stderr.pipe(file);
   child.on('exit', (code) => log(`${name} exited (${code})`));
@@ -46,14 +53,24 @@ function stopAll() {
     if (child.exitCode !== null || !child.pid) continue;
     log(`stopping ${name}`);
     if (isWin) spawnSync('taskkill', ['/T', '/F', '/PID', String(child.pid)]);
-    else { try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already gone */ } }
+    else {
+      try {
+        process.kill(-child.pid, 'SIGTERM');
+      } catch {
+        /* already gone */
+      }
+    }
   }
 }
 
 async function waitFor(name, url, seconds = 120) {
   const deadline = Date.now() + seconds * 1000;
   while (Date.now() < deadline) {
-    try { if ((await fetch(url, { signal: AbortSignal.timeout(2000) })).ok) return log(`${name} is up`); } catch { /* not yet */ }
+    try {
+      if ((await fetch(url, { signal: AbortSignal.timeout(2000) })).ok) return log(`${name} is up`);
+    } catch {
+      /* not yet */
+    }
     await new Promise((r) => setTimeout(r, 1000));
   }
   throw new Error(`${name} did not become healthy at ${url} within ${seconds}s (see artifacts/skeleton/${name}.log)`);
@@ -65,27 +82,54 @@ let exitCode = 1;
 try {
   run('compose up', 'docker', ['compose', 'up', '-d', '--build']);
   run('environment check', 'node', ['scripts/dev/check-env.mjs', '--wait', '180']);
-  run('seed', 'dotnet', ['run', '--project', 'tools/BakeryMarketplace.Seed'], { env: { Cosmos__ConnectionString: cosmos } });
+  run('seed', 'dotnet', ['run', '--project', 'tools/BakeryMarketplace.Seed'], {
+    env: { Cosmos__ConnectionString: cosmos },
+  });
 
   start('catalog', 'dotnet', ['run', '--no-launch-profile', '--project', 'services/catalog-service/src'], {
     env: {
-      ASPNETCORE_ENVIRONMENT: 'Development', ASPNETCORE_URLS: `http://localhost:${ports.catalog}`,
-      Data__Backend: 'cosmos', Events__Backend: 'redis', Redis__ConnectionString: '127.0.0.1:6379', Cosmos__ConnectionString: cosmos,
+      ASPNETCORE_ENVIRONMENT: 'Development',
+      ASPNETCORE_URLS: `http://localhost:${ports.catalog}`,
+      Data__Backend: 'cosmos',
+      Events__Backend: 'redis',
+      Redis__ConnectionString: '127.0.0.1:6379',
+      Cosmos__ConnectionString: cosmos,
     },
   });
-  start('bff', 'node', ['src/main.ts'], { cwd: bff, env: { BFF_PORT: String(ports.bff), CATALOG_URL: `http://localhost:${ports.catalog}` } });
+  start('bff', 'node', ['src/main.ts'], {
+    cwd: bff,
+    env: { BFF_PORT: String(ports.bff), CATALOG_URL: `http://localhost:${ports.catalog}` },
+  });
   await waitFor('catalog', `http://localhost:${ports.catalog}/health`);
   await waitFor('bff', `http://localhost:${ports.bff}/healthz`);
 
   // GRAPHQL_URL is read at build time (rewrite) and at run time (SSR), so it is set for both.
   const webEnv = { GRAPHQL_URL: bffUrl };
-  run('web build', 'node', [path.join('node_modules', 'next', 'dist', 'bin', 'next'), 'build'], { cwd: web, env: webEnv });
-  start('web', 'node', [path.join('node_modules', 'next', 'dist', 'bin', 'next'), 'start', '-p', String(ports.web)], { cwd: web, env: webEnv });
+  run('web build', 'node', [path.join('node_modules', 'next', 'dist', 'bin', 'next'), 'build'], {
+    cwd: web,
+    env: webEnv,
+  });
+  start('web', 'node', [path.join('node_modules', 'next', 'dist', 'bin', 'next'), 'start', '-p', String(ports.web)], {
+    cwd: web,
+    env: webEnv,
+  });
   await waitFor('web', `http://localhost:${ports.web}/`);
 
-  const pw = spawnSync('node', [
-    path.join('node_modules', '@playwright', 'test', 'cli.js'), 'test', '-c', 'playwright.skeleton.config.ts', '--reporter=list,junit',
-  ], { cwd: web, stdio: 'inherit', env: { ...process.env, ...webEnv, PLAYWRIGHT_JUNIT_OUTPUT_NAME: path.join(out, 'playwright-junit.xml') } });
+  const pw = spawnSync(
+    'node',
+    [
+      path.join('node_modules', '@playwright', 'test', 'cli.js'),
+      'test',
+      '-c',
+      'playwright.skeleton.config.ts',
+      '--reporter=list,junit',
+    ],
+    {
+      cwd: web,
+      stdio: 'inherit',
+      env: { ...process.env, ...webEnv, PLAYWRIGHT_JUNIT_OUTPUT_NAME: path.join(out, 'playwright-junit.xml') },
+    },
+  );
   exitCode = pw.status ?? 1;
   log(`Playwright exit code ${exitCode}`);
 } catch (e) {

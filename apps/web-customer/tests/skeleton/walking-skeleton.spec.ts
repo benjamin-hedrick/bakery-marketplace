@@ -6,7 +6,12 @@ import type { ConsoleMessage } from '@playwright/test';
 
 const BFF = process.env.BFF_URL ?? 'http://localhost:4100';
 const SEEDED_PUBLISHED = [
-  'Almond Croissant', 'Blueberry Oat Muffin', 'Brown Butter Cookies', 'Country Sourdough', 'Lemon Loaf', 'Oat Milk Latte',
+  'Almond Croissant',
+  'Blueberry Oat Muffin',
+  'Brown Butter Cookies',
+  'Country Sourdough',
+  'Lemon Loaf',
+  'Oat Milk Latte',
 ];
 
 test('seeded listings are server-rendered from the real catalog, and the draft is not shown', async ({ browser }) => {
@@ -16,16 +21,22 @@ test('seeded listings are server-rendered from the real catalog, and the draft i
   await expect(page.getByTestId('listing')).toHaveCount(SEEDED_PUBLISHED.length);
   for (const name of SEEDED_PUBLISHED) await expect(page.getByText(name, { exact: true })).toBeVisible();
   await expect(page.getByText('Draft Seasonal Tart')).toHaveCount(0);
-  await expect(page.getByTestId('listing').filter({ hasText: 'Country Sourdough' }).getByTestId('price')).toHaveText('$8.00');
+  await expect(page.getByTestId('listing').filter({ hasText: 'Country Sourdough' }).getByTestId('price')).toHaveText(
+    '$8.00',
+  );
   await context.close();
 });
 
 test('hydration is clean and first paint makes no browser-side GraphQL request', async ({ page }) => {
   const problems: string[] = [];
-  page.on('console', (m: ConsoleMessage) => { if (m.type() === 'error' || m.type() === 'warning') problems.push(`${m.type()}: ${m.text()}`); });
+  page.on('console', (m: ConsoleMessage) => {
+    if (m.type() === 'error' || m.type() === 'warning') problems.push(`${m.type()}: ${m.text()}`);
+  });
   page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
   const graphqlCalls: string[] = [];
-  page.on('request', (r) => { if (r.url().includes('/api/graphql')) graphqlCalls.push(r.url()); });
+  page.on('request', (r) => {
+    if (r.url().includes('/api/graphql')) graphqlCalls.push(r.url());
+  });
 
   await page.goto('/');
   await expect(page.getByTestId('listing')).toHaveCount(SEEDED_PUBLISHED.length);
@@ -49,8 +60,12 @@ test('a listing that is not public renders not-found, not an error page', async 
   expect(res?.status()).toBe(404);
 });
 
-test('the BFF is the only API surface the browser can reach and answers with a trace id and no-store', async ({ request }) => {
-  const res = await request.post(`${BFF}/graphql`, { data: { query: '{ listings(first: 1) { edges { node { id } } } }' } });
+test('the BFF is the only API surface the browser can reach and answers with a trace id and no-store', async ({
+  request,
+}) => {
+  const res = await request.post(`${BFF}/graphql`, {
+    data: { query: '{ listings(first: 1) { edges { node { id } } } }' },
+  });
   expect(res.ok()).toBe(true);
   expect(res.headers()['x-correlation-id']).toMatch(/^[0-9a-f]{32}$/);
   expect(res.headers()['cache-control']).toBe('private, no-store');
