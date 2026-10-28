@@ -55,9 +55,10 @@ Decided by the human lead; refines decision 5 (Backends). All services emit **OT
 
 | Environment | Backend | Phase |
 |---|---|---|
-| Local | .NET Aspire dashboard (compose profile `tracing`) | 1: built with `WI-PORT-005` |
-| DEV | Undecided: Aspire or Jaeger, to be chosen when DEV exists | 3 |
-| UAT, Prod | Jaeger | 2: with the deployment work items; not built, not designed |
+| Local | .NET Aspire dashboard, directly or through the collector (compose profiles `tracing`, `collector`) | 1: built with `WI-PORT-005` |
+| DEV | Application Insights, through the collector | 2: not built |
+| UAT, Prod | Application Insights through the collector; **Jaeger opt-in** as an additional exporter | 2: not built |
 
-**Open, to confirm with the human lead:** this replaces the Azure Monitor exporter / Application Insights named in decision 5 for UAT and Prod. If Application Insights is kept as well, it is a second OTLP/exporter target, not a change to the instrumentation. Self-hosting Jaeger in Azure needs a container host and a storage choice (memory only loses traces on restart; Badger, Elasticsearch or Cassandra persist them), neither of which is in `budget-cost-estimate.md` (~$0-32/month, driven by Redis). Record the cost and storage choice when the UAT/Prod phase is planned. The `tech-stack.md` Observability row still says Application Insights until that is confirmed.
+**OpenTelemetry Collector (decided 2026-10-28):** cloud services send OTLP to a collector, and the collector exports to Application Insights (`azuremonitor` exporter) and, where enabled, Jaeger. Reasons: the Application Insights connection string lives in one place (ADR-0007) instead of in every .NET service and the Node BFF; the services stay on the OTLP-only rule; and a central `attributes` processor drops `url.query` and `http.url` before data leaves (ADR-0016 item 6). Config: `infra/otel-collector/` (`local.yaml`, `local-jaeger.yaml`, `cloud.yaml`, all validated with `otelcol-contrib validate`). Locally the collector is optional; direct export to Aspire stays the default and does not apply the safety processor.
 
+This **keeps** Application Insights as the cloud backend named in decision 5 (the earlier "Jaeger replaces it" reading is withdrawn); Jaeger is an opt-in extra for UAT/Prod. Still open: who hosts the collector in Azure (for example a Container Apps container), and its cost (not in `budget-cost-estimate.md`). `cloud.yaml` has not been run against Azure.

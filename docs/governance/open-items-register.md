@@ -150,13 +150,13 @@ Type: Test isolation / verification gap · Source: `WI-PORT-003` (2026-10-28) ·
 Type: Decision deviation · Source: `WI-PORT-005` (2026-10-28), ADR-0016 item 1 · Hat: Platform Engineering
 `services/graphql-bff/src/otlp.ts` posts one server span per successful request; the BFF already owns its trace context (`trace.ts`), and the SDK would need ESM loader hooks. Reconcile by either adopting the OpenTelemetry Node SDK (spans for the catalog client call too) or amending ADR-0016 to accept the exporter. Until then it is small and replaceable. Also: no span for 400/404 responses.
 
-**37. Cloud trace backend and DEV backend are undecided**
-Type: Open decision / cost · Source: ADR-0016 amendment (2026-10-28) · Hat: Architect, Platform Engineering
-Aspire locally is decided. UAT/Prod Jaeger is stated intent only: does it replace Application Insights or run alongside, who hosts it, where traces are stored, and what it costs (not in `budget-cost-estimate.md`). DEV is open. `tech-stack.md` Observability row still says Application Insights.
+**37. Cloud trace pipeline is decided but not built**
+Type: Open work / cost · Source: ADR-0016 amendment (2026-10-28) · Hat: Architect, Platform Engineering
+Decided: Application Insights for DEV, UAT and Prod through an OpenTelemetry Collector; Jaeger opt-in for UAT/Prod. Open: where the collector runs in Azure and what it costs (not in `budget-cost-estimate.md`), the Key Vault reference for the connection string, how Jaeger would be hosted and stored if enabled, and a run of `infra/otel-collector/cloud.yaml` against a real Application Insights resource (only syntax-validated so far).
 
 **38. The catalog span records `url.query`**
 Type: Data-safety follow-up · Source: `WI-PORT-005` evidence (2026-10-28), ADR-0016 item 6 · Hat: Security / Platform Engineering
-Fine for pagination parameters. Decide whether to drop it before search or preference endpoints exist.
+Fine for pagination parameters. The collector configs delete `url.query` and `http.url` centrally (verified through Jaeger and Aspire locally); direct export to Aspire and the BFF's own span do not go through it. Decide whether the services should also drop it at the source before search or preference endpoints exist.
 
 **39. No vendor time-zone field exists (D-7)**
 Type: Contract gap · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build

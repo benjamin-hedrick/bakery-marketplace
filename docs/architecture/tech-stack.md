@@ -55,7 +55,7 @@ Local dev runs entirely via `docker-compose`. Not everything is optional the way
 | Secrets | Git-ignored `.env` file with Stripe **test-mode** keys; no Key Vault dependency locally at all | Yes | Fail-fast startup validation tests (missing/malformed secret → refuse to start), not a live chaos decorator — no meaningful degraded mode for "can't get the Stripe key" (ADR-0007) |
 | Seed data | Fixture/seed script run on `docker-compose up` | Yes | — |
 | Web apps + BFF | Next.js dev server(s) and the GraphQL BFF (ADR-0012/0013) — Compose wiring tracked in `WI-DEV-002` (adjusted) | Yes, once built | Contract tests between BFF and C# APIs (`WI-PORT-007`) |
-| Tracing | OTLP to a per-environment viewer (ADR-0016 amendment 2026-10-28): .NET Aspire dashboard locally (compose profile `tracing`), Jaeger for UAT/Prod (not built), DEV undecided | Yes, once built | — |
+| Tracing | OTLP to an OpenTelemetry Collector (ADR-0016 amendment 2026-10-28): Aspire dashboard locally (compose profiles `tracing`, `collector`); Application Insights for DEV, UAT and Prod (not built); Jaeger opt-in for UAT/Prod | Yes, once built | — |
 
 Default command: `docker-compose up` — brings up the event backbone (Redis Streams) and data store (Cosmos emulator) automatically, since both are non-optional local dependencies per ADR-0003/ADR-0004. Still zero cost and fully offline-capable; only the managed-Redis cache path requires an extra flag.
 Extended command: `docker-compose --profile with-redis up` — additionally exercises the real Redis cache path before it hits staging.

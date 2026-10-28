@@ -1,0 +1,31 @@
+# OpenTelemetry Collector, local (ADR-0016 amendment 2026-10-28, WI-PORT-005). Services send OTLP here; the collector fans out.
+# This file: Aspire dashboard only. local-jaeger.yaml adds Jaeger. Cloud settings live in cloud.yaml.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Central data-safety net (ADR-0016 item 6): query strings can carry user input, so they never leave the collector.
+  attributes/safety:
+    actions:
+      - key: url.query
+        action: delete
+      - key: http.url
+        action: delete
+  batch: {}
+
+exporters:
+  otlphttp/aspire:
+    endpoint: http://aspire-dashboard:18890
+    compression: none # the Aspire dashboard's OTLP/HTTP endpoint does not decode gzip
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [attributes/safety, batch]
+      exporters: [otlphttp/aspire]

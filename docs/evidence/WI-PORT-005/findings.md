@@ -32,3 +32,7 @@ Logging 3/3; Eventing 16/16 (Redis really reached); BFF 20/20 (new: span export,
 - Consumer spans from the event backbone have no listener in a service yet, so none were seen in the dashboard.
 - Jaeger (UAT/Prod) and DEV backend: later phases. Nothing runs on Azure.
 - The skeleton smoke was not re-run with tracing on.
+
+## Collector (added 2026-10-28)
+
+`infra/otel-collector/{local,local-jaeger,cloud}.yaml` pass `otelcol-contrib validate` (0.164.0; `cloud.yaml` with a dummy connection string). Run locally: catalog-service and the BFF exported OTLP/HTTP to the collector (:4328), which delivered the same two-hop trace to both the Aspire dashboard and Jaeger 2.22.0, with `url.query` removed. A first attempt failed: the collector's default gzip made the Aspire OTLP/HTTP endpoint answer 500, fixed with `compression: none`. Not run: the `azuremonitor` exporter against a real Application Insights resource; the collector in Azure.

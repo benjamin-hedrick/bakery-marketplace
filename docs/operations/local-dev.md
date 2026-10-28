@@ -86,6 +86,14 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 OTEL_EXPORTER_OTLP_PROT
 # then start catalog-service and the BFF from the same shell (commands above); the BFF reads the endpoint too
 ```
 
+Through the collector instead (the shape DEV/UAT/Prod will use; also drops `url.query`):
+
+```
+docker compose --profile tracing --profile collector up -d aspire-dashboard otel-collector
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4328 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+# plus Jaeger (UI http://localhost:16686): OTEL_COLLECTOR_CONFIG=local-jaeger.yaml docker compose --profile tracing --profile collector --profile jaeger up -d aspire-dashboard otel-collector jaeger
+```
+
 Services export only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Traces are kept in memory and lost when the dashboard restarts. The dashboard has no password locally, so it is bound to 127.0.0.1.
 Gaps: the Next.js server does not export its own span yet, so a browser-driven trace starts at the BFF with a parent that the dashboard never received; the BFF exports one span per successful GraphQL request (not for 400/404); no log export, traces only.
 
