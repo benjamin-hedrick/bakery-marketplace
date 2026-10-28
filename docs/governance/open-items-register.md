@@ -164,7 +164,7 @@ D-7 says display in the vendor's local zone from vendor config; the vendor model
 
 **40. Money representation is not uniform (D-1)**
 Type: Contract inconsistency · Source: first-slice contract implementation check (2026-10-28) · Hat: Architect
-`PayoutReconciledPayload.NetAmount` is `decimal`; `data-model-api-contracts.md` still uses unqualified `price`, `priceDelta`, `grossAmount`. Part of `WI-PORT-006` pass 2.
+`PayoutReconciledPayload.NetAmount` is `decimal`; `data-model-api-contracts.md` still uses unqualified `price`, `priceDelta`, `grossAmount`. Part of `WI-PORT-006` pass 2. **Partly resolved 2026-10-28:** the data-model doc now uses `priceCents` / `priceDeltaCents` and has a payout-money row; `PayoutReconciledPayload.NetAmount` is still `decimal` in code.
 
 **41. Scope of the GraphQL global-ID rule (D-9) is unconfirmed**
 Type: Open decision · Source: D-9 fix (2026-10-28) · Hat: Architect
@@ -186,9 +186,9 @@ Add the run link to `docs/evidence/WI-PORT-003/findings.md`. The pipeline is pin
 Type: Accepted risk · Source: ADR-0015 amendment (2026-10-28) · Hat: Manager/Lead
 GitHub rulesets need an enterprise plan, so nothing blocks a merge with a red or missing Azure check. The human lead reads it at PR approval. Revisit if the plan changes.
 
-**46. `WI-PORT-006` pass 2 and `WI-PORT-007` closure are open**
+**46. `WI-PORT-006` pass 2 and `WI-PORT-007` closure** — **Resolved 2026-10-28 for the data-model row and `WI-PORT-007`**
 Type: Documentation reconciliation · Source: first-slice contract §12 (2026-10-28) · Hat: Architect
-Move contract §4/§5 into `data-model-api-contracts.md`; then `WI-PORT-007` can be marked Done. D-1 to D-10 are all accepted.
+The contract's REST shapes and GraphQL draft now live in `data-model-api-contracts.md` ("First-slice mapping"); `WI-PORT-007` is Done. The other `WI-PORT-006` pass-2 rows (C4 diagrams, glossary, plans, cost, indexes) are still open under that work item.
 
 **47. `CorrelationId` log-scope alias has no retirement date**
 Type: Tech debt · Source: ADR-0016 item 2 (2026-10-28) · Hat: Platform Engineering
@@ -201,3 +201,8 @@ Quantity limits, idempotency scope, pickup-window lead time and the payment-decl
 **49. Other C# services do not call `AddBakeryTelemetry`**
 Type: Tracking · Source: `WI-PORT-005` (2026-10-28) · Hat: Platform Engineering
 Only catalog-service is wired. `ordering-service`, `admin-service` and `notification-service` are empty scaffolds; wire them when they gain endpoints.
+
+**50. Rethink the role of `docs/ACTIVITY-LOG.md`**
+Type: Process · Source: human lead (2026-10-28) · Hat: Manager/Lead
+The log existed so several asynchronous AI sessions could catch up before the repo and pipeline were complete. Now that git history, PR descriptions, the register and CI exist, it mostly causes conflicts (every branch prepends to the same lines). New entries are paused (CLAUDE.md). Decide: retire it, keep it for milestones only, or generate it from history. Existing entries stay as history.
+
