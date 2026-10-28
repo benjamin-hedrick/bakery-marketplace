@@ -156,6 +156,51 @@ public sealed class Order
         Raise(OrderEventTypes.Cancelled, new OrderCancelledPayload(Id, actor, reason), now);
     }
 
+    // ---- persistence (WI-ORD-006) --------------------------------------------------------------------------------------
+
+    /// <summary>The state to store. Raised-but-undequeued events are not part of it.</summary>
+    public OrderSnapshot ToSnapshot() => new(
+        Id, CustomerId, VendorId, FulfillmentType, Fulfillment, Status, SequenceNumber, CreatedAt, UpdatedAt,
+        CancelledBy, CancelReason, _lines.ToList());
+
+    /// <summary>
+    /// Rebuilds an order from stored state, without raising events. Checks that the state is one the aggregate could have reached, so a
+    /// corrupt or hand-edited document fails loudly instead of producing an order that breaks the lifecycle rules.
+    /// </summary>
+    public static Order Restore(OrderSnapshot s)
+    {
+        ArgumentNullException.ThrowIfNull(s);
+        var order = Create(s.Id, s.CustomerId, s.VendorId, s.FulfillmentType, s.CreatedAt);
+
+        if (!Enum.IsDefined(s.Status)) throw new OrderRuleException($"Unknown order status '{s.Status}'.");
+        if (s.Lines.Count > OrderRules.MaxLines) throw new OrderRuleException("A stored order has more lines than an order can have.");
+        if (s.Fulfillment is not null && s.Fulfillment.Type != s.FulfillmentType)
+            throw new OrderRuleException("The stored fulfillment details do not match the fulfillment type.");
+
+        var cancelled = s.Status == OrderStatus.Cancelled;
+        if (cancelled != (s.CancelledBy is not null && s.CancelReason is not null) || (!cancelled && (s.CancelledBy is not null || s.CancelReason is not null)))
+            throw new OrderRuleException("Cancellation details are stored if and only if the order is Cancelled.");
+
+        if (s.Status == OrderStatus.Pending)
+        {
+            if (s.SequenceNumber != 0) throw new OrderRuleException("A Pending order has raised no events.");
+        }
+        else
+        {
+            if (s.Lines.Count == 0) throw new OrderRuleException("A placed order has at least one line.");
+            if (s.SequenceNumber < 1) throw new OrderRuleException("A placed order has raised at least one event.");
+        }
+
+        order._lines.AddRange(s.Lines);
+        order.Fulfillment = s.Fulfillment;
+        order.Status = s.Status;
+        order.SequenceNumber = s.SequenceNumber;
+        order.UpdatedAt = s.UpdatedAt;
+        order.CancelledBy = s.CancelledBy;
+        order.CancelReason = s.CancelReason;
+        return order;
+    }
+
     /// <summary>Returns the events raised since the last call, oldest first, and forgets them.</summary>
     public IReadOnlyList<OrderEvent> DequeueEvents()
     {

@@ -73,3 +73,18 @@ public sealed record OrderLine
 
     public override int GetHashCode() => HashCode.Combine(ListingId, Quantity, UnitPriceCents, ModifierIds.Count);
 }
+
+/// <summary>An order's stored state, used by persistence (<see cref="Order.ToSnapshot"/>, <see cref="Order.Restore"/>).</summary>
+public sealed record OrderSnapshot(
+    string Id,
+    string CustomerId,
+    string VendorId,
+    FulfillmentType FulfillmentType,
+    FulfillmentDetails? Fulfillment,
+    OrderStatus Status,
+    long SequenceNumber,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    OrderCancelActor? CancelledBy,
+    OrderCancelReason? CancelReason,
+    IReadOnlyList<OrderLine> Lines);
