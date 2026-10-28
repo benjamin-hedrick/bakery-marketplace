@@ -196,7 +196,7 @@ Type: Tech debt · Source: ADR-0016 item 2 (2026-10-28) · Hat: Platform Enginee
 
 **48. Not built: D-5, D-6, D-8, D-10**
 Type: Tracking · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build
-Quantity limits, idempotency scope, pickup-window lead time and the payment-decline test hook are accepted but unimplemented (`ordering-service` is an empty scaffold). Verify against the code when `ORD-001`, `ORD-003` land.
+Idempotency scope (D-6), pickup-window lead time (D-8) and the payment-decline test hook (D-10) are accepted but unimplemented. D-5 quantity limits are enforced in the `Order` aggregate (`WI-ORD-002`, 2026-10-28) as placeholders pending per-item maxima (item 51). Verify the rest when `ORD-001`, `ORD-003` land.
 
 **49. Other C# services do not call `AddBakeryTelemetry`**
 Type: Tracking · Source: `WI-PORT-005` (2026-10-28) · Hat: Platform Engineering

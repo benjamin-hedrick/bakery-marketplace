@@ -51,7 +51,7 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 |---|---|---|---|
 | `WI-ORD-004` | Interface/Contract | `FulfillmentStrategy` seam (ACL boundary, ADR-0001) | `DEV-001` |
 | `WI-CAT-001` | Service Implementation | Listing CRUD + modifier/allergy model | `DATA-002`, `EVT-003`, `AUTH-002`, `DEV-001` |
-| `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | `ORD-004` |
+| `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | **Built 2026-10-28, pending review/merge** (branch `feature/slice-ordering`): in-memory aggregate, 153 local tests, not run on Azure. Lifecycle changed from the spec after a review with the human lead: `docs/architecture/order-lifecycle.md` |
 | `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | `ORD-004` |
 | `WI-ORD-006` | Integration | Order persistence via `Repository<T>` | `ORD-002`, `DATA-002` |
 | `WI-ORD-005` | Integration | Publish Order events via event backbone | `ORD-002`, `EVT-003` |
@@ -151,7 +151,7 @@ Scope: Preferences & Dietary Safety · Primary hat(s): Architect, Digital PM · 
 ### EPIC-ORDERING — Ordering & Fulfillment (pickup v1)
 Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build · Status: Started (6 of 6 walking-skeleton items detailed, Ready for agents)
 - ✅ ORD-001 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-001.md` — Cart + checkout, payment step explicitly stubbed pending `EPIC-PAYMENTS`
-- ✅ ORD-002 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-002.md` — Order aggregate + lifecycle states (`Placed → Confirmed → InPreparation → ReadyForFulfillment → Completed`, per ADR-0001)
+- ✅ ORD-002 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-002.md` — Order aggregate + lifecycle states (`Pending → Placed → Confirmed → InPreparation → ReadyForFulfillment → Completed` or `Cancelled`, per ADR-0001; **built 2026-10-28**, see the outcome note in `WI-ORD-002.md`)
 - ✅ ORD-003 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-003.md` — Pickup Window scheduling (PickupFulfillment strategy, per ADR-0001)
 - ✅ ORD-004 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-ORD-004.md` — `FulfillmentStrategy` interface (the ACL boundary itself, per ADR-0001) — this is the seam a future Delivery strategy would plug into, and the top of this epic's critical path
 - ✅ ORD-005 (Integration) — **Detailed, Ready for agents**, see `WI-ORD-005.md` — Publish domain events (`OrderPlaced`, `OrderCustomized`, `PickupWindowScheduled`, `OrderReadyForPickup`, `OrderCompleted` per ADR-0003/glossary) via the event backbone (EPIC-EVENTING)
