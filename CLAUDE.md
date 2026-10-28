@@ -32,7 +32,10 @@ npm run mock             # mock GraphQL on :4000
 ENABLE_TEST_HOOKS=1 npx next start -p 3000
 npm run test:isolation   # 200 concurrent SSR requests, two fixtures
 npm run test:e2e         # Playwright (Chromium); `npx playwright install chromium` first
+npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/operations/local-dev.md)
 ```
+
+GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (16 tests, no Docker needed), `CATALOG_URL=... npm start`. The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
 
 Generated Relay artifacts (`src/__generated__/`) are gitignored; `npm run relay` recreates them. `ENABLE_TEST_HOOKS` must never be set outside tests. Details: `apps/web-customer/README.md`.
 

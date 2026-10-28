@@ -12,7 +12,8 @@
     "start": "next start -p 3000",
     "typecheck": "npm run relay && tsc --noEmit",
     "test:isolation": "node scripts/ssr-isolation.mjs http://localhost:3000 200",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:skeleton": "playwright test -c playwright.skeleton.config.ts"
   },
   "dependencies": {
     "next": "16.4.3",

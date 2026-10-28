@@ -7,6 +7,10 @@ export type RelayRecords = NonNullable<ConstructorParameters<typeof RecordSource
 const SERVER_GRAPHQL_URL = process.env.GRAPHQL_URL ?? 'http://localhost:4000/graphql';
 const BROWSER_GRAPHQL_URL = '/api/graphql';
 
+function randomHex(bytes: number): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 function makeFetch(url: string, headers: Record<string, string> = {}): FetchFunction {
   return async (params, variables) => {
     const res = await fetch(url, {
@@ -28,8 +32,10 @@ function makeFetch(url: string, headers: Record<string, string> = {}): FetchFunc
  * (ADR-0012/0014: no module-level request state on the server).
  */
 export function createServerEnvironment(headers: Record<string, string> = {}): Environment {
+  // One trace per SSR request (ADR-0016): the BFF continues it and passes it on to the services. W3C `traceparent` only.
+  const traceparent = `00-${randomHex(16)}-${randomHex(8)}-01`;
   return new Environment({
-    network: Network.create(makeFetch(SERVER_GRAPHQL_URL, headers)),
+    network: Network.create(makeFetch(SERVER_GRAPHQL_URL, { ...headers, traceparent })),
     store: new Store(new RecordSource()),
   });
 }
