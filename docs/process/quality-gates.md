@@ -10,6 +10,7 @@
 | .NET build (Roslyn analyzers on) | `dotnet build BakeryMarketplace.slnx` | .NET 10 SDK (projects target `net10.0`) | `dotnet` |
 | Shared-library tests | `dotnet test tools/BakeryMarketplace.slnx` | Redis on `127.0.0.1:6379` for real adapter coverage | `dotnet` |
 | catalog-service tests | `dotnet test services/catalog-service/tests/CatalogService.Tests` | nothing (in-process, in-memory backends) | `dotnet` |
+| ordering-service tests | `dotnet test services/ordering-service/tests/OrderingService.Tests` | nothing (pure domain tests, no I/O); added 2026-10-28, not yet run on Azure | `dotnet` |
 | Redis really reached | `node scripts/ci/redis-touch.mjs snapshot <f>` before, `... assert <f> 50` after | Redis | `dotnet` |
 | BFF format, lint, typecheck, tests | `npm ci && npm run format:check && npm run lint && npm run typecheck && npm test` in `services/graphql-bff` | Node >= 24 | `bff` |
 | Web format (also `scripts/` and `azure-pipelines.yml`), lint, typecheck (runs `relay-compiler`) | `npm ci && npm run format:check && npm run lint && npm run typecheck` in `apps/web-customer` | Node >= 24 | `web` |

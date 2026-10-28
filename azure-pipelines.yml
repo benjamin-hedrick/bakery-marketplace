@@ -60,6 +60,8 @@ jobs:
         displayName: Test shared libraries
       - script: dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test catalog-service
+      - script: dotnet test services/ordering-service/tests/OrderingService.Tests --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
+        displayName: Test ordering-service
       - script: |
           set -o pipefail  # a failed script must fail the step, not tee's exit code
           node scripts/ci/redis-touch.mjs assert $(Agent.TempDirectory)/redis-before 50 2>&1 | tee $(RESULTS)/redis-touch.txt
