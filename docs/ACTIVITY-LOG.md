@@ -4,6 +4,12 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — Open item 43 resolved: skeleton smoke builds into its own Next.js directory (branch `feature/slice-followups`)**
+
+`next.config.js` `distDir` now follows `NEXT_DIST_DIR` (default `.next`); `skeleton-smoke.mjs` sets `.next-skeleton` for build and start; `.next-*/` added to the web `.gitignore`, ESLint ignores and `.prettierignore`. Verified locally: smoke 5/5, mock e2e 6/6 straight afterwards without a rebuild, working tree clean after the smoke (Next did not rewrite tsconfig). Not verified: the Azure pipeline (its web job builds in a clean checkout and is unaffected; the skeleton job runs the script).
+
+---
+
 **2026-10-28 — WI-PORT-005: collector, Next.js span, catalog tracing tests (branch `feature/slice-followups`)**
 
 Decisions by the human lead: Application Insights for DEV; collector in scope now; Jaeger opt-in for UAT/Prod (ADR-0016 amendment rewritten: Application Insights stays the cloud backend, reached through the collector). Built: `infra/otel-collector/` (local, local+Jaeger, cloud with `azuremonitor`; all pass `otelcol-contrib validate` 0.164.0), compose profiles `collector` and `jaeger` (Jaeger 2.22.0); the same trace reached Aspire and Jaeger through the collector with `url.query` removed (first try failed: gzip vs Aspire OTLP/HTTP, fixed). Next.js server exports a client span; catalog tests 34/34 (consumer span linked to publisher, correlation id = trace id).

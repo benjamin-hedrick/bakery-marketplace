@@ -174,9 +174,9 @@ Only `Listing.id` is a global ID. `vendorId`, `Modifier.id` and pagination curso
 Type: Verification gap · Source: `WI-PORT-005` evidence (2026-10-28) · Hat: Platform Engineering
 Done 2026-10-28: Next.js server span (a three-tier trace shows in Aspire), catalog event-consumer spans (tested), TraceId in the catalog's console log scopes. Still open: scopes appear in the console only because `IncludeScopes` is set in the Development config, so deployed environments need structured log export; no log export; `GetServerSideProps` page render has no span; the skeleton smoke was not run with tracing on; no consumer span has been seen in a dashboard (no event is published during a request yet).
 
-**43. Mock e2e and the skeleton smoke share `.next`**
+**43. Mock e2e and the skeleton smoke share `.next`** — **Resolved 2026-10-28**
 Type: Test isolation · Source: e2e investigation (2026-10-28) · Hat: Platform Engineering
-`GRAPHQL_URL` is baked into the build, so running the skeleton smoke breaks the mock-backed e2e until a rebuild. Documented in the web-customer README. Reconcile with a separate `distDir` (touches `next.config.js` and the smoke script).
+`next.config.js` takes `distDir` from `NEXT_DIST_DIR`; `skeleton-smoke.mjs` builds into `.next-skeleton`. Verified: smoke 5/5, then the mock e2e 6/6 with no rebuild, and no tsconfig churn. README updated.
 
 **44. The green Azure run has no recorded run ID, and `ubuntu-26.04` is untested**
 Type: Evidence gap · Source: `WI-PORT-003` (2026-10-28) · Hat: Platform Engineering
