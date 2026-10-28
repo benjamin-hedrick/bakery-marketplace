@@ -52,12 +52,22 @@ for (const name of selected) {
   const run = spawnSync(
     'docker',
     [
-      'run', '--rm',
-      '-v', `${work}:/src`,
-      '-v', 'bakery-nuget-cache:/root/.nuget/packages', // keeps repeat runs fast
-      '-w', '/src',
-      '-e', 'DOTNET_CLI_TELEMETRY_OPTOUT=1', '-e', 'DOTNET_NOLOGO=1',
-      image, 'bash', '-c', script,
+      'run',
+      '--rm',
+      '-v',
+      `${work}:/src`,
+      '-v',
+      'bakery-nuget-cache:/root/.nuget/packages', // keeps repeat runs fast
+      '-w',
+      '/src',
+      '-e',
+      'DOTNET_CLI_TELEMETRY_OPTOUT=1',
+      '-e',
+      'DOTNET_NOLOGO=1',
+      image,
+      'bash',
+      '-c',
+      script,
     ],
     { stdio: 'inherit' },
   );
