@@ -1,5 +1,7 @@
 # WI-PORT-003 --- Quality and CI baseline
 
+> **Outcome note (2026-10-28):** pipeline and CI scripts written and every command run locally; **not run on Azure DevOps**, so the acceptance item "pipeline runs from clean checkout" is open. No formatter/linter gate (none chosen). Found open item #35. Evidence: `docs/evidence/WI-PORT-003/findings.md`; commands and gaps: `docs/process/quality-gates.md`.
+
 ```
 WI ID:               PORT-003
 Title:                Quality and CI baseline (Azure Pipelines)

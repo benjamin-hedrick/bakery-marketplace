@@ -4,6 +4,16 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — WI-PORT-003 CI baseline written and verified locally (branch `feature/WI-PORT-003-ci-baseline`, PR pending)**
+
+`azure-pipelines.yml` now has four jobs (dotnet, bff, web, skeleton) with published test results and logs. New `scripts/ci/`: `skeleton-smoke.mjs` (whole stack, one command, runs locally in 36 s), `redis-touch.mjs` (fails the job if the Redis tests did not reach Redis), `summarize-results.mjs` (trx/JUnit to a table and a JSON evidence record). `docs/process/quality-gates.md` lists the commands, the gaps and the evidence format.
+- **Not run on Azure DevOps**; GitHub placeholder stays; no formatter/linter gate (`dotnet format` reports whitespace errors repo-wide).
+- Found: with `localhost` the Redis adapter tests silently ran on fakes while green; the Eventing Redis suite fails when re-run on the same Redis (open item #35, not fixed).
+
+Evidence: `docs/evidence/WI-PORT-003/findings.md`.
+
+---
+
 **2026-10-28 — WI-PORT-002 walking skeleton built (branch `feature/WI-PORT-002-walking-skeleton`, PR pending)**
 
 New `services/graphql-bff` (graphql-js, typed catalog client, safe error mapping, traceparent propagation, 16 tests). `web-customer` SSR now starts a per-request `traceparent`. Ran the whole real stack (Compose, seed, catalog-service on Cosmos and Redis, BFF, Next.js): Playwright smoke 5/5, and one trace id seen in both the BFF and catalog-service logs. Schema moved to `services/graphql-bff/schema/`. Added `azure-pipelines.yml` (**not run**) and a Development logging setting for catalog-service.
