@@ -160,7 +160,7 @@ Checked, and my earlier description overstated it: the ASP.NET Core instrumentat
 
 **39. No per-vendor time zone (D-7)** — **Partly resolved 2026-10-28**
 Type: Contract gap · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build
-The slice now has one configured zone for every vendor (`Pickup:TimeZoneId`, default `America/New_York`, hours 08:00-17:00, converted to UTC per date with daylight saving; `WI-ORD-001`). Still open: a vendor zone and vendor hours in the vendor model, seed and DTOs, once vendors set their own availability windows (item 51).
+The slice now has one configured zone for every vendor (`Pickup:TimeZoneId`, default `America/New_York`, hours 08:00-17:00, converted to UTC per date with daylight saving; `WI-ORD-001`). Still open: a vendor zone and vendor hours in the vendor model, seed and DTOs, once vendors set their own availability windows (item 51). Until then `GET /ordering/pickup-windows` requires a vendor id but returns the same windows for every vendor, and cannot tell an unknown vendor from a real one (ordering has no vendor data).
 
 **40. Money representation is not uniform (D-1)**
 Type: Contract inconsistency · Source: first-slice contract implementation check (2026-10-28) · Hat: Architect
@@ -196,7 +196,7 @@ Type: Tech debt · Source: ADR-0016 item 2 (2026-10-28) · Hat: Platform Enginee
 
 **48. Not built: D-10 beyond the hook, and the window endpoint**
 Type: Tracking · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build
-Implemented in `WI-ORD-001`: D-5 quantity limits (aggregate and checkout), D-6 idempotency (deterministic order id plus request hash), D-8 lead time (`PickupSchedule`, checked at checkout) and D-10 (`X-Test-Payment` hook on the stub, ignored in Production). Still to do: `GET /ordering/pickup-windows` (`ORD-003`), and re-checking these against the code when the BFF mutation exists.
+Implemented in `WI-ORD-001`: D-5 quantity limits (aggregate and checkout), D-6 idempotency (deterministic order id plus request hash), D-8 lead time (`PickupSchedule`, checked at checkout) and D-10 (`X-Test-Payment` hook on the stub, ignored in Production). `GET /ordering/pickup-windows` is built too (`WI-ORD-003`, same day). Still to do: re-checking these against the code when the BFF mutation exists.
 
 **49. Other C# services do not call `AddBakeryTelemetry`**
 Type: Tracking · Source: `WI-PORT-005` (2026-10-28) · Hat: Platform Engineering
@@ -284,7 +284,7 @@ Type: Tracking · Source: `WI-ORD-001` (2026-10-28), ADR-0005, item 53 · Hat: A
 
 **70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout**
 Type: Follow-up · Source: `WI-ORD-001` (2026-10-28) · Hat: Engineering/Build
-The REST side is done. Still to build: `Mutation.placeOrder` and `Query.pickupWindows`/`order` in the BFF schema (a shared file) with the contract's `PlaceOrderRejected` codes mapped from this service's error codes (including `insufficient_stock`), the Relay/web checkout UI with the demo-mode banner (`CUST-003`), and the order confirmation view (`CUST-004`). `ORD-003` supplies the windows endpoint.
+The REST side is done, including `GET /ordering/pickup-windows`. Still to build: `Mutation.placeOrder` and `Query.pickupWindows`/`order` in the BFF schema (a shared file) with the contract's `PlaceOrderRejected` codes mapped from this service's error codes (including `insufficient_stock`), the Relay/web checkout UI with the demo-mode banner (`CUST-003`), and the order confirmation view (`CUST-004`).
 
 **71. No container image for `ordering-service`, so time-zone data on the runtime image is unverified**
 Type: Verification gap · Source: `WI-ORD-001` (2026-10-28) · Hat: Platform Engineering
