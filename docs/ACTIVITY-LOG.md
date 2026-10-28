@@ -4,7 +4,7 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
-**2026-10-28 — WI-PORT-005 phase 1: OTLP export to the local Aspire dashboard (same branch, uncommitted)**
+**2026-10-28 — WI-PORT-005 phase 1: OTLP export to the local Aspire dashboard (branch `feature/slice-followups`)**
 
 Decided by the human lead: Aspire locally, Jaeger for UAT/Prod, DEV undecided. Recorded as an ADR-0016 amendment and in `tech-stack.md`. Open for the human lead: whether Jaeger replaces Application Insights in the cloud or runs alongside it, and who hosts it and where traces are stored (not in the budget estimate).
 - Built: compose service `aspire-dashboard` (profile `tracing`, pinned 13.6.2, 127.0.0.1 only); `AddBakeryTelemetry` in the Logging library (ASP.NET Core, HttpClient, event-consumer source; OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set) wired into catalog-service; the BFF exports one OTLP/JSON span per successful request (`src/otlp.ts`, no new dependency; a deliberate deviation from "use the Node SDK" because the BFF already owns its trace context).
@@ -13,16 +13,16 @@ Decided by the human lead: Aspire locally, Jaeger for UAT/Prod, DEV undecided. R
 
 ---
 
-**2026-10-28 — WI-PORT-005 part 1: trace ID in correlation middleware, `traceparent` on event envelopes (branch `feature/WI-PORT-005-trace-propagation`, uncommitted)**
+**2026-10-28 — WI-PORT-005 part 1: trace ID in correlation middleware, `traceparent` on event envelopes (branch `feature/slice-followups`)**
 
 - `CorrelationIdMiddleware` (ADR-0016): value is `Activity.Current.TraceId` (a fresh trace id when there is no W3C activity); an inbound `X-Correlation-Id` is no longer adopted, closing the "caller chooses our log identifier" gap. Response header kept; log scope now has `TraceId` and the old `CorrelationId` as an alias. 3 tests (was 2).
 - `DomainEventEnvelope` gets optional `Traceparent`. Both transports stamp it from the current activity on publish unless the caller set one; consumers start a new `Consumer` activity on a new trace with a link to the publisher's context (`EventTracing`), and restore the caller's activity afterwards. Malformed values are ignored. 5 new contract tests run against the in-memory and the Redis transport.
 - Verified locally: Logging 3/3; Eventing 16/16 with Redis really reached (14 `events:TestEvent-*` streams); all tools test projects, catalog 32/32, `dotnet format` whitespace and style clean. Not run: Azure; the skeleton smoke (neither change affects it, not re-run).
 - Not done: trace viewer choice, OpenTelemetry export, log-safety check, docs of commands and evidence. Nothing yet listens to the `BakeryMarketplace.Eventing` activity source in a service.
-**2026-10-28 — Mock e2e "refetch" failure explained: stale build, not a code bug (branch `fix/e2e-refetch-test`, uncommitted)**
+**2026-10-28 — Mock e2e "refetch" failure explained: stale build, not a code bug (branch `feature/slice-followups`)**
 
 The failure seen after the D-9 change (and also with it stashed) came from `.next` being rebuilt by `skeleton-smoke.mjs` with `GRAPHQL_URL` at the real BFF (:4100). The browser's `/api/graphql` rewrite is fixed at build time, so the mock suite's Refresh got a 500 from :4100. After `npm run build` without `GRAPHQL_URL`: 6/6 mock e2e pass (Chromium, mock on :4000). No test or app code changed; a README note was added. Not done: making the two builds not share `.next` (e.g. a separate `distDir`), which would touch `next.config.js` and the smoke script; say if you want it. CI is unaffected (separate jobs and checkouts).
-**2026-10-28 — D-9 fixed: BFF now issues Relay global IDs (branch `feature/WI-PORT-002-global-ids`, uncommitted)**
+**2026-10-28 — D-9 fixed: BFF now issues Relay global IDs (branch `feature/slice-followups`)**
 
 `Listing.id` is now base64 of `Listing:<catalog id>`, produced and decoded only in the BFF (`services/graphql-bff/src/global-id.ts`). `listing(id)` and `node(id)` decode strictly: a raw id, malformed base64, a non-canonical encoding, an empty service id or an id of another type returns `null` without calling the catalog. The web app needed no code change (it already passes ids through and URL-encodes them); the mock BFF and the skeleton spec now use global ids.
 - Left as raw service ids on purpose: `vendorId` and `Modifier.id` (references, not `Node` types) and the pagination cursor (opaque to clients, and not covered by D-9). Say if D-9 should extend to them.
