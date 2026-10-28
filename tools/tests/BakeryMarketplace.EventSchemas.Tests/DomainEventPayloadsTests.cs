@@ -64,4 +64,35 @@ public class DomainEventPayloadsTests
         Assert.Equal("listing-99", deserialized.ListingId);
         Assert.Equal("Inappropriate image content", deserialized.Reason);
     }
+
+    [Fact]
+    public void OrderCancelledPayload_SerializesActorAndReasonAsReadableCodes()
+    {
+        var payload = new OrderCancelledPayload("order-7", OrderCancelActor.Vendor, OrderCancelReason.VendorDeclined);
+
+        var json = JsonSerializer.Serialize(payload);
+
+        Assert.Contains("\"Vendor\"", json);
+        Assert.Contains("\"VendorDeclined\"", json);
+        var back = JsonSerializer.Deserialize<OrderCancelledPayload>(json);
+        Assert.Equal(payload, back);
+    }
+
+    [Fact]
+    public void OrderConfirmedAndPreparationStartedPayloads_RoundTrip()
+    {
+        var confirmed = JsonSerializer.Deserialize<OrderConfirmedPayload>(JsonSerializer.Serialize(new OrderConfirmedPayload("order-8")));
+        var started = JsonSerializer.Deserialize<OrderPreparationStartedPayload>(JsonSerializer.Serialize(new OrderPreparationStartedPayload("order-8")));
+
+        Assert.Equal("order-8", confirmed?.OrderId);
+        Assert.Equal("order-8", started?.OrderId);
+    }
+
+    [Fact]
+    public void OrderCancelReason_IsACodeSet_NotFreeText()
+    {
+        Assert.Equal(
+            new[] { "CustomerRequested", "VendorDeclined", "VendorCancelled", "ResponseTimeout" },
+            Enum.GetNames(typeof(OrderCancelReason)));
+    }
 }
