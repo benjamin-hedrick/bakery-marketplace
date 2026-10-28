@@ -1,0 +1,16 @@
+# Generated, vendored or lock files, and prose: Prettier formats code and config only.
+node_modules/
+.next/
+**/__generated__/
+**/test-results/
+**/playwright-report/
+**/package-lock.json
+**/*.tsbuildinfo
+artifacts/
+bin/
+obj/
+docs/
+*.md
+*.graphql
+# Next.js rewrites this file in its own style on every build
+apps/web-customer/tsconfig.json
