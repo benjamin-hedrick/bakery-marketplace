@@ -1,8 +1,8 @@
 # First-Slice Contract: Browse → Customize → Pickup → Test Checkout → Order Status
 
-**Status:** DRAFT (`WI-PORT-007`, 2026-10-26). D-1 to D-4 accepted 2026-10-26; D-5 to D-10 accepted as written 2026-10-28 (human lead). Nothing below is implemented unless a work item's evidence says so (`CAT-001` listing reads and the seed are). Where the existing docs are silent or inconsistent, this file raises an **open decision (D-n)** with a recommended default rather than inventing a policy.
+**Status:** Accepted as the slice-scope record (`WI-PORT-007`, drafted 2026-10-26; all decisions D-1 to D-10 accepted; §4 and §5 moved 2026-10-28). D-1 to D-4 accepted 2026-10-26; D-5 to D-10 accepted as written 2026-10-28 (human lead). Nothing below is implemented unless a work item's evidence says so (`CAT-001` listing reads and the seed are). Where the existing docs are silent or inconsistent, this file raises an **open decision (D-n)** with a recommended default rather than inventing a policy.
 
-**Authority:** C# services own price, listing state, pickup availability, order state and persistence (ADR-0013). The GraphQL schema below is a composition contract over the REST endpoints in `data-model-api-contracts.md`. Field names follow `docs/architecture/ddd/glossary.md`.
+**Authority:** C# services own price, listing state, pickup availability, order state and persistence (ADR-0013). The GraphQL schema (now in `data-model-api-contracts.md`, "First-slice mapping") is a composition contract over the REST endpoints in `data-model-api-contracts.md`. Field names follow `docs/architecture/ddd/glossary.md`.
 
 **Sources reused:** `data-model-api-contracts.md` (`Listing`, `Order`, endpoints), `WI-CAT-001`, `WI-ORD-001`/`002`/`003`/`004`/`006`, `WI-DEV-004`, `FulfillmentContracts.cs` (`OrderStatus`, `FulfillmentDetails`), ADR-0001/0003/0004/0009/0013/0014/0016.
 
@@ -56,111 +56,11 @@ Parallelism: a listing detail page may fetch `listing` and `pickupWindows` concu
 
 ## 4. REST shapes used by the slice
 
-Money follows D-1: **integer cents, USD**. To avoid unit ambiguity the REST fields are named `priceCents` / `priceDeltaCents` (a rename of the model's `price` / `priceDelta`, to be applied to `data-model-api-contracts.md` in `WI-PORT-006` pass 2).
-
-```jsonc
-// GET /catalog/listings/{id}  → Listing (as implemented by WI-CAT-001; adds "currency").
-// GET /catalog/listings?limit=&after=  → { "items": [Listing], "nextCursor": "<last id>" | null }  (limit 1-100, default 20; ordered by id)
-{
-  "id": "listing-sourdough-001", "vendorId": "vendor-shop-001",
-  "name": "Country Sourdough", "description": "...", "category": "Bread",
-  "priceCents": 800, "currency": "USD",
-  "modifiers": [ { "id": "mod-seeds", "name": "Seed crust", "priceDeltaCents": 100, "allergens": ["sesame"] } ],
-  "allergenFlags": ["gluten"],
-  "sponsored": false, "status": "Published"
-}
-
-// POST /ordering/checkout
-// Headers: Authorization: Bearer <jwt>, Idempotency-Key: <client uuid>, traceparent
-{
-  "vendorId": "vendor-shop-001",
-  "lineItems": [ { "listingId": "listing-sourdough-001", "modifierIds": ["mod-seeds"], "quantity": 2 } ],
-  "pickupWindow": { "start": "2026-11-02T09:00:00Z", "end": "2026-11-02T09:15:00Z" }
-}
-// NOTE: no price, total, customerId or status is accepted from the client.
-// customerId comes from the token's subject claim.
-
-// 201 → Order (persisted, authoritative)
-{
-  "id": "order-…", "customerId": "<from token>", "vendorId": "vendor-shop-001",
-  "lineItems": [ { "listingId": "listing-sourdough-001", "modifiers": ["mod-seeds"], "quantity": 2, "priceCents": 1800 } ],
-  "totalCents": 1800, "currency": "USD",
-  "status": "Placed", "fulfillmentType": "Pickup",
-  "pickupWindow": { "start": "…", "end": "…" },
-  "sequenceNumber": 1, "createdAt": "…", "updatedAt": "…"
-}
-```
-
-**Pricing rule:** `unitCents = listing.priceCents + Σ modifier.priceDeltaCents`; `line.priceCents = unitCents × quantity`; `totalCents` = Σ `line.priceCents`. All integer arithmetic, so no rounding occurs in the slice. Computed only by `ordering-service`, using catalog data read at checkout. No tax, fees or discounts (D-1).
+**Moved 2026-10-28** to `data-model-api-contracts.md`, section "First-slice mapping" (REST shapes), as `WI-PORT-006` pass 2 planned. Money follows D-1: integer cents, USD (`priceCents`, `priceDeltaCents`).
 
 ## 5. GraphQL schema draft (minimum for the walking skeleton and first checkout)
 
-Relay-compliant: global `ID`s, `Node` interface, cursor connections. The BFF maps global IDs to service IDs; it adds no business fields.
-
-```graphql
-interface Node { id: ID! }
-
-type Query {
-  node(id: ID!): Node
-  listings(first: Int = 20, after: String): ListingConnection!
-  listing(id: ID!): Listing
-  pickupWindows(vendorId: ID!): [PickupWindow!]!
-  order(id: ID!): Order            # requires auth; owner only
-}
-
-type Listing implements Node {
-  id: ID!
-  vendorId: ID!
-  name: String!
-  description: String
-  category: String!
-  price: Money!
-  modifiers: [Modifier!]!
-  allergenFlags: [String!]!
-}
-type Modifier { id: ID! name: String! priceDelta: Money! allergens: [String!]! }
-type Money { cents: Int! currency: String! }        # D-1: integer cents, currency "USD"
-
-type PickupWindow { start: DateTime! end: DateTime! }
-
-# Standard Relay connection types (added after WI-PORT-001, which proved them)
-type ListingConnection { edges: [ListingEdge!]! pageInfo: PageInfo! }
-type ListingEdge { cursor: String! node: Listing! }
-type PageInfo { hasNextPage: Boolean! endCursor: String }
-
-type Order implements Node {
-  id: ID!
-  status: OrderStatus!
-  vendorId: ID!
-  lineItems: [OrderLineItem!]!
-  total: Money!
-  pickupWindow: PickupWindow!
-  createdAt: DateTime!
-}
-type OrderLineItem { listingId: ID! modifierIds: [ID!]! quantity: Int! price: Money! }
-enum OrderStatus { PLACED CONFIRMED IN_PREPARATION READY_FOR_FULFILLMENT COMPLETED CANCELLED }
-# Maps 1:1 to the existing OrderStatus enum; no new states are introduced.
-
-type Mutation { placeOrder(input: PlaceOrderInput!): PlaceOrderPayload! }
-input PlaceOrderInput {
-  idempotencyKey: String!
-  vendorId: ID!
-  lineItems: [LineItemInput!]!
-  pickupWindow: PickupWindowInput!
-}
-input LineItemInput { listingId: ID! modifierIds: [ID!]! quantity: Int! }
-input PickupWindowInput { start: DateTime! end: DateTime! }
-
-union PlaceOrderPayload = PlaceOrderSuccess | PlaceOrderRejected
-type PlaceOrderSuccess { order: Order! }
-type PlaceOrderRejected { code: PlaceOrderErrorCode! message: String! }   # client-safe text
-enum PlaceOrderErrorCode {
-  LISTING_UNAVAILABLE INVALID_MODIFIER INVALID_QUANTITY
-  PICKUP_WINDOW_UNAVAILABLE PAYMENT_DECLINED VALIDATION_FAILED
-}
-```
-
-Expected failures (the codes above) are **typed payloads**, so Relay can render them without error boundaries. Unexpected failures (downstream down, timeout, unhandled) become a top-level GraphQL error with `extensions.code = "INTERNAL"`, a fixed safe message, and `extensions.reference = <trace id>` (ADR-0016). Stack traces, downstream URLs and raw payloads never reach the client.
+**Moved 2026-10-28** to `data-model-api-contracts.md`, section "First-slice mapping" (GraphQL schema draft). The implemented subset is `services/graphql-bff/schema/schema.graphql`.
 
 ## 6. Error and state behavior
 
@@ -254,7 +154,7 @@ Expected totals for tests (cents): 2× sourdough + `mod-seeds` = **1800**; crois
 | D-8 window lead time | Not implemented, no mismatch (no pickup-window endpoint yet) | `PickupWindowScheduledPayload` carries `DateTimeOffset` start/end only |
 | D-9 GraphQL IDs | **Fixed 2026-10-28** (`feature/slice-followups`; the BFF now issues and strictly decodes base64 `Listing:<id>` global IDs; `vendorId`, `Modifier.id` and cursors stay raw, open item 41). Was: **Mismatch:** the BFF returns raw catalog ids as GraphQL `ID`s (`id: l.id`), and `node(id)` takes a raw listing id. No base64 `Type:serviceId` encoding or decoding exists. The resolver comment says this is deliberate for the slice ("ids are catalog listing ids"). | `services/graphql-bff/src/resolvers.ts:15,44-46` |
 | D-10 payment hook | Not implemented, no mismatch (no payment stub yet) | none |
-| D-1 spillover (not asked) | Catalog REST and GraphQL use integer cents and USD. **Inconsistency:** `PayoutReconciledPayload.NetAmount` is `decimal`, and `data-model-api-contracts.md` still uses unqualified `price` / `priceDelta` / `grossAmount`. | `DomainEventPayloads.cs`; `data-model-api-contracts.md` lines 22-23, 66, 92 |
+| D-1 spillover (not asked) | Catalog REST and GraphQL use integer cents and USD. **Inconsistency:** `PayoutReconciledPayload.NetAmount` is `decimal` (still open). *Update 2026-10-28:* the data-model doc now carries `priceCents` / `priceDeltaCents` notes and a payout-money row in its "First-slice mapping" section. | `DomainEventPayloads.cs`; `data-model-api-contracts.md` lines 22-23, 66, 92 |
 
 Follow-ups, not yet scheduled: (a) D-9 needs a code change in the BFF (global ID encode/decode, `Type:serviceId`) before a second node type or any stored/linked ID depends on raw ids; it is a BFF-only change but touches the Relay schema and the web-customer routes. (b) A vendor time-zone field must be added when `ORD-003` lands. (c) `PayoutReconciledPayload` money type and the data-model doc's price names should be reconciled with D-1 (the rename is already announced in contract §4).
 
@@ -262,5 +162,5 @@ Follow-ups, not yet scheduled: (a) D-9 needs a code change in the BFF (global ID
 
 1. ~~Human lead approves or amends §3–§11~~ **Done**: D-1 to D-4 2026-10-26, D-5 to D-10 2026-10-28.
 2. ~~Amend `WI-CAT-001`, `WI-ORD-001`, `WI-ORD-003` with dated reconciliation notes.~~ **Done 2026-10-26.**
-3. Move §4 and §5 into `data-model-api-contracts.md` as a "First-slice mapping" section (this is the pass-2 item in `WI-PORT-006`), then keep this file as the slice-scope record. **Open.**
+3. ~~Move §4 and §5 into `data-model-api-contracts.md` as a "First-slice mapping" section~~ **Done 2026-10-28** (the `WI-PORT-006` pass-2 row for that file); this file stays as the slice-scope record.
 4. ~~Start `WI-CAT-001` against §4, and `WI-PORT-001` in parallel.~~ **Done** (`CAT-001`, `PORT-001`, and the `PORT-002` skeleton).

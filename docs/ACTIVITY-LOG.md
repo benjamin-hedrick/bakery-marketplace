@@ -4,6 +4,14 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — WI-PORT-006 pass 2, data-model row: "First-slice mapping" added (branch `feature/WI-PORT-006-pass-2`)**
+
+`first-slice-contract.md` §4 (REST shapes) and §5 (GraphQL schema draft) moved verbatim into a new "First-slice mapping" section of `data-model-api-contracts.md`, with a table of where the slice differs from the per-service shapes (money in cents, cart deferred, checkout, pickup windows, anonymous reads, UTC, global IDs; each tied to its D-n). The per-service shapes are preserved with dated notes. The contract file keeps §1-3 and §6-12 and points to the new home. `WI-PORT-007` marked Done; `WI-PORT-006` records pass 2 as partly done (other rows open). Docs only; nothing run.
+- Follow-up once `feature/slice-followups` merges: open item 46 is resolved by this change and item 40 is partly resolved (names fixed; `PayoutReconciledPayload.NetAmount` is still `decimal`). The register entries live on that branch, so they are not edited here to avoid a conflict.
+- `services/graphql-bff/schema/schema.graphql` still says its source is contract section 5; the schema is a shared file and was left alone.
+
+---
+
 **2026-10-28 — Open item 38 resolved: query-string values are already redacted in spans; guard test added (branch `feature/slice-followups`)**
 
 Writing the test first showed the ASP.NET Core instrumentation already redacts query values (`?limit=Redacted&after=Redacted`), so the "leak" recorded in item 38 and in the WI-PORT-005 evidence was overstated; both corrected. No production code changed. `TracingTests.RequestSpansDoNotCarryQueryStringValues` now fails if the redaction is lost; catalog tests 35/35, `dotnet format` clean. Remaining and accepted: the Development-only request log line prints the full URL. Not done: log export (item 42).
