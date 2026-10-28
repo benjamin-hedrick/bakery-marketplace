@@ -24,14 +24,22 @@ public static class ServiceAuthExtensions
         SecretValidator.ValidateRequiredSecrets(configuration,
             [$"{sectionName}:ClientId", $"{sectionName}:Scope", $"{sectionName}:ClientSecret"]);
 
-        services.Configure<ClientCredentialsOptions>(options =>
+        void Bind(ClientCredentialsOptions options)
         {
             var section = configuration.GetSection(sectionName);
             options.TokenEndpoint = section["TokenEndpoint"]!;
             options.ClientId = section["ClientId"]!;
             options.Scope = section["Scope"]!;
             options.ClientSecret = section["ClientSecret"];
-        });
+        }
+
+        // Check the rules (https unless loopback, http(s) only, one credential) now, so a bad value stops the service at startup
+        // instead of at the first call that needs a token.
+        var checkedOptions = new ClientCredentialsOptions();
+        Bind(checkedOptions);
+        ClientCredentialsTokenProvider.Validate(checkedOptions);
+
+        services.Configure<ClientCredentialsOptions>(Bind);
         services.AddHttpClient(TokenHttpClientName);
         services.AddSingleton(sp => new ClientCredentialsTokenProvider(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(TokenHttpClientName),
