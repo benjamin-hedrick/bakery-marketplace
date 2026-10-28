@@ -1,7 +1,8 @@
 # Quality and CI baseline (WI-PORT-003, ADR-0015).
 #
-# UNVERIFIED ON AZURE: this file has never run on Azure DevOps. Every command below was run locally (Windows, Node 25.9,
-# .NET SDK 10, Docker Desktop); see docs/evidence/WI-PORT-003/findings.md for what passed and what was not run.
+# NOT YET SEEN FULLY GREEN ON AZURE: first runs started 2026-10-28 and found the problems recorded in
+# docs/evidence/WI-PORT-003/findings.md. Every command below was also run locally (Windows, Node 25.9, .NET SDK 10,
+# Docker Desktop); that file lists what passed and what was not run.
 # Commands, gaps and the results format: docs/process/quality-gates.md.
 #
 # Gates here: format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
@@ -10,12 +11,15 @@
 # .github/workflows/ci.yml stays as the placeholder until ADR-0015's exit criteria are met (this pipeline green from a clean
 # checkout, required checks migrated, docs updated); then it is removed in one explicit migration commit.
 # No credentials appear in this file. The only key in the repo's CI scripts is the Cosmos emulator's published fixed key.
-trigger:
-  branches:
-    include: [main]
+# Triggers (decided 2026-10-28, to save build minutes): nothing runs on pushes to any branch, including main. The pipeline
+# runs (a) on pull requests into main (draft PRs are skipped) and (b) when someone queues it by hand, which is how main is
+# gated: Run pipeline on main, choose the branch explicitly. PR validation stays on so ADR-0015's "required checks" exit
+# criterion can still be met.
+trigger: none
 pr:
   branches:
     include: [main]
+  drafts: false
 
 pool:
   vmImage: ubuntu-latest

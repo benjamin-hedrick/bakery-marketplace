@@ -39,6 +39,10 @@ Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config
 1. `localhost` can silently defeat the Redis tests. On the Windows machine used, `REDIS_CONNECTION_STRING` unset (default `localhost:6379`) connected nothing: all 16 Caching tests passed while Redis saw 2 commands. With `127.0.0.1:6379` they ran against Redis (86 commands for the Caching + Eventing suites). The pipeline sets `127.0.0.1:6379`.
 2. The Eventing Redis suite was not repeatable: tests shared one event type, hence one Redis consumer group, and competed for each other's messages. It was already failing on re-runs and became a frequent failure on a fresh Redis under .NET 10 (2 of 3 runs; 4 of 4 passed on .NET 8). **Fixed 2026-10-28**: every test uses event types of its own; 5 consecutive runs on one Redis pass. The silent fallback to fakes (finding 1) is still open (#35).
 
+## When the pipeline runs
+
+Decided 2026-10-28 to save build minutes: **no runs on pushes to any branch, including `main`** (`trigger: none`). It runs on **pull requests into `main`** (not drafts) and **by hand**. To gate `main`, queue it manually: Pipelines → the pipeline → Run pipeline → Branch `main`. A manual run uses the pipeline's *default branch for manual and scheduled builds* unless you pick one, so keep that set to `main` (Edit → ⋯ → Triggers → YAML → Get sources). PR validation stays on so GitHub's required checks (ADR-0015) can point at it.
+
 ## Branch protection (manual, not done)
 
 ADR-0015's exit criteria need GitHub required checks to point at the Azure Pipelines checks and the placeholder `.github/workflows/ci.yml` removed in one migration commit. Both need the Azure DevOps project, the GitHub service connection and a first green run, none of which exist yet. Until then the placeholder stays.
