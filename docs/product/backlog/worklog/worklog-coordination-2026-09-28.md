@@ -190,8 +190,7 @@ Eventually create a concise case study showing:
 11. Operations
 12. Learning/refinement
 
-**Why revisit:** This is the eventual "front door" for recruiters/hiring
-managers.
+**Why revisit:** This is the eventual "front door" for readers of the repository.
 
 ------------------------------------------------------------------------
 

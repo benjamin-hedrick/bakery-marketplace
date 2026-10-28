@@ -4,7 +4,7 @@
 
 ## Task contract
 
-Each task states goal, target-role evidence, repository baseline,
+Each task states goal, evidence goal, repository baseline,
 accepted ADRs/contracts, allowed/prohibited files, dependencies,
 acceptance criteria, commands/evidence, privacy/security constraints,
 stop conditions, deliverables, and handoff format.

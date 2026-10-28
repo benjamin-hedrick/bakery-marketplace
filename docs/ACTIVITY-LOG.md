@@ -4,6 +4,15 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-27 — Cleanup after WI-DEV-004 (PR #1 merged)**
+
+- `_incoming/` emptied: every packet file had a live counterpart (ADRs 0012–0016, `WI-PORT-001`–`007`, `docs/management/portfolio-slice/00`–`08`) except the reconciliation register, which moved to `docs/management/portfolio-slice/01-reconciliation-register.md` as the `WI-PORT-006` pass 2 checklist. Folder removed with it; recreate when a new packet arrives.
+- Added `.gitattributes` (`* text=auto eol=lf`; CRLF only for `.cmd`/`.bat`/`.ps1`). The index was already LF; 67 working-tree files were still CRLF and convert as they are next touched.
+- Deleted merged branch `feature/WI-DEV-004-seed-script` (local and origin).
+- Removed references to specific employers and job targets from the portfolio-slice docs and two worklogs (headings now describe the evidence goal, not a company). Earlier commits still contain the old text.
+
+---
+
 **2026-10-27 — WI-DEV-004 seed script built (branch `feature/WI-DEV-004-seed-script`, PR pending)**
 
 `tools/BakeryMarketplace.Seed` writes the contract §7 fixtures (7 listings, 2 vendors) through `IRepository<T>` and publishes `VendorVerified` for both vendors. Run against a fresh Compose stack: first run created 7 listings, second created 0; `catalog-service` (Cosmos + Redis) then returned the 6 Published listings and 404 for the Draft. 3 new `SeederTests` (31 catalog tests pass). D-1 to D-4 of `WI-PORT-007` approved by the human lead; they will own shared-file changes via PR with no concurrent edits to start.
