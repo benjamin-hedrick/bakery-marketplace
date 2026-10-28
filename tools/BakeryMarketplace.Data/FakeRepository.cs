@@ -21,7 +21,7 @@ public sealed class FakeRepository<T> : IRepository<T> where T : class
 
     // key: (id, partitionKey) → entity
     private readonly ConcurrentDictionary<(string Id, string PartitionKey), T> _store = new();
-    private readonly object _gate = new();
+    private readonly object _gate;
 
     /// <summary>
     /// Extracts the entity's id. Implementations must set this via constructor or property.
@@ -29,10 +29,27 @@ public sealed class FakeRepository<T> : IRepository<T> where T : class
     /// </summary>
     private readonly Func<T, string> _idSelector;
 
-    public FakeRepository(Func<T, string> idSelector)
+    /// <param name="idSelector">Reads the entity's id.</param>
+    /// <param name="database">
+    /// Repositories created with the same <see cref="FakeDatabase"/> share one lock and can take part in the same
+    /// <see cref="FakeBatchFactory"/> batch. Omit it for a standalone repository.
+    /// </param>
+    public FakeRepository(Func<T, string> idSelector, FakeDatabase? database = null)
     {
         _idSelector = idSelector ?? throw new ArgumentNullException(nameof(idSelector));
+        _gate = database?.Gate ?? new object();
+        database?.Register(this);
     }
+
+    // ---- used by FakeBatchFactory, always called with the shared lock held ----
+
+    internal bool ExistsUnlocked(string id, string partitionKey) => _store.ContainsKey((id, partitionKey));
+
+    internal bool IsUnchangedUnlocked(T entity, string partitionKey) =>
+        _store.TryGetValue((_idSelector(entity), partitionKey), out var current)
+        && ((IETagged)current).ETag == ((IETagged)entity).ETag;
+
+    internal void StoreUnlocked(T entity, string partitionKey) => Store(entity, partitionKey);
 
     // Each operation yields before touching the store, like a real network call, so concurrent callers genuinely interleave in tests.
     // Without it every call completes synchronously and "concurrent" tests would run one request after another.
