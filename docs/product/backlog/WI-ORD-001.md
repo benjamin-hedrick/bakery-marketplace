@@ -1,3 +1,15 @@
+> **Outcome note (2026-10-28):** built on `feature/ordering-checkout`. `POST /ordering/checkout` (Customer role; `customerId` from the token; `Idempotency-Key` header; optional `X-Test-Payment: decline` outside Production) validates, reads and prices every item from the catalog in integer cents, checks the pickup window, reserves stock (`CAT-006`, with the service token of `AUTH-006`), authorizes payment through a clearly named **stub** (`IPaymentProcessor`, logs a warning on every call), and stores the order as `Placed` (`ORD-006`). A reservation is released if payment is declined or the save fails. `GET /ordering/orders/{id}` (owner only, `404` for anyone else) reads it back. No cart endpoint, per D-2.
+>
+> **Idempotency (D-6):** the order id is derived from `(customerId, key)`, so the create-only write decides a race, the catalog reservation (keyed by the same id) is repeatable, and a retry returns the original order (`200`). A hash of the request is stored with the order; the same key with a different request is `422 idempotency_key_reuse`. This replaces the contract's candidate "Cosmos unique-key constraint".
+>
+> **Pickup windows (D-3, D-8):** `PickupSchedule` offers 15-minute slots from 08:00 to 17:00 **Eastern**, converted to UTC for each date with the zone's rules (so daylight saving moves them: 13:00Z in winter, 12:00Z in summer), at least 30 minutes ahead, for today and two more days; all of it is configuration (`Pickup:*`). The window is optional. The `GET /ordering/pickup-windows` endpoint and the `PickupFulfillment` events remain `ORD-003`.
+>
+> **Error codes** follow the contract (`listing_unavailable`, `invalid_modifier`, `invalid_quantity`, `pickup_window_unavailable`, `payment_declined` 402, `idempotency_key_reuse`). Added: `insufficient_stock` (409, with the quantity available per line), `validation_failed` (422) and `downstream_unavailable` (503).
+>
+> **Verified (local):** 221 ordering tests (also on Linux in a container): pricing against the contract's expected totals (1800, 525, 1875), every error path, idempotency and races, cleanup after failures, and 26 HTTP tests through the real host, catalog gateway and service-token handler against a real HTTP stand-in; mutation checks for releasing stock, the lost-race path, the key comparison, pricing, the customer-only policy, the Production-only hook and anonymous listing reads. And on the **real stack** (mock issuer, catalog on Cosmos and Redis, ordering on Cosmos, a customer logged in through PKCE): a priced order placed and read back; a repeat returned the same order with the stock taken once; 12 simultaneous identical submits made one order; a declined payment released the stock; 7 competing carts for the last 4 croissants gave 4 orders and 3 refusals; wrong window, unknown option, draft listing and over-limit quantities refused; no tokens, secrets or idempotency keys in the log.
+>
+> **Not done:** publishing `OrderPlaced` (`ORD-005`, open item 68), a real payment (`PAY-001`, open item 69), the BFF `placeOrder` mutation and the web checkout (open item 70), vendor actions (`ORD-007`), cleanup of orphaned reservations (item 62), a container image for the service (open item 71), a run on Azure.
+
 ```
 WI ID:               ORD-001
 Title:                Cart + checkout (payment stubbed)
@@ -5,7 +17,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               Built 2026-10-28 (see outcome note); events, real payment and the web layer remain
 Size:                 M
 ```
 

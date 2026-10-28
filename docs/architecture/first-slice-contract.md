@@ -82,6 +82,8 @@ Parallelism: a listing detail page may fetch `listing` and `pickupWindows` concu
 
 **Idempotency (proposed, D-6):** key supplied by the client per checkout attempt (UUID generated when the checkout form opens). Scope: `(customerId, key)`. Because `orders` is partitioned by `customerId` (ADR-0004), a Cosmos unique-key constraint on the key within the partition is a candidate enforcement mechanism; confirm in `WI-ORD-006`. The BFF never retries `placeOrder` automatically.
 
+**As built (2026-10-28, `WI-ORD-001`):** the order id is derived from `(customerId, key)` so the create-only write decides a race; no Cosmos unique-key constraint is needed. Codes added to this table: `insufficient_stock` (409, with the quantity available per line), `validation_failed` (422), `downstream_unavailable` (503). The stock reservation (`CAT-006`) uses the same order id, so a retry never holds stock twice.
+
 ## 7. Seed data contract (reuse `WI-DEV-004`; no second seed source)
 
 Deterministic IDs so tests, SSR smoke and Playwright can assert exact values. Extends `DEV-004`'s 2 vendors / 5–10 listings; the slice needs only the subset below.
@@ -150,12 +152,12 @@ Expected totals for tests (cents): 2× sourdough + `mod-seeds` = **1800**; crois
 
 | # | Result | Evidence |
 |---|---|---|
-| D-5 quantity limits | Not implemented, no mismatch (`ordering-service` is an empty scaffold) | `services/ordering-service` has `Program.cs` only |
-| D-6 idempotency | Not implemented, no mismatch. The seed is idempotent, which is a different thing | `Seeder.cs` |
+| D-5 quantity limits | Not implemented, no mismatch (`ordering-service` is an empty scaffold). *Update 2026-10-28: enforced in the `Order` aggregate and at checkout (`WI-ORD-002`, `WI-ORD-001`).* | `services/ordering-service` has `Program.cs` only |
+| D-6 idempotency | Not implemented, no mismatch. The seed is idempotent, which is a different thing. *Update 2026-10-28: implemented in `WI-ORD-001` (deterministic order id from customer and key, stored request hash).* | `Seeder.cs` |
 | D-7 time zone | **Gap:** no vendor time-zone field exists in the vendor model, seed or catalog DTOs. Instants are `DateTimeOffset` in event payloads, which is compatible with UTC. | grep for zone/timezone finds nothing |
-| D-8 window lead time | Not implemented, no mismatch (no pickup-window endpoint yet) | `PickupWindowScheduledPayload` carries `DateTimeOffset` start/end only |
+| D-8 window lead time | Not implemented, no mismatch (no pickup-window endpoint yet). *Update 2026-10-28: `PickupSchedule` and the check at checkout are built (`WI-ORD-001`); the endpoint is `ORD-003`.* | `PickupWindowScheduledPayload` carries `DateTimeOffset` start/end only |
 | D-9 GraphQL IDs | **Fixed 2026-10-28** (`feature/slice-followups`; the BFF now issues and strictly decodes base64 `Listing:<id>` global IDs; `vendorId`, `Modifier.id` and cursors stay raw, open item 41). Was: **Mismatch:** the BFF returns raw catalog ids as GraphQL `ID`s (`id: l.id`), and `node(id)` takes a raw listing id. No base64 `Type:serviceId` encoding or decoding exists. The resolver comment says this is deliberate for the slice ("ids are catalog listing ids"). | `services/graphql-bff/src/resolvers.ts:15,44-46` |
-| D-10 payment hook | Not implemented, no mismatch (no payment stub yet) | none |
+| D-10 payment hook | Not implemented, no mismatch (no payment stub yet). *Update 2026-10-28: the `X-Test-Payment: decline` header declines the stub outside Production (`WI-ORD-001`).* | none |
 | D-1 spillover (not asked) | Catalog REST and GraphQL use integer cents and USD. **Inconsistency:** `PayoutReconciledPayload.NetAmount` is `decimal` (still open). *Update 2026-10-28:* the data-model doc now carries `priceCents` / `priceDeltaCents` notes and a payout-money row in its "First-slice mapping" section. | `DomainEventPayloads.cs`; `data-model-api-contracts.md` lines 22-23, 66, 92 |
 
 Follow-ups, not yet scheduled: (a) D-9 needs a code change in the BFF (global ID encode/decode, `Type:serviceId`) before a second node type or any stored/linked ID depends on raw ids; it is a BFF-only change but touches the Relay schema and the web-customer routes. (b) A vendor time-zone field must be added when `ORD-003` lands. (c) `PayoutReconciledPayload` money type and the data-model doc's price names should be reconciled with D-1 (the rename is already announced in contract §4).

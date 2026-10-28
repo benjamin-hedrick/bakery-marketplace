@@ -6,7 +6,7 @@ Suggested Issue fields per item: Title, Type, Source, Suggested hat/owner, Notes
 
 ---
 
-**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 67 came from the 2026-10-28 session.
+**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 71 came from the 2026-10-28 session.
 
 **1. Redis Basic tier has no AAD data-plane auth**
 Type: Tech debt / future work · Source: ADR-0002 · Hat: Architect
@@ -158,9 +158,9 @@ Decided: Application Insights for DEV, UAT and Prod through an OpenTelemetry Col
 Type: Data-safety follow-up · Source: `WI-PORT-005` evidence (2026-10-28), ADR-0016 item 6 · Hat: Security / Platform Engineering
 Checked, and my earlier description overstated it: the ASP.NET Core instrumentation redacts query *values* by default, so the span carries `?limit=Redacted&after=Redacted` (parameter names only), and the collector configs delete the attribute outright. A regression test (`TracingTests.RequestSpansDoNotCarryQueryStringValues`) fails if the redaction is lost. Accepted residue: with `Microsoft.AspNetCore.Hosting.Diagnostics` at Information (the Development setting only; base config is Warning) the console log prints the full request URL including query values. Revisit if a Development log ever goes anywhere shared, or before search or preference endpoints exist (parameter names could then reveal intent).
 
-**39. No vendor time-zone field exists (D-7)**
+**39. No per-vendor time zone (D-7)** — **Partly resolved 2026-10-28**
 Type: Contract gap · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build
-D-7 says display in the vendor's local zone from vendor config; the vendor model, seed and DTOs have no zone. Add with `ORD-003`.
+The slice now has one configured zone for every vendor (`Pickup:TimeZoneId`, default `America/New_York`, hours 08:00-17:00, converted to UTC per date with daylight saving; `WI-ORD-001`). Still open: a vendor zone and vendor hours in the vendor model, seed and DTOs, once vendors set their own availability windows (item 51).
 
 **40. Money representation is not uniform (D-1)**
 Type: Contract inconsistency · Source: first-slice contract implementation check (2026-10-28) · Hat: Architect
@@ -194,9 +194,9 @@ The contract's REST shapes and GraphQL draft now live in `data-model-api-contrac
 Type: Tech debt · Source: ADR-0016 item 2 (2026-10-28) · Hat: Platform Engineering
 `TraceId` is the identifier; `CorrelationId` is kept for one transition period. Retire it once no log query depends on it.
 
-**48. Not built: D-5, D-6, D-8, D-10**
+**48. Not built: D-10 beyond the hook, and the window endpoint**
 Type: Tracking · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build
-Idempotency scope (D-6), pickup-window lead time (D-8) and the payment-decline test hook (D-10) are accepted but unimplemented. D-5 quantity limits are enforced in the `Order` aggregate (`WI-ORD-002`, 2026-10-28) as placeholders pending per-item maxima (item 51). Verify the rest when `ORD-001`, `ORD-003` land.
+Implemented in `WI-ORD-001`: D-5 quantity limits (aggregate and checkout), D-6 idempotency (deterministic order id plus request hash), D-8 lead time (`PickupSchedule`, checked at checkout) and D-10 (`X-Test-Payment` hook on the stub, ignored in Production). Still to do: `GET /ordering/pickup-windows` (`ORD-003`), and re-checking these against the code when the BFF mutation exists.
 
 **49. Other C# services do not call `AddBakeryTelemetry`**
 Type: Tracking · Source: `WI-PORT-005` (2026-10-28) · Hat: Platform Engineering
@@ -252,7 +252,7 @@ Today a cancelled order's stock is released back to the counter (ADR-0017). A pr
 
 **62. Service-to-service authentication for stock reservation, and orphaned reservations** — **Local path built and used 2026-10-28; DEV credential and cleanup pending**
 Type: Auth decision (human approval required) · Source: ADR-0017 (2026-10-28) · Hat: Architect, Security
-OAuth2 client credentials was chosen. `WI-AUTH-006` phase 1 (mock issuer, shared library, local secret tooling) and `WI-CAT-006` (the endpoints) are built, and a real token called the real endpoints end to end. Still open: phase 2 (Entra app registrations, the privileged app-role assignment, the DEV credential per ADR-0018's verification list); the `ordering-service` caller (`ORD-001`); and cleanup of a reservation whose order was never saved (a crash between reserving and saving the order): the age rule and who runs it. Reservation records are kept after release (see item 66).
+OAuth2 client credentials was chosen. `WI-AUTH-006` phase 1 (mock issuer, shared library, local secret tooling) and `WI-CAT-006` (the endpoints) are built, and a real token called the real endpoints end to end. Still open: phase 2 (Entra app registrations, the privileged app-role assignment, the DEV credential per ADR-0018's verification list); the `ordering-service` caller (`ORD-001`); and cleanup of a reservation whose order was never saved (a crash between reserving and saving the order): the age rule and who runs it. Reservation records are kept after release (see item 66). Checkout (`WI-ORD-001`) is now the caller: it releases on a declined payment or a failed save, and attempts a release when a reserve answer is lost; a crash in between still leaves a reservation without an order.
 
 **63. Vendors cannot read their own listings**
 Type: Missing API · Source: `WI-CAT-005` (2026-10-28) · Hat: Engineering/Build
@@ -273,4 +273,20 @@ A reservation is stored beside the listings (same container and partition, so on
 **67. A release adds quantity to whatever the counter is now**
 Type: Accepted edge case · Source: `WI-CAT-006` (2026-10-28) · Hat: Product
 If a vendor sets an absolute quantity after an order reserved stock, a later release adds the reserved units back on top of the vendor's number. ADR-0017 accepts that a vendor-set value overrides reservations made since they last looked; the reverse (a release after a manual reset) is the same trade. Revisit with item 61 (special handling of prepared or defective items).
+
+**68. `OrderPlaced` is never published, and a placed order cannot recover it**
+Type: Gap · Source: `WI-ORD-001` (2026-10-28) · Hat: Architect, Engineering/Build
+Checkout stores the order as `Placed` but publishes nothing (`ORD-005` is not built), and the aggregate's raised events are not stored, so an order placed now has no `OrderPlaced` for `ORD-005` to find later. `ORD-005` should publish through an outbox: store the pending events with the order document in the same write, and publish from there (this also closes the "no outbox" half of item 30). Until then the vendor is not notified and the queue read-model has nothing to read.
+
+**69. The payment step is a stub, and a real one needs a void and its own idempotency key**
+Type: Tracking · Source: `WI-ORD-001` (2026-10-28), ADR-0005, item 53 · Hat: Architect
+`StubPaymentProcessor` approves everything and logs a warning each time. A real authorization (`PAY-001`) must use the order id as its idempotency key and be voided if the save fails after the authorization succeeded (today a failed save releases the stock but would leave a real authorization standing). Capture at confirm follows item 53.
+
+**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout**
+Type: Follow-up · Source: `WI-ORD-001` (2026-10-28) · Hat: Engineering/Build
+The REST side is done. Still to build: `Mutation.placeOrder` and `Query.pickupWindows`/`order` in the BFF schema (a shared file) with the contract's `PlaceOrderRejected` codes mapped from this service's error codes (including `insufficient_stock`), the Relay/web checkout UI with the demo-mode banner (`CUST-003`), and the order confirmation view (`CUST-004`). `ORD-003` supplies the windows endpoint.
+
+**71. No container image for `ordering-service`, so time-zone data on the runtime image is unverified**
+Type: Verification gap · Source: `WI-ORD-001` (2026-10-28) · Hat: Platform Engineering
+The service resolves `Pickup:TimeZoneId` with the host's time-zone data (it stops at startup if the zone is unknown). It passes in the .NET SDK container on Linux and on Windows; no Dockerfile exists for the service, and slim runtime images sometimes lack `tzdata`. Check this when the image is written.
 

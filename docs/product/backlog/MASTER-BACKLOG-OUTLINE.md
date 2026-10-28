@@ -52,11 +52,11 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 | `WI-ORD-004` | Interface/Contract | `FulfillmentStrategy` seam (ACL boundary, ADR-0001) | `DEV-001` |
 | `WI-CAT-001` | Service Implementation | Listing CRUD + modifier/allergy model | `DATA-002`, `EVT-003`, `AUTH-002`, `DEV-001` |
 | `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | **Built 2026-10-28, pending review/merge** (branch `feature/slice-ordering`): in-memory aggregate, 114 local tests, not run on Azure. Lifecycle changed from the spec after a review with the human lead: `docs/architecture/order-lifecycle.md` |
-| `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | `ORD-004` |
+| `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | partly built 2026-10-28: the pickup schedule (window source, lead time, Eastern hours in UTC) came with `ORD-001`; the endpoint and the strategy remain |
 | `WI-ORD-006` | Integration | Order persistence via `Repository<T>` | **Built 2026-10-28, pending review/merge** (136 local tests + 3 on the real Cosmos emulator; not yet wired into the service host) |
 | `WI-ORD-005` | Integration | Publish Order events via event backbone | `ORD-002`, `EVT-003` |
 | `WI-CAT-003` | Integration | Cache-aside integration for listing reads | `CAT-001`, `CACHE-002` |
-| `WI-ORD-001` | Service Implementation | Cart + checkout (payment stubbed — `EPIC-PAYMENTS` not yet built) | `CAT-001`, `ORD-002`, `ORD-006` |
+| `WI-ORD-001` | Service Implementation | Cart + checkout (payment stubbed — `EPIC-PAYMENTS` not yet built) | **Built 2026-10-28, pending review/merge** (221 ordering tests, also on Linux; verified end to end on the real stack; payment is a stub, `OrderPlaced` is not yet published) |
 | `WI-ORD-007` | Service Implementation | Order action endpoints: vendor confirm/decline/start/ready/complete/cancel, customer cancel (added 2026-10-28, approved) | `ORD-002`, `ORD-006` |
 | `WI-QUE-001` | Service Implementation | Order-status read-model (event-fed, CQRS) | `ORD-005`, `EVT-003`, `DATA-002` |
 
