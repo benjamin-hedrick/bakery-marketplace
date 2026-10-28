@@ -6,7 +6,7 @@ Suggested Issue fields per item: Title, Type, Source, Suggested hat/owner, Notes
 
 ---
 
-**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 62 came from the 2026-10-28 session.
+**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 65 came from the 2026-10-28 session.
 
 **1. Redis Basic tier has no AAD data-plane auth**
 Type: Tech debt / future work · Source: ADR-0002 · Hat: Architect
@@ -122,9 +122,9 @@ Browse and lookup-by-id cost grows with the number of verified vendors. Options 
 Type: Tech debt / latent defect · Source: `WI-EVT-003` code, found by `WI-CAT-001` · Hat: Platform Engineering
 `RedisStreamsEventTransport` uses group `cg:{eventType}`. Two services subscribing to the same event would compete for messages instead of each receiving all of them. Harmless while a single service consumes each event; fix before `ordering-service` or `notification-service` subscribes to a shared one (group name should include the service).
 
-**30. No outbox for publish-after-save, and no optimistic concurrency**
+**30. No outbox for publish-after-save** — **Optimistic concurrency resolved 2026-10-28; the outbox gap remains**
 Type: Known limitation · Source: `WI-CAT-001` · Hat: Architect
-Catalog saves then publishes `ListingPublished`; a failed publish is logged and never re-sent. `IRepository<T>` exposes no ETag, so concurrent writes are last-write-wins and concurrent event deliveries for one vendor are a read-modify-write.
+Resolved: `IRepository<T>` now has `SaveIfUnchangedAsync` for entities that implement `IETagged` (Cosmos If-Match, verified on the emulator); listings use it (`WI-CAT-005`). Still open: catalog saves then publishes `ListingPublished` and `LowStockDetected`, and a failed publish is logged and never re-sent (no outbox). Other documents are still last-write-wins: `VendorStatusDocument` is a read-modify-write when concurrent events arrive for one vendor, and orders (`ORD-006`) should adopt `IETagged`.
 
 **31. Existing Cosmos adapter tests may not exercise the real serializer path**
 Type: Verification gap · Source: reconciliation finding A8 + `WI-CAT-001` · Hat: Platform Engineering
@@ -206,9 +206,9 @@ Only catalog-service is wired. `ordering-service`, `admin-service` and `notifica
 Type: Process · Source: human lead (2026-10-28) · Hat: Manager/Lead
 The log existed so several asynchronous AI sessions could catch up before the repo and pipeline were complete. Now that git history, PR descriptions, the register and CI exist, it mostly causes conflicts (every branch prepends to the same lines). New entries are paused (CLAUDE.md). Decide: retire it, keep it for milestones only, or generate it from history. Existing entries stay as history.
 
-**51. Availability model: stock decided, windows and per-item pickup rules still open**
+**51. Availability model: stock built, windows and per-item pickup rules still open**
 Type: Missing capability · Source: lifecycle review (2026-10-28) · Hat: Architect, Engineering/Build
-Stock is decided by ADR-0017 (`availableQuantity`, `maxPerOrder`, `lowStockThreshold`; `CAT-005`, `CAT-006`). Still missing: availability windows (when an item can be ordered or collected), per-item rules for whether a pickup window may be requested, and per-vendor hours. D-5's 1-20 and 10-line bounds are placeholders until `maxPerOrder` is enforced by checkout.
+Stock fields and vendor controls are built (`WI-CAT-005`, ADR-0017: `availableQuantity`, `maxPerOrder`, `lowStockThreshold`); reservation is `CAT-006`. Still missing: availability windows (when an item can be ordered or collected), per-item rules for whether a pickup window may be requested, and per-vendor hours. D-5's 1-20 and 10-line bounds remain placeholders until checkout enforces `maxPerOrder`. The default low-stock threshold of 5 is a placeholder.
 
 **52. Who owns stock, and when it is reserved** — **Resolved 2026-10-28 by ADR-0017**
 Type: Decision · Source: lifecycle review (2026-10-28) · Hat: Architect
@@ -253,4 +253,16 @@ Today a cancelled order's stock is released back to the counter (ADR-0017). A pr
 **62. Service-to-service authentication for stock reservation, and orphaned reservations** — **Direction chosen 2026-10-28; credential type pending**
 Type: Auth decision (human approval required) · Source: ADR-0017 (2026-10-28) · Hat: Architect, Security
 The human lead chose OAuth2 client credentials. ADR-0018 (Proposed) defines the identity model (client id, app roles such as `Stock.Reserve` in `roles`), the required changes (mock issuer, shared Auth library, catalog, ordering, local secret tooling, DEV app registrations) and the verification list that decides the DEV credential (federated identity credential, else a Key Vault secret). Work item `WI-AUTH-006`; blocks `CAT-006`. Phase 1 (local) is built (2026-10-28): the mock issuer's `client_credentials` branch used to authenticate no client and return a user token (including Admin) for any `mock_user_id`; it now authenticates registered clients and the shortcut is removed. Still undecided: cleaning up a reservation whose order was never saved (age rule, who runs it).
+
+**63. Vendors cannot read their own listings**
+Type: Missing API · Source: `WI-CAT-005` (2026-10-28) · Hat: Engineering/Build
+Only public reads exist (Published, verified vendors, no exact stock). A vendor sees the exact quantity only in the responses to their own create, edit and adjust calls, and cannot list their drafts or current stock. A vendor-facing read (list and get own listings, with the owner view) is needed before any vendor UI; mind the id-only lookup cost noted in `ListingService`.
+
+**64. Stock status and `maxPerOrder` are not in the GraphQL schema**
+Type: Contract follow-up · Source: `WI-CAT-005` (2026-10-28) · Hat: Architect, Engineering/Build
+The catalog REST responses now carry `stock`, but the BFF schema (`services/graphql-bff/schema/schema.graphql`, a shared file) and the web app do not expose them, so customers cannot see in stock, low or sold out yet. Add `Listing.stock { status maxPerOrder }` with the next BFF/web change, and show sold-out and low states in the listing UI.
+
+**65. Emulator concurrency tests do not run in CI**
+Type: Verification gap · Source: `WI-CAT-005` (2026-10-28) · Hat: Platform Engineering
+The Cosmos variant of the concurrency contract tests needs `COSMOS_CONNECTION_STRING` and a running emulator, so the pipeline reports them as skipped; the fake variant runs everywhere. Add an emulator step to the pipeline's integration job when one exists (related to items 31 and 35). The new test class also adds one analyzer warning (CA1001, the same pattern as the existing Cosmos tests).
 
