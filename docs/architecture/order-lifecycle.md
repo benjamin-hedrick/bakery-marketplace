@@ -40,6 +40,25 @@ Cancel (actor and reason code):   Placed, Confirmed                    --> Cance
 | Complete | `OrderCompleted` | existing |
 | Cancel | `OrderCancelled` (actor, reason) | new |
 
+## Order action endpoints (draft, approved 2026-10-28 to be iterated)
+
+Implemented by `WI-ORD-007`; they call the aggregate's methods and nothing else.
+
+| Action | Endpoint | Caller | Transition |
+|---|---|---|---|
+| Confirm | `POST /ordering/orders/{id}/confirm` | Vendor, owner | Placed → Confirmed |
+| Decline | `POST /ordering/orders/{id}/decline` | Vendor, owner | Placed → Cancelled (`VendorDeclined`) |
+| Start preparation | `POST /ordering/orders/{id}/start-preparation` | Vendor, owner | Confirmed → InPreparation |
+| Mark ready | `POST /ordering/orders/{id}/ready` | Vendor, owner | InPreparation → ReadyForFulfillment |
+| Complete | `POST /ordering/orders/{id}/complete` | Vendor, owner (who completes is open item 59) | ReadyForFulfillment → Completed |
+| Cancel | `POST /ordering/orders/{id}/cancel` | Vendor, owner (`VendorCancelled`; from Confirmed on) or Customer, owner (`CustomerRequested`; from Placed or Confirmed) | any allowed cancel |
+
+- **The actor comes from the token, never the body.** Role plus ownership (the token subject equals the order's `vendorId` or `customerId`, ADR-0006) decide who is acting; the reason code is derived from the actor and the transition. Requests carry no body for these actions.
+- **Responses:** `200` with the updated order; `404` when the order does not exist or the caller does not own it (no leak); `409` with the current status when the transition is not allowed (the aggregate's `InvalidOrderTransitionException`).
+- **Concurrency:** the order document is saved with optimistic concurrency (`ORD-006`), so two simultaneous actions cannot both win.
+- **Side effects, owned elsewhere:** each transition's events are published by `ORD-005`; releasing held stock and the payment steps follow items 52 and 53.
+- Authorization and ownership are auth logic (human approval required): **approved for design and implementation on 2026-10-28, to be iterated.**
+
 ## Not defined yet
 
-Stock and availability (open items 51, 52), payment timing (53), vendor endpoints (54), vendor-response timeout (55), no-shows (56), refunds (57). Open items 58 to 60 record the effects on the first-slice decisions, event schemas and accounts.
+Stock and availability (open items 51, 52), payment timing (53), who completes an order and the fulfillment event layering (59), vendor-response timeout (55, deferred), refunds (57). Pickup no-shows are handled by the vendor cancelling from ReadyForFulfillment (item 56, resolved). Open items 58 to 60 record the effects on the first-slice decisions, event schemas and accounts.
