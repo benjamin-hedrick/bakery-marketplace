@@ -1,6 +1,7 @@
 # Generated, vendored or lock files, and prose: Prettier formats code and config only.
 node_modules/
 .next/
+.next-*/
 **/__generated__/
 **/test-results/
 **/playwright-report/

@@ -13,8 +13,11 @@ const schema = buildSchema(
 let revision = 0;
 
 const money = (cents) => ({ cents, currency: 'USD' });
+// D-9: Relay global ids, as the real BFF produces them.
+const globalId = (type, serviceId) => Buffer.from(`${type}:${serviceId}`).toString('base64');
 const shape = (l) => ({
   ...l,
+  id: globalId('Listing', l.id),
   price: money(l.priceCents + revision),
   modifiers: l.modifiers.map((m) => ({ ...m, priceDelta: money(m.priceDeltaCents) })),
 });

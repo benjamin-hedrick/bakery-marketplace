@@ -104,7 +104,8 @@ try {
   await waitFor('bff', `http://localhost:${ports.bff}/healthz`);
 
   // GRAPHQL_URL is read at build time (rewrite) and at run time (SSR), so it is set for both.
-  const webEnv = { GRAPHQL_URL: bffUrl };
+  // NEXT_DIST_DIR keeps this build (aimed at the real BFF) out of `.next`, which the mock-backed e2e uses.
+  const webEnv = { GRAPHQL_URL: bffUrl, NEXT_DIST_DIR: '.next-skeleton' };
   // The Relay artifacts (src/__generated__) are gitignored, so a clean checkout has none and `next build` fails type-checking
   // without them. This is what `npm run relay` does; run directly so no npm/shell is needed.
   run('relay compile', 'node', ['scripts/ensure-artifact-dir.mjs'], { cwd: web });

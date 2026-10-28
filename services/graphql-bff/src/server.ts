@@ -6,6 +6,7 @@ import type { Config } from './config.ts';
 import { createCatalogClient, type CatalogClient } from './catalog-client.ts';
 import { DownstreamError, internalError } from './errors.ts';
 import { rootValue, type Context } from './resolvers.ts';
+import { createOtlpExporter, type SpanExporter } from './otlp.ts';
 import { startTrace, toTraceparent } from './trace.ts';
 
 const schema = buildSchema(readFileSync(fileURLToPath(new URL('../schema/schema.graphql', import.meta.url)), 'utf8'));
@@ -20,13 +21,18 @@ export const jsonLogger: Logger = {
   error: (e) => console.error(JSON.stringify({ level: 'error', ...e })),
 };
 
-export function createServer(config: Config, deps: { catalog?: CatalogClient; log?: Logger } = {}): http.Server {
+export function createServer(
+  config: Config,
+  deps: { catalog?: CatalogClient; log?: Logger; exporter?: SpanExporter } = {},
+): http.Server {
   const catalog = deps.catalog ?? createCatalogClient(config.catalogUrl, config.timeoutMs);
   const log = deps.log ?? jsonLogger;
+  const exportSpan = deps.exporter ?? createOtlpExporter(config.otlpEndpoint);
 
   return http.createServer(async (req, res) => {
     const trace = startTrace(headerValue(req.headers.traceparent));
     const started = performance.now();
+    const startedAtMs = Date.now();
     const send = (code: number, body: unknown) => {
       res.writeHead(code, {
         'content-type': 'application/json',
@@ -70,6 +76,14 @@ export function createServer(config: Config, deps: { catalog?: CatalogClient; lo
       durationMs: Math.round(performance.now() - started),
     });
     send(200, result);
+    exportSpan({
+      trace,
+      operationName,
+      statusCode: 200,
+      failed: !!result.errors,
+      startedAtMs,
+      durationMs: performance.now() - started,
+    });
   });
 }
 

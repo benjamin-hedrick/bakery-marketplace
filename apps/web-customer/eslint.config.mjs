@@ -9,6 +9,7 @@ export default defineConfig([
   ...nextTypescript,
   globalIgnores([
     '.next/',
+    '.next-*/',
     'node_modules/',
     'src/__generated__/',
     'test-results/',

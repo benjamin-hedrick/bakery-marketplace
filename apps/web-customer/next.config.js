@@ -3,6 +3,9 @@ const graphqlUrl = process.env.GRAPHQL_URL ?? 'http://localhost:4000/graphql';
 
 module.exports = {
   reactStrictMode: true,
+  // `GRAPHQL_URL` is baked into the build (the rewrite below), so builds for different back ends need their own output
+  // directory: skeleton-smoke.mjs sets NEXT_DIST_DIR so it cannot overwrite the mock-backed build used by `npm run test:e2e`.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   compiler: {
     relay: { src: './src', artifactDirectory: './src/__generated__', language: 'typescript' },
   },

@@ -2,7 +2,11 @@ import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { fromGlobalId, toGlobalId } from '../src/global-id.ts';
+import type { SpanRecord } from '../src/otlp.ts';
 import { createServer, type Logger } from '../src/server.ts';
+
+const gid = (serviceId: string) => toGlobalId('Listing', serviceId);
 
 // A fake catalog-service (ordered by id, like the real one) speaking the real REST shapes (first-slice contract section 4), so the real HTTP client is exercised.
 const sourdough = {
@@ -72,6 +76,7 @@ const catalog = http.createServer((req, res) => {
 
 const logs: Record<string, unknown>[] = [];
 const log: Logger = { info: (e) => logs.push(e), error: (e) => logs.push(e) };
+const spans: SpanRecord[] = [];
 let bff: http.Server;
 let bffUrl: string;
 let catalogUrl: string;
@@ -79,7 +84,7 @@ let catalogUrl: string;
 before(async () => {
   await new Promise<void>((r) => catalog.listen(0, '127.0.0.1', r));
   catalogUrl = `http://127.0.0.1:${(catalog.address() as AddressInfo).port}`;
-  bff = createServer({ port: 0, catalogUrl, timeoutMs: 300 }, { log });
+  bff = createServer({ port: 0, catalogUrl, timeoutMs: 300 }, { log, exporter: (s) => spans.push(s) });
   await new Promise<void>((r) => bff.listen(0, '127.0.0.1', r));
   bffUrl = `http://127.0.0.1:${(bff.address() as AddressInfo).port}/graphql`;
 });
@@ -112,9 +117,9 @@ describe('BFF <-> service agreement (first-slice contract section 8, test 2)', (
     catalogMode = 'ok';
     const { body } = await gql(LISTINGS);
     assert.equal(body.errors, undefined);
-    const first = body.data.listings.edges.find((e: { node: { id: string } }) => e.node.id === sourdough.id);
+    const first = body.data.listings.edges.find((e: { node: { id: string } }) => e.node.id === gid(sourdough.id));
     assert.deepEqual(first.node, {
-      id: sourdough.id,
+      id: gid(sourdough.id),
       vendorId: sourdough.vendorId,
       name: sourdough.name,
       description: sourdough.description,
@@ -135,7 +140,7 @@ describe('BFF <-> service agreement (first-slice contract section 8, test 2)', (
     assert.equal(p1.edges.length, 1);
     assert.deepEqual(p1.pageInfo, { hasNextPage: true, endCursor: croissant.id });
     const p2 = (await gql(LISTINGS, { first: 1, after: p1.pageInfo.endCursor })).body.data.listings;
-    assert.equal(p2.edges[0].node.id, sourdough.id);
+    assert.equal(p2.edges[0].node.id, gid(sourdough.id));
     assert.deepEqual(p2.pageInfo, { hasNextPage: false, endCursor: sourdough.id });
     assert.match(seen.at(-1)!.url, /after=listing-croissant-001/);
   });
@@ -155,20 +160,49 @@ describe('BFF <-> service agreement (first-slice contract section 8, test 2)', (
   test('listing(id) returns the listing; a missing or non-public id is null, not an error', async () => {
     catalogMode = 'ok';
     const q = 'query($id: ID!) { listing(id: $id) { id name price { cents } } }';
-    assert.deepEqual((await gql(q, { id: croissant.id })).body.data.listing, {
-      id: croissant.id,
+    assert.deepEqual((await gql(q, { id: gid(croissant.id) })).body.data.listing, {
+      id: gid(croissant.id),
       name: 'Almond Croissant',
       price: { cents: 450 },
     });
-    const missing = await gql(q, { id: 'listing-draft-001' });
+    const missing = await gql(q, { id: gid('listing-draft-001') });
     assert.equal(missing.body.errors, undefined);
     assert.equal(missing.body.data.listing, null);
   });
 
   test('ids are URL-encoded on the way to the service', async () => {
     catalogMode = 'ok';
-    await gql('query($id: ID!) { listing(id: $id) { id } }', { id: '../admin' });
+    await gql('query($id: ID!) { listing(id: $id) { id } }', { id: gid('../admin') });
     assert.equal(seen.at(-1)!.url, '/catalog/listings/..%2Fadmin');
+  });
+
+  test('global ids (D-9): raw, malformed and wrong-type ids are null and never reach the service', async () => {
+    catalogMode = 'ok';
+    const before = seen.length;
+    const q = 'query($id: ID!) { listing(id: $id) { id } node(id: $id) { id } }';
+    for (const id of [
+      croissant.id,
+      '',
+      '!!!',
+      'Listing',
+      gid('x').slice(0, -1),
+      toGlobalId('Vendor', 'v-1'),
+      gid(''),
+    ]) {
+      const { body } = await gql(q, { id });
+      assert.equal(body.errors, undefined, id);
+      assert.deepEqual(body.data, { listing: null, node: null }, id);
+    }
+    assert.equal(seen.length, before);
+  });
+
+  test('node(id) resolves a Listing global id and round-trips the service id', async () => {
+    catalogMode = 'ok';
+    const { body } = await gql('query($id: ID!) { node(id: $id) { id ... on Listing { name } } }', {
+      id: gid(croissant.id),
+    });
+    assert.deepEqual(body.data.node, { id: gid(croissant.id), name: 'Almond Croissant' });
+    assert.deepEqual(fromGlobalId(gid(croissant.id)), { type: 'Listing', serviceId: croissant.id });
   });
 });
 
@@ -227,6 +261,22 @@ describe('trace propagation (ADR-0016)', () => {
     assert.notEqual(down.split('-')[2], '00f067aa0ba902b7');
     assert.equal(res.headers.get('x-correlation-id'), '4bf92f3577b34da6a3ce929d0e0e4736');
     assert.equal(res.headers.get('traceparent'), down, 'response and downstream carry the same BFF span');
+  });
+
+  test('the request span is exported as a child of the inbound span, without query text', async () => {
+    catalogMode = 'ok';
+    spans.length = 0;
+    await gql(`query Browse { listings(first: 1) { edges { cursor } } }`, undefined, { traceparent: inbound });
+    const span = spans.at(-1)!;
+    assert.equal(span.trace.traceId, '4bf92f3577b34da6a3ce929d0e0e4736');
+    assert.equal(span.trace.parentSpanId, '00f067aa0ba902b7');
+    assert.equal(
+      span.trace.spanId,
+      seen.at(-1)!.traceparent!.split('-')[2],
+      'the catalog call is parented by the exported span',
+    );
+    assert.equal(span.failed, false);
+    assert.equal(JSON.stringify(span).includes('listings'), false, 'no query text in the span record');
   });
 
   test('without (or with a malformed) traceparent a new trace starts, and bad input is not echoed', async () => {

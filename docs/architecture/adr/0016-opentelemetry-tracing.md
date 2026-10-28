@@ -48,3 +48,17 @@ Running a custom correlation ID alongside OpenTelemetry trace IDs would create t
 - `WI-TOOL-002`, `OBS-001`, `OBS-002`, `WI-PORT-005`
 - ADR-0003 — event envelope and delivery semantics
 - ADR-0013 — BFF hop
+
+## Amendment 2026-10-28: trace backends by environment, phased
+
+Decided by the human lead; refines decision 5 (Backends). All services emit **OTLP only** (standard `OTEL_EXPORTER_OTLP_*` settings), so the backend is configuration and no service code depends on a viewer.
+
+| Environment | Backend | Phase |
+|---|---|---|
+| Local | .NET Aspire dashboard, directly or through the collector (compose profiles `tracing`, `collector`) | 1: built with `WI-PORT-005` |
+| DEV | Application Insights, through the collector | 2: not built |
+| UAT, Prod | Application Insights through the collector; **Jaeger opt-in** as an additional exporter | 2: not built |
+
+**OpenTelemetry Collector (decided 2026-10-28):** cloud services send OTLP to a collector, and the collector exports to Application Insights (`azuremonitor` exporter) and, where enabled, Jaeger. Reasons: the Application Insights connection string lives in one place (ADR-0007) instead of in every .NET service and the Node BFF; the services stay on the OTLP-only rule; and a central `attributes` processor drops `url.query` and `http.url` before data leaves (ADR-0016 item 6). Config: `infra/otel-collector/` (`local.yaml`, `local-jaeger.yaml`, `cloud.yaml`, all validated with `otelcol-contrib validate`). Locally the collector is optional; direct export to Aspire stays the default and does not apply the safety processor.
+
+This **keeps** Application Insights as the cloud backend named in decision 5 (the earlier "Jaeger replaces it" reading is withdrawn); Jaeger is an opt-in extra for UAT/Prod. Still open: who hosts the collector in Azure (for example a Container Apps container), and its cost (not in `budget-cost-estimate.md`). `cloud.yaml` has not been run against Azure.

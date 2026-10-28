@@ -4,6 +4,51 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — Open item 38 resolved: query-string values are already redacted in spans; guard test added (branch `feature/slice-followups`)**
+
+Writing the test first showed the ASP.NET Core instrumentation already redacts query values (`?limit=Redacted&after=Redacted`), so the "leak" recorded in item 38 and in the WI-PORT-005 evidence was overstated; both corrected. No production code changed. `TracingTests.RequestSpansDoNotCarryQueryStringValues` now fails if the redaction is lost; catalog tests 35/35, `dotnet format` clean. Remaining and accepted: the Development-only request log line prints the full URL. Not done: log export (item 42).
+
+---
+
+**2026-10-28 — Open item 43 resolved: skeleton smoke builds into its own Next.js directory (branch `feature/slice-followups`)**
+
+`next.config.js` `distDir` now follows `NEXT_DIST_DIR` (default `.next`); `skeleton-smoke.mjs` sets `.next-skeleton` for build and start; `.next-*/` added to the web `.gitignore`, ESLint ignores and `.prettierignore`. Verified locally: smoke 5/5, mock e2e 6/6 straight afterwards without a rebuild, working tree clean after the smoke (Next did not rewrite tsconfig). Not verified: the Azure pipeline (its web job builds in a clean checkout and is unaffected; the skeleton job runs the script).
+
+---
+
+**2026-10-28 — WI-PORT-005: collector, Next.js span, catalog tracing tests (branch `feature/slice-followups`)**
+
+Decisions by the human lead: Application Insights for DEV; collector in scope now; Jaeger opt-in for UAT/Prod (ADR-0016 amendment rewritten: Application Insights stays the cloud backend, reached through the collector). Built: `infra/otel-collector/` (local, local+Jaeger, cloud with `azuremonitor`; all pass `otelcol-contrib validate` 0.164.0), compose profiles `collector` and `jaeger` (Jaeger 2.22.0); the same trace reached Aspire and Jaeger through the collector with `url.query` removed (first try failed: gzip vs Aspire OTLP/HTTP, fixed). Next.js server exports a client span; catalog tests 34/34 (consumer span linked to publisher, correlation id = trace id).
+- Verified locally: web-customer → graphql-bff → catalog-service as one trace in Aspire; mock e2e 6/6; isolation 200/200; typecheck, lint, Prettier. Not verified: the Azure Monitor exporter against Application Insights, anything on Azure, skeleton smoke with tracing.
+- Register items 36 to 49 added earlier; 36, 37, 38 and 42 updated.
+
+---
+
+**2026-10-28 — WI-PORT-005 phase 1: OTLP export to the local Aspire dashboard (branch `feature/slice-followups`)**
+
+Decided by the human lead: Aspire locally, Jaeger for UAT/Prod, DEV undecided. Recorded as an ADR-0016 amendment and in `tech-stack.md`. Open for the human lead: whether Jaeger replaces Application Insights in the cloud or runs alongside it, and who hosts it and where traces are stored (not in the budget estimate).
+- Built: compose service `aspire-dashboard` (profile `tracing`, pinned 13.6.2, 127.0.0.1 only); `AddBakeryTelemetry` in the Logging library (ASP.NET Core, HttpClient, event-consumer source; OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set) wired into catalog-service; the BFF exports one OTLP/JSON span per successful request (`src/otlp.ts`, no new dependency; a deliberate deviation from "use the Node SDK" because the BFF already owns its trace context).
+- Verified locally: a request through BFF and catalog shows as one trace with correct parents in the dashboard; hostile `X-Correlation-Id` ignored; BFF 20/20 tests. Evidence: `docs/evidence/WI-PORT-005/findings.md`.
+- Not done: Next.js server span, Jaeger, log-correlation check, nothing run on Azure.
+
+---
+
+**2026-10-28 — WI-PORT-005 part 1: trace ID in correlation middleware, `traceparent` on event envelopes (branch `feature/slice-followups`)**
+
+- `CorrelationIdMiddleware` (ADR-0016): value is `Activity.Current.TraceId` (a fresh trace id when there is no W3C activity); an inbound `X-Correlation-Id` is no longer adopted, closing the "caller chooses our log identifier" gap. Response header kept; log scope now has `TraceId` and the old `CorrelationId` as an alias. 3 tests (was 2).
+- `DomainEventEnvelope` gets optional `Traceparent`. Both transports stamp it from the current activity on publish unless the caller set one; consumers start a new `Consumer` activity on a new trace with a link to the publisher's context (`EventTracing`), and restore the caller's activity afterwards. Malformed values are ignored. 5 new contract tests run against the in-memory and the Redis transport.
+- Verified locally: Logging 3/3; Eventing 16/16 with Redis really reached (14 `events:TestEvent-*` streams); all tools test projects, catalog 32/32, `dotnet format` whitespace and style clean. Not run: Azure; the skeleton smoke (neither change affects it, not re-run).
+- Not done: trace viewer choice, OpenTelemetry export, log-safety check, docs of commands and evidence. Nothing yet listens to the `BakeryMarketplace.Eventing` activity source in a service.
+**2026-10-28 — Mock e2e "refetch" failure explained: stale build, not a code bug (branch `feature/slice-followups`)**
+
+The failure seen after the D-9 change (and also with it stashed) came from `.next` being rebuilt by `skeleton-smoke.mjs` with `GRAPHQL_URL` at the real BFF (:4100). The browser's `/api/graphql` rewrite is fixed at build time, so the mock suite's Refresh got a 500 from :4100. After `npm run build` without `GRAPHQL_URL`: 6/6 mock e2e pass (Chromium, mock on :4000). No test or app code changed; a README note was added. Not done: making the two builds not share `.next` (e.g. a separate `distDir`), which would touch `next.config.js` and the smoke script; say if you want it. CI is unaffected (separate jobs and checkouts).
+**2026-10-28 — D-9 fixed: BFF now issues Relay global IDs (branch `feature/slice-followups`)**
+
+`Listing.id` is now base64 of `Listing:<catalog id>`, produced and decoded only in the BFF (`services/graphql-bff/src/global-id.ts`). `listing(id)` and `node(id)` decode strictly: a raw id, malformed base64, a non-canonical encoding, an empty service id or an id of another type returns `null` without calling the catalog. The web app needed no code change (it already passes ids through and URL-encodes them); the mock BFF and the skeleton spec now use global ids.
+- Left as raw service ids on purpose: `vendorId` and `Modifier.id` (references, not `Node` types) and the pagination cursor (opaque to clients, and not covered by D-9). Say if D-9 should extend to them.
+- Verified locally: BFF typecheck, lint, Prettier, 18/18 tests (2 new); web typecheck, lint, Prettier; skeleton smoke 5/5 against the real stack; SSR isolation 200/200.
+- Mock e2e: 5 of 6 pass. `refetch pulls fresh data...` fails, **and it fails the same way with these changes stashed**, so it is not caused by this change. Not investigated.
+- Not done: the D-9 row in the `first-slice-contract.md` "Implementation check" table (it lives on the unmerged docs branch); update it to "fixed" after that PR merges. Not run on Azure.
 **2026-10-28 — First-slice contract decisions D-5 to D-10 accepted as written (branch `docs/azure-green-evidence`)**
 
 The human lead accepted D-5 to D-10 (quantity limits, idempotency scope, UTC time zone, pickup-window lead time, Relay global IDs, stub-payment test hook) without changes. Recorded in `first-slice-contract.md` §11, with §12 brought up to date; outline and epic rows for `WI-PORT-007` updated. `WI-PORT-007` is not marked Done: the move of §4/§5 into `data-model-api-contracts.md` (`PORT-006` pass 2) is open. Code check (read only, nothing run): D-5, D-6, D-8, D-10 have no implementation yet (`ordering-service` is empty), so no mismatch. **Mismatches:** D-9 (BFF returns raw catalog ids, no base64 `Type:serviceId` global IDs) and D-7 (no vendor time-zone field). D-1 spillover: `PayoutReconciledPayload.NetAmount` is `decimal`; `data-model-api-contracts.md` still has unqualified `price`. Details in `first-slice-contract.md` §11 "Implementation check".

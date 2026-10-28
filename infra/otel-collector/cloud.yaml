@@ -1,0 +1,33 @@
+# Template for DEV, UAT and Prod (ADR-0016 amendment 2026-10-28). Not deployed and not run against Azure yet.
+# Application Insights is the default backend in every cloud environment; Jaeger is opt-in for UAT/Prod: add
+# `otlp/jaeger` to the exporters list below and set JAEGER_OTLP_ENDPOINT. The Application Insights connection string comes
+# from the environment (Key Vault reference, ADR-0007); it is never written in this file.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  attributes/safety:
+    actions:
+      - key: url.query
+        action: delete
+      - key: http.url
+        action: delete
+  batch: {}
+
+exporters:
+  azuremonitor:
+    connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
+  # otlp/jaeger:
+  #   endpoint: ${env:JAEGER_OTLP_ENDPOINT}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [attributes/safety, batch]
+      exporters: [azuremonitor]

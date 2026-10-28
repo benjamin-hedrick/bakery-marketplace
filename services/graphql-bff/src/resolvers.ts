@@ -1,4 +1,5 @@
 import type { CatalogClient, CatalogListing } from './catalog-client.ts';
+import { fromGlobalId, serviceIdFor, toGlobalId } from './global-id.ts';
 import type { TraceContext } from './trace.ts';
 
 export interface Context {
@@ -12,7 +13,7 @@ const money = (cents: number, currency = 'USD') => ({ cents, currency });
 // Mapping only (ADR-0013): field renames and shape changes. No pricing, availability or visibility rules live here.
 const toListing = (l: CatalogListing) => ({
   __typename: 'Listing',
-  id: l.id,
+  id: toGlobalId('Listing', l.id),
   vendorId: l.vendorId,
   name: l.name,
   description: l.description,
@@ -38,12 +39,16 @@ export const rootValue = {
     };
   },
   async listing(args: { id: string }, ctx: Context) {
-    const l = await ctx.catalog.get(args.id, ctx.trace);
+    const serviceId = serviceIdFor('Listing', args.id);
+    if (serviceId === null) return null;
+    const l = await ctx.catalog.get(serviceId, ctx.trace);
     return l ? toListing(l) : null;
   },
-  // Only Listing implements Node in this slice; the ids are catalog listing ids.
+  // Only Listing implements Node in this slice. An id of another type, or one that does not decode, is null.
   async node(args: { id: string }, ctx: Context) {
-    const l = await ctx.catalog.get(args.id, ctx.trace);
+    const decoded = fromGlobalId(args.id);
+    if (decoded?.type !== 'Listing') return null;
+    const l = await ctx.catalog.get(decoded.serviceId, ctx.trace);
     return l ? toListing(l) : null;
   },
 };

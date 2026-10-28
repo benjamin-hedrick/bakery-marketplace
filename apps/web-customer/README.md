@@ -18,6 +18,8 @@ npm run test:e2e           # Playwright (starts the servers itself if they are n
 
 On first use run `npx playwright install chromium`.
 
+**Two builds, two directories.** `GRAPHQL_URL` is baked into the build (the `/api/graphql` rewrite), so `node scripts/ci/skeleton-smoke.mjs` builds into `.next-skeleton` (`NEXT_DIST_DIR`) and never touches `.next`, the build the mock-backed `npm run test:e2e` uses. Before 2026-10-28 they shared `.next`, and the mock e2e failed after a smoke run until you rebuilt.
+
 `ENABLE_TEST_HOOKS=1` lets a request pick fixture data via `x-fixture` and add latency via `x-delay-ms`. It is off by default and must never be set outside tests.
 
 ## How the Relay/SSR pattern works

@@ -2,6 +2,9 @@
 #
 #   docker compose up -d                       # default set: event backbone, Cosmos emulator, mock OIDC issuer
 #   docker compose --profile with-redis up -d  # plus the cache Redis (ADR-0002), opt-in
+#   docker compose --profile tracing up -d    # plus the Aspire dashboard (trace viewer), opt-in
+#   docker compose --profile tracing --profile collector up -d   # services -> collector -> Aspire (the cloud shape)
+#   OTEL_COLLECTOR_CONFIG=local-jaeger.yaml docker compose --profile tracing --profile collector --profile jaeger up -d
 #   node scripts/dev/check-env.mjs             # readiness check (add --with-redis when using the profile)
 #
 # Application services are NOT containers yet: run them on the host (`dotnet run`) against these ports.
@@ -59,3 +62,38 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Local trace viewer (ADR-0016 amendment 2026-10-28, WI-PORT-005). Opt-in via --profile tracing; services export
+  # only when OTEL_EXPORTER_OTLP_ENDPOINT is set (docs/operations/local-dev.md). Anonymous access, so it is bound to
+  # 127.0.0.1 like everything else here. Traces are kept in memory and lost on restart. UAT/Prod use Jaeger (not built).
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.2
+    profiles: ["tracing"]
+    environment:
+      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "127.0.0.1:${ASPIRE_UI_PORT:-18888}:18888"
+      - "127.0.0.1:${OTLP_GRPC_PORT:-4317}:18889"
+      - "127.0.0.1:${OTLP_HTTP_PORT:-4318}:18890"
+
+  # OpenTelemetry Collector (ADR-0016 amendment). Opt-in via --profile collector. Services send OTLP here instead of
+  # straight to the dashboard; it applies the data-safety processor and fans out. Same shape as DEV/UAT/Prod
+  # (infra/otel-collector/cloud.yaml). Host ports differ from the dashboard's so both modes can be tried side by side.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.164.0
+    profiles: ["collector"]
+    command: ["--config=/etc/otelcol/${OTEL_COLLECTOR_CONFIG:-local.yaml}"]
+    volumes:
+      - ./infra/otel-collector:/etc/otelcol:ro
+    ports:
+      - "127.0.0.1:${COLLECTOR_OTLP_GRPC_PORT:-4327}:4317"
+      - "127.0.0.1:${COLLECTOR_OTLP_HTTP_PORT:-4328}:4318"
+
+  # Jaeger, opt-in (profile jaeger), for trying the UAT/Prod option locally. Needs OTEL_COLLECTOR_CONFIG=local-jaeger.yaml.
+  # Traces are kept in memory and lost on restart.
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    profiles: ["jaeger"]
+    ports:
+      - "127.0.0.1:${JAEGER_UI_PORT:-16686}:16686"
+
