@@ -8,8 +8,8 @@
 # Gates here: format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
 # Do not read a green run as "covered": the Cosmos adapter tests do not touch Cosmos.
 #
-# .github/workflows/ci.yml stays as the placeholder until ADR-0015's exit criteria are met (this pipeline green from a clean
-# checkout, required checks migrated, docs updated); then it is removed in one explicit migration commit.
+# The GitHub placeholder workflow (.github/workflows/ci.yml) was removed on 2026-10-28 (ADR-0015 amendment); this pipeline
+# is the only CI.
 # No credentials appear in this file. The only key in the repo's CI scripts is the Cosmos emulator's published fixed key.
 # Triggers (decided 2026-10-28, to save build minutes): nothing runs on pushes to any branch, including main. The pipeline
 # runs (a) on pull requests into main (draft PRs are skipped) and (b) when someone queues it by hand, which is how main is

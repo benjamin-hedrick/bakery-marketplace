@@ -49,6 +49,17 @@ The failure seen after the D-9 change (and also with it stashed) came from `.nex
 - Verified locally: BFF typecheck, lint, Prettier, 18/18 tests (2 new); web typecheck, lint, Prettier; skeleton smoke 5/5 against the real stack; SSR isolation 200/200.
 - Mock e2e: 5 of 6 pass. `refetch pulls fresh data...` fails, **and it fails the same way with these changes stashed**, so it is not caused by this change. Not investigated.
 - Not done: the D-9 row in the `first-slice-contract.md` "Implementation check" table (it lives on the unmerged docs branch); update it to "fixed" after that PR merges. Not run on Azure.
+**2026-10-28 — First-slice contract decisions D-5 to D-10 accepted as written (branch `docs/azure-green-evidence`)**
+
+The human lead accepted D-5 to D-10 (quantity limits, idempotency scope, UTC time zone, pickup-window lead time, Relay global IDs, stub-payment test hook) without changes. Recorded in `first-slice-contract.md` §11, with §12 brought up to date; outline and epic rows for `WI-PORT-007` updated. `WI-PORT-007` is not marked Done: the move of §4/§5 into `data-model-api-contracts.md` (`PORT-006` pass 2) is open. Code check (read only, nothing run): D-5, D-6, D-8, D-10 have no implementation yet (`ordering-service` is empty), so no mismatch. **Mismatches:** D-9 (BFF returns raw catalog ids, no base64 `Type:serviceId` global IDs) and D-7 (no vendor time-zone field). D-1 spillover: `PayoutReconciledPayload.NetAmount` is `decimal`; `data-model-api-contracts.md` still has unqualified `price`. Details in `first-slice-contract.md` §11 "Implementation check".
+
+---
+
+**2026-10-28 — First green Azure Pipelines run recorded (branch `docs/azure-green-evidence`)**
+
+The human lead reported a green run on Azure DevOps after the warnings PR merged; only the deliberate Cosmos-adapter warning remains. Updated the evidence (`CLAUDE.md`, `quality-gates.md`, `WI-PORT-003` findings and spec note, `WI-PORT-002` note, master outline). `PORT-002`/`PORT-003` statuses in the outline now say the Azure run is met; whether to mark them Done is left to the human lead.
+- **`ci.yml` removed** and docs adjusted (`azure-pipelines.yml` comment, `tech-stack.md`, open item #14, `quality-gates.md`, `project-log.md`, outline `CI-004`). ADR-0015 exit criterion 2 (required checks) is waived: GitHub rulesets need an enterprise plan, so the "Azure Pipelines" check (5 checks) is a soft gate the human lead reads at PR approval. Amendment appended to ADR-0015.
+- Not recorded: run ID or link. Not verified: `ubuntu-26.04`.
 
 ---
 

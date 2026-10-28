@@ -29,7 +29,7 @@ This is a reference document, not an ADR — it indexes the decisions made acros
 | API Gateway | Azure API Management, Consumption tier, zero-trust dual validation (edge fast-fail + authoritative per-service check) | Permanent free grant (1,000,000 calls/mo) | Confirmed — see ADR-0008 |
 | IaC | Terraform, `azurerm` provider | — | Confirmed |
 | Source control | GitHub | — | Confirmed |
-| CI/CD | Azure Pipelines, workload identity federation to Azure (no stored secrets) — **migration in progress**; `.github/workflows/ci.yml` placeholder stays until ADR-0015's exit criteria are met | — | Confirmed — see ADR-0015 |
+| CI/CD | Azure Pipelines, workload identity federation to Azure (no stored secrets) — migrated 2026-10-28; the GitHub `ci.yml` placeholder is removed (ADR-0015 amendment) | — | Confirmed — see ADR-0015 |
 | IaC environment structure | Per-environment `.tfvars` in `/infra/environments` (`dev`, `staging`, `prod`) | — | Confirmed |
 
 ## Caching — environment-conditional design (see ADR-0002)

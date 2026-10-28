@@ -94,9 +94,9 @@ Explicitly still deferred (M5 and beyond, per `LOCAL-MILESTONES.md`): admin cons
 |---|---|---|---|
 | `WI-PORT-001` | Test/Mock/Chaos | Next.js Pages Router + Relay SSR proof | **Done 2026-10-26** — proceed; in-repo Relay pattern, `relay-nextjs` rejected on security grounds. Evidence: `docs/evidence/WI-PORT-001/findings.md` |
 | `WI-PORT-006` | Document/Artifact | Reconcile existing artifacts with ADR-0012 to ADR-0016 | In Progress — pass 1 (decision level) done 2026-10-26 |
-| `WI-PORT-007` | Interface/Contract | First-slice contract + GraphQL↔REST mapping, seed contract, error/state behavior | In Progress — draft written 2026-10-26 (`docs/architecture/first-slice-contract.md`), awaiting approval of D-1 to D-4; must complete before broad frontend/service delegation |
+| `WI-PORT-007` | Interface/Contract | First-slice contract + GraphQL↔REST mapping, seed contract, error/state behavior | Decisions complete — D-1 to D-4 accepted 2026-10-26, D-5 to D-10 accepted 2026-10-28 (`docs/architecture/first-slice-contract.md`). Open: move §4/§5 into `data-model-api-contracts.md` (`PORT-006` pass 2). Broad delegation is no longer waiting on approvals |
 | `WI-PORT-002` | Integration | Walking skeleton: SSR → BFF → C# listing read, test, pipeline, trace **Built 2026-10-28, pending review/merge** (branch `feature/WI-PORT-002-walking-skeleton`; local run 5/5 smoke + 16/16 BFF tests; Azure pipeline written but not run; no OpenTelemetry export yet). Was Ready — `CAT-001` and `PORT-001` done; open: seed for the first end-to-end run — `DEV-004` seed done 2026-10-27, so the seed no longer blocks it |
-| `WI-PORT-003` | Infra/Environment | Quality + Azure Pipelines CI baseline (supersedes `CI-001`) | **Built 2026-10-28, pending review/merge** (branch `feature/WI-PORT-003-ci-baseline`); all commands run locally, pipeline **not run on Azure DevOps**; no formatter/linter gate; GitHub placeholder stays |
+| `WI-PORT-003` | Infra/Environment | Quality + Azure Pipelines CI baseline (supersedes `CI-001`) | **Built 2026-10-28, pending review/merge** (branch `feature/WI-PORT-003-ci-baseline`); all commands run locally, **Azure DevOps run green 2026-10-28** (reported by the human lead; run ID not recorded); formatter/linter gates added; GitHub placeholder stays until ADR-0015 exit criterion 2 |
 | `WI-PORT-004` | Interface/Contract | Cache contract for the listing path, three layers | `PORT-002` |
 | `WI-PORT-005` | Integration | Trace propagation + safe logs; `TOOL-002`/envelope follow-ups (supersedes `OBS-002`) | **In progress 2026-10-28** (branch `feature/WI-PORT-005-trace-propagation`): middleware and envelope parts built and tested; trace viewer choice and OpenTelemetry export open |
 
@@ -283,7 +283,7 @@ Scope: repo-level · Primary hat(s): Platform Engineering · Status: Not Started
 - ⛔ CI-001 (Infra/Environment) — **SUPERSEDED 2026-10-26** by `WI-PORT-003`. Was: Real build/test stages, replacing the current placeholder
 - ⚪ CI-002 (Infra/Environment) — OIDC federated deploy step per environment. **ADJUSTED 2026-10-26**: Azure Pipelines service connection using workload identity federation (ADR-0015, ADR-0007 amendment)
 - ⚪ CI-003 (Infra/Environment) — Ephemeral/preview environment, at least one working example (Open Item #15). **ADJUSTED 2026-10-26**: built on Azure Pipelines; must include the Next.js app and BFF
-- ⚪ CI-004 (Infra/Environment) — **Added 2026-10-26**: GitHub Actions → Azure Pipelines migration cut-over — repoint required checks, update docs, remove `.github/workflows/ci.yml` in one commit, once ADR-0015's exit criteria are met
+- ✅ CI-004 (Infra/Environment) — **Done 2026-10-28**: `ci.yml` removed; required-check repointing waived as a soft manual gate (enterprise plan needed for rulesets), see ADR-0015 amendment. Was: **Added 2026-10-26**: GitHub Actions → Azure Pipelines migration cut-over — repoint required checks, update docs, remove `.github/workflows/ci.yml` in one commit, once ADR-0015's exit criteria are met
 
 ### EPIC-CLOUD-INFRA — Terraform / Cloud Environments
 Scope: cross-cutting · Primary hat(s): Platform Engineering, Architect · Status: Not Started

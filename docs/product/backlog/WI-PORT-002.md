@@ -1,6 +1,6 @@
 # WI-PORT-002 --- Walking skeleton
 
-> **Outcome note (2026-10-28):** built on `feature/WI-PORT-002-walking-skeleton`. Read path works end to end locally against the real stack (5/5 smoke, 16/16 BFF tests). Not met: **Azure Pipelines run** (file written, never run) and **trace export** (traceparent propagated and logged by both sides, no OpenTelemetry; `WI-PORT-005`). Evidence: `docs/evidence/WI-PORT-002/findings.md`.
+> **Outcome note (2026-10-28):** built on `feature/WI-PORT-002-walking-skeleton`. Read path works end to end locally against the real stack (5/5 smoke, 16/16 BFF tests). Not met: **Azure Pipelines run** (update 2026-10-28: the pipeline, including the skeleton job, has since run green on Azure per the human lead) and **trace export** (traceparent propagated and logged by both sides, no OpenTelemetry; `WI-PORT-005`). Evidence: `docs/evidence/WI-PORT-002/findings.md`.
 
 ```
 WI ID:               PORT-002

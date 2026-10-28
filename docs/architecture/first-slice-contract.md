@@ -1,6 +1,6 @@
 # First-Slice Contract: Browse → Customize → Pickup → Test Checkout → Order Status
 
-**Status:** DRAFT (`WI-PORT-007`, 2026-10-26). D-1 to D-4 accepted 2026-10-26; D-5 to D-10 stand as the recommended defaults unless changed. Nothing here is implemented. Where the existing docs are silent or inconsistent, this file raises an **open decision (D-n)** with a recommended default rather than inventing a policy.
+**Status:** DRAFT (`WI-PORT-007`, 2026-10-26). D-1 to D-4 accepted 2026-10-26; D-5 to D-10 accepted as written 2026-10-28 (human lead). Nothing below is implemented unless a work item's evidence says so (`CAT-001` listing reads and the seed are). Where the existing docs are silent or inconsistent, this file raises an **open decision (D-n)** with a recommended default rather than inventing a policy.
 
 **Authority:** C# services own price, listing state, pickup availability, order state and persistence (ADR-0013). The GraphQL schema below is a composition contract over the REST endpoints in `data-model-api-contracts.md`. Field names follow `docs/architecture/ddd/glossary.md`.
 
@@ -237,16 +237,30 @@ Expected totals for tests (cents): 2× sourdough + `mod-seeds` = **1800**; crois
 | D-2 | Cart | **ACCEPTED 2026-10-26.** Slice skips `POST /ordering/cart`; the cart lives in browser (Relay/UI) state and `checkout` takes line items. The endpoint stays in the contract as deferred. | Human lead (decided) | `ORD-001`, `CUST-003` |
 | D-3 | Pickup-window source | **DECIDED 2026-10-26 (simple):** add `GET /ordering/pickup-windows?vendorId=` returning deterministic, clock-injected 15-minute slots within a single configured set of hours. **Deferred:** per-vendor hours, per-slot capacity, stock tied to a window, and rules for late or early pickup. Owned by `ordering-service`/`PickupFulfillment`. | Human lead (decided) | `ORD-003`, `CUST-003` |
 | D-4 | Anonymous reads | **ACCEPTED 2026-10-26.** `GET /catalog/listings*` allows anonymous callers for `Published` listings only; everything else requires a token (`CAT-001` acceptance amended by reconciliation note). | Human lead (decided) | `CAT-001`, `PORT-002`, SSR |
-| D-5 | Quantity limits | 1–20 per line, at most 10 lines per order (placeholder bounds, validated in `ordering-service`). | Human lead | `ORD-001` |
-| D-6 | Idempotency scope and retention | `(customerId, key)`; retained for the order's life (key stored on the order), no separate TTL store. | Human lead | `ORD-001`, `ORD-006` |
-| D-7 | Time zone | Store and transmit UTC (ISO 8601 `Z`); display in the vendor's local zone, taken from vendor config. The seed vendors use one fixed zone. | Human lead | `ORD-003`, UI |
-| D-8 | Pickup-window expiry rule | A window is selectable only if its `start` is at least a configured lead time (default 30 min) after the clock; checked again at checkout. | Human lead | `ORD-003` |
-| D-9 | GraphQL ID scheme | Relay global IDs = base64 of `Type:serviceId`, produced and decoded only in the BFF. | Human lead | `PORT-002` schema |
-| D-10 | Stub-payment test hook | A reserved test listing or header triggers `PAYMENT_DECLINED` in non-production only, so the rejected path is testable. | Human lead | `ORD-001`, e2e |
+| D-5 | Quantity limits | **ACCEPTED 2026-10-28, as written.** 1–20 per line, at most 10 lines per order (placeholder bounds, validated in `ordering-service`). | Human lead (decided) | `ORD-001` |
+| D-6 | Idempotency scope and retention | **ACCEPTED 2026-10-28, as written.** `(customerId, key)`; retained for the order's life (key stored on the order), no separate TTL store. | Human lead (decided) | `ORD-001`, `ORD-006` |
+| D-7 | Time zone | **ACCEPTED 2026-10-28, as written.** Store and transmit UTC (ISO 8601 `Z`); display in the vendor's local zone, taken from vendor config. The seed vendors use one fixed zone. | Human lead (decided) | `ORD-003`, UI |
+| D-8 | Pickup-window expiry rule | **ACCEPTED 2026-10-28, as written.** A window is selectable only if its `start` is at least a configured lead time (default 30 min) after the clock; checked again at checkout. | Human lead (decided) | `ORD-003` |
+| D-9 | GraphQL ID scheme | **ACCEPTED 2026-10-28, as written.** Relay global IDs = base64 of `Type:serviceId`, produced and decoded only in the BFF. | Human lead (decided) | `PORT-002` schema |
+| D-10 | Stub-payment test hook | **ACCEPTED 2026-10-28, as written.** A reserved test listing or header triggers `PAYMENT_DECLINED` in non-production only, so the rejected path is testable. | Human lead (decided) | `ORD-001`, e2e |
+
+### Implementation check, 2026-10-28 (D-5 to D-10 against the code at `main` be2d85c plus this branch)
+
+| # | Result | Evidence |
+|---|---|---|
+| D-5 quantity limits | Not implemented, no mismatch (`ordering-service` is an empty scaffold) | `services/ordering-service` has `Program.cs` only |
+| D-6 idempotency | Not implemented, no mismatch. The seed is idempotent, which is a different thing | `Seeder.cs` |
+| D-7 time zone | **Gap:** no vendor time-zone field exists in the vendor model, seed or catalog DTOs. Instants are `DateTimeOffset` in event payloads, which is compatible with UTC. | grep for zone/timezone finds nothing |
+| D-8 window lead time | Not implemented, no mismatch (no pickup-window endpoint yet) | `PickupWindowScheduledPayload` carries `DateTimeOffset` start/end only |
+| D-9 GraphQL IDs | **Mismatch:** the BFF returns raw catalog ids as GraphQL `ID`s (`id: l.id`), and `node(id)` takes a raw listing id. No base64 `Type:serviceId` encoding or decoding exists. The resolver comment says this is deliberate for the slice ("ids are catalog listing ids"). | `services/graphql-bff/src/resolvers.ts:15,44-46` |
+| D-10 payment hook | Not implemented, no mismatch (no payment stub yet) | none |
+| D-1 spillover (not asked) | Catalog REST and GraphQL use integer cents and USD. **Inconsistency:** `PayoutReconciledPayload.NetAmount` is `decimal`, and `data-model-api-contracts.md` still uses unqualified `price` / `priceDelta` / `grossAmount`. | `DomainEventPayloads.cs`; `data-model-api-contracts.md` lines 22-23, 66, 92 |
+
+Follow-ups, not yet scheduled: (a) D-9 needs a code change in the BFF (global ID encode/decode, `Type:serviceId`) before a second node type or any stored/linked ID depends on raw ids; it is a BFF-only change but touches the Relay schema and the web-customer routes. (b) A vendor time-zone field must be added when `ORD-003` lands. (c) `PayoutReconciledPayload` money type and the data-model doc's price names should be reconciled with D-1 (the rename is already announced in contract §4).
 
 ## 12. Next steps
 
-1. Human lead approves or amends §3–§11 (especially D-1 to D-4).
-2. Amend `WI-CAT-001` (anonymous reads), `WI-ORD-001` (no cart endpoint in slice), and `WI-ORD-003` (window endpoint) with dated reconciliation notes.
-3. Move §4 and §5 into `data-model-api-contracts.md` as a "First-slice mapping" section (this is the pass-2 item in `WI-PORT-006`), then keep this file as the slice-scope record.
-4. Start `WI-CAT-001` against §4, and `WI-PORT-001` in parallel.
+1. ~~Human lead approves or amends §3–§11~~ **Done**: D-1 to D-4 2026-10-26, D-5 to D-10 2026-10-28.
+2. ~~Amend `WI-CAT-001`, `WI-ORD-001`, `WI-ORD-003` with dated reconciliation notes.~~ **Done 2026-10-26.**
+3. Move §4 and §5 into `data-model-api-contracts.md` as a "First-slice mapping" section (this is the pass-2 item in `WI-PORT-006`), then keep this file as the slice-scope record. **Open.**
+4. ~~Start `WI-CAT-001` against §4, and `WI-PORT-001` in parallel.~~ **Done** (`CAT-001`, `PORT-001`, and the `PORT-002` skeleton).
