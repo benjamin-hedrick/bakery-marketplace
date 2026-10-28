@@ -4,6 +4,16 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — WI-PORT-002 walking skeleton built (branch `feature/WI-PORT-002-walking-skeleton`, PR pending)**
+
+New `services/graphql-bff` (graphql-js, typed catalog client, safe error mapping, traceparent propagation, 16 tests). `web-customer` SSR now starts a per-request `traceparent`. Ran the whole real stack (Compose, seed, catalog-service on Cosmos and Redis, BFF, Next.js): Playwright smoke 5/5, and one trace id seen in both the BFF and catalog-service logs. Schema moved to `services/graphql-bff/schema/`. Added `azure-pipelines.yml` (**not run**) and a Development logging setting for catalog-service.
+- Not done: OpenTelemetry/trace viewer (`PORT-005`), CI proof (`PORT-003`), friendly error pages, auth, `pickupWindows`/`order`/`placeOrder`.
+- PORT-001 mock e2e re-run: 6/6. Isolation test not re-run.
+
+Evidence: `docs/evidence/WI-PORT-002/findings.md`.
+
+---
+
 **2026-10-27 — Cleanup after WI-DEV-004 (PR #1 merged)**
 
 - `_incoming/` emptied: every packet file had a live counterpart (ADRs 0012–0016, `WI-PORT-001`–`007`, `docs/management/portfolio-slice/00`–`08`) except the reconciliation register, which moved to `docs/management/portfolio-slice/01-reconciliation-register.md` as the `WI-PORT-006` pass 2 checklist. Folder removed with it; recreate when a new packet arrives.

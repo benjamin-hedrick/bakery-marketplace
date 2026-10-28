@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { buildSchema, graphql } from 'graphql';
 import { fixtures } from './fixtures.mjs';
 
-const schema = buildSchema(readFileSync(fileURLToPath(new URL('../schema/schema.graphql', import.meta.url)), 'utf8'));
+const schema = buildSchema(readFileSync(fileURLToPath(new URL('../../../services/graphql-bff/schema/schema.graphql', import.meta.url)), 'utf8'));
 let revision = 0;
 
 const money = (cents) => ({ cents, currency: 'USD' });

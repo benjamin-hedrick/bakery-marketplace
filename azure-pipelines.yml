@@ -1,0 +1,69 @@
+# Minimum Azure Pipelines build for WI-PORT-002 (ADR-0015). UNVERIFIED: written but never run on Azure DevOps.
+# WI-PORT-003 owns the quality baseline (required checks, caching, reports); this file only runs what already exists locally.
+# Not run here: the walking-skeleton Playwright smoke (needs Docker Compose, the seed and three processes) and the
+# Redis/Cosmos adapter tests (they need the Compose stack and fall back to fakes without it).
+# .github/workflows/ci.yml stays as the placeholder until ADR-0015's exit criteria are met.
+trigger:
+  branches:
+    include: [main]
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  NODE_VERSION: '24.x'
+
+jobs:
+  - job: dotnet
+    displayName: .NET build and tests
+    steps:
+      - task: UseDotNet@2
+        displayName: .NET SDK (the .slnx format needs a recent SDK; projects still target net8.0)
+        inputs:
+          version: '10.0.x'
+      - script: dotnet build BakeryMarketplace.slnx --configuration Release
+        displayName: Build
+      - script: dotnet test tools/BakeryMarketplace.slnx --configuration Release --logger trx --results-directory $(Agent.TempDirectory)/trx
+        displayName: Test shared libraries
+      - script: dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release --logger trx --results-directory $(Agent.TempDirectory)/trx
+        displayName: Test catalog-service
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFormat: VSTest
+          testResultsFiles: '$(Agent.TempDirectory)/trx/*.trx'
+
+  - job: bff
+    displayName: GraphQL BFF
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(NODE_VERSION)
+      - script: npm ci
+        workingDirectory: services/graphql-bff
+        displayName: Install
+      - script: npm run typecheck
+        workingDirectory: services/graphql-bff
+        displayName: Typecheck
+      - script: npm test
+        workingDirectory: services/graphql-bff
+        displayName: Test
+
+  - job: web
+    displayName: web-customer
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(NODE_VERSION)
+      - script: npm ci
+        workingDirectory: apps/web-customer
+        displayName: Install
+      - script: npm run typecheck
+        workingDirectory: apps/web-customer
+        displayName: Typecheck (runs relay-compiler first)
+      - script: npm run build
+        workingDirectory: apps/web-customer
+        displayName: Build

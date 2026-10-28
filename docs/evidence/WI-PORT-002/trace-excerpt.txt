@@ -1,0 +1,13 @@
+# Raw trace evidence, one SSR page load (2026-10-28)
+
+## graphql-bff log line
+{"level":"info","msg":"graphql request","traceId":"a86eced6ff212d65e95224f45877e5c4","spanId":"d956d5cc6318f299","continuedTrace":true,"operation":null,"ok":true,"durationMs":32}
+
+## catalog-service request log (Development console scopes)
+Request finished HTTP/1.1 GET http://localhost:5200/catalog/listings?limit=1 - 200 - application/json;+charset=utf-8 29.8612ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+=> SpanId:293dc045122e3011, TraceId:a86eced6ff212d65e95224f45877e5c4, ParentId:d956d5cc6318f299 => ConnectionId:0HNPKI1ATIPDG => RequestPath:/catalog/listings RequestId:0HNPKI1ATIPDG:00000001
+Request starting HTTP/1.1 GET http://localhost:5200/catalog/listings?limit=20 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+=> SpanId:293dc045122e3011, TraceId:a86eced6ff212d65e95224f45877e5c4, ParentId:d956d5cc6318f299 => ConnectionId:0HNPKI1ATIPDG => RequestPath:/catalog/listings RequestId:0HNPKI1ATIPDG:00000001
+Request finished HTTP/1.1 GET http://localhost:5200/catalog/listings?limit=20 - 200 - application/json;+charset=utf-8 27.0110ms

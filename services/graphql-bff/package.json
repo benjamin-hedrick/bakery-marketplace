@@ -1,0 +1,20 @@
+{
+  "name": "@bakery/graphql-bff",
+  "version": "0.0.0",
+  "private": true,
+  "description": "GraphQL BFF (ADR-0013): composition and safe error mapping only. Business rules stay in the C# services.",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "graphql": "16.14.2"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.9",
+    "typescript": "5.9.3"
+  }
+}

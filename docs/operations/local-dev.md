@@ -59,6 +59,23 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | The Cosmos emulator over HTTPS, Linux/macOS hosts, and Docker Desktop on other machines | **Not verified** |
 | Emulator persistence across `down`, resource usage under load, startup time on a cold pull | **Not measured** |
 
+## Run the walking skeleton (WI-PORT-002)
+
+Four processes on the host after `docker compose up` and the seed below. From the repo root (the emulator key is the documented public one):
+
+```
+export Cosmos__ConnectionString="AccountEndpoint=http://localhost:8081/;AccountKey=<emulator key>"
+dotnet run --project tools/BakeryMarketplace.Seed
+ASPNETCORE_ENVIRONMENT=Development Data__Backend=cosmos Events__Backend=redis ASPNETCORE_URLS=http://localhost:5200 \
+  dotnet run --project services/catalog-service/src                                  # terminal 1
+(cd services/graphql-bff && npm ci && CATALOG_URL=http://localhost:5200 npm start)   # terminal 2, port 4100
+(cd apps/web-customer && npm ci && GRAPHQL_URL=http://localhost:4100/graphql npm run build \
+  && GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3000)                 # terminal 3
+(cd apps/web-customer && npm run test:skeleton)                                        # Playwright smoke
+```
+
+`GRAPHQL_URL` is read at build time (the `/api/graphql` rewrite) and at run time (SSR), so set it for both. Trace ids appear in the BFF's JSON log and in catalog-service's console log in Development (`TraceId:` in the scope). Evidence: `docs/evidence/WI-PORT-002/`.
+
 ## Seeding
 
 ```
