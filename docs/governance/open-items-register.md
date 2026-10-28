@@ -6,7 +6,7 @@ Suggested Issue fields per item: Title, Type, Source, Suggested hat/owner, Notes
 
 ---
 
-**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 65 came from the 2026-10-28 session.
+**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 67 came from the 2026-10-28 session.
 
 **1. Redis Basic tier has no AAD data-plane auth**
 Type: Tech debt / future work · Source: ADR-0002 · Hat: Architect
@@ -250,9 +250,9 @@ Customer sign-up is hosted by the identity provider (ADR-0006) and preferences a
 Type: Possible future feature (watch) · Source: stock review with the human lead (2026-10-28) · Hat: Product
 Today a cancelled order's stock is released back to the counter (ADR-0017). A prepared, especially customized, item may not be returnable to regular inventory, and day-old goods, seconds and defects are real bakery cases. For now they are assumed removed from stock and handled outside this system (vendors adjust the counter). Revisit special handling (a release-with-hold or write-off option, a seconds listing, day-old discounts) once vendors report it; it touches cancellation, stock and possibly pricing.
 
-**62. Service-to-service authentication for stock reservation, and orphaned reservations** — **Direction chosen 2026-10-28; credential type pending**
+**62. Service-to-service authentication for stock reservation, and orphaned reservations** — **Local path built and used 2026-10-28; DEV credential and cleanup pending**
 Type: Auth decision (human approval required) · Source: ADR-0017 (2026-10-28) · Hat: Architect, Security
-The human lead chose OAuth2 client credentials. ADR-0018 (Proposed) defines the identity model (client id, app roles such as `Stock.Reserve` in `roles`), the required changes (mock issuer, shared Auth library, catalog, ordering, local secret tooling, DEV app registrations) and the verification list that decides the DEV credential (federated identity credential, else a Key Vault secret). Work item `WI-AUTH-006`; blocks `CAT-006`. Phase 1 (local) is built (2026-10-28): the mock issuer's `client_credentials` branch used to authenticate no client and return a user token (including Admin) for any `mock_user_id`; it now authenticates registered clients and the shortcut is removed. Still undecided: cleaning up a reservation whose order was never saved (age rule, who runs it).
+OAuth2 client credentials was chosen. `WI-AUTH-006` phase 1 (mock issuer, shared library, local secret tooling) and `WI-CAT-006` (the endpoints) are built, and a real token called the real endpoints end to end. Still open: phase 2 (Entra app registrations, the privileged app-role assignment, the DEV credential per ADR-0018's verification list); the `ordering-service` caller (`ORD-001`); and cleanup of a reservation whose order was never saved (a crash between reserving and saving the order): the age rule and who runs it. Reservation records are kept after release (see item 66).
 
 **63. Vendors cannot read their own listings**
 Type: Missing API · Source: `WI-CAT-005` (2026-10-28) · Hat: Engineering/Build
@@ -265,4 +265,12 @@ The catalog REST responses now carry `stock`, but the BFF schema (`services/grap
 **65. Emulator concurrency tests do not run in CI**
 Type: Verification gap · Source: `WI-CAT-005` (2026-10-28) · Hat: Platform Engineering
 The Cosmos variant of the concurrency contract tests needs `COSMOS_CONNECTION_STRING` and a running emulator, so the pipeline reports them as skipped; the fake variant runs everywhere. Add an emulator step to the pipeline's integration job when one exists (related to items 31 and 35). The new test class also adds one analyzer warning (CA1001, the same pattern as the existing Cosmos tests).
+
+**66. Reservation records share the `catalog` container and are never cleaned up**
+Type: Design follow-up · Source: `WI-CAT-006` (2026-10-28) · Hat: Architect, Platform Engineering
+A reservation is stored beside the listings (same container and partition, so one transactional batch can cover both). Consequences to handle: released and long-finished reservations accumulate (add a TTL or a cleanup job once order lifecycle is wired); a future unfiltered query of `ListingDocument` over a partition would also return reservation records, because there is no document-type discriminator on listings (the current queries filter on `status`, which reservations do not have, and public browse was checked on the real store); and old reservations are the evidence needed to reconcile orphans (item 62).
+
+**67. A release adds quantity to whatever the counter is now**
+Type: Accepted edge case · Source: `WI-CAT-006` (2026-10-28) · Hat: Product
+If a vendor sets an absolute quantity after an order reserved stock, a later release adds the reserved units back on top of the vendor's number. ADR-0017 accepts that a vendor-set value overrides reservations made since they last looked; the reverse (a release after a manual reset) is the same trade. Revisit with item 61 (special handling of prepared or defective items).
 
