@@ -48,7 +48,7 @@ The Order is fulfillment-agnostic and talks to a fulfillment strategy only throu
 
 ## Order action endpoints (draft, approved 2026-10-28 to be iterated)
 
-Implemented by `WI-ORD-007`; they call the aggregate's methods and nothing else.
+Implemented by `WI-ORD-007` (2026-10-28); they call the aggregate's methods and nothing else. As built: a refused or repeated action is `409` with the current status; a non-owner gets `404`; `decline` and every cancel release the held stock after the order is saved; `complete` is a direct vendor command until `PickupFulfillment` (`ORD-003`) takes it over.
 
 | Action | Endpoint | Caller | Transition |
 |---|---|---|---|
