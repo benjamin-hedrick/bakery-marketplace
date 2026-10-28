@@ -1,5 +1,6 @@
 import { Environment, Network, RecordSource, Store } from 'relay-runtime';
 import type { FetchFunction } from 'relay-runtime';
+import { exportClientSpan } from './otlp';
 
 // Relay has no public name for its serialized record map, so derive it from the constructor.
 export type RelayRecords = NonNullable<ConstructorParameters<typeof RecordSource>[0]>;
@@ -11,15 +12,47 @@ function randomHex(bytes: number): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-function makeFetch(url: string, headers: Record<string, string> = {}): FetchFunction {
+/** Server only: one trace per environment (ADR-0016); every call gets its own span id, sent as the BFF's parent. */
+interface Tracing {
+  traceId: string;
+  endpoint: string | undefined;
+}
+
+function makeFetch(url: string, headers: Record<string, string> = {}, tracing?: Tracing): FetchFunction {
   return async (params, variables) => {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...headers },
-      body: JSON.stringify({ query: params.text, variables }),
-    });
-    if (!res.ok) throw new Error(`GraphQL request failed: ${res.status}`);
+    const startedAtMs = Date.now();
+    const started = performance.now();
+    const spanId = randomHex(8);
+    const traceHeaders: Record<string, string> = tracing ? { traceparent: `00-${tracing.traceId}-${spanId}-01` } : {};
+    const done = (statusCode: number | undefined, failed: boolean) => {
+      if (!tracing) return;
+      const durationMs = performance.now() - started;
+      exportClientSpan(tracing.endpoint, {
+        traceId: tracing.traceId,
+        spanId,
+        startedAtMs,
+        durationMs,
+        statusCode,
+        failed,
+      });
+    };
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...headers, ...traceHeaders },
+        body: JSON.stringify({ query: params.text, variables }),
+      });
+    } catch (e) {
+      done(undefined, true);
+      throw e;
+    }
+    if (!res.ok) {
+      done(res.status, true);
+      throw new Error(`GraphQL request failed: ${res.status}`);
+    }
     const json = await res.json();
+    done(res.status, !!json.errors?.length);
     if (json.errors?.length) {
       throw new Error(`GraphQL errors: ${json.errors.map((e: { message: string }) => e.message).join('; ')}`);
     }
@@ -33,9 +66,9 @@ function makeFetch(url: string, headers: Record<string, string> = {}): FetchFunc
  */
 export function createServerEnvironment(headers: Record<string, string> = {}): Environment {
   // One trace per SSR request (ADR-0016): the BFF continues it and passes it on to the services. W3C `traceparent` only.
-  const traceparent = `00-${randomHex(16)}-${randomHex(8)}-01`;
+  const tracing = { traceId: randomHex(16), endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT };
   return new Environment({
-    network: Network.create(makeFetch(SERVER_GRAPHQL_URL, { ...headers, traceparent })),
+    network: Network.create(makeFetch(SERVER_GRAPHQL_URL, headers, tracing)),
     store: new Store(new RecordSource()),
   });
 }
