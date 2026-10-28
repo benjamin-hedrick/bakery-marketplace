@@ -36,3 +36,11 @@ Logging 3/3; Eventing 16/16 (Redis really reached); BFF 20/20 (new: span export,
 ## Collector (added 2026-10-28)
 
 `infra/otel-collector/{local,local-jaeger,cloud}.yaml` pass `otelcol-contrib validate` (0.164.0; `cloud.yaml` with a dummy connection string). Run locally: catalog-service and the BFF exported OTLP/HTTP to the collector (:4328), which delivered the same two-hop trace to both the Aspire dashboard and Jaeger 2.22.0, with `url.query` removed. A first attempt failed: the collector's default gzip made the Aspire OTLP/HTTP endpoint answer 500, fixed with `compression: none`. Not run: the `azuremonitor` exporter against a real Application Insights resource; the collector in Azure.
+
+## Next.js span, log correlation, consumer spans (added 2026-10-28)
+
+- **Three tiers in one trace.** Dashboard, catalog-service, BFF and the Next.js server (`next start`, built with `GRAPHQL_URL` at the BFF) all exporting to Aspire; one `GET /` produced `web-customer POST graphql (BFF)` (no parent, span `9d402bc2ec953adb`) → `graphql-bff POST /graphql` (parent `9d402bc2ec953adb`) → `catalog-service GET /catalog/listings/` (parent `da306da67a59f174`, the BFF span). A browser-supplied `traceparent` is still never adopted.
+- **Log correlation (catalog-service).** With `traceparent: 00-7bf92f35...` sent, the console log lines for the request carry `TraceId:7bf92f3577b34da6a3ce929d0e0e4736` and `ParentId:00f067aa0ba902b7` (ASP.NET Core activity scopes, shown because `IncludeScopes` is on in the Development config). A request without `traceparent` gets its own TraceId.
+- **Event consumer spans.** `CatalogService.Tests/TracingTests.cs`: the service host subscribes to the `BakeryMarketplace.Eventing` activity source, and a `VendorVerified` handled by the real subscription path produces a `Consumer` activity on a new trace linked to the publisher's trace. The response `X-Correlation-Id` equals the inbound trace id and an inbound `X-Correlation-Id` is ignored. Catalog tests 34/34.
+- **Regression check after the web change:** typecheck, lint, Prettier; mock e2e 6/6; SSR isolation 200/200 (after rebuilding `.next` without `GRAPHQL_URL`, open item 43).
+- Not done: log export; page-render span; skeleton smoke with tracing; Azure; `cloud.yaml` against Application Insights.

@@ -95,7 +95,7 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4328 OTEL_EXPORTER_OTLP_PROT
 ```
 
 Services export only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Traces are kept in memory and lost when the dashboard restarts. The dashboard has no password locally, so it is bound to 127.0.0.1.
-Gaps: the Next.js server does not export its own span yet, so a browser-driven trace starts at the BFF with a parent that the dashboard never received; the BFF exports one span per successful GraphQL request (not for 400/404); no log export, traces only.
+The Next.js server exports a client span for its call to the BFF (also given `OTEL_EXPORTER_OTLP_ENDPOINT`), so a page load shows web-customer → graphql-bff → catalog-service. Gaps: the BFF exports one span per successful GraphQL request (not for 400/404); the page render itself has no span; no log export, traces only.
 
 ## Seeding
 

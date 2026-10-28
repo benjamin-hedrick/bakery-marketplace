@@ -146,9 +146,9 @@ The vNext emulator needs Cosmos SDK 3.63.x or newer (3.38.1 and 3.50.0 throw whi
 Type: Test isolation / verification gap · Source: `WI-PORT-003` (2026-10-28) · Hat: Platform Engineering
 `RedisStreamsEventTransportTests` pass on a fresh Redis and `DuplicateEventId_IsDeliveredTwice_ConsumerObservesBoth` fails on an immediate re-run (state left in streams or consumer groups). Separately, with the default `localhost:6379` the Redis cache and event tests connected nothing on the Windows dev machine and ran against in-memory fakes while reporting green; `127.0.0.1:6379` reaches Redis. **Update 2026-10-28:** the test-isolation half is fixed (per-test event types in `EventTransportContractTests`; 5 consecutive runs on one Redis pass; it had become a frequent failure after the .NET 10 upgrade). The silent fallback to fakes remains. CI sidesteps that (fresh container, `127.0.0.1`, and `scripts/ci/redis-touch.mjs` fails the job if Redis saw too few commands). Not fixed: needs per-test stream/group names or cleanup, and an explicit failure instead of a fallback when Redis is expected. Related: #31, finding A8.
 
-**36. BFF exports traces with a hand-rolled OTLP/JSON exporter, not the Node SDK**
+**36. The Node tiers export traces with hand-rolled OTLP/JSON, not the Node SDK**
 Type: Decision deviation · Source: `WI-PORT-005` (2026-10-28), ADR-0016 item 1 · Hat: Platform Engineering
-`services/graphql-bff/src/otlp.ts` posts one server span per successful request; the BFF already owns its trace context (`trace.ts`), and the SDK would need ESM loader hooks. Reconcile by either adopting the OpenTelemetry Node SDK (spans for the catalog client call too) or amending ADR-0016 to accept the exporter. Until then it is small and replaceable. Also: no span for 400/404 responses.
+`services/graphql-bff/src/otlp.ts` (one server span per successful request) and `apps/web-customer/src/lib/relay/otlp.ts` (one client span per BFF call) are two copies of the same small exporter. Each tier already owns its trace context by hand, the SDK would need ESM loader hooks (BFF), and `@vercel/otel` adds seven peer dependencies (web). Reconcile by adopting the OpenTelemetry Node SDK in both (which also adds a catalog-client span and a page-level SSR span) or amending ADR-0016 to accept the exporters. Gaps: no span for 400/404 BFF responses; the web tier has no span for the page render as a whole.
 
 **37. Cloud trace pipeline is decided but not built**
 Type: Open work / cost · Source: ADR-0016 amendment (2026-10-28) · Hat: Architect, Platform Engineering
@@ -156,7 +156,7 @@ Decided: Application Insights for DEV, UAT and Prod through an OpenTelemetry Col
 
 **38. The catalog span records `url.query`**
 Type: Data-safety follow-up · Source: `WI-PORT-005` evidence (2026-10-28), ADR-0016 item 6 · Hat: Security / Platform Engineering
-Fine for pagination parameters. The collector configs delete `url.query` and `http.url` centrally (verified through Jaeger and Aspire locally); direct export to Aspire and the BFF's own span do not go through it. Decide whether the services should also drop it at the source before search or preference endpoints exist.
+Fine for pagination parameters. The collector configs delete `url.query` and `http.url` centrally (verified through Jaeger and Aspire locally); direct export to Aspire and the BFF's own span do not go through it. Decide whether the services should also drop it at the source before search or preference endpoints exist. Also: with `Microsoft.AspNetCore.Hosting.Diagnostics` at Information (the Development setting), the catalog's console log prints the full request URL including the query string.
 
 **39. No vendor time-zone field exists (D-7)**
 Type: Contract gap · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build
@@ -170,9 +170,9 @@ Type: Contract inconsistency · Source: first-slice contract implementation chec
 Type: Open decision · Source: D-9 fix (2026-10-28) · Hat: Architect
 Only `Listing.id` is a global ID. `vendorId`, `Modifier.id` and pagination cursors stay raw service ids. Confirm, especially for `vendorId` as the argument of the future `pickupWindows` query.
 
-**42. Tracing gaps in the walking skeleton**
+**42. Remaining tracing gaps in the walking skeleton**
 Type: Verification gap · Source: `WI-PORT-005` evidence (2026-10-28) · Hat: Platform Engineering
-The Next.js server does not export a span, so browser-driven traces start at the BFF; no event-consumer span has a listener in any service; log lines were not checked for `TraceId` in the C# services; no log export; the skeleton smoke was not run with tracing on.
+Done 2026-10-28: Next.js server span (a three-tier trace shows in Aspire), catalog event-consumer spans (tested), TraceId in the catalog's console log scopes. Still open: scopes appear in the console only because `IncludeScopes` is set in the Development config, so deployed environments need structured log export; no log export; `GetServerSideProps` page render has no span; the skeleton smoke was not run with tracing on; no consumer span has been seen in a dashboard (no event is published during a request yet).
 
 **43. Mock e2e and the skeleton smoke share `.next`**
 Type: Test isolation · Source: e2e investigation (2026-10-28) · Hat: Platform Engineering

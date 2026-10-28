@@ -4,6 +4,14 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — WI-PORT-005: collector, Next.js span, catalog tracing tests (branch `feature/slice-followups`)**
+
+Decisions by the human lead: Application Insights for DEV; collector in scope now; Jaeger opt-in for UAT/Prod (ADR-0016 amendment rewritten: Application Insights stays the cloud backend, reached through the collector). Built: `infra/otel-collector/` (local, local+Jaeger, cloud with `azuremonitor`; all pass `otelcol-contrib validate` 0.164.0), compose profiles `collector` and `jaeger` (Jaeger 2.22.0); the same trace reached Aspire and Jaeger through the collector with `url.query` removed (first try failed: gzip vs Aspire OTLP/HTTP, fixed). Next.js server exports a client span; catalog tests 34/34 (consumer span linked to publisher, correlation id = trace id).
+- Verified locally: web-customer → graphql-bff → catalog-service as one trace in Aspire; mock e2e 6/6; isolation 200/200; typecheck, lint, Prettier. Not verified: the Azure Monitor exporter against Application Insights, anything on Azure, skeleton smoke with tracing.
+- Register items 36 to 49 added earlier; 36, 37, 38 and 42 updated.
+
+---
+
 **2026-10-28 — WI-PORT-005 phase 1: OTLP export to the local Aspire dashboard (branch `feature/slice-followups`)**
 
 Decided by the human lead: Aspire locally, Jaeger for UAT/Prod, DEV undecided. Recorded as an ADR-0016 amendment and in `tech-stack.md`. Open for the human lead: whether Jaeger replaces Application Insights in the cloud or runs alongside it, and who hosts it and where traces are stored (not in the budget estimate).
