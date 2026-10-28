@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using BakeryMarketplace.Data;
 using OrderingService.Domain;
 
@@ -9,6 +10,10 @@ public sealed record StoredOrder(Order Order, OrderDocument Document);
 /// <summary>
 /// Stores orders through <see cref="IRepository{T}"/> in the <c>orders</c> container, partitioned by customer (WI-ORD-006, ADR-0004).
 /// Creation is create-only and every later write is conditional on the ETag that was read, so two requests can never both win.
+/// <para>
+/// The events an order raises are written into the same document as the state change (the outbox, WI-ORD-005), never separately, so an
+/// order and its pending events cannot disagree. Callers publish them afterwards and then call <see cref="TryMarkPublishedAsync"/>.
+/// </para>
 /// </summary>
 public sealed class OrderStore(IRepository<OrderDocument> documents)
 {
@@ -19,20 +24,60 @@ public sealed class OrderStore(IRepository<OrderDocument> documents)
         return document is null ? null : new StoredOrder(document.ToOrder(), document);
     }
 
-    /// <summary>Stores a new order. Returns null when an order with that id already exists (a concurrent or repeated create).</summary>
+    /// <summary>Stores a new order and its raised events together. Returns null when an order with that id already exists (a concurrent or repeated create).</summary>
     public async Task<StoredOrder?> TryCreateAsync(
         Order order, string idempotencyKey, string requestFingerprint, CancellationToken ct = default)
     {
-        var saved = await documents.SaveIfUnchangedAsync(OrderDocument.From(order, idempotencyKey, requestFingerprint), order.CustomerId, ct);
+        var document = OrderDocument.From(order, idempotencyKey, requestFingerprint);
+        document.SetOutbox(NewEntries(order));
+        var saved = await documents.SaveIfUnchangedAsync(document, order.CustomerId, ct);
         return saved is null ? null : new StoredOrder(order, saved);
     }
 
-    /// <summary>Stores the order's new state only if nobody changed the stored order since <paramref name="current"/> was read.</summary>
+    /// <summary>
+    /// Stores the order's new state and the events it raised since it was read, only if nobody changed the stored order meanwhile. Events
+    /// already pending stay pending.
+    /// </summary>
     public async Task<StoredOrder?> TryUpdateAsync(StoredOrder current, Order updated, CancellationToken ct = default)
     {
         var document = OrderDocument.From(updated, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
         document.ETag = current.Document.ETag;
+        document.SetOutbox(current.Document.Outbox.Concat(NewEntries(updated)));
         var saved = await documents.SaveIfUnchangedAsync(document, updated.CustomerId, ct);
         return saved is null ? null : new StoredOrder(updated, saved);
+    }
+
+    /// <summary>
+    /// Removes events the backbone has accepted from the outbox. Returns null when the order changed since it was read (the caller re-reads and
+    /// tries again); removing events that are already gone is not an error.
+    /// </summary>
+    public async Task<StoredOrder?> TryMarkPublishedAsync(StoredOrder current, IReadOnlyCollection<string> publishedEventIds, CancellationToken ct = default)
+    {
+        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
+        document.ETag = current.Document.ETag;
+        document.SetOutbox(current.Document.Outbox.Where(e => !publishedEventIds.Contains(e.EventId)));
+        var saved = await documents.SaveIfUnchangedAsync(document, current.Order.CustomerId, ct);
+        return saved is null ? null : new StoredOrder(current.Order, saved);
+    }
+
+    /// <summary>
+    /// Orders whose oldest pending event is at or before <paramref name="pendingBefore"/>. Looks across every
+    /// customer's partition, so it is for the background relay only, never a request path.
+    /// </summary>
+    public async Task<IReadOnlyList<StoredOrder>> FindPendingAsync(DateTimeOffset pendingBefore, int take, CancellationToken ct = default)
+    {
+        var cutoff = pendingBefore.ToUnixTimeMilliseconds();
+        var found = new List<StoredOrder>();
+        await foreach (var document in documents.QueryAsync("", q => q.Where(d => d.PendingSince <= cutoff).Take(take), ct))
+        {
+            found.Add(new StoredOrder(document.ToOrder(), document));
+        }
+        return found;
+    }
+
+    private static List<OutboxEntryDocument> NewEntries(Order order)
+    {
+        var traceparent = Activity.Current is { IdFormat: ActivityIdFormat.W3C } activity ? activity.Id : null;
+        return order.DequeueEvents().Select(e => OutboxEntryDocument.From(order.Id, e, traceparent)).ToList();
     }
 }

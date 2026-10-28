@@ -50,7 +50,26 @@ public sealed class OrderDocument : IETagged
     /// <summary>A hash of the checkout request, so the same key with a different request is recognised (422 <c>idempotency_key_reuse</c>).</summary>
     [JsonProperty("requestFingerprint", NullValueHandling = NullValueHandling.Ignore)] public string? RequestFingerprint { get; set; }
 
+    /// <summary>Events raised but not yet confirmed published (open item 68). Omitted from the stored JSON when empty.</summary>
+    [JsonProperty("outbox")] public List<OutboxEntryDocument> Outbox { get; set; } = new();
+
+    public bool ShouldSerializeOutbox() => Outbox.Count > 0;
+
+    /// <summary>
+    /// When the oldest pending event happened, in UTC milliseconds since the Unix epoch; **absent when nothing is pending**. Cosmos indexes
+    /// only the properties a document has, so while this is absent on almost every order the index is effectively sparse and the relay's
+    /// "anything pending?" query costs in proportion to what it finds, not to the number of orders. It also gives the relay its grace period.
+    /// </summary>
+    [JsonProperty("pendingSince", NullValueHandling = NullValueHandling.Ignore)] public long? PendingSince { get; set; }
+
     [JsonProperty("_etag", NullValueHandling = NullValueHandling.Ignore)] public string? ETag { get; set; }
+
+    /// <summary>Replaces the outbox and keeps <see cref="PendingSince"/> in step with it.</summary>
+    public void SetOutbox(IEnumerable<OutboxEntryDocument> entries)
+    {
+        Outbox = entries.OrderBy(e => e.SequenceNumber).ToList();
+        PendingSince = Outbox.Count == 0 ? null : Outbox.Min(e => e.OccurredAt).ToUnixTimeMilliseconds();
+    }
 
     public static OrderDocument From(Order order, string? idempotencyKey = null, string? requestFingerprint = null)
     {
