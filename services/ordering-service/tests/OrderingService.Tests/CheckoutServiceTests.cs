@@ -160,6 +160,32 @@ public class CheckoutServiceTests
         Assert.Empty(f.Catalog.ReleaseCalls); // the winner's reservation must never be released by a loser
     }
 
+    [Fact]
+    public async Task ALostRaceNeverReleasesTheWinnersStock_EvenIfLookingUpTheWinnerFails()
+    {
+        var f = new CheckoutFixture();
+        f.Repository.ConflictOnNextCreate = true; // someone else created this exact order first
+        f.Repository.FailReadsAfterConflict = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.CheckoutAsync());
+
+        Assert.Empty(f.Catalog.ReleaseCalls); // the reservation belongs to the order the winner created
+    }
+
+    [Fact]
+    public async Task ALostRaceAnswersWithTheWinnersOrder()
+    {
+        var f = new CheckoutFixture();
+        var key = NewKey();
+        var winner = await f.CheckoutAsync(key: key);
+        f.Repository.ConflictOnNextCreate = true;
+
+        // Same key again, but pretend the existence check was passed before the winner wrote: the store reports the conflict.
+        var loser = await f.Service.CheckoutAsync("customer-1", key, Seed.Request(), false);
+
+        Assert.Equal(winner.Order!.Order.Id, loser.Order!.Order.Id);
+    }
+
     // ---- request errors (422) ------------------------------------------------------------------------
 
     public static IEnumerable<object?[]> BadRequests() =>
