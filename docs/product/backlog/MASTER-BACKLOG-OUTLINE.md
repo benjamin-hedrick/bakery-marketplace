@@ -51,7 +51,7 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 |---|---|---|---|
 | `WI-ORD-004` | Interface/Contract | `FulfillmentStrategy` seam (ACL boundary, ADR-0001) | `DEV-001` |
 | `WI-CAT-001` | Service Implementation | Listing CRUD + modifier/allergy model | `DATA-002`, `EVT-003`, `AUTH-002`, `DEV-001` |
-| `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | **Built 2026-10-28, pending review/merge** (branch `feature/slice-ordering`): in-memory aggregate, 153 local tests, not run on Azure. Lifecycle changed from the spec after a review with the human lead: `docs/architecture/order-lifecycle.md` |
+| `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | **Built 2026-10-28, pending review/merge** (branch `feature/slice-ordering`): in-memory aggregate, 114 local tests, not run on Azure. Lifecycle changed from the spec after a review with the human lead: `docs/architecture/order-lifecycle.md` |
 | `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | `ORD-004` |
 | `WI-ORD-006` | Integration | Order persistence via `Repository<T>` | `ORD-002`, `DATA-002` |
 | `WI-ORD-005` | Integration | Publish Order events via event backbone | `ORD-002`, `EVT-003` |
@@ -137,6 +137,8 @@ Scope: Catalog · Primary hat(s): Architect, Engineering/Build · Status: Starte
 - ⚪ CAT-002 (Service Implementation) — Coffee/bakery customization flow (modifier selection UI + validation)
 - ✅ CAT-003 (Integration) — **Detailed, Ready for agents**, see `WI-CAT-003.md` — Consumes `CacheProvider` (EPIC-CACHING) for listing reads. **ADJUSTED (minor) 2026-10-26**: retained as ADR-0014 layer 1; record per-cache contract fields
 - ⚪ CAT-004 (Service Implementation) — Catalog moderation queue hooks (feeds EPIC-ADMIN)
+- 🟢 CAT-005 (Service Implementation) — **Added 2026-10-28**, see `WI-CAT-005.md` — listing stock fields (`availableQuantity`, `maxPerOrder`, `lowStockThreshold`), vendor set/increment/decrement, stock status on reads (ADR-0017)
+- 🟢 CAT-006 (Service Implementation) — **Added 2026-10-28**, see `WI-CAT-006.md` — atomic stock reserve and release endpoints for ordering (ADR-0017); blocked on service-to-service auth (open item 62)
 
 ### EPIC-SEARCH — Search & Discovery
 Scope: Search & Discovery · Primary hat(s): Architect, Digital PM · Status: Started (1 of 3 items detailed, Ready for agents — Batch 6, see `LOCAL-MILESTONES.md` M4) · Hosted in: `catalog-service` (ADR-0009)

@@ -6,7 +6,7 @@ Suggested Issue fields per item: Title, Type, Source, Suggested hat/owner, Notes
 
 ---
 
-**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 60 came from the 2026-10-28 session.
+**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 62 came from the 2026-10-28 session.
 
 **1. Redis Basic tier has no AAD data-plane auth**
 Type: Tech debt / future work · Source: ADR-0002 · Hat: Architect
@@ -206,13 +206,13 @@ Only catalog-service is wired. `ordering-service`, `admin-service` and `notifica
 Type: Process · Source: human lead (2026-10-28) · Hat: Manager/Lead
 The log existed so several asynchronous AI sessions could catch up before the repo and pipeline were complete. Now that git history, PR descriptions, the register and CI exist, it mostly causes conflicts (every branch prepends to the same lines). New entries are paused (CLAUDE.md). Decide: retire it, keep it for milestones only, or generate it from history. Existing entries stay as history.
 
-**51. No inventory or availability model**
-Type: Missing capability · Source: lifecycle review with the human lead (2026-10-28) · Hat: Architect, Engineering/Build
-`Listing` has no available quantity, no make-on-demand flag, no per-order maximum, no availability windows and no per-item rule for whether a pickup window may be requested. Vendors are meant to set all of these. `LowStockDetected` has a payload and a notification consumer but no producer. Needs work items under `EPIC-CATALOG` and the availability decision in item 52. D-5's 1-20 and 10-line bounds are placeholders until per-item maxima exist.
+**51. Availability model: stock decided, windows and per-item pickup rules still open**
+Type: Missing capability · Source: lifecycle review (2026-10-28) · Hat: Architect, Engineering/Build
+Stock is decided by ADR-0017 (`availableQuantity`, `maxPerOrder`, `lowStockThreshold`; `CAT-005`, `CAT-006`). Still missing: availability windows (when an item can be ordered or collected), per-item rules for whether a pickup window may be requested, and per-vendor hours. D-5's 1-20 and 10-line bounds are placeholders until `maxPerOrder` is enforced by checkout.
 
-**52. Who owns stock, and when it is reserved (needs an ADR)** — **Under review 2026-10-28**
-Type: Open decision · Source: lifecycle review (2026-10-28) · Hat: Architect
-Human lead's model so far: an item is added either with an available quantity or as made-to-order; if a quantity is set it is tracked, updated and enforced; vendors edit it like any other item property. Still to decide: the owner of the counter and the reserve/release mechanism across `catalog-service` and `ordering-service` (ADR-0009), and whether quantity is a running counter or tied to a day or pickup window.
+**52. Who owns stock, and when it is reserved** — **Resolved 2026-10-28 by ADR-0017**
+Type: Decision · Source: lifecycle review (2026-10-28) · Hat: Architect
+Catalog owns a running quantity counter (absent = made to order); vendors set or increment/decrement it; ordering reserves at `Place` and releases on any cancellation, atomically per vendor. Follow-ups: items 61 and 62, `CAT-005`, `CAT-006`, and the limited-stock path of `ORD-001`.
 
 **53. Payment timing conflicts with vendor confirmation**
 Type: Decision to amend · Source: lifecycle review (2026-10-28), ADR-0005, `event-storming.md` · Hat: Architect
@@ -238,11 +238,19 @@ Built into the aggregate as decided: the customer may cancel while `Placed` or `
 Type: Reconciliation · Source: lifecycle review (2026-10-28) · Hat: Architect
 D-2 (browser cart) still holds but the cart is conceptually the `Pending` order; D-5 becomes per-item maxima with a global cap; D-8's lead time may be per item or vendor; the walking skeleton's order-status path now needs a vendor confirm action to progress beyond `Placed`. Update `first-slice-contract.md` and `WI-ORD-001`/`003` with dated notes when those items are picked up.
 
-**59. `OrderPlaced` total and overlapping event families** — **Half resolved 2026-10-28**
+**59. `OrderPlaced` total and overlapping event families** — **Resolved 2026-10-28**
 Type: Schema gap · Source: lifecycle review and `WI-ORD-002` (2026-10-28) · Hat: Architect
-Done: `OrderPlacedPayload` has optional `TotalCents` and `Currency`, filled by the aggregate. Open: `FulfillmentContracts.cs` defines fulfillment-agnostic `OrderReadyForFulfillmentPayload` / `OrderFulfillmentCompletedPayload` (ADR-0001's seam, between Ordering and a strategy) next to the glossary's `OrderReadyForPickup` / `OrderCompleted` / `PickupWindowScheduled`. `ORD-002` currently raises the glossary family from the aggregate. A proposal to layer them (seam events between Order and strategy; strategy-specific events raised by the strategy; business facts raised by the Order) is awaiting the human lead's decision; it also settles who completes an order.
+`OrderPlacedPayload` has optional `TotalCents` and `Currency`. The two event families are layers of ADR-0001's design, not duplicates: the Order raises business facts and the seam event `OrderReadyForFulfillment`; `PickupFulfillment` raises `PickupWindowScheduled` and `OrderReadyForPickup` and answers with `OrderFulfillmentCompleted`, which completes the Order (`order-lifecycle.md`). `OrderConfirmed` carries the fulfillment details. Remaining work is in `ORD-003` (spec note added), `ORD-005` and `ORD-007`.
 
 **60. Account-side gaps: vendor staff users and account deletion**
 Type: Low-priority gap · Source: lifecycle review (2026-10-28) · Hat: Architect
 Customer sign-up is hosted by the identity provider (ADR-0006) and preferences and vendor onboarding are covered (`PREF-*`, `VEN-*`). Not modeled: several staff users per vendor (ownership currently compares the token subject to the vendor id) and customer account deletion (`EPIC-DATA-PRIVACY`).
+
+**61. Handling of prepared, day-old, second and defective items**
+Type: Possible future feature (watch) · Source: stock review with the human lead (2026-10-28) · Hat: Product
+Today a cancelled order's stock is released back to the counter (ADR-0017). A prepared, especially customized, item may not be returnable to regular inventory, and day-old goods, seconds and defects are real bakery cases. For now they are assumed removed from stock and handled outside this system (vendors adjust the counter). Revisit special handling (a release-with-hold or write-off option, a seconds listing, day-old discounts) once vendors report it; it touches cancellation, stock and possibly pricing.
+
+**62. Service-to-service authentication for stock reservation, and orphaned reservations**
+Type: Auth decision (human approval required) · Source: ADR-0017 (2026-10-28) · Hat: Architect, Security
+`ordering-service` must call catalog's reserve and release endpoints as a service, not as a user (ADR-0008: catalog validates the caller itself). The mechanism is undecided (a service token via managed identity or client credentials, a service role, how the mock issuer represents it locally). Blocks `CAT-006`. Also undecided: cleaning up a reservation whose order was never saved (a crash between reserve and save): the age rule and who runs it.
 

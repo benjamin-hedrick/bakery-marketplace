@@ -48,7 +48,8 @@ graph LR
 
     C2[ConfirmOrder - vendor]:::command --> A1
     A1 --> E2[OrderConfirmed]:::event
-    A1 --> E3[PickupWindowScheduled]:::event
+    E2 --> P6["Policy: PickupFulfillment schedules the requested window"]:::policy
+    P6 --> E3[PickupWindowScheduled]:::event
     E2 --> P2["Policy: Notification sends confirmation to the customer"]:::policy
     E2 --> S2["Stripe: capture"]:::external
 
@@ -57,11 +58,14 @@ graph LR
     E4 --> P3["Policy: order-status-readmodel updates"]:::policy
     P3 --> RM1[order-status-readmodel]:::readmodel
 
-    C4[MarkReadyForPickup - vendor]:::command --> A1
-    A1 --> E5[OrderReadyForPickup]:::event
+    C4[MarkReady - vendor]:::command --> A1
+    A1 --> E5[OrderReadyForFulfillment]:::event
+    E5 --> P7["Policy: PickupFulfillment tells the customer it is ready"]:::policy
+    P7 --> E8[OrderReadyForPickup]:::event
     E5 --> P3
 
-    C5[CompleteOrder - vendor]:::command --> A1
+    C5[ConfirmPickup - vendor, handled by PickupFulfillment]:::command --> E9[OrderFulfillmentCompleted]:::event
+    E9 --> A1
     A1 --> E6[OrderCompleted]:::event
     E6 --> P4["Policy: eligible for review; triggers payout reconciliation"]:::policy
 

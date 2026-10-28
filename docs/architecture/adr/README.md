@@ -19,6 +19,7 @@ One file per decision: `0001-title.md`, `0002-title.md`, etc. Use a standard ADR
 13. [0014 — Cache Layers](0014-cache-layers.md) — server (ADR-0002, unchanged), Relay store, and HTTP/CDN as three owned layers
 14. [0015 — CI/CD: Azure Pipelines](0015-azure-pipelines-ci-cd.md) — GitHub stays source control; Azure Pipelines authoritative; amends 0007
 15. [0016 — OpenTelemetry + W3C Trace Context](0016-opentelemetry-tracing.md) — `traceparent` is the only propagated correlation mechanism; `X-Correlation-Id` becomes a response alias of the trace ID
+16. [0017 — Stock and Availability Ownership](0017-stock-and-availability-ownership.md) — catalog owns the running quantity counter (absent = made to order); reserve at `Place` in one atomic batch, release on cancel
 
 ## Superseded ADRs
 
