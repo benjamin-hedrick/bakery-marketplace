@@ -36,3 +36,7 @@
 - ADR-0007 — amended (see its amendment note)
 - `tech-stack.md` — CI/CD row
 - `WI-PORT-003`, `EPIC-CI-CD`, open items #14 and #15
+
+## Amendment 2026-10-28: exit criterion 2 waived, placeholder removed
+
+Criterion 1 is met (green Azure run, reported by the human lead). Criterion 3 is met by this change. Criterion 2 (required checks pointing at Azure Pipelines) cannot be met: GitHub rulesets with required status checks need an enterprise plan. Decided by the human lead: the "Azure Pipelines" check (5 checks on a PR) stays a **soft manual gate**. PRs are approved by hand after reading it, and `main` is also gated by a manual pipeline run. `.github/workflows/ci.yml` (check "CI / build-and-test") is removed in this one commit. Consequence: nothing technically stops a merge with a red or missing Azure check. Revisit if the plan changes.

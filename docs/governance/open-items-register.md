@@ -60,7 +60,7 @@ Type: Not started · Source: portfolio-plan.md · Hat: Engineering/Build
 
 **14. CI workflow is still a placeholder**
 Type: Not started · Source: repo scaffold · Hat: Platform Engineering
-`.github/workflows/ci.yml` has no real build/test/deploy stages yet. **2026-10-26**: CI/CD moves to Azure Pipelines (ADR-0015). The real stages are built there (`WI-PORT-003`), and this placeholder is removed in one migration commit (`CI-004`) once ADR-0015's exit criteria are met.
+`.github/workflows/ci.yml` has no real build/test/deploy stages yet. **2026-10-26**: CI/CD moves to Azure Pipelines (ADR-0015). The real stages are built there (`WI-PORT-003`), and this placeholder was removed in one migration commit on 2026-10-28 (`CI-004`, ADR-0015 amendment). The Azure check is a soft manual gate, not a GitHub required check (rulesets need an enterprise plan).
 
 **15. No working ephemeral/preview environment example**
 Type: Not started · Source: tech-stack.md · Hat: Platform Engineering

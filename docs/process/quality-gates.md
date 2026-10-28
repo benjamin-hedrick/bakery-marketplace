@@ -1,6 +1,6 @@
 # Quality gates and CI baseline
 
-`WI-PORT-003`, ADR-0015. What the pipeline (`azure-pipelines.yml`) runs, the exact commands to reproduce each step locally, and what it does **not** cover. **The pipeline has never run on Azure DevOps**; every command below was run locally (see `docs/evidence/WI-PORT-003/findings.md`).
+`WI-PORT-003`, ADR-0015. What the pipeline (`azure-pipelines.yml`) runs, the exact commands to reproduce each step locally, and what it does **not** cover. **The pipeline has run green on Azure DevOps** (reported by the human lead 2026-10-28; run ID not recorded; the deliberate Cosmos-adapter warning remains; not run on `ubuntu-26.04`). Every command below was also run locally (see `docs/evidence/WI-PORT-003/findings.md`).
 
 ## Commands
 
@@ -43,9 +43,9 @@ Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config
 
 Decided 2026-10-28 to save build minutes: **no runs on pushes to any branch, including `main`** (`trigger: none`). It runs on **pull requests into `main`** (not drafts) and **by hand**. To gate `main`, queue it manually: Pipelines → the pipeline → Run pipeline → Branch `main`. A manual run uses the pipeline's *default branch for manual and scheduled builds* unless you pick one, so keep that set to `main` (Edit → ⋯ → Triggers → YAML → Get sources). PR validation stays on so GitHub's required checks (ADR-0015) can point at it.
 
-## Branch protection (manual, not done)
+## Branch protection (soft manual gate)
 
-ADR-0015's exit criteria need GitHub required checks to point at the Azure Pipelines checks and the placeholder `.github/workflows/ci.yml` removed in one migration commit. Both need the Azure DevOps project, the GitHub service connection and a first green run, none of which exist yet. Until then the placeholder stays.
+GitHub rulesets with required checks are not available on this plan (they need an enterprise account), so the Azure Pipelines check (shown on PRs as "Azure Pipelines", 5 checks) is **not enforced**. The human lead reads it and approves the PR by hand, and `main` is also gated by a manual pipeline run. The placeholder `.github/workflows/ci.yml` (check "CI / build-and-test") was removed on 2026-10-28; make sure no branch protection rule still lists it as required, or PRs will wait on it forever. See the ADR-0015 amendment.
 
 ## Evidence format (flake and execution time)
 
