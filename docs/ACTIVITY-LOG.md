@@ -4,6 +4,12 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — Azure Pipelines triggers reduced (branch `chore/pipeline-triggers`, PR pending)**
+
+`trigger: none` (no runs on pushes to any branch or to `main`); PR validation into `main` kept, drafts skipped; `main` is gated by running the pipeline by hand. Chosen by the human lead (over fully manual or approval-gated) so ADR-0015's required-checks criterion stays reachable. Not verified: how Azure treats the changed triggers (first PR run will show it).
+
+---
+
 **2026-10-28 — Pipeline fixes from the first Azure runs; upgrade to .NET 10 (branch `fix/pipeline-results-dir`, PR pending)**
 
 First Azure runs failed on a missing `results` directory (every job now creates it; summarizer reports missing files clearly) and on the agent having only .NET 10 while projects targeted `net8.0`. Human lead approved upgrading to .NET 10: all 21 projects now `net10.0`, JwtBearer/Mvc.Testing/Configuration packages to 10.x, `System.IdentityModel.Tokens.Jwt` 8.19.2, mock OIDC Dockerfile on the 10.0 images, one SDK install in the pipeline. Fixes needed: Seed tool explicit entry point (global `Program` collision), and Eventing contract tests now use per-test event types (they became flaky on a fresh Redis under .NET 10; 4 of 4 passed on .NET 8, 5 of 5 pass now on one Redis). ADR-0010 amended with a dated note.
