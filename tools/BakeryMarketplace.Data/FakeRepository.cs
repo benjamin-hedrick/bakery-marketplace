@@ -34,27 +34,32 @@ public sealed class FakeRepository<T> : IRepository<T> where T : class
         _idSelector = idSelector ?? throw new ArgumentNullException(nameof(idSelector));
     }
 
-    public Task<T?> GetAsync(string id, string partitionKey, CancellationToken ct = default)
+    // Each operation yields before touching the store, like a real network call, so concurrent callers genuinely interleave in tests.
+    // Without it every call completes synchronously and "concurrent" tests would run one request after another.
+    public async Task<T?> GetAsync(string id, string partitionKey, CancellationToken ct = default)
     {
+        await Task.Yield();
         lock (_gate)
         {
             _store.TryGetValue((id, partitionKey), out var entity);
-            return Task.FromResult(entity is null ? null : Copy(entity));
+            return entity is null ? null : Copy(entity);
         }
     }
 
-    public Task<T> SaveAsync(T entity, string partitionKey, CancellationToken ct = default)
+    public async Task<T> SaveAsync(T entity, string partitionKey, CancellationToken ct = default)
     {
+        await Task.Yield();
         lock (_gate)
         {
-            return Task.FromResult(Store(entity, partitionKey));
+            return Store(entity, partitionKey);
         }
     }
 
-    public Task<T?> SaveIfUnchangedAsync(T entity, string partitionKey, CancellationToken ct = default)
+    public async Task<T?> SaveIfUnchangedAsync(T entity, string partitionKey, CancellationToken ct = default)
     {
         if (!Tagged) throw new NotSupportedException($"{typeof(T).Name} does not implement IETagged, so it cannot be saved conditionally.");
 
+        await Task.Yield();
         lock (_gate)
         {
             var key = (_idSelector(entity), partitionKey);
@@ -63,14 +68,14 @@ public sealed class FakeRepository<T> : IRepository<T> where T : class
 
             if (string.IsNullOrEmpty(expected))
             {
-                if (exists) return Task.FromResult<T?>(null); // already created by someone else
+                if (exists) return null; // already created by someone else
             }
             else if (!exists || ((IETagged)current!).ETag != expected)
             {
-                return Task.FromResult<T?>(null); // changed or deleted since it was read
+                return null; // changed or deleted since it was read
             }
 
-            return Task.FromResult<T?>(Store(entity, partitionKey));
+            return Store(entity, partitionKey);
         }
     }
 
