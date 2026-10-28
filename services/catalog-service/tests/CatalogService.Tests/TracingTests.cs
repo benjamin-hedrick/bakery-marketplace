@@ -27,6 +27,29 @@ public sealed class TracingTests : IDisposable
     }
 
     [Fact]
+    public async Task RequestSpansDoNotCarryQueryStringValues()
+    {
+        _factory.CreateClient(); // starts the host, which registers OpenTelemetry
+        var spans = new List<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Microsoft.AspNetCore",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStopped = spans.Add,
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        var response = await _factory.CreateClient().GetAsync("/catalog/listings?limit=2&after=secret-cursor");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var span = Assert.Single(spans, a => a.GetTagItem("url.path") as string == "/catalog/listings");
+        // The instrumentation redacts query values by default (url.query is "?limit=Redacted&after=Redacted"). This guards that
+        // default: it fails if a package change or OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION exposes them.
+        Assert.Equal("?limit=Redacted&after=Redacted", span.GetTagItem("url.query"));
+        Assert.DoesNotContain(span.TagObjects, t => t.Value is string s && s.Contains("secret-cursor"));
+    }
+
+    [Fact]
     public async Task ServiceListensToEventConsumerSpans_AndLinksThemToThePublisher()
     {
         _factory.CreateClient(); // starts the host, which registers OpenTelemetry

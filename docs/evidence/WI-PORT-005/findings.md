@@ -19,7 +19,7 @@ One trace id on all hops; the BFF response carried `x-correlation-id: 4bf92f3577
 - **Inbound `X-Correlation-Id` is not adopted:** catalog-service answered `X-Correlation-Id: d33c32da583e56f12bb2a42930434596` (its own trace id) to `X-Correlation-Id: attacker`.
 - **Exported attributes** (what actually reached the dashboard). BFF: `http.request.method`, `url.path`, `http.response.status_code`. Catalog: `http.request.method`, `server.address`, `server.port`, `user_agent.original`, `url.scheme`, `url.path`, `url.query`, `network.protocol.version`, `http.route`, `http.response.status_code`. No headers, tokens, bodies, query text or variables. The BFF drops operation names that are not short identifiers.
 - Neither process log contained `authorization`, `bearer` or `password` for this run (a single unauthenticated request; this is not a proof for authenticated flows, which do not exist yet).
-- **Risk to revisit:** the catalog span records `url.query` (here `limit=...`). Fine for pagination; before search or preference endpoints exist, decide whether to drop it (ADR-0016 item 6).
+- **`url.query` (corrected 2026-10-28):** the catalog span records the attribute, but the instrumentation redacts the values (`?limit=Redacted&after=Redacted`), so only parameter names are exported; the first version of this note implied the values were. Guarded by a test; see open item 38.
 
 ## Automated tests (all run locally)
 

@@ -154,9 +154,9 @@ Type: Decision deviation · Source: `WI-PORT-005` (2026-10-28), ADR-0016 item 1 
 Type: Open work / cost · Source: ADR-0016 amendment (2026-10-28) · Hat: Architect, Platform Engineering
 Decided: Application Insights for DEV, UAT and Prod through an OpenTelemetry Collector; Jaeger opt-in for UAT/Prod. Open: where the collector runs in Azure and what it costs (not in `budget-cost-estimate.md`), the Key Vault reference for the connection string, how Jaeger would be hosted and stored if enabled, and a run of `infra/otel-collector/cloud.yaml` against a real Application Insights resource (only syntax-validated so far).
 
-**38. The catalog span records `url.query`**
+**38. The catalog span records `url.query`** — **Resolved 2026-10-28 (spans); one accepted residue**
 Type: Data-safety follow-up · Source: `WI-PORT-005` evidence (2026-10-28), ADR-0016 item 6 · Hat: Security / Platform Engineering
-Fine for pagination parameters. The collector configs delete `url.query` and `http.url` centrally (verified through Jaeger and Aspire locally); direct export to Aspire and the BFF's own span do not go through it. Decide whether the services should also drop it at the source before search or preference endpoints exist. Also: with `Microsoft.AspNetCore.Hosting.Diagnostics` at Information (the Development setting), the catalog's console log prints the full request URL including the query string.
+Checked, and my earlier description overstated it: the ASP.NET Core instrumentation redacts query *values* by default, so the span carries `?limit=Redacted&after=Redacted` (parameter names only), and the collector configs delete the attribute outright. A regression test (`TracingTests.RequestSpansDoNotCarryQueryStringValues`) fails if the redaction is lost. Accepted residue: with `Microsoft.AspNetCore.Hosting.Diagnostics` at Information (the Development setting only; base config is Warning) the console log prints the full request URL including query values. Revisit if a Development log ever goes anywhere shared, or before search or preference endpoints exist (parameter names could then reveal intent).
 
 **39. No vendor time-zone field exists (D-7)**
 Type: Contract gap · Source: first-slice contract implementation check (2026-10-28) · Hat: Engineering/Build

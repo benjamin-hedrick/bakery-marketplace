@@ -4,6 +4,12 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — Open item 38 resolved: query-string values are already redacted in spans; guard test added (branch `feature/slice-followups`)**
+
+Writing the test first showed the ASP.NET Core instrumentation already redacts query values (`?limit=Redacted&after=Redacted`), so the "leak" recorded in item 38 and in the WI-PORT-005 evidence was overstated; both corrected. No production code changed. `TracingTests.RequestSpansDoNotCarryQueryStringValues` now fails if the redaction is lost; catalog tests 35/35, `dotnet format` clean. Remaining and accepted: the Development-only request log line prints the full URL. Not done: log export (item 42).
+
+---
+
 **2026-10-28 — Open item 43 resolved: skeleton smoke builds into its own Next.js directory (branch `feature/slice-followups`)**
 
 `next.config.js` `distDir` now follows `NEXT_DIST_DIR` (default `.next`); `skeleton-smoke.mjs` sets `.next-skeleton` for build and start; `.next-*/` added to the web `.gitignore`, ESLint ignores and `.prettierignore`. Verified locally: smoke 5/5, mock e2e 6/6 straight afterwards without a rebuild, working tree clean after the smoke (Next did not rewrite tsconfig). Not verified: the Azure pipeline (its web job builds in a clean checkout and is unaffected; the skeleton job runs the script).
