@@ -21,6 +21,7 @@ public class FulfillmentContractsTests
     {
         var expectedNames = new[]
         {
+            "Pending",
             "Placed",
             "Confirmed",
             "InPreparation",

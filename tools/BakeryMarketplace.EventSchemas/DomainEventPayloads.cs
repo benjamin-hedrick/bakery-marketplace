@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace BakeryMarketplace.EventSchemas;
 
 /// <summary>
@@ -27,6 +29,43 @@ public record PickupWindowScheduledPayload(
     string OrderId,
     DateTimeOffset WindowStart,
     DateTimeOffset WindowEnd
+);
+
+/// <summary>Who cancelled an order (docs/architecture/order-lifecycle.md).</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum OrderCancelActor
+{
+    Customer,
+    Vendor,
+    System
+}
+
+/// <summary>
+/// Why an order was cancelled. A code, never free text: a reason typed by a person may contain personal data.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum OrderCancelReason
+{
+    CustomerRequested,
+    VendorDeclined,
+    VendorCancelled,
+    ResponseTimeout
+}
+
+/// <summary>The vendor accepted a placed order.</summary>
+public record OrderConfirmedPayload(
+    string OrderId
+);
+
+/// <summary>The vendor started preparing the order.</summary>
+public record OrderPreparationStartedPayload(
+    string OrderId
+);
+
+public record OrderCancelledPayload(
+    string OrderId,
+    OrderCancelActor CancelledBy,
+    OrderCancelReason Reason
 );
 
 public record OrderReadyForPickupPayload(

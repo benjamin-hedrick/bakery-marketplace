@@ -20,10 +20,12 @@ public enum FulfillmentType
 /// <summary>
 /// Fulfillment-agnostic Order lifecycle status vocabulary.
 /// Vocabulary matches ADR-0001, WI-ORD-004, and glossary.md:
-/// <c>Placed → Confirmed → InPreparation → ReadyForFulfillment → Completed</c> (or <c>Cancelled</c>).
+/// <c>Pending → Placed → Confirmed → InPreparation → ReadyForFulfillment → Completed</c> (or <c>Cancelled</c>).
+/// <c>Pending</c> is the customer building the order; see docs/architecture/order-lifecycle.md.
 /// </summary>
 public enum OrderStatus
 {
+    Pending,
     Placed,
     Confirmed,
     InPreparation,
