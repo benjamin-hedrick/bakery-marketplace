@@ -5,18 +5,18 @@
 ## Mission
 
 Build a compact, production-shaped marketplace slice that demonstrates
-staff/principal engineering judgment across web data architecture, test
+senior engineering judgment across web data architecture, test
 automation, operations, and disciplined AI-assisted engineering.
 Evidence quality matters more than feature count.
 
-## Target-role evidence
+## Evidence goals
 
-**ServiceTitan:** layered tests; Playwright/TypeScript; deterministic
+**Test automation:** layered tests; Playwright/TypeScript; deterministic
 fixtures; CI gates; flake and execution-time measurement; actionable
 diagnostics; a bounded AI-assisted testing experiment with human review
 and honest measurements. Document Maestro as a future path only.
 
-**Pinterest:** React/TypeScript, SSR, GraphQL, Relay, REST integration;
+**Web data architecture:** React/TypeScript, SSR, GraphQL, Relay, REST integration;
 reusable data-fetching patterns; normalized client state/refetching;
 explicit freshness; latency/reliability/accessibility; Node/TypeScript
 BFF composition without domain ownership.

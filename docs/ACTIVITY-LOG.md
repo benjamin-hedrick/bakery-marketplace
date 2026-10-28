@@ -9,6 +9,7 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 - `_incoming/` emptied: every packet file had a live counterpart (ADRs 0012–0016, `WI-PORT-001`–`007`, `docs/management/portfolio-slice/00`–`08`) except the reconciliation register, which moved to `docs/management/portfolio-slice/01-reconciliation-register.md` as the `WI-PORT-006` pass 2 checklist. Folder removed with it; recreate when a new packet arrives.
 - Added `.gitattributes` (`* text=auto eol=lf`; CRLF only for `.cmd`/`.bat`/`.ps1`). The index was already LF; 67 working-tree files were still CRLF and convert as they are next touched.
 - Deleted merged branch `feature/WI-DEV-004-seed-script` (local and origin).
+- Removed references to specific employers and job targets from the portfolio-slice docs and two worklogs (headings now describe the evidence goal, not a company). Earlier commits still contain the old text.
 
 ---
 

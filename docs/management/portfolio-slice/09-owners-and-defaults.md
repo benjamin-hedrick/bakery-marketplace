@@ -25,7 +25,7 @@ This is a solo-led project, so the human lead is the accountable integrator for 
 | Workspace layout | Root `package.json` with workspaces `apps/*` and `services/graphql-bff` | BFF is a backend, so it sits beside the C# services; confirm in `WI-PORT-001` |
 | Relay + Next.js integration | Small in-repo per-request environment pattern (`apps/web-customer/src/lib/relay/`). `relay-nextjs` was evaluated and rejected | See the outcome below |
 | Local trace viewer | Jaeger, via Compose (OTLP in) | Simple, container-only, vendor-neutral |
-| Browser tests | Playwright (TypeScript) | Target-role evidence |
+| Browser tests | Playwright (TypeScript) | Test automation evidence goal |
 | .NET | `net8.0`, unchanged | ADR-0010 |
 | Branches | `feature/<WI-ID>-short-description`, per `docs/process/branching-strategy.md` | Existing convention |
 | Evidence artifacts | Entries in `docs/ACTIVITY-LOG.md`; raw outputs (trace exports, test reports) under `docs/evidence/<WI-ID>/` | One log, no second ledger |

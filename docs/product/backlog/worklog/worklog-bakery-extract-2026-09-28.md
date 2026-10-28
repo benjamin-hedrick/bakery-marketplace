@@ -288,7 +288,7 @@ Implement or document:
 -   developer troubleshooting guide
 
 **Why revisit:** Directly supports Developer Experience, reusable
-tooling, ephemeral environments, and engineering-management job themes.
+tooling, ephemeral environments, and engineering-management themes.
 
 ------------------------------------------------------------------------
 

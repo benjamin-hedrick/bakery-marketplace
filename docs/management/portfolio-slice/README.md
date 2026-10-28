@@ -6,7 +6,7 @@ Implementation-approach documents for the portfolio vertical slice (Next.js SSR 
 
 | File | Purpose |
 |---|---|
-| `00-implementation-brief.md` | Mission, target-role evidence, first slice, ownership and safety, non-goals |
+| `00-implementation-brief.md` | Mission, evidence goals, first slice, ownership and safety, non-goals |
 | `02-vertical-slice-and-quality.md` | Slice increments, test layers, AI-assisted test experiment, CI gates, metrics |
 | `03-observability-and-pipeline.md` | OpenTelemetry and Azure Pipelines approach (decisions in ADR-0016/0015) |
 | `04-cache-and-ai-evidence.md` | Three cache layers (ADR-0014) and AI-collaboration evidence rules |
