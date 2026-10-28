@@ -30,7 +30,9 @@ public sealed class TracingTests : IDisposable
     public async Task RequestSpansDoNotCarryQueryStringValues()
     {
         _factory.CreateClient(); // starts the host, which registers OpenTelemetry
-        var spans = new List<Activity>();
+        // The listener is process-wide and test classes run in parallel, so collect thread-safely and pick this test's span by a marker that
+        // no other request has. Parameter NAMES are exported (values are redacted), so a unique name identifies the span.
+        var spans = new System.Collections.Concurrent.ConcurrentBag<Activity>();
         using var listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == "Microsoft.AspNetCore",
@@ -38,15 +40,20 @@ public sealed class TracingTests : IDisposable
             ActivityStopped = spans.Add,
         };
         ActivitySource.AddActivityListener(listener);
+        var probe = $"probe-{Guid.NewGuid():N}";
+        var client = _factory.CreateClient();
 
-        var response = await _factory.CreateClient().GetAsync("/catalog/listings?limit=2&after=secret-cursor");
+        // A decoy to the same path at the same moment stands in for other tests running in parallel: the test must still find its own span.
+        var decoy = client.GetAsync("/catalog/listings?limit=1");
+        var response = await client.GetAsync($"/catalog/listings?limit=2&after=secret-cursor&{probe}=secret-value");
+        await decoy;
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var span = Assert.Single(spans, a => a.GetTagItem("url.path") as string == "/catalog/listings");
-        // The instrumentation redacts query values by default (url.query is "?limit=Redacted&after=Redacted"). This guards that
-        // default: it fails if a package change or OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION exposes them.
-        Assert.Equal("?limit=Redacted&after=Redacted", span.GetTagItem("url.query"));
-        Assert.DoesNotContain(span.TagObjects, t => t.Value is string s && s.Contains("secret-cursor"));
+        var span = Assert.Single(spans, a => (a.GetTagItem("url.query") as string)?.Contains(probe) == true);
+        // The instrumentation redacts query values by default. This guards that default: it fails if a package change or
+        // OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION exposes them.
+        Assert.Equal($"?limit=Redacted&after=Redacted&{probe}=Redacted", span.GetTagItem("url.query"));
+        Assert.DoesNotContain(span.TagObjects, t => t.Value is string s && (s.Contains("secret-cursor") || s.Contains("secret-value")));
     }
 
     [Fact]
