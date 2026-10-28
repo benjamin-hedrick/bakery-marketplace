@@ -69,6 +69,7 @@ There is no formatter or linter choice yet (`docs/process/engineering-standards.
 
 ## Working conventions
 
+- No secrets in files
 - **Work items are the unit of work.** Specs are `docs/product/backlog/WI-*.md`; PRs map to one work item; branches are `feature/<WI-ID>-short-description` (trunk-based, `docs/process/branching-strategy.md`). Start from `docs/project-log.md` and the On Deck section of `MASTER-BACKLOG-OUTLINE.md`.
 - **Don't rewrite historical `WI-*.md` specs.** Record supersession or adjustment as a dated reconciliation note at the top of the file, and mark it in `MASTER-BACKLOG-OUTLINE.md`. **That outline, not the `Status:` field in a WI file, is authoritative for status** (many WI headers are stale).
 - **Reconciliation records** go in `docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-<date>.md`. Log what happened in `docs/ACTIVITY-LOG.md` (newest first, don't edit history).
@@ -77,3 +78,7 @@ There is no formatter or linter choice yet (`docs/process/engineering-standards.
 - Report passed, failed, not-run and blocked results distinctly. Don't claim an endpoint, pipeline or deployment is operational without evidence.
 - `_incoming/` is a transient staging folder for packets awaiting reconciliation; don't treat its contents as repo truth.
 - `.claude/settings.json` denies reads of `dist/`, `build/`, `*.generated.*` and `vendor/`.
+
+## Human approval required
+Security, auth logic, IAM/RBAC changes
+Before expanding scope of work item or refactoring code
