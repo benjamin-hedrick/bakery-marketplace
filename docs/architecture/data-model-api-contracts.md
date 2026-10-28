@@ -236,6 +236,7 @@ Payout { id, vendorId, orderId, grossAmount, commission, netAmount, stripeTransf
 - `POST /ordering/cart` — *deferred in the first slice (D-2)*
 - `GET /ordering/pickup-windows?vendorId=` — *added for the first slice (D-3, D-8)*
 - `POST /ordering/checkout` — triggers Stripe destination charge (ADR-0005)
+- `POST /ordering/orders/{id}/confirm`, `/decline`, `/start-preparation`, `/ready`, `/complete`, `/cancel` — order actions by the owning Vendor (and `/cancel` by the owning Customer); see `order-lifecycle.md` (added 2026-10-28, draft)
 - `GET /ordering/orders/{id}` — Customer (own) or Vendor (own, via read-model) role + ownership
 - `GET /ordering/orders?customerId=` — customer's own orders, queries `orders` directly (same partition key)
 - `GET /ordering/orders?vendorId=` — **served from `order-status-readmodel`, not `orders`** — this is the endpoint the live queue display calls

@@ -210,25 +210,25 @@ The log existed so several asynchronous AI sessions could catch up before the re
 Type: Missing capability · Source: lifecycle review with the human lead (2026-10-28) · Hat: Architect, Engineering/Build
 `Listing` has no available quantity, no make-on-demand flag, no per-order maximum, no availability windows and no per-item rule for whether a pickup window may be requested. Vendors are meant to set all of these. `LowStockDetected` has a payload and a notification consumer but no producer. Needs work items under `EPIC-CATALOG` and the availability decision in item 52. D-5's 1-20 and 10-line bounds are placeholders until per-item maxima exist.
 
-**52. Who owns stock, and when it is reserved (needs an ADR)**
+**52. Who owns stock, and when it is reserved (needs an ADR)** — **Under review 2026-10-28**
 Type: Open decision · Source: lifecycle review (2026-10-28) · Hat: Architect
-Catalog holds the item data and ordering takes the order, in separate services (ADR-0009). Proposed: reserve at `Place`, release on decline, expiry or cancellation, and treat items without a set quantity as make-on-demand. Two services touch one number, so the consistency model (synchronous reserve call versus event-fed ledger and the oversell risk) must be decided before either side is built.
+Human lead's model so far: an item is added either with an available quantity or as made-to-order; if a quantity is set it is tracked, updated and enforced; vendors edit it like any other item property. Still to decide: the owner of the counter and the reserve/release mechanism across `catalog-service` and `ordering-service` (ADR-0009), and whether quantity is a running counter or tied to a day or pickup window.
 
 **53. Payment timing conflicts with vendor confirmation**
 Type: Decision to amend · Source: lifecycle review (2026-10-28), ADR-0005, `event-storming.md` · Hat: Architect
 Event-storming charges at checkout. With a vendor confirm step the agreed direction is authorize at `Place`, capture at `Confirm`, release on decline, expiry or cancellation. ADR-0005 needs a dated amendment; `ORD-001`'s stubbed payment step should follow it. Refund rules beyond basic initiation stay deferred (item 6).
 
-**54. No vendor order-action endpoints**
+**54. Vendor order-action endpoints** — **Approved 2026-10-28 for design and implementation, to be iterated**
 Type: Missing API · Source: lifecycle review (2026-10-28) · Hat: Engineering/Build
-Confirm, decline, start preparation, mark ready and complete are not in the endpoint lists. They need vendor-ownership authorization (auth logic: human approval required) and tie into item 33 (mock vendor ids). Also decide who marks an order `Completed` (vendor at handover, or a pickup code).
+Drafted in `order-lifecycle.md` and specified as `WI-ORD-007`. Authorization (role plus ownership) is auth logic: the human lead approved adding it; details will be iterated. Remaining: who completes an order (item 59), and item 33 (mock vendor ids) for testing.
 
-**55. No vendor-response timeout**
+**55. Vendor-response timeout** — **Deferred to a later slice (human lead, 2026-10-28)**
 Type: Missing rule · Source: lifecycle review (2026-10-28) · Hat: Architect
-A `Placed` order waits for the vendor to confirm. Who expires it, after how long, and whether the vendor is reminded are undecided. The aggregate supports cancellation by the system with reason `ResponseTimeout`; nothing triggers it.
+A `Placed` order waits until the vendor acts or the customer cancels. An automatic timeout would need an owner (a timer inside `ordering-service`, a scheduled message or a function) and a duration; none is chosen, so the aggregate has no system actor. Revisit when real vendors show orders going unanswered.
 
-**56. No pickup no-show rule**
+**56. Pickup no-show rule** — **Resolved 2026-10-28**
 Type: Missing rule · Source: lifecycle review (2026-10-28) · Hat: Architect
-An order can sit in `ReadyForFulfillment` indefinitely. The aggregate lets only the vendor cancel from there. Decide on an auto-complete or no-show rule and what happens to payment and stock.
+Handled by the existing rules: the vendor can cancel an order from any non-final status, including `ReadyForFulfillment`, with reason `VendorCancelled`. A dedicated no-show reason code (useful once refund rules exist, item 57) can be added later.
 
 **57. Customer cancellation window and refunds**
 Type: Policy · Source: lifecycle review (2026-10-28) · Hat: Product
@@ -238,9 +238,9 @@ Built into the aggregate as decided: the customer may cancel while `Placed` or `
 Type: Reconciliation · Source: lifecycle review (2026-10-28) · Hat: Architect
 D-2 (browser cart) still holds but the cart is conceptually the `Pending` order; D-5 becomes per-item maxima with a global cap; D-8's lead time may be per item or vendor; the walking skeleton's order-status path now needs a vendor confirm action to progress beyond `Placed`. Update `first-slice-contract.md` and `WI-ORD-001`/`003` with dated notes when those items are picked up.
 
-**59. `OrderPlaced` carries no total, and two event families overlap**
+**59. `OrderPlaced` total and overlapping event families** — **Half resolved 2026-10-28**
 Type: Schema gap · Source: lifecycle review and `WI-ORD-002` (2026-10-28) · Hat: Architect
-`OrderPlacedPayload` has no total or currency, so a receipt cannot be built from the event (additive fix). Separately, `FulfillmentContracts.cs` defines fulfillment-agnostic `OrderReadyForFulfillmentPayload` / `OrderFulfillmentCompletedPayload` (ADR-0001 seam) next to the glossary's `OrderReadyForPickupPayload` / `OrderCompletedPayload`. `ORD-002` raises the glossary family, as its spec says. Decide which family is canonical for consumers and whether the seam events are also raised.
+Done: `OrderPlacedPayload` has optional `TotalCents` and `Currency`, filled by the aggregate. Open: `FulfillmentContracts.cs` defines fulfillment-agnostic `OrderReadyForFulfillmentPayload` / `OrderFulfillmentCompletedPayload` (ADR-0001's seam, between Ordering and a strategy) next to the glossary's `OrderReadyForPickup` / `OrderCompleted` / `PickupWindowScheduled`. `ORD-002` currently raises the glossary family from the aggregate. A proposal to layer them (seam events between Order and strategy; strategy-specific events raised by the strategy; business facts raised by the Order) is awaiting the human lead's decision; it also settles who completes an order.
 
 **60. Account-side gaps: vendor staff users and account deletion**
 Type: Low-priority gap · Source: lifecycle review (2026-10-28) · Hat: Architect
