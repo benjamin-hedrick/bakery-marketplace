@@ -237,7 +237,10 @@ public sealed class StockReservationTests : IDisposable
         await Post(Reserve("order-12", _vendor, (item.Id, 2)));
         await _vendorClient.PutAsJsonAsync($"/catalog/listings/{item.Id}", new
         {
-            name = "Country Sourdough", category = "Bread", priceCents = 800, status = "Published",
+            name = "Country Sourdough",
+            category = "Bread",
+            priceCents = 800,
+            status = "Published",
             stock = new { availableQuantity = (int?)null },
         });
 
