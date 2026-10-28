@@ -16,7 +16,7 @@ Cancel (actor and reason code):   Placed, Confirmed                    --> Cance
 - **Pending** is the customer's order while it is being built: lines and their modifiers can be added or removed, and a pickup window can be set if the vendor or item allows one. A Pending order raises no events and has sequence number 0. In the first slice the cart lives in the browser (D-2), so checkout creates and places an order in one call.
 - **Customization is part of building the order.** There is no change to a placed order, so no post-placement `Customize`; the glossary's `OrderCustomized` event is unused (retire it when nothing references it).
 - **Place** requires 1 to 10 lines, each 1 to 20 units (D-5 placeholders until per-item maximums exist, open item 51). Prices are integer cents set by `ordering-service` (D-1); the aggregate checks that totals add up.
-- **Confirm** is the vendor accepting the order. If a pickup window was requested it is scheduled at the same time (`PickupWindowScheduled`); there is no counter-offer in v1. An order with no window (the vendor or item does not use windows) confirms without that event.
+- **Confirm** is the vendor accepting the order. The strategy then schedules a requested pickup window (`PickupWindowScheduled`, raised by `PickupFulfillment`, not by the Order); there is no counter-offer in v1. An order with no window (the vendor or item does not use windows) confirms with nothing to schedule.
 - **Cancel** carries an actor and a reason code, never free text (it may contain personal data):
 
 | Actor | Allowed from | Reason codes |
@@ -26,19 +26,25 @@ Cancel (actor and reason code):   Placed, Confirmed                    --> Cance
 
 - **No system cancellation (2026-10-28).** A response timeout that auto-cancels a `Placed` order was considered and deferred (open item 55): it would need an owner (a timer in `ordering-service`) and a duration nobody has chosen. Until then a customer can cancel their own `Placed` order. A pickup no-show is handled by the vendor cancelling a `ReadyForFulfillment` order.
 - A Pending order cannot be cancelled (it is abandoned), and Completed and Cancelled are final. Any other transition, including repeating the current one, throws `InvalidOrderTransitionException`.
-- **Sequence numbers** count events, not transitions. Each raised event takes the next number, so consumers (ADR-0003) see no gaps. `Place` raises event 1; `Confirm` raises two (`OrderConfirmed`, then `PickupWindowScheduled` when there is a window).
+- **Sequence numbers** count the Order's events. Each raised event takes the next number, so consumers (ADR-0003) see no gaps. Every transition raises exactly one event, so the numbers run 1 to 5 for a normal order.
 - **Authorization is not in the aggregate.** It knows the actor of a cancellation, but who may call which transition (a vendor only for their own orders) is enforced by the service layer (ADR-0006).
 
-## Events
+## Events and who raises them (ADR-0001)
 
-| Transition | Event(s) | Payload |
-|---|---|---|
-| Place | `OrderPlaced` | existing |
-| Confirm | `OrderConfirmed`, then `PickupWindowScheduled` if a window exists | `OrderConfirmed` new; scheduled existing |
-| StartPreparation | `OrderPreparationStarted` | new |
-| MarkReady | `OrderReadyForPickup` | existing |
-| Complete | `OrderCompleted` | existing |
-| Cancel | `OrderCancelled` (actor, reason) | new |
+The Order is fulfillment-agnostic and talks to a fulfillment strategy only through events. Three layers, each fact with one producer:
+
+| Layer | Event | Raised by | When |
+|---|---|---|---|
+| Business fact | `OrderPlaced` (with `TotalCents`, `Currency`) | Order | Place |
+| Business fact | `OrderConfirmed` (carries `FulfillmentType` and `Details` for the strategy) | Order | Confirm |
+| Business fact | `OrderPreparationStarted` | Order | StartPreparation |
+| Seam, Order to strategy | `OrderReadyForFulfillment` (type and details) | Order | MarkReady |
+| Seam, strategy to Order | `OrderFulfillmentCompleted` | strategy | the fulfillment is done (pickup confirmed) |
+| Business fact | `OrderCompleted` | Order | Complete, called by the handler of `OrderFulfillmentCompleted` |
+| Business fact | `OrderCancelled` (actor, reason) | Order | Cancel |
+| Strategy-specific | `PickupWindowScheduled`, `OrderReadyForPickup` | `PickupFulfillment` (`ORD-003`) | on `OrderConfirmed` and `OrderReadyForFulfillment` |
+
+`OrderReadyForPickup` is the customer-facing "ready to collect" message and belongs to the pickup strategy; a delivery strategy would raise its own. The Order never reads a pickup window itself. `OrderFulfillmentCompleted` is the inbound seam event; `OrderCompleted` is the business fact everyone else (reviews, payouts, notifications) consumes.
 
 ## Order action endpoints (draft, approved 2026-10-28 to be iterated)
 
@@ -50,7 +56,7 @@ Implemented by `WI-ORD-007`; they call the aggregate's methods and nothing else.
 | Decline | `POST /ordering/orders/{id}/decline` | Vendor, owner | Placed → Cancelled (`VendorDeclined`) |
 | Start preparation | `POST /ordering/orders/{id}/start-preparation` | Vendor, owner | Confirmed → InPreparation |
 | Mark ready | `POST /ordering/orders/{id}/ready` | Vendor, owner | InPreparation → ReadyForFulfillment |
-| Complete | `POST /ordering/orders/{id}/complete` | Vendor, owner (who completes is open item 59) | ReadyForFulfillment → Completed |
+| Complete | `POST /ordering/orders/{id}/complete` | Vendor, owner; a *pickup confirmed* command handled by `PickupFulfillment`, which publishes `OrderFulfillmentCompleted`, whose handler completes the Order | ReadyForFulfillment → Completed |
 | Cancel | `POST /ordering/orders/{id}/cancel` | Vendor, owner (`VendorCancelled`; from Confirmed on) or Customer, owner (`CustomerRequested`; from Placed or Confirmed) | any allowed cancel |
 
 - **The actor comes from the token, never the body.** Role plus ownership (the token subject equals the order's `vendorId` or `customerId`, ADR-0006) decide who is acting; the reason code is derived from the actor and the transition. Requests carry no body for these actions.
@@ -61,4 +67,4 @@ Implemented by `WI-ORD-007`; they call the aggregate's methods and nothing else.
 
 ## Not defined yet
 
-Stock and availability (open items 51, 52), payment timing (53), who completes an order and the fulfillment event layering (59), vendor-response timeout (55, deferred), refunds (57). Pickup no-shows are handled by the vendor cancelling from ReadyForFulfillment (item 56, resolved). Open items 58 to 60 record the effects on the first-slice decisions, event schemas and accounts.
+Availability windows and per-item pickup-window rules (open item 51), the stock design is ADR-0017, payment timing (53), vendor-response timeout (55, deferred), refunds (57). Pickup no-shows are handled by the vendor cancelling from ReadyForFulfillment (item 56, resolved). Open items 58 to 60 record the effects on the first-slice decisions, event schemas and accounts.

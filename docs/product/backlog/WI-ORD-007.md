@@ -33,7 +33,7 @@ The lifecycle in `docs/architecture/order-lifecycle.md` needs vendors (and custo
 - Tests: ownership (own, other vendor, other customer, anonymous), every allowed and disallowed transition over HTTP, events raised once per action
 
 **Dependencies**
-- Blocked by: `ORD-002` (built), `ORD-006` (persistence), the `Complete` decision in open item 59
+- Blocked by: `ORD-002` (built), `ORD-006` (persistence), `ORD-003` for `complete`
 - Blocks: the vendor side of the walking skeleton's order-status path (open item 58)
 
 **Definition of Done**
@@ -43,5 +43,5 @@ See `docs/process/definition-of-done.md`. Auth changes need human approval befor
 Partly: the behavior is specified, but the authorization design is to be iterated with the human lead.
 
 **Open Points (working)**
-- Who completes an order (open item 59)
+- `complete` is a pickup-confirmed command handled by `PickupFulfillment` (`ORD-003`), not a direct aggregate call (open item 59, resolved)
 - Whether a repeated action on an already-moved order should be `409` or an idempotent `200`
