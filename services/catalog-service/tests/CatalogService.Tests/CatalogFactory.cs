@@ -63,6 +63,31 @@ public sealed class CatalogFactory : WebApplicationFactory<Program>
         return handler.WriteToken(handler.CreateToken(descriptor));
     }
 
+    /// <summary>An app-only token like the one a service gets from the client credentials grant (ADR-0018): client id, <c>idtyp=app</c>, app roles.</summary>
+    public string ServiceToken(string clientId, string[] appRoles, bool appOnly = true)
+    {
+        var claims = new List<Claim> { new("sub", clientId), new("client_id", clientId) };
+        if (appOnly) claims.Add(new Claim("idtyp", "app"));
+        claims.AddRange(appRoles.Select(r => new Claim("roles", r)));
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Issuer = Issuer,
+            Audience = Audience,
+            NotBefore = DateTime.UtcNow.AddMinutes(-30),
+            Expires = DateTime.UtcNow.AddMinutes(10),
+            Subject = new ClaimsIdentity(claims),
+            SigningCredentials = new SigningCredentials(SigningKey, SecurityAlgorithms.RsaSha256),
+        };
+        return new JwtSecurityTokenHandler { SetDefaultTimesOnTokenCreation = false }.WriteToken(new JwtSecurityTokenHandler().CreateToken(descriptor));
+    }
+
+    public HttpClient ServiceClientFor(string clientId, params string[] appRoles)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ServiceToken(clientId, appRoles));
+        return client;
+    }
+
     public HttpClient ClientFor(string sub, string role)
     {
         var client = CreateClient();

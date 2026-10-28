@@ -61,10 +61,17 @@ if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringCompari
 
     builder.Services.AddSingleton<IRepository<ListingDocument>>(new CosmosRepository<ListingDocument>(cosmos, database, "catalog"));
     builder.Services.AddSingleton<IRepository<VendorStatusDocument>>(new CosmosRepository<VendorStatusDocument>(cosmos, database, "catalog"));
+    // Stock reservations (ADR-0017): same container and partition as the listings they change, so one transactional batch covers both.
+    builder.Services.AddSingleton<IRepository<StockReservationDocument>>(new CosmosRepository<StockReservationDocument>(cosmos, database, "catalog"));
+    builder.Services.AddSingleton<IBatchFactory>(new CosmosBatchFactory(cosmos, database, "catalog"));
 }
 else
 {
-    builder.Services.AddSingleton<IRepository<ListingDocument>>(new FakeRepository<ListingDocument>(d => d.Id));
+    // Listings and reservations share one FakeDatabase so a batch can span both, like the single Cosmos container.
+    var fakeCatalog = new FakeDatabase();
+    builder.Services.AddSingleton<IRepository<ListingDocument>>(new FakeRepository<ListingDocument>(d => d.Id, fakeCatalog));
+    builder.Services.AddSingleton<IRepository<StockReservationDocument>>(new FakeRepository<StockReservationDocument>(d => d.Id, fakeCatalog));
+    builder.Services.AddSingleton<IBatchFactory>(new FakeBatchFactory(fakeCatalog));
     builder.Services.AddSingleton<IRepository<VendorStatusDocument>>(new FakeRepository<VendorStatusDocument>(d => d.Id));
 }
 
@@ -85,7 +92,9 @@ else
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<VendorStatusStore>();
+builder.Services.AddSingleton<StockEventPublisher>();
 builder.Services.AddSingleton<ListingService>();
+builder.Services.AddSingleton<StockReservationService>();
 builder.Services.AddHostedService<VendorEventSubscriptions>();
 
 var app = builder.Build();
@@ -97,6 +106,7 @@ app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.MapListingEndpoints();
+app.MapStockReservationEndpoints();
 
 app.Run();
 
