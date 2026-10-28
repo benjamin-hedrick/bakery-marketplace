@@ -56,7 +56,8 @@ public sealed class TracingTests : IDisposable
         using var probe = new ActivitySource(EventTracing.ActivitySourceName);
         Assert.True(probe.HasListeners(), "AddBakeryTelemetry should subscribe to the event backbone's activity source");
 
-        var consumers = new List<Activity>();
+        // The listener is process-wide and test classes run in parallel, so collect thread-safely and pick this test's span by its link.
+        var consumers = new System.Collections.Concurrent.ConcurrentBag<Activity>();
         using var listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == EventTracing.ActivitySourceName,
@@ -68,7 +69,8 @@ public sealed class TracingTests : IDisposable
 
         await _factory.VerifyVendorAsync($"vendor-{Guid.NewGuid():N}");
 
-        var consumer = Assert.Single(consumers, a => a.OperationName == "process VendorVerified");
+        var consumer = Assert.Single(consumers, a => a.OperationName == "process VendorVerified"
+            && a.Links.Any(l => l.Context.TraceId == publisher.TraceId));
         Assert.Equal(ActivityKind.Consumer, consumer.Kind);
         Assert.NotEqual(publisher.TraceId, consumer.TraceId);
         Assert.Equal(publisher.TraceId, Assert.Single(consumer.Links).Context.TraceId);

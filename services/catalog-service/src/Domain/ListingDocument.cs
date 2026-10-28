@@ -1,3 +1,4 @@
+using BakeryMarketplace.Data;
 using Newtonsoft.Json;
 
 namespace CatalogService.Domain;
@@ -16,7 +17,7 @@ public static class ListingStatuses
 /// Property names are pinned with Newtonsoft attributes because Cosmos' default serializer is case-sensitive
 /// about <c>id</c> and the partition key path. REST responses use separate DTOs (<see cref="Api.ListingDto"/>).
 /// </summary>
-public sealed class ListingDocument
+public sealed class ListingDocument : IETagged
 {
     [JsonProperty("id")] public string Id { get; set; } = "";
     [JsonProperty("vendorId")] public string VendorId { get; set; } = "";
@@ -39,6 +40,21 @@ public sealed class ListingDocument
 
     /// <summary>Incremented on every save; used as the per-aggregate event sequence number (ADR-0003).</summary>
     [JsonProperty("version")] public long Version { get; set; }
+
+    /// <summary>
+    /// Units available to sell (ADR-0017). Absent means made to order: always orderable, never reserved. A number means limited
+    /// stock, tracked and enforced; it is a running counter, not tied to a day or window.
+    /// </summary>
+    [JsonProperty("availableQuantity", NullValueHandling = NullValueHandling.Ignore)] public int? AvailableQuantity { get; set; }
+
+    /// <summary>Largest quantity of this item one order may contain; absent means no per-item limit.</summary>
+    [JsonProperty("maxPerOrder", NullValueHandling = NullValueHandling.Ignore)] public int? MaxPerOrder { get; set; }
+
+    /// <summary>At or below this quantity the item is "low"; absent means <see cref="StockPolicy.DefaultLowStockThreshold"/>.</summary>
+    [JsonProperty("lowStockThreshold", NullValueHandling = NullValueHandling.Ignore)] public int? LowStockThreshold { get; set; }
+
+    /// <summary>The store's version token (Cosmos <c>_etag</c>), for optimistic concurrency (<see cref="IRepository{T}.SaveIfUnchangedAsync"/>).</summary>
+    [JsonProperty("_etag", NullValueHandling = NullValueHandling.Ignore)] public string? ETag { get; set; }
 }
 
 public sealed class ModifierDocument

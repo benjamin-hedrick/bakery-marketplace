@@ -37,7 +37,7 @@ public static class ListingEndpoints
             var result = await svc.CreateAsync(vendorId, request, ct);
             return result.Outcome switch
             {
-                ListingOutcome.Created => Results.Created($"/catalog/listings/{result.Listing!.Id}", ListingDto.From(result.Listing)),
+                ListingOutcome.Created => Results.Created($"/catalog/listings/{result.Listing!.Id}", ListingDto.ForOwner(result.Listing)),
                 _ => ToError(result),
             };
         }).RequireAuthorization("VendorRole");
@@ -59,7 +59,29 @@ public static class ListingEndpoints
             if (!auth.Succeeded) return Results.Forbid();
 
             var result = await svc.UpdateAsync(existing, request, ct);
-            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.From(result.Listing!)) : ToError(result);
+            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.ForOwner(result.Listing!)) : ToError(result);
+        }).RequireAuthorization("VendorRole");
+
+        // Increment or decrement the quantity of a limited-stock listing (ADR-0017). Same ownership rules as an edit.
+        group.MapPost("/{id}/stock/adjust", async (
+            string id, StockAdjustRequest request, ClaimsPrincipal user,
+            ListingService svc, IAuthorizationService authz, CancellationToken ct) =>
+        {
+            var callerId = SubjectOf(user);
+            if (callerId is null) return Results.Unauthorized();
+
+            var errors = ListingValidator.ValidateAdjust(request);
+            if (errors.Count > 0) return ToError(new ListingResult(ListingOutcome.Invalid, Errors: errors));
+
+            var existing = await svc.GetOwnAsync(id, callerId, ct);
+            if (existing is null) return NotFound();
+
+            var auth = await authz.AuthorizeAsync(
+                user, new ListingResource(existing.Id, existing.VendorId), new ResourceOwnershipRequirement("Vendor"));
+            if (!auth.Succeeded) return Results.Forbid();
+
+            var result = await svc.AdjustStockAsync(existing, request.Delta!.Value, ct);
+            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.ForOwner(result.Listing!)) : ToError(result);
         }).RequireAuthorization("VendorRole");
 
         return app;
@@ -77,6 +99,15 @@ public static class ListingEndpoints
             new ApiError("validation_failed", "The listing is invalid.", r.Errors), statusCode: StatusCodes.Status422UnprocessableEntity),
         ListingOutcome.VendorNotVerified => Results.Json(
             new ApiError("vendor_not_verified", "Only verified vendors can publish listings."), statusCode: StatusCodes.Status409Conflict),
+        ListingOutcome.NotFound => NotFound(),
+        ListingOutcome.MadeToOrder => Results.Json(
+            new ApiError("made_to_order", "This listing is made to order and has no quantity to adjust. Set a quantity first."),
+            statusCode: StatusCodes.Status409Conflict),
+        ListingOutcome.InsufficientStock => Results.Json(
+            new ApiError("insufficient_stock", "The quantity cannot go below zero."), statusCode: StatusCodes.Status409Conflict),
+        ListingOutcome.Conflict => Results.Json(
+            new ApiError("conflict", "The listing was changed by another request. Reload it and try again."),
+            statusCode: StatusCodes.Status409Conflict),
         _ => Results.Json(new ApiError("internal", "Unexpected result."), statusCode: StatusCodes.Status500InternalServerError),
     };
 }
