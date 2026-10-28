@@ -1,8 +1,15 @@
-# Minimum Azure Pipelines build for WI-PORT-002 (ADR-0015). UNVERIFIED: written but never run on Azure DevOps.
-# WI-PORT-003 owns the quality baseline (required checks, caching, reports); this file only runs what already exists locally.
-# Not run here: the walking-skeleton Playwright smoke (needs Docker Compose, the seed and three processes) and the
-# Redis/Cosmos adapter tests (they need the Compose stack and fall back to fakes without it).
-# .github/workflows/ci.yml stays as the placeholder until ADR-0015's exit criteria are met.
+# Quality and CI baseline (WI-PORT-003, ADR-0015).
+#
+# UNVERIFIED ON AZURE: this file has never run on Azure DevOps. Every command below was run locally (Windows, Node 25.9,
+# .NET SDK 10, Docker Desktop); see docs/evidence/WI-PORT-003/findings.md for what passed and what was not run.
+# Commands, gaps and the results format: docs/process/quality-gates.md.
+#
+# Gates here: build, type-check, unit/integration tests, the real-stack walking-skeleton smoke. There is no formatter or
+# linter gate because none has been chosen. Do not read a green run as "covered": the Cosmos adapter tests do not touch Cosmos.
+#
+# .github/workflows/ci.yml stays as the placeholder until ADR-0015's exit criteria are met (this pipeline green from a clean
+# checkout, required checks migrated, docs updated); then it is removed in one explicit migration commit.
+# No credentials appear in this file. The only key in the repo's CI scripts is the Cosmos emulator's published fixed key.
 trigger:
   branches:
     include: [main]
@@ -15,6 +22,10 @@ pool:
 
 variables:
   NODE_VERSION: '24.x'
+  # 127.0.0.1, not localhost: on some hosts "localhost" resolves to IPv6, the connection fails, and the Redis adapter tests
+  # silently fall back to in-memory fakes (found 2026-10-28, docs/evidence/WI-PORT-003/findings.md).
+  REDIS_CONNECTION_STRING: '127.0.0.1:6379'
+  RESULTS: $(Build.ArtifactStagingDirectory)/results
 
 jobs:
   - job: dotnet
@@ -24,17 +35,41 @@ jobs:
         displayName: .NET SDK (the .slnx format needs a recent SDK; projects still target net8.0)
         inputs:
           version: '10.0.x'
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(NODE_VERSION)
+      - script: |
+          docker compose up -d --wait redis-events
+          node scripts/ci/redis-touch.mjs snapshot $(Agent.TempDirectory)/redis-before
+        displayName: Start Redis for the adapter tests (fresh container per run)
       - script: dotnet build BakeryMarketplace.slnx --configuration Release
         displayName: Build
-      - script: dotnet test tools/BakeryMarketplace.slnx --configuration Release --logger trx --results-directory $(Agent.TempDirectory)/trx
+      - script: dotnet test tools/BakeryMarketplace.slnx --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test shared libraries
-      - script: dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release --logger trx --results-directory $(Agent.TempDirectory)/trx
+      - script: dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test catalog-service
+      - script: node scripts/ci/redis-touch.mjs assert $(Agent.TempDirectory)/redis-before 50
+        displayName: Prove the Redis adapter tests reached real Redis (finding A8)
+      - script: |
+          echo "##vso[task.logissue type=warning]Cosmos adapter tests did NOT run against Cosmos: they fall back to FakeRepository (open item #31, WI-DATA-003). A green Data.Tests run says nothing about the real adapter."
+        displayName: Report what is not covered
+      - script: node scripts/ci/summarize-results.mjs --json $(RESULTS)/dotnet-summary.json $(RESULTS)/trx/*.trx | tee $(RESULTS)/dotnet-summary.md
+        displayName: Summarize results
+        condition: succeededOrFailed()
       - task: PublishTestResults@2
         condition: succeededOrFailed()
         inputs:
           testResultsFormat: VSTest
-          testResultsFiles: '$(Agent.TempDirectory)/trx/*.trx'
+          testResultsFiles: '$(RESULTS)/trx/*.trx'
+          testRunTitle: dotnet
+      - script: docker compose down
+        displayName: Stop Redis
+        condition: always()
+      - task: PublishPipelineArtifact@1
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: $(RESULTS)
+          artifact: dotnet-results
 
   - job: bff
     displayName: GraphQL BFF
@@ -48,12 +83,26 @@ jobs:
       - script: npm run typecheck
         workingDirectory: services/graphql-bff
         displayName: Typecheck
-      - script: npm test
+      - script: node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=$(RESULTS)/bff-junit.xml "test/**/*.test.ts"
         workingDirectory: services/graphql-bff
         displayName: Test
+      - script: node scripts/ci/summarize-results.mjs --json $(RESULTS)/bff-summary.json $(RESULTS)/bff-junit.xml
+        displayName: Summarize results
+        condition: succeededOrFailed()
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFormat: JUnit
+          testResultsFiles: '$(RESULTS)/bff-junit.xml'
+          testRunTitle: graphql-bff
+      - task: PublishPipelineArtifact@1
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: $(RESULTS)
+          artifact: bff-results
 
   - job: web
-    displayName: web-customer
+    displayName: web-customer (mock BFF)
     steps:
       - task: NodeTool@0
         inputs:
@@ -64,6 +113,61 @@ jobs:
       - script: npm run typecheck
         workingDirectory: apps/web-customer
         displayName: Typecheck (runs relay-compiler first)
-      - script: npm run build
+      - script: npx playwright install --with-deps chromium
         workingDirectory: apps/web-customer
-        displayName: Build
+        displayName: Install Chromium
+      - script: npm run test:e2e -- --reporter=list,junit
+        workingDirectory: apps/web-customer
+        displayName: Build and e2e against the mock GraphQL server (WI-PORT-001 suite)
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: $(RESULTS)/web-mock-junit.xml
+      - script: node scripts/ci/summarize-results.mjs --json $(RESULTS)/web-summary.json $(RESULTS)/web-mock-junit.xml
+        displayName: Summarize results
+        condition: succeededOrFailed()
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFormat: JUnit
+          testResultsFiles: '$(RESULTS)/web-mock-junit.xml'
+          testRunTitle: web-customer-mock
+      - task: PublishPipelineArtifact@1
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: $(RESULTS)
+          artifact: web-results
+
+  - job: skeleton
+    displayName: Walking skeleton (real stack)
+    steps:
+      - task: UseDotNet@2
+        inputs:
+          version: '10.0.x'
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(NODE_VERSION)
+      - script: npm ci
+        workingDirectory: services/graphql-bff
+        displayName: Install BFF
+      - script: npm ci
+        workingDirectory: apps/web-customer
+        displayName: Install web-customer
+      - script: npx playwright install --with-deps chromium
+        workingDirectory: apps/web-customer
+        displayName: Install Chromium
+      - script: node scripts/ci/skeleton-smoke.mjs
+        displayName: Compose, seed, catalog-service, BFF, Next.js, Playwright
+      - script: node scripts/ci/summarize-results.mjs --json $(RESULTS)/skeleton-summary.json artifacts/skeleton/playwright-junit.xml
+        displayName: Summarize results
+        condition: succeededOrFailed()
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFormat: JUnit
+          testResultsFiles: 'artifacts/skeleton/playwright-junit.xml'
+          testRunTitle: walking-skeleton
+      - task: PublishPipelineArtifact@1
+        displayName: Publish service logs and results
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: artifacts/skeleton
+          artifact: skeleton-logs

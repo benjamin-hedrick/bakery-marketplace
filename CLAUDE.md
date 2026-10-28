@@ -52,7 +52,7 @@ Run services on the host against these ports. The Cosmos emulator needs Cosmos S
 
 Docs site: `mkdocs.yml` (Material theme, `docs_dir: docs`). mkdocs isn't installed here, so the nav is unbuilt.
 
-There is no formatter or linter choice yet (`docs/process/engineering-standards.md`). `.github/workflows/ci.yml` is a placeholder; CI is moving to Azure Pipelines (ADR-0015) and the placeholder must stay until that ADR's exit criteria are met.
+There is no formatter or linter choice yet (`docs/process/engineering-standards.md`). `.github/workflows/ci.yml` is a placeholder; CI is moving to Azure Pipelines (ADR-0015) and the placeholder must stay until that ADR's exit criteria are met. `azure-pipelines.yml` exists (`WI-PORT-003`) but has **never run on Azure DevOps**; commands, gaps and the results format are in `docs/process/quality-gates.md`. `node scripts/ci/skeleton-smoke.mjs` runs the whole real stack plus the Playwright smoke locally. Set `REDIS_CONNECTION_STRING=127.0.0.1:6379` when running the Redis adapter tests: with `localhost` they can silently use fakes.
 
 ## Architecture (needs several files to see)
 
