@@ -20,6 +20,7 @@ One file per decision: `0001-title.md`, `0002-title.md`, etc. Use a standard ADR
 14. [0015 — CI/CD: Azure Pipelines](0015-azure-pipelines-ci-cd.md) — GitHub stays source control; Azure Pipelines authoritative; amends 0007
 15. [0016 — OpenTelemetry + W3C Trace Context](0016-opentelemetry-tracing.md) — `traceparent` is the only propagated correlation mechanism; `X-Correlation-Id` becomes a response alias of the trace ID
 16. [0017 — Stock and Availability Ownership](0017-stock-and-availability-ownership.md) — catalog owns the running quantity counter (absent = made to order); reserve at `Place` in one atomic batch, release on cancel
+17. [0018 — Service-to-Service Authentication](0018-service-to-service-authentication.md) — **Proposed**: OAuth2 client credentials, app roles in `roles`, DEV credential type pending verification
 
 ## Superseded ADRs
 

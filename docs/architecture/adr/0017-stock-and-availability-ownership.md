@@ -24,7 +24,7 @@ Vendors list items either with a limited quantity or as made to order. A limited
 **Negative / accepted**
 - Ordering depends on catalog being up to place an order that has limited-stock lines (it already needs catalog for prices).
 - A crash between reserving and saving the order leaves a reservation with no order. The order id is created first and the reservation is keyed by it, so a cleanup of reservations without a matching order is possible; the rule (age, who runs it) is not decided (open item 62).
-- Ordering must authenticate to catalog's reservation endpoints as a service, which is a new auth path (open item 62; human approval required).
+- Ordering must authenticate to catalog's reservation endpoints as a service, which is a new auth path: OAuth2 client credentials, proposed in ADR-0018 (open item 62; human approval required).
 - A vendor-set value overrides reservations made since the vendor last looked; the version check turns a stale write into a conflict the vendor can retry.
 
 ## Alternatives considered

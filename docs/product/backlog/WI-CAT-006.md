@@ -5,7 +5,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-CATALOG
 Shared with epic(s):  EPIC-ORDERING, EPIC-AUTH
 Hat/Owner:            Engineering/Build
-Status:               Blocked on the service-to-service auth decision (open item 62); added 2026-10-28
+Status:               Blocked on `AUTH-006` / ADR-0018 (open item 62); added 2026-10-28
 Size:                 M
 ```
 
