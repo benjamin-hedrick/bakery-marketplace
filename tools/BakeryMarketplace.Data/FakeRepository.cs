@@ -113,9 +113,9 @@ public sealed class FakeRepository<T> : IRepository<T> where T : class
         List<T> results;
         lock (_gate)
         {
-            // Collect all entities in the partition, then apply the LINQ expression in-memory.
+            // Collect all entities in the partition (or in every partition when none is given), then apply the LINQ expression in-memory.
             var partition = _store
-                .Where(kv => kv.Key.PartitionKey == partitionKey)
+                .Where(kv => string.IsNullOrEmpty(partitionKey) || kv.Key.PartitionKey == partitionKey)
                 .Select(kv => kv.Value)
                 .AsQueryable();
 
