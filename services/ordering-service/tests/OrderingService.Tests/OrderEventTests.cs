@@ -47,33 +47,71 @@ public class OrderEventTests
     }
 
     [Fact]
-    public void ConfirmRaisesConfirmedThenTheScheduledWindow_WithConsecutiveSequenceNumbers()
+    public void ConfirmRaisesOnlyOrderConfirmed_CarryingTheFulfillmentDetailsForTheStrategy()
     {
         var order = Placed();
-
-        order.Confirm(At(4));
-
-        var events = order.DequeueEvents();
-        Assert.Equal([OrderEventTypes.Confirmed, OrderEventTypes.PickupWindowScheduled], events.Select(e => e.EventType));
-        Assert.Equal([2L, 3L], events.Select(e => e.SequenceNumber));
-        Assert.Equal(new OrderConfirmedPayload("order-1"), events[0].Payload);
-        Assert.Equal(new PickupWindowScheduledPayload("order-1", At(60), At(75)), events[1].Payload);
-    }
-
-    [Fact]
-    public void ConfirmWithoutARequestedWindowRaisesOnlyConfirmed()
-    {
-        var order = Placed(withWindow: false);
 
         order.Confirm(At(4));
 
         var confirmed = Assert.Single(order.DequeueEvents());
         Assert.Equal(OrderEventTypes.Confirmed, confirmed.EventType);
         Assert.Equal(2, confirmed.SequenceNumber);
+        var payload = Assert.IsType<OrderConfirmedPayload>(confirmed.Payload);
+        Assert.Equal("order-1", payload.OrderId);
+        Assert.Equal(FulfillmentType.Pickup, payload.FulfillmentType);
+        Assert.Equal(At(60), payload.Details?.Pickup?.WindowStart);
+        Assert.Equal(At(75), payload.Details?.Pickup?.WindowEnd);
     }
 
     [Fact]
-    public void TheFullPathRaisesTheDocumentedEventsInOrderWithNoGaps()
+    public void TheOrderNeverRaisesStrategySpecificEvents()
+    {
+        var order = Pending();
+        order.Place(At(3));
+        order.Confirm(At(4));
+        order.StartPreparation(At(5));
+        order.MarkReady(At(6));
+        order.Complete(At(7));
+
+        var types = order.DequeueEvents().Select(e => e.EventType).ToArray();
+
+        Assert.DoesNotContain("PickupWindowScheduled", types);
+        Assert.DoesNotContain("OrderReadyForPickup", types);
+    }
+
+    [Fact]
+    public void MarkReadyRaisesTheFulfillmentSeamEventWithTypeAndDetails()
+    {
+        var order = In(OrderStatus.InPreparation);
+
+        order.MarkReady(At(6));
+
+        var ready = Assert.Single(order.DequeueEvents());
+        Assert.Equal(OrderEventTypes.ReadyForFulfillment, ready.EventType);
+        var payload = Assert.IsType<OrderReadyForFulfillmentPayload>(ready.Payload);
+        Assert.Equal(("order-1", "vendor-1", FulfillmentType.Pickup), (payload.OrderId, payload.VendorId, payload.FulfillmentType));
+        Assert.Equal(At(60), payload.Details.Pickup?.WindowStart);
+    }
+
+    [Fact]
+    public void AnOrderWithoutAWindowStillHandsTheStrategyItsFulfillmentType()
+    {
+        var order = Placed(withWindow: false);
+        order.Confirm(At(4));
+        order.StartPreparation(At(5));
+        order.MarkReady(At(6));
+
+        var events = order.DequeueEvents();
+
+        var confirmed = Assert.IsType<OrderConfirmedPayload>(events[0].Payload);
+        Assert.Null(confirmed.Details);
+        var ready = Assert.IsType<OrderReadyForFulfillmentPayload>(events[2].Payload);
+        Assert.Equal(FulfillmentType.Pickup, ready.Details.Type);
+        Assert.Null(ready.Details.Pickup);
+    }
+
+    [Fact]
+    public void TheFullPathRaisesTheOrdersEventsInOrderWithNoGaps()
     {
         var order = Pending();
         order.Place(At(3));
@@ -86,15 +124,14 @@ public class OrderEventTests
 
         Assert.Equal(
             [
-                OrderEventTypes.Placed, OrderEventTypes.Confirmed, OrderEventTypes.PickupWindowScheduled,
-                OrderEventTypes.PreparationStarted, OrderEventTypes.ReadyForPickup, OrderEventTypes.Completed,
+                OrderEventTypes.Placed, OrderEventTypes.Confirmed, OrderEventTypes.PreparationStarted,
+                OrderEventTypes.ReadyForFulfillment, OrderEventTypes.Completed,
             ],
             events.Select(e => e.EventType));
-        Assert.Equal(Enumerable.Range(1, 6).Select(i => (long)i), events.Select(e => e.SequenceNumber));
-        Assert.Equal(6, order.SequenceNumber);
-        Assert.Equal(new OrderPreparationStartedPayload("order-1"), events[3].Payload);
-        Assert.Equal(new OrderReadyForPickupPayload("order-1"), events[4].Payload);
-        Assert.Equal(new OrderCompletedPayload("order-1", At(7)), events[5].Payload);
+        Assert.Equal(Enumerable.Range(1, 5).Select(i => (long)i), events.Select(e => e.SequenceNumber));
+        Assert.Equal(5, order.SequenceNumber);
+        Assert.Equal(new OrderPreparationStartedPayload("order-1"), events[2].Payload);
+        Assert.Equal(new OrderCompletedPayload("order-1", At(7)), events[4].Payload);
     }
 
     [Fact]

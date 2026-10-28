@@ -16,14 +16,16 @@ public sealed class InvalidOrderTransitionException(string message) : InvalidOpe
 /// <summary>An input or invariant of the order is violated (bad quantity, too many lines, empty order, and so on).</summary>
 public sealed class OrderRuleException(string message) : InvalidOperationException(message);
 
-/// <summary>Event type names, matching the glossary (docs/architecture/ddd/glossary.md).</summary>
+/// <summary>
+/// Event type names the Order aggregate raises. Strategy-specific events (<c>PickupWindowScheduled</c>, <c>OrderReadyForPickup</c>)
+/// are raised by the fulfillment strategy, not by the Order (ADR-0001, docs/architecture/order-lifecycle.md).
+/// </summary>
 public static class OrderEventTypes
 {
     public const string Placed = "OrderPlaced";
     public const string Confirmed = "OrderConfirmed";
-    public const string PickupWindowScheduled = "PickupWindowScheduled";
     public const string PreparationStarted = "OrderPreparationStarted";
-    public const string ReadyForPickup = "OrderReadyForPickup";
+    public const string ReadyForFulfillment = "OrderReadyForFulfillment";
     public const string Completed = "OrderCompleted";
     public const string Cancelled = "OrderCancelled";
 }
