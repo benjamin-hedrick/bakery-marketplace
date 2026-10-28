@@ -34,7 +34,7 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 |---|---|---|
 | `Auth__Authority` | `http://localhost:5100` | every service (JWT validation) |
 | `Auth__Audience` | `bakery-marketplace` | every service |
-| `Events__Backend` | `redis` | catalog-service (default is `inmemory`); **ordering-service has no default and refuses to start without `redis` or `inmemory`** (`appsettings.Development.json` sets `redis`) |
+| `Events__Backend` | `redis` | catalog-service and ordering-service: **no default; each refuses to start without `redis` or `inmemory`** (`appsettings.Development.json` sets `redis`) |
 | `Redis__ConnectionString` | `localhost:6379` | event transport |
 | `Data__Backend` | `cosmos` | catalog-service (default is `fake`) |
 | `Cosmos__ConnectionString` | `AccountEndpoint=http://localhost:8081/;AccountKey=<the emulator's documented fixed key>` | catalog-service |

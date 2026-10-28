@@ -75,19 +75,25 @@ else
     builder.Services.AddSingleton<IRepository<VendorStatusDocument>>(new FakeRepository<VendorStatusDocument>(d => d.Id));
 }
 
-// Events (ADR-0003). "inmemory" is the local default; "redis" uses Redis Streams.
-if (string.Equals(builder.Configuration["Events:Backend"], "redis", StringComparison.OrdinalIgnoreCase))
+// Events (ADR-0003). The backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory" (tests and throwaway runs). There is no
+// default, because silently falling back to in-memory would drop every event while looking healthy.
+var eventsBackend = builder.Configuration["Events:Backend"];
+if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
 {
     var redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
     var transport = new RedisStreamsEventTransport(redis);
     builder.Services.AddSingleton<IEventPublisher>(transport);
     builder.Services.AddSingleton<IEventSubscriber>(transport);
 }
-else
+else if (string.Equals(eventsBackend, "inmemory", StringComparison.OrdinalIgnoreCase))
 {
     var transport = new InMemoryEventTransport();
     builder.Services.AddSingleton<IEventPublisher>(transport);
     builder.Services.AddSingleton<IEventSubscriber>(transport);
+}
+else
+{
+    throw new InvalidOperationException("Events:Backend must be set to 'redis' or 'inmemory'. There is no default, so events are never lost silently.");
 }
 
 builder.Services.AddSingleton(TimeProvider.System);

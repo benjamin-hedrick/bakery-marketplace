@@ -296,7 +296,8 @@ The service resolves `Pickup:TimeZoneId` with the host's time-zone data (it stop
 Type: Tracking · Source: `WI-ORD-005` (2026-10-28) · Hat: Architect
 Every ordering instance runs `OutboxRelay`. They can publish the same pending event twice (harmless: the event id is deterministic and consumers dedupe, ADR-0003) and one loses the cleanup race. The sweep is one cross-partition query on the sparse `pendingSince` property, with idle backoff and jitter, so its cost is small until there are many instances or many orders pending at once. If that changes: a lease document so one instance sweeps at a time, or the Cosmos change feed instead of polling. Not measured on real Azure Cosmos. Also: during a broker outage a checkout waits up to `Outbox:InlinePublishTimeoutSeconds` (default 2) before returning; it is the price of trying inline first.
 
-**73. Catalog still falls back silently to the in-memory event backend**
+**73. Catalog still falls back silently to the in-memory event backend** — **Resolved 2026-10-28**
+Resolution: catalog now refuses to start unless `Events:Backend` is `redis` or `inmemory` (Development sets `redis`; the test host sets `inmemory`; the compose, skeleton-smoke and `service.env.example` configurations already set `redis`). Original description:
 Type: Inconsistency · Source: `WI-ORD-005` (2026-10-28) · Hat: Engineering/Build, Platform Engineering
 Ordering now refuses to start unless `Events:Backend` is `redis` or `inmemory`. `catalog-service` still defaults to in-memory when the setting is missing, so a misconfigured deployment would drop `ListingPublished`, `LowStockDetected` and the rest while looking healthy. Needs the same explicit rule (and the compose/pipeline/test configuration updated); not changed because it is outside `ORD-005`.
 
