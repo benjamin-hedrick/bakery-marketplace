@@ -104,6 +104,22 @@ public class OrderActionTests
         Assert.Equal(OrderStatus.Placed, (await StoredAsync(f, id)).Status);
     }
 
+    [Theory]
+    [InlineData(OrderAction.Confirm)]
+    [InlineData(OrderAction.Decline)]
+    [InlineData(OrderAction.Cancel)]
+    public async Task OwningTheVendorIdIsNotEnoughWithoutTheVendorRole(OrderAction action)
+    {
+        var f = new CheckoutFixture();
+        var id = await PlaceAsync(f);
+        var wrongRole = new OrderCaller(Seed.Vendor, IsVendor: false, IsCustomer: action == OrderAction.Cancel);
+
+        var result = await f.Actions.ActAsync(id, wrongRole, action);
+
+        Assert.Equal(OrderActionOutcome.NotFound, result.Outcome); // the role is checked here as well as by the endpoint policy
+        Assert.Equal(OrderStatus.Placed, (await StoredAsync(f, id)).Status);
+    }
+
     [Fact]
     public async Task AnotherCustomerCannotCancelSomeoneElsesOrder()
     {
