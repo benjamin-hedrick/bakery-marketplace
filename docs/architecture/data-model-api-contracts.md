@@ -179,6 +179,7 @@ PreferenceProfile {
 *(First slice, D-4: both reads are anonymous and return `Published` listings of verified vendors only.)*
 - `POST /catalog/listings` — Vendor role required
 - `PUT /catalog/listings/{id}` — Vendor role + resource-ownership check (ADR-0006)
+- `POST /catalog/stock/reservations` and `DELETE /catalog/stock/reservations/{orderId}?vendorId=` — service-to-service only: an app-only token with the `Stock.Reserve` role (ADR-0018); atomic reserve and release of an order's stock; not routed through API Management (ADR-0017, `WI-CAT-006`, 2026-10-28)
 - `POST /catalog/listings/{id}/stock/adjust` — Vendor role + ownership; atomic increment or decrement of a limited-stock listing; `409` when it would go below zero or the listing is made to order (added 2026-10-28, `WI-CAT-005`)
 - `GET /catalog/preferences/{customerId}` — Customer role + resource-ownership check
 - `PUT /catalog/preferences/{customerId}` — Customer role + resource-ownership check; implicitly creates the profile on first write (`WI-PREF-001.md`)
