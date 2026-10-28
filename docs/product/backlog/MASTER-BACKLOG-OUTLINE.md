@@ -54,7 +54,7 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 | `WI-ORD-002` | Service Implementation | `Order` aggregate + lifecycle states | **Built 2026-10-28, pending review/merge** (branch `feature/slice-ordering`): in-memory aggregate, 114 local tests, not run on Azure. Lifecycle changed from the spec after a review with the human lead: `docs/architecture/order-lifecycle.md` |
 | `WI-ORD-003` | Service Implementation | `PickupFulfillment` strategy | partly built 2026-10-28: the pickup schedule (window source, lead time, Eastern hours in UTC) came with `ORD-001`, and `GET /ordering/pickup-windows` is built on it; `PickupFulfillment` (events, pickup-confirmed command) remains |
 | `WI-ORD-006` | Integration | Order persistence via `Repository<T>` | **Built 2026-10-28, pending review/merge** (136 local tests + 3 on the real Cosmos emulator; not yet wired into the service host) |
-| `WI-ORD-005` | Integration | Publish Order events via event backbone | `ORD-002`, `EVT-003` |
+| `WI-ORD-005` | Integration | Publish Order events via event backbone | **Built 2026-10-28, pending review/merge** (outbox in the order document, inline publish plus relay sweep; 258 ordering tests, also on Linux; verified on the real stack incl. a Redis outage; Placed-to-Completed on Redis not run; open items 72-75) |
 | `WI-CAT-003` | Integration | Cache-aside integration for listing reads | `CAT-001`, `CACHE-002` |
 | `WI-ORD-001` | Service Implementation | Cart + checkout (payment stubbed — `EPIC-PAYMENTS` not yet built) | **Built 2026-10-28, pending review/merge** (221 ordering tests, also on Linux; verified end to end on the real stack; payment is a stub, `OrderPlaced` is not yet published) |
 | `WI-ORD-007` | Service Implementation | Order action endpoints: vendor confirm/decline/start/ready/complete/cancel, customer cancel (added 2026-10-28, approved) | `ORD-002`, `ORD-006` |
@@ -158,7 +158,7 @@ Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build ·
 - ✅ ORD-002 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-002.md` — Order aggregate + lifecycle states (`Pending → Placed → Confirmed → InPreparation → ReadyForFulfillment → Completed` or `Cancelled`, per ADR-0001; **built 2026-10-28**, see the outcome note in `WI-ORD-002.md`)
 - ✅ ORD-003 (Service Implementation) — **Detailed, Ready for agents**, see `WI-ORD-003.md` — Pickup Window scheduling (PickupFulfillment strategy, per ADR-0001)
 - ✅ ORD-004 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-ORD-004.md` — `FulfillmentStrategy` interface (the ACL boundary itself, per ADR-0001) — this is the seam a future Delivery strategy would plug into, and the top of this epic's critical path
-- ✅ ORD-005 (Integration) — **Detailed, Ready for agents**, see `WI-ORD-005.md` — Publish domain events (`OrderPlaced`, `OrderCustomized`, `PickupWindowScheduled`, `OrderReadyForPickup`, `OrderCompleted` per ADR-0003/glossary) via the event backbone (EPIC-EVENTING)
+- ✅ ORD-005 (Integration) — **Built 2026-10-28, pending review/merge**, see `WI-ORD-005.md` — Publish domain events (`OrderPlaced`, `OrderCustomized`, `PickupWindowScheduled`, `OrderReadyForPickup`, `OrderCompleted` per ADR-0003/glossary) via the event backbone (EPIC-EVENTING)
 - ✅ ORD-006 (Integration) — **Detailed, Ready for agents**, see `WI-ORD-006.md` — Consumes `Repository<T>` for Cosmos-backed persistence (EPIC-DATA-STORE)
 
 ### EPIC-QUEUE-DISPLAY — Live Order-Queue Display
