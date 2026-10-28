@@ -105,6 +105,10 @@ try {
 
   // GRAPHQL_URL is read at build time (rewrite) and at run time (SSR), so it is set for both.
   const webEnv = { GRAPHQL_URL: bffUrl };
+  // The Relay artifacts (src/__generated__) are gitignored, so a clean checkout has none and `next build` fails type-checking
+  // without them. This is what `npm run relay` does; run directly so no npm/shell is needed.
+  run('relay compile', 'node', ['scripts/ensure-artifact-dir.mjs'], { cwd: web });
+  run('relay compile', 'node', [path.join('node_modules', 'relay-compiler', 'cli.js')], { cwd: web });
   run('web build', 'node', [path.join('node_modules', 'next', 'dist', 'bin', 'next'), 'build'], {
     cwd: web,
     env: webEnv,
