@@ -6,6 +6,7 @@ using BakeryMarketplace.Secrets;
 using Microsoft.Azure.Cosmos;
 using OrderingService.Api;
 using OrderingService.Checkout;
+using OrderingService.Orders;
 using OrderingService.Outbox;
 using OrderingService.Persistence;
 using StackExchange.Redis;
@@ -99,6 +100,7 @@ builder.Services.AddHttpClient(CatalogGateway.PublicClientName, c => { c.BaseAdd
 builder.Services.AddHttpClient(CatalogGateway.ServiceClientName, c => { c.BaseAddress = catalogUrl; c.Timeout = catalogTimeout; }).AddServiceAuthHandler();
 builder.Services.AddSingleton<ICatalogGateway, CatalogGateway>();
 builder.Services.AddSingleton<CheckoutService>();
+builder.Services.AddSingleton<OrderActionService>(); // WI-ORD-007
 
 var app = builder.Build();
 
@@ -110,6 +112,7 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.MapPickupWindowEndpoints();
 app.MapCheckoutEndpoints();
+app.MapOrderActionEndpoints();
 
 app.Run();
 

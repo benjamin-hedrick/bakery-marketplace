@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using BakeryMarketplace.EventSchemas;
-using Microsoft.Extensions.Options;
 using OrderingService.Domain;
 using OrderingService.Outbox;
 using OrderingService.Persistence;
@@ -27,8 +26,6 @@ public sealed partial class CheckoutService(
     IPaymentProcessor payments,
     PickupSchedule schedule,
     OrderEventPublisher eventPublisher,
-    OutboxSignal outboxSignal,
-    IOptions<OutboxOptions> outboxOptions,
     TimeProvider time,
     ILogger<CheckoutService> logger)
 {
@@ -121,7 +118,7 @@ public sealed partial class CheckoutService(
             {
                 reserved = false; // the order now owns the reservation
                 logger.LogInformation("Order {OrderId} placed: {Lines} line(s), {TotalCents} cents", orderId, order.Lines.Count, order.TotalCents);
-                await PublishInlineAsync(created);
+                await eventPublisher.PublishInlineAsync(created);
                 return new CheckoutResult(CheckoutOutcome.Created, created);
             }
 
@@ -135,25 +132,6 @@ public sealed partial class CheckoutService(
         {
             await ReleaseQuietlyAsync(orderId, vendorId);
             throw;
-        }
-    }
-
-    /// <summary>
-    /// Publishes the new order's events now, so consumers see them within moments. The order is already stored, so a failure or a slow broker
-    /// never fails the checkout or delays it beyond the timeout: the events stay in the outbox and the relay sends them.
-    /// </summary>
-    private async Task PublishInlineAsync(StoredOrder created)
-    {
-        try
-        {
-            var timeout = TimeSpan.FromSeconds(outboxOptions.Value.InlinePublishTimeoutSeconds);
-            var result = await eventPublisher.PublishPendingAsync(created).WaitAsync(timeout);
-            if (result.Failed) outboxSignal.Wake();
-        }
-        catch (Exception e)
-        {
-            logger.LogWarning(e, "Events of order {OrderId} were not published inline; the outbox relay will send them", created.Order.Id);
-            outboxSignal.Wake();
         }
     }
 

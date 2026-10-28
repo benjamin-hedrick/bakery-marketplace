@@ -24,6 +24,19 @@ public sealed class OrderStore(IRepository<OrderDocument> documents)
         return document is null ? null : new StoredOrder(document.ToOrder(), document);
     }
 
+    /// <summary>
+    /// A vendor's own order by id, or null. The vendor does not know the customer, so this cannot use the partition key and fans out across
+    /// partitions (open item 76); the vendor id in the filter is what makes it the vendor's own order.
+    /// </summary>
+    public async Task<StoredOrder?> GetForVendorAsync(string orderId, string vendorId, CancellationToken ct = default)
+    {
+        await foreach (var document in documents.QueryAsync("", q => q.Where(d => d.Id == orderId && d.VendorId == vendorId).Take(1), ct))
+        {
+            return new StoredOrder(document.ToOrder(), document);
+        }
+        return null;
+    }
+
     /// <summary>Stores a new order and its raised events together. Returns null when an order with that id already exists (a concurrent or repeated create).</summary>
     public async Task<StoredOrder?> TryCreateAsync(
         Order order, string idempotencyKey, string requestFingerprint, CancellationToken ct = default)

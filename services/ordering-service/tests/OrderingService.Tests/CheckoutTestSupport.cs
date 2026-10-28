@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OrderingService.Checkout;
 using OrderingService.Domain;
+using OrderingService.Orders;
 using OrderingService.Outbox;
 using OrderingService.Persistence;
 
@@ -122,6 +123,9 @@ internal sealed class FlakyOrderRepository(IRepository<OrderDocument> inner) : I
     /// <summary>Pretends another request created the order first: the next conditional save reports a conflict.</summary>
     public bool ConflictOnNextCreate { get; set; }
 
+    /// <summary>Every conditional save reports a conflict (an order that other writers keep changing).</summary>
+    public bool ConflictAlways { get; set; }
+
     /// <summary>After a conflict was reported, reads fail (to prove a lost race never releases the winner's stock).</summary>
     public bool FailReadsAfterConflict { get; set; }
 
@@ -139,6 +143,7 @@ internal sealed class FlakyOrderRepository(IRepository<OrderDocument> inner) : I
     public Task<OrderDocument?> SaveIfUnchangedAsync(OrderDocument entity, string partitionKey, CancellationToken ct = default)
     {
         if (FailWrites) throw new InvalidOperationException("scripted store failure");
+        if (ConflictAlways) return Task.FromResult<OrderDocument?>(null);
         if (ConflictOnNextCreate)
         {
             ConflictOnNextCreate = false;
@@ -162,15 +167,17 @@ internal sealed class CheckoutFixture
     public OrderEventPublisher Publisher { get; }
     public OutboxRelay Relay { get; }
     public CheckoutService Service { get; }
+    public OrderActionService Actions { get; }
 
     public CheckoutFixture()
     {
         Store = new OrderStore(Repository);
-        Publisher = new OrderEventPublisher(Events, Store, NullLogger<OrderEventPublisher>.Instance);
+        Publisher = new OrderEventPublisher(Events, Store, Signal, Options.Create(Outbox), NullLogger<OrderEventPublisher>.Instance);
         Relay = new OutboxRelay(Store, Publisher, Signal, Options.Create(Outbox), Time, NullLogger<OutboxRelay>.Instance);
         Service = new CheckoutService(
-            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher, Signal,
-            Options.Create(Outbox), Time, NullLogger<CheckoutService>.Instance);
+            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher, Time,
+            NullLogger<CheckoutService>.Instance);
+        Actions = new OrderActionService(Store, Catalog, Publisher, Time, NullLogger<OrderActionService>.Instance);
     }
 
     public Task<CheckoutResult> CheckoutAsync(CheckoutRequest? request = null, string? key = null, string customer = "customer-1", bool decline = false) =>

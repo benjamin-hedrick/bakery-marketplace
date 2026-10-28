@@ -2,6 +2,7 @@ using System.Diagnostics;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.EventSchemas;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using OrderingService.Checkout;
 using OrderingService.Domain;
@@ -119,7 +120,7 @@ public class OutboxTests
     {
         var store = NewStore();
         var events = new RecordingEvents();
-        return (store, events, new OrderEventPublisher(events, store, NullLogger<OrderEventPublisher>.Instance));
+        return (store, events, new OrderEventPublisher(events, store, new OutboxSignal(), Options.Create(new OutboxOptions()), NullLogger<OrderEventPublisher>.Instance));
     }
 
     [Fact]
