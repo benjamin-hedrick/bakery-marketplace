@@ -84,6 +84,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
+app.MapPickupWindowEndpoints();
 app.MapCheckoutEndpoints();
 
 app.Run();
