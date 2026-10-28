@@ -5,7 +5,7 @@
 // Understands dotnet `.trx` and JUnit XML (Playwright's `junit` reporter, Node's `--test-reporter=junit`).
 // Prints a markdown table; passed, failed, skipped (and not-run) are separate columns, never merged.
 // With --json, also writes one record per suite plus run metadata, for comparing runs (execution time, flakes).
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const args = process.argv.slice(2);
@@ -59,10 +59,19 @@ function fromJunit(xml, file) {
   };
 }
 
-const rows = args.map((file) => {
-  const xml = readFileSync(file, 'utf8');
-  return file.endsWith('.trx') ? fromTrx(xml, file) : fromJunit(xml, file);
-});
+// A missing file means the step that writes it did not run or died first. Say so and fail, instead of a stack trace.
+const missing = args.filter((file) => !existsSync(file));
+for (const file of missing) {
+  console.error(
+    `MISSING result file: ${file} (the test step did not run, or failed before writing it; see that step's log)`,
+  );
+}
+const rows = args
+  .filter((file) => !missing.includes(file))
+  .map((file) => {
+    const xml = readFileSync(file, 'utf8');
+    return file.endsWith('.trx') ? fromTrx(xml, file) : fromJunit(xml, file);
+  });
 
 console.log('| Suite | Total | Passed | Failed | Skipped | Not run | Seconds | Flaky retries |');
 console.log('|---|---:|---:|---:|---:|---:|---:|---:|');
@@ -83,4 +92,4 @@ if (jsonOut) {
   writeFileSync(jsonOut, JSON.stringify(record, null, 2));
   console.log(`\nWrote ${jsonOut}`);
 }
-process.exitCode = rows.some((r) => r.failed > 0) ? 1 : 0;
+process.exitCode = rows.some((r) => r.failed > 0) || missing.length > 0 ? 1 : 0;
