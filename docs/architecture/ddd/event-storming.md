@@ -30,6 +30,8 @@ graph LR
 
 ## Flow 2 — Order Lifecycle
 
+> **Updated 2026-10-28** (`docs/architecture/order-lifecycle.md`): the flow now starts with the customer building a Pending order, adds the vendor's confirmation step, cancellation (including a vendor decline and a response timeout) and authorize-then-capture payment. `OrderCustomized` / `CustomizeOrder` are removed from the flow: customization happens while the order is Pending. Payment timing is a direction, not yet an ADR amendment (open item 53).
+
 ```mermaid
 graph LR
     classDef command fill:#4A90D9,color:#fff
@@ -39,25 +41,34 @@ graph LR
     classDef readmodel fill:#5CB85C,color:#fff
     classDef external fill:#D9748A,color:#fff
 
-    C1[Checkout]:::command --> A1[Order]:::aggregate
+    C1[PlaceOrder]:::command --> A1[Order]:::aggregate
     A1 --> E1[OrderPlaced]:::event
-    E1 --> P1["Policy: Notification sends confirmation"]:::policy
-    A1 --> S1[Stripe: charge]:::external
+    E1 --> P1["Policy: Notification tells the vendor a new order awaits confirmation"]:::policy
+    A1 --> S1["Stripe: authorize (capture at confirm)"]:::external
 
-    C2[CustomizeOrder]:::command --> A1
-    A1 --> E2[OrderCustomized]:::event
-
-    C3[SchedulePickup]:::command --> A1
+    C2[ConfirmOrder - vendor]:::command --> A1
+    A1 --> E2[OrderConfirmed]:::event
     A1 --> E3[PickupWindowScheduled]:::event
+    E2 --> P2["Policy: Notification sends confirmation to the customer"]:::policy
+    E2 --> S2["Stripe: capture"]:::external
 
-    C4[MarkReadyForPickup]:::command --> A1
-    A1 --> E4[OrderReadyForPickup]:::event
-    E4 --> P2["Policy: order-status-readmodel updates"]:::policy
-    P2 --> RM1[order-status-readmodel]:::readmodel
+    C3[StartPreparation - vendor]:::command --> A1
+    A1 --> E4[OrderPreparationStarted]:::event
+    E4 --> P3["Policy: order-status-readmodel updates"]:::policy
+    P3 --> RM1[order-status-readmodel]:::readmodel
 
-    C5[CompleteOrder]:::command --> A1
-    A1 --> E5[OrderCompleted]:::event
-    E5 --> P3["Policy: eligible for review; triggers payout reconciliation"]:::policy
+    C4[MarkReadyForPickup - vendor]:::command --> A1
+    A1 --> E5[OrderReadyForPickup]:::event
+    E5 --> P3
+
+    C5[CompleteOrder - vendor]:::command --> A1
+    A1 --> E6[OrderCompleted]:::event
+    E6 --> P4["Policy: eligible for review; triggers payout reconciliation"]:::policy
+
+    C6["CancelOrder - customer, vendor (also decline) or system (timeout)"]:::command --> A1
+    A1 --> E7[OrderCancelled]:::event
+    E7 --> P5["Policy: release authorization and stock; notify the other party"]:::policy
+    E7 --> P3
 ```
 
 ## Flow 3 — Review & Payout *(this exercise named 2 new events here)*
