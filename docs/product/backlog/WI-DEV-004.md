@@ -15,6 +15,8 @@ Size:                 S
 > - **Seed vendor ids must be reconciled with the mock users.** Ownership needs the token `sub` to equal the listing's `vendorId`, and the mock vendor's `sub` is `user-vendor-1`, so seed vendors such as `vendor-shop-001` cannot be edited by any mock user. Either seed with the mock user's id or add matching users to the issuer.
 > - Use the deterministic ids and expected totals in `docs/architecture/first-slice-contract.md` §7. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
+> **Outcome note (2026-10-27) — built as `tools/BakeryMarketplace.Seed`.** Seeds 7 listings (6 Published, 1 Draft) for the two contract vendors and publishes `VendorVerified` for both; idempotent (verified by a second run on the real stack and by `SeederTests`). Deviations: (1) **preference profiles not seeded**: no preference model exists (`PREF-001`); (2) the contract's Oat Milk Latte has no allergen flag, so "at least one allergy flag each" is not met for it; the contract wins; (3) the mock-user/vendor-id mismatch is resolved by adding mock users `vendor-shop-001` and `vendor-indep-001` to the issuer (approved 2026-10-27; `MockUser.cs`, no authorization logic changed); (4) run manually, not auto-run by Compose.
+
 
 **Renumbering note (2026-09-13)**: this item was `DEV-003` prior to 2026-09-13, shifted to `DEV-004` in the same renumbering that introduced `WI-DEV-001` (base .NET solution/project scaffold) and moved the real `docker-compose.yml` item from `DEV-001` to `DEV-002`. No content changed beyond the ID itself and the cross-references below.
 

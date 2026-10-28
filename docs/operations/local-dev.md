@@ -59,10 +59,19 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | The Cosmos emulator over HTTPS, Linux/macOS hosts, and Docker Desktop on other machines | **Not verified** |
 | Emulator persistence across `down`, resource usage under load, startup time on a cold pull | **Not measured** |
 
+## Seeding
+
+```
+export Cosmos__ConnectionString="AccountEndpoint=http://localhost:8081/;AccountKey=<emulator key>"
+dotnet run --project tools/BakeryMarketplace.Seed
+```
+
+Writes 7 listings (6 Published, 1 Draft negative case) for `vendor-shop-001` and `vendor-indep-001` through `IRepository<T>`, and publishes `VendorVerified` (fixed event id, sequence 1) for both vendors. Ids and prices follow `first-slice-contract.md` §7. Re-running creates nothing and leaves existing listings untouched (including local edits). Refuses non-loopback Cosmos endpoints. `catalog-service` applies the vendor events from the stream whether it starts before or after the seed. Preference profiles are not seeded: no preference model or container exists yet (`WI-PREF-001`).
+
 ## Known gaps in this environment
 
 1. **The Cosmos adapter tests do not actually test Cosmos by default.** `CosmosRepositoryTests` default to `https://localhost:8081`, but this emulator serves HTTP, so the tests cannot connect and silently return early: they report 4/4 passing without touching Cosmos. Pointed at the real emulator (`COSMOS_CONNECTION_STRING=AccountEndpoint=http://localhost:8081/;...`), **3 of 4 fail** with `Document does not contain an id field`, because the test entity serializes as `Id` and Cosmos requires lowercase `id`. The adapter itself works (catalog uses it with explicit property names). Fixing the tests and removing the silent skip is `WI-DATA-003`, which this item unblocks (open item #31).
-2. **Mock users and seed vendors do not line up.** The issuer's vendor user has subject `user-vendor-1`, and ownership requires the token subject to equal the listing's `vendorId`. Seed vendors such as `vendor-shop-001` therefore cannot be edited by any mock user. `WI-DEV-004` must either seed vendors with the mock user's id or the issuer needs matching users.
+2. **Mock users and seed vendors (resolved 2026-10-27).** Ownership requires the token subject to equal the listing's `vendorId`. The issuer now also offers `vendor-shop-001` and `vendor-indep-001` as login users (role Vendor), matching the seeded vendors, so each can edit only its own listings. `user-vendor-1` remains but owns no seeded listings.
 3. **The mock issuer's login page reflects query parameters unescaped** (`redirect_uri`, `state`, `code_challenge`; confirmed by sending a script payload). Dev-only and loopback-bound here, but it is a defect in `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs` (`WI-AUTH-005`); fix with HTML encoding.
 4. **The Redis Streams transport acknowledges messages it cannot deserialize without dead-lettering them** (reconciliation finding B2, still open). Not exercised here.
-5. **No Stripe CLI wiring** (`WI-DEV-003`), **no seed data** (`WI-DEV-004`), **no application containers**, and no Next.js, BFF or trace viewer yet; those arrive with `WI-PORT-002`/`005`.
+5. **No Stripe CLI wiring** (`WI-DEV-003`), **no application containers**, and no Next.js, BFF or trace viewer yet; those arrive with `WI-PORT-002`/`005`.
