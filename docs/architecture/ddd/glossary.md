@@ -32,7 +32,7 @@
 | **Cart** | A pre-order collection of Line Items |
 | **Line Item** | A Listing + selected Modifiers + quantity, within a Cart or Order |
 | **Order** | The aggregate representing a placed purchase and its lifecycle |
-| **Order Status** | Lifecycle state: `Placed → Confirmed → InPreparation → ReadyForPickup → Completed` (or `Cancelled`) |
+| **Order Status** | Lifecycle state: `Pending → Placed → Confirmed → InPreparation → ReadyForPickup → Completed` (or `Cancelled`); `Pending` is the customer building the order, `Confirmed` is the vendor accepting it. In code and ADR-0001 the fulfillment-agnostic name for `ReadyForPickup` is `ReadyForFulfillment`. See `order-lifecycle.md` |
 | **Pickup Window** | A scheduled time slot for order pickup |
 | **Fulfillment Strategy** | The pluggable mechanism for getting an Order to the Customer. **Pickup** is the only implemented strategy in v1; **Delivery** is a designed-for, not-yet-built v2 strategy behind the same interface |
 
@@ -63,7 +63,7 @@
 
 ## Key domain events
 
-`OrderPlaced` · `OrderCustomized` · `PickupWindowScheduled` · `OrderReadyForPickup` · `OrderCompleted` · `VendorVerified` · `VendorSuspended` · `ListingPublished` · `ListingSponsored` · `ListingApproved` · `ListingRejected` · `ReviewSubmitted` · `PayoutReconciled` · `LowStockDetected` · `PreferenceSnapshotPublished`
+`OrderPlaced` · `OrderConfirmed` · `PickupWindowScheduled` · `OrderPreparationStarted` · `OrderReadyForPickup` · `OrderCompleted` · `OrderCancelled` · `OrderCustomized` (unused since 2026-10-28: customization happens while the order is Pending) · `VendorVerified` · `VendorSuspended` · `ListingPublished` · `ListingSponsored` · `ListingApproved` · `ListingRejected` · `ReviewSubmitted` · `PayoutReconciled` · `LowStockDetected` · `PreferenceSnapshotPublished`
 
 `VendorSuspended` and `ListingPublished` were named when drafting `ARCH-003` (`data-model-api-contracts.md`) but should have been added here at the same time — corrected now rather than left as a small consistency gap. `ListingApproved`, `ListingRejected`, `ReviewSubmitted`, and `PayoutReconciled` are new to this event-storming exercise (`docs/architecture/ddd/event-storming.md`) — real business moments that existed before any document named them. `PreferenceSnapshotPublished` was named while detailing `WI-PREF-002.md` (Batch 5, 2026-09-13) — the bounded context map and this glossary's own **Preference Snapshot** entry had described this publication for some time, but no concrete event name existed anywhere until that item needed one; `data-model-api-contracts.md`'s `catalog-service`/`ordering-service` event lists were updated to match in the same pass, per this project's established discipline for newly-surfaced events.
 

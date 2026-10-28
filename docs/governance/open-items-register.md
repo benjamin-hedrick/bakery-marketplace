@@ -6,7 +6,7 @@ Suggested Issue fields per item: Title, Type, Source, Suggested hat/owner, Notes
 
 ---
 
-**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 came from the 2026-10-28 session.
+**Running list rule (2026-10-28):** anything found and not fixed in the same change goes here before the work item is called done, with its source and what "reconciled" would mean, so later sessions do not re-analyze it. When an item is resolved, mark it `Resolved <date>` with a pointer; do not delete it silently. Items 36 to 49 and 51 to 60 came from the 2026-10-28 session.
 
 **1. Redis Basic tier has no AAD data-plane auth**
 Type: Tech debt / future work · Source: ADR-0002 · Hat: Architect
@@ -205,4 +205,44 @@ Only catalog-service is wired. `ordering-service`, `admin-service` and `notifica
 **50. Rethink the role of `docs/ACTIVITY-LOG.md`**
 Type: Process · Source: human lead (2026-10-28) · Hat: Manager/Lead
 The log existed so several asynchronous AI sessions could catch up before the repo and pipeline were complete. Now that git history, PR descriptions, the register and CI exist, it mostly causes conflicts (every branch prepends to the same lines). New entries are paused (CLAUDE.md). Decide: retire it, keep it for milestones only, or generate it from history. Existing entries stay as history.
+
+**51. No inventory or availability model**
+Type: Missing capability · Source: lifecycle review with the human lead (2026-10-28) · Hat: Architect, Engineering/Build
+`Listing` has no available quantity, no make-on-demand flag, no per-order maximum, no availability windows and no per-item rule for whether a pickup window may be requested. Vendors are meant to set all of these. `LowStockDetected` has a payload and a notification consumer but no producer. Needs work items under `EPIC-CATALOG` and the availability decision in item 52. D-5's 1-20 and 10-line bounds are placeholders until per-item maxima exist.
+
+**52. Who owns stock, and when it is reserved (needs an ADR)**
+Type: Open decision · Source: lifecycle review (2026-10-28) · Hat: Architect
+Catalog holds the item data and ordering takes the order, in separate services (ADR-0009). Proposed: reserve at `Place`, release on decline, expiry or cancellation, and treat items without a set quantity as make-on-demand. Two services touch one number, so the consistency model (synchronous reserve call versus event-fed ledger and the oversell risk) must be decided before either side is built.
+
+**53. Payment timing conflicts with vendor confirmation**
+Type: Decision to amend · Source: lifecycle review (2026-10-28), ADR-0005, `event-storming.md` · Hat: Architect
+Event-storming charges at checkout. With a vendor confirm step the agreed direction is authorize at `Place`, capture at `Confirm`, release on decline, expiry or cancellation. ADR-0005 needs a dated amendment; `ORD-001`'s stubbed payment step should follow it. Refund rules beyond basic initiation stay deferred (item 6).
+
+**54. No vendor order-action endpoints**
+Type: Missing API · Source: lifecycle review (2026-10-28) · Hat: Engineering/Build
+Confirm, decline, start preparation, mark ready and complete are not in the endpoint lists. They need vendor-ownership authorization (auth logic: human approval required) and tie into item 33 (mock vendor ids). Also decide who marks an order `Completed` (vendor at handover, or a pickup code).
+
+**55. No vendor-response timeout**
+Type: Missing rule · Source: lifecycle review (2026-10-28) · Hat: Architect
+A `Placed` order waits for the vendor to confirm. Who expires it, after how long, and whether the vendor is reminded are undecided. The aggregate supports cancellation by the system with reason `ResponseTimeout`; nothing triggers it.
+
+**56. No pickup no-show rule**
+Type: Missing rule · Source: lifecycle review (2026-10-28) · Hat: Architect
+An order can sit in `ReadyForFulfillment` indefinitely. The aggregate lets only the vendor cancel from there. Decide on an auto-complete or no-show rule and what happens to payment and stock.
+
+**57. Customer cancellation window and refunds**
+Type: Policy · Source: lifecycle review (2026-10-28) · Hat: Product
+Built into the aggregate as decided: the customer may cancel while `Placed` or `Confirmed`; once preparation starts only the vendor can. Refund and fee consequences are not defined (ties to items 6 and 53).
+
+**58. First-slice decisions shifted by the lifecycle**
+Type: Reconciliation · Source: lifecycle review (2026-10-28) · Hat: Architect
+D-2 (browser cart) still holds but the cart is conceptually the `Pending` order; D-5 becomes per-item maxima with a global cap; D-8's lead time may be per item or vendor; the walking skeleton's order-status path now needs a vendor confirm action to progress beyond `Placed`. Update `first-slice-contract.md` and `WI-ORD-001`/`003` with dated notes when those items are picked up.
+
+**59. `OrderPlaced` carries no total, and two event families overlap**
+Type: Schema gap · Source: lifecycle review and `WI-ORD-002` (2026-10-28) · Hat: Architect
+`OrderPlacedPayload` has no total or currency, so a receipt cannot be built from the event (additive fix). Separately, `FulfillmentContracts.cs` defines fulfillment-agnostic `OrderReadyForFulfillmentPayload` / `OrderFulfillmentCompletedPayload` (ADR-0001 seam) next to the glossary's `OrderReadyForPickupPayload` / `OrderCompletedPayload`. `ORD-002` raises the glossary family, as its spec says. Decide which family is canonical for consumers and whether the seam events are also raised.
+
+**60. Account-side gaps: vendor staff users and account deletion**
+Type: Low-priority gap · Source: lifecycle review (2026-10-28) · Hat: Architect
+Customer sign-up is hosted by the identity provider (ADR-0006) and preferences and vendor onboarding are covered (`PREF-*`, `VEN-*`). Not modeled: several staff users per vendor (ownership currently compares the token subject to the vendor id) and customer account deletion (`EPIC-DATA-PRIVACY`).
 
