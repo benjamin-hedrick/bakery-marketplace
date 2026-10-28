@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using BakeryMarketplace.Logging;
@@ -26,45 +27,57 @@ public class CorrelationIdMiddlewareTests
         }
     }
 
-    [Fact]
-    public async Task InvokeAsync_PreservesExistingCorrelationIdHeader()
+    private static string ScopeValue(TestLogger<CorrelationIdMiddleware> logger, string key)
     {
-        const string customCorrelationId = "custom-corr-id-12345";
-        var context = new DefaultHttpContext();
-        context.Request.Headers[CorrelationIdMiddleware.HeaderName] = customCorrelationId;
-
-        var logger = new TestLogger<CorrelationIdMiddleware>();
-        var middleware = new CorrelationIdMiddleware(_ => Task.CompletedTask, logger);
-
-        await middleware.InvokeAsync(context);
-
-        Assert.Equal(customCorrelationId, context.Response.Headers[CorrelationIdMiddleware.HeaderName]);
-        Assert.Equal(customCorrelationId, context.Items[CorrelationIdMiddleware.HeaderName]);
-
-        Assert.Single(logger.ScopeStates);
-        var scope = Assert.IsAssignableFrom<IReadOnlyCollection<KeyValuePair<string, object>>>(logger.ScopeStates[0]);
-        var pair = Assert.Single(scope);
-        Assert.Equal("CorrelationId", pair.Key);
-        Assert.Equal(customCorrelationId, pair.Value);
+        var scope = Assert.IsAssignableFrom<IReadOnlyCollection<KeyValuePair<string, object>>>(Assert.Single(logger.ScopeStates));
+        return (string)scope.Single(p => p.Key == key).Value;
     }
 
     [Fact]
-    public async Task InvokeAsync_GeneratesNewGuidWhenHeaderMissing()
+    public async Task InvokeAsync_UsesTheCurrentActivityTraceId()
     {
+        using var activity = new Activity("test-request").Start();
         var context = new DefaultHttpContext();
         var logger = new TestLogger<CorrelationIdMiddleware>();
         var middleware = new CorrelationIdMiddleware(_ => Task.CompletedTask, logger);
 
         await middleware.InvokeAsync(context);
 
-        var generatedId = context.Response.Headers[CorrelationIdMiddleware.HeaderName].ToString();
-        Assert.False(string.IsNullOrWhiteSpace(generatedId));
-        Assert.True(Guid.TryParse(generatedId, out _));
+        var traceId = activity.TraceId.ToHexString();
+        Assert.Equal(traceId, context.Response.Headers[CorrelationIdMiddleware.HeaderName]);
+        Assert.Equal(traceId, context.Items[CorrelationIdMiddleware.HeaderName]);
+        Assert.Equal(traceId, ScopeValue(logger, "TraceId"));
+        Assert.Equal(traceId, ScopeValue(logger, "CorrelationId"));
+    }
 
-        Assert.Single(logger.ScopeStates);
-        var scope = Assert.IsAssignableFrom<IReadOnlyCollection<KeyValuePair<string, object>>>(logger.ScopeStates[0]);
-        var pair = Assert.Single(scope);
-        Assert.Equal("CorrelationId", pair.Key);
-        Assert.Equal(generatedId, pair.Value);
+    [Fact]
+    public async Task InvokeAsync_IgnoresAnInboundCorrelationIdHeader()
+    {
+        using var activity = new Activity("test-request").Start();
+        var context = new DefaultHttpContext();
+        context.Request.Headers[CorrelationIdMiddleware.HeaderName] = "attacker-chosen fake-log-line";
+        var logger = new TestLogger<CorrelationIdMiddleware>();
+        var middleware = new CorrelationIdMiddleware(_ => Task.CompletedTask, logger);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(activity.TraceId.ToHexString(), context.Response.Headers[CorrelationIdMiddleware.HeaderName]);
+        Assert.Equal(activity.TraceId.ToHexString(), ScopeValue(logger, "CorrelationId"));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_GeneratesATraceIdWhenThereIsNoActivity()
+    {
+        Activity.Current = null;
+        var context = new DefaultHttpContext();
+        var logger = new TestLogger<CorrelationIdMiddleware>();
+        var middleware = new CorrelationIdMiddleware(_ => Task.CompletedTask, logger);
+
+        await middleware.InvokeAsync(context);
+
+        var generated = context.Response.Headers[CorrelationIdMiddleware.HeaderName].ToString();
+        Assert.Matches("^[0-9a-f]{32}$", generated);
+        Assert.NotEqual(new string('0', 32), generated);
+        Assert.Equal(generated, ScopeValue(logger, "TraceId"));
     }
 }

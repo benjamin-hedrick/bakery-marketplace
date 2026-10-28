@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using BakeryMarketplace.Eventing;
 
 namespace BakeryMarketplace.Eventing.Tests;
@@ -62,6 +63,90 @@ public abstract class EventTransportContractTests
         Assert.Equal(original.AggregateId, received.AggregateId);
         Assert.Equal(original.SequenceNumber, received.SequenceNumber);
         Assert.Equal(original.Payload, received.Payload);
+    }
+
+    private static async Task<DomainEventEnvelope<string>> PublishAndReceive(
+        IEventPublisher publisher, IEventSubscriber subscriber, DomainEventEnvelope<string> envelope,
+        Action<Activity?>? onHandle = null)
+    {
+        var received = new TaskCompletionSource<DomainEventEnvelope<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await subscriber.SubscribeAsync<string>(envelope.EventType, (env, _) =>
+        {
+            onHandle?.Invoke(Activity.Current);
+            received.TrySetResult(env);
+            return Task.CompletedTask;
+        });
+        await publisher.PublishAsync(envelope);
+        return await received.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task Publish_InsideAnActivity_StampsTheEnvelopeWithItsTraceparent()
+    {
+        var (publisher, subscriber) = CreateTransportPair();
+        using var request = new Activity("publisher-request").Start();
+
+        var received = await PublishAndReceive(publisher, subscriber, MakeEnvelope("traced"));
+
+        Assert.Equal(request.Id, received.Traceparent);
+        Assert.Matches("^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$", received.Traceparent!);
+    }
+
+    [Fact]
+    public async Task Publish_WithNoActivity_LeavesTraceparentNull()
+    {
+        var (publisher, subscriber) = CreateTransportPair();
+        Activity.Current = null;
+
+        var received = await PublishAndReceive(publisher, subscriber, MakeEnvelope("untraced"));
+
+        Assert.Null(received.Traceparent);
+    }
+
+    [Fact]
+    public async Task Publish_KeepsATraceparentTheCallerAlreadySet()
+    {
+        var (publisher, subscriber) = CreateTransportPair();
+        using var request = new Activity("publisher-request").Start();
+        const string preset = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+
+        var received = await PublishAndReceive(publisher, subscriber, MakeEnvelope("preset") with { Traceparent = preset });
+
+        Assert.Equal(preset, received.Traceparent);
+    }
+
+    [Fact]
+    public async Task Consume_StartsANewTraceLinkedToThePublisher_NotParentedByIt()
+    {
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == EventTracing.ActivitySourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+        };
+        ActivitySource.AddActivityListener(listener);
+        var (publisher, subscriber) = CreateTransportPair();
+        using var request = new Activity("publisher-request").Start();
+        Activity? consumer = null;
+
+        await PublishAndReceive(publisher, subscriber, MakeEnvelope("linked"), a => consumer = a);
+
+        Assert.NotNull(consumer);
+        Assert.Equal(ActivityKind.Consumer, consumer!.Kind);
+        Assert.NotEqual(request.TraceId, consumer.TraceId);
+        Assert.Null(consumer.ParentId);
+        var link = Assert.Single(consumer.Links);
+        Assert.Equal(request.TraceId, link.Context.TraceId);
+        Assert.Equal(request.SpanId, link.Context.SpanId);
+    }
+
+    [Fact]
+    public async Task Consume_IgnoresAMalformedTraceparent()
+    {
+        var (publisher, subscriber) = CreateTransportPair();
+
+        var received = await PublishAndReceive(publisher, subscriber, MakeEnvelope("bad") with { Traceparent = "not-a-traceparent" });
+
+        Assert.Equal("bad", received.Payload);
     }
 
     [Fact]

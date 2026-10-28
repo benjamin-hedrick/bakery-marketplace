@@ -33,6 +33,7 @@ public class InMemoryEventTransport : IEventPublisher, IEventSubscriber
 
     public async Task PublishAsync<T>(DomainEventEnvelope<T> envelope, CancellationToken ct = default)
     {
+        envelope = EventTracing.StampTraceparent(envelope);
         if (_subscribers.TryGetValue(envelope.EventType, out var handlers))
         {
             List<Delegate> copy;
@@ -45,6 +46,7 @@ public class InMemoryEventTransport : IEventPublisher, IEventSubscriber
             {
                 if (delegateHandler is Func<DomainEventEnvelope<T>, CancellationToken, Task> handler)
                 {
+                    using var consumer = EventTracing.StartConsumer(envelope);
                     await handler(envelope, ct);
                 }
             }

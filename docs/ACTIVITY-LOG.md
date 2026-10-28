@@ -4,6 +4,12 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — WI-PORT-005 part 1: trace ID in correlation middleware, `traceparent` on event envelopes (branch `feature/WI-PORT-005-trace-propagation`, uncommitted)**
+
+- `CorrelationIdMiddleware` (ADR-0016): value is `Activity.Current.TraceId` (a fresh trace id when there is no W3C activity); an inbound `X-Correlation-Id` is no longer adopted, closing the "caller chooses our log identifier" gap. Response header kept; log scope now has `TraceId` and the old `CorrelationId` as an alias. 3 tests (was 2).
+- `DomainEventEnvelope` gets optional `Traceparent`. Both transports stamp it from the current activity on publish unless the caller set one; consumers start a new `Consumer` activity on a new trace with a link to the publisher's context (`EventTracing`), and restore the caller's activity afterwards. Malformed values are ignored. 5 new contract tests run against the in-memory and the Redis transport.
+- Verified locally: Logging 3/3; Eventing 16/16 with Redis really reached (14 `events:TestEvent-*` streams); all tools test projects, catalog 32/32, `dotnet format` whitespace and style clean. Not run: Azure; the skeleton smoke (neither change affects it, not re-run).
+- Not done: trace viewer choice, OpenTelemetry export, log-safety check, docs of commands and evidence. Nothing yet listens to the `BakeryMarketplace.Eventing` activity source in a service.
 **2026-10-28 — Mock e2e "refetch" failure explained: stale build, not a code bug (branch `fix/e2e-refetch-test`, uncommitted)**
 
 The failure seen after the D-9 change (and also with it stashed) came from `.next` being rebuilt by `skeleton-smoke.mjs` with `GRAPHQL_URL` at the real BFF (:4100). The browser's `/api/graphql` rewrite is fixed at build time, so the mock suite's Refresh got a 500 from :4100. After `npm run build` without `GRAPHQL_URL`: 6/6 mock e2e pass (Chromium, mock on :4000). No test or app code changed; a README note was added. Not done: making the two builds not share `.next` (e.g. a separate `distDir`), which would touch `next.config.js` and the smoke script; say if you want it. CI is unaffected (separate jobs and checkouts).

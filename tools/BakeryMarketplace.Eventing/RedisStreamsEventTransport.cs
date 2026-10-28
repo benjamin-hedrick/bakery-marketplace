@@ -39,6 +39,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
     public async Task PublishAsync<T>(DomainEventEnvelope<T> envelope, CancellationToken ct = default)
     {
         if (envelope is null) throw new ArgumentNullException(nameof(envelope));
+        envelope = EventTracing.StampTraceparent(envelope);
 
         string streamKey = GetStreamKey(envelope.EventType);
         string serialized = JsonSerializer.Serialize(envelope, _jsonOptions);
@@ -120,6 +121,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
 
                         try
                         {
+                            using var consumer = EventTracing.StartConsumer(envelope);
                             await handler(envelope, cts.Token);
                             await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
                             attempts.TryRemove(entry.Id.ToString(), out _);

@@ -1,5 +1,7 @@
 # WI-PORT-005 --- Verify trace propagation and safe logs
 
+> **Progress note (2026-10-28):** built so far, on `feature/WI-PORT-005-trace-propagation`: `CorrelationIdMiddleware` now uses the W3C trace ID and ignores an inbound `X-Correlation-Id` (log scope has `TraceId` plus the `CorrelationId` alias); `DomainEventEnvelope` has an optional `Traceparent`, stamped by both transports on publish, and consumers start a new trace linked to it (`EventTracing`). Open: choose the local trace viewer, OpenTelemetry export from the BFF and C# services, a log-safety check, and the documented commands and evidence. Next.js already starts a new trace per SSR request (`PORT-002`).
+
 ```
 WI ID:               PORT-005
 Title:                Verify trace propagation and safe logs

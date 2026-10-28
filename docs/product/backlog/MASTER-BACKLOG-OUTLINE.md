@@ -98,7 +98,7 @@ Explicitly still deferred (M5 and beyond, per `LOCAL-MILESTONES.md`): admin cons
 | `WI-PORT-002` | Integration | Walking skeleton: SSR → BFF → C# listing read, test, pipeline, trace **Built 2026-10-28, pending review/merge** (branch `feature/WI-PORT-002-walking-skeleton`; local run 5/5 smoke + 16/16 BFF tests; Azure pipeline written but not run; no OpenTelemetry export yet). Was Ready — `CAT-001` and `PORT-001` done; open: seed for the first end-to-end run — `DEV-004` seed done 2026-10-27, so the seed no longer blocks it |
 | `WI-PORT-003` | Infra/Environment | Quality + Azure Pipelines CI baseline (supersedes `CI-001`) | **Built 2026-10-28, pending review/merge** (branch `feature/WI-PORT-003-ci-baseline`); all commands run locally, pipeline **not run on Azure DevOps**; no formatter/linter gate; GitHub placeholder stays |
 | `WI-PORT-004` | Interface/Contract | Cache contract for the listing path, three layers | `PORT-002` |
-| `WI-PORT-005` | Integration | Trace propagation + safe logs; `TOOL-002`/envelope follow-ups (supersedes `OBS-002`) | `PORT-002` |
+| `WI-PORT-005` | Integration | Trace propagation + safe logs; `TOOL-002`/envelope follow-ups (supersedes `OBS-002`) | **In progress 2026-10-28** (branch `feature/WI-PORT-005-trace-propagation`): middleware and envelope parts built and tested; trace viewer choice and OpenTelemetry export open |
 
 ## On Deck (decided priority — update this whenever priority changes)
 
