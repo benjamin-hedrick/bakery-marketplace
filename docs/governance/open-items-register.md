@@ -122,7 +122,7 @@ Browse and lookup-by-id cost grows with the number of verified vendors. Options 
 Type: Tech debt / latent defect · Source: `WI-EVT-003` code, found by `WI-CAT-001` · Hat: Platform Engineering
 `RedisStreamsEventTransport` uses group `cg:{eventType}`. Two services subscribing to the same event would compete for messages instead of each receiving all of them. Harmless while a single service consumes each event; fix before `ordering-service` or `notification-service` subscribes to a shared one (group name should include the service).
 
-**30. No outbox for publish-after-save** — **Optimistic concurrency resolved 2026-10-28; the outbox gap remains**
+**30. No outbox for publish-after-save** — **Optimistic concurrency resolved 2026-10-28; outbox resolved for ordering 2026-10-28 (`WI-ORD-005`, item 68); the catalog's gap remains**
 Type: Known limitation · Source: `WI-CAT-001` · Hat: Architect
 Resolved: `IRepository<T>` now has `SaveIfUnchangedAsync` for entities that implement `IETagged` (Cosmos If-Match, verified on the emulator); listings use it (`WI-CAT-005`). Still open: catalog saves then publishes `ListingPublished` and `LowStockDetected`, and a failed publish is logged and never re-sent (no outbox). Other documents are still last-write-wins: `VendorStatusDocument` is a read-modify-write when concurrent events arrive for one vendor, and orders (`ORD-006`) should adopt `IETagged`.
 
@@ -274,7 +274,8 @@ A reservation is stored beside the listings (same container and partition, so on
 Type: Accepted edge case · Source: `WI-CAT-006` (2026-10-28) · Hat: Product
 If a vendor sets an absolute quantity after an order reserved stock, a later release adds the reserved units back on top of the vendor's number. ADR-0017 accepts that a vendor-set value overrides reservations made since they last looked; the reverse (a release after a manual reset) is the same trade. Revisit with item 61 (special handling of prepared or defective items).
 
-**68. `OrderPlaced` is never published, and a placed order cannot recover it**
+**68. `OrderPlaced` is never published, and a placed order cannot recover it** — **Resolved 2026-10-28 (`WI-ORD-005`, pending review/merge)**
+Resolution: raised events are stored inside the order document in the same write as the state change, published inline at checkout, and swept by `OutboxRelay` when that misses. Verified on the real stack, including a Redis outage and recovery (see `WI-ORD-005.md`). Original description:
 Type: Gap · Source: `WI-ORD-001` (2026-10-28) · Hat: Architect, Engineering/Build
 Checkout stores the order as `Placed` but publishes nothing (`ORD-005` is not built), and the aggregate's raised events are not stored, so an order placed now has no `OrderPlaced` for `ORD-005` to find later. `ORD-005` should publish through an outbox: store the pending events with the order document in the same write, and publish from there (this also closes the "no outbox" half of item 30). Until then the vendor is not notified and the queue read-model has nothing to read.
 
@@ -290,3 +291,19 @@ The REST side is done, including `GET /ordering/pickup-windows`. Still to build:
 Type: Verification gap · Source: `WI-ORD-001` (2026-10-28) · Hat: Platform Engineering
 The service resolves `Pickup:TimeZoneId` with the host's time-zone data (it stops at startup if the zone is unknown). It passes in the .NET SDK container on Linux and on Windows; no Dockerfile exists for the service, and slim runtime images sometimes lack `tzdata`. Check this when the image is written.
 
+
+**72. The outbox relay sweeps every instance independently; a lease or the Cosmos change feed is the next step at scale**
+Type: Tracking · Source: `WI-ORD-005` (2026-10-28) · Hat: Architect
+Every ordering instance runs `OutboxRelay`. They can publish the same pending event twice (harmless: the event id is deterministic and consumers dedupe, ADR-0003) and one loses the cleanup race. The sweep is one cross-partition query on the sparse `pendingSince` property, with idle backoff and jitter, so its cost is small until there are many instances or many orders pending at once. If that changes: a lease document so one instance sweeps at a time, or the Cosmos change feed instead of polling. Not measured on real Azure Cosmos. Also: during a broker outage a checkout waits up to `Outbox:InlinePublishTimeoutSeconds` (default 2) before returning; it is the price of trying inline first.
+
+**73. Catalog still falls back silently to the in-memory event backend**
+Type: Inconsistency · Source: `WI-ORD-005` (2026-10-28) · Hat: Engineering/Build, Platform Engineering
+Ordering now refuses to start unless `Events:Backend` is `redis` or `inmemory`. `catalog-service` still defaults to in-memory when the setting is missing, so a misconfigured deployment would drop `ListingPublished`, `LowStockDetected` and the rest while looking healthy. Needs the same explicit rule (and the compose/pipeline/test configuration updated); not changed because it is outside `ORD-005`.
+
+**74. An outbox entry that cannot be published blocks later events of that order**
+Type: Known limitation · Source: `WI-ORD-005` (2026-10-28) · Hat: Engineering/Build
+Events publish in sequence order and stop at the first failure, so one entry that can never succeed (an unknown event type, a payload that no longer deserializes, for example after a schema change) leaves that order's later events pending forever, and the relay retries it on every sweep. It logs a warning each time but there is no attempt counter, dead-letter, or alert. Add one before more event types or schema versions exist.
+
+**75. Redis event streams have no retention, and `OrderPlaced` has no consumer yet**
+Type: Tracking · Source: `WI-ORD-005` (2026-10-28) · Hat: Platform Engineering
+`RedisStreamsEventTransport` adds with `XADD` and never trims, so `events:OrderPlaced` and the other streams grow without bound. Local and CI Redis are throwaway, so it only matters for a long-lived Redis. No service subscribes to the order events yet (`QUE-001`, `NOT-001`); the consumer-group naming concern (item 29: group per event type rather than per service) applies when they do. Later order transitions (`ORD-007`) must write through `OrderStore.TryUpdateAsync` and then call `OrderEventPublisher.PublishPendingAsync`, never publish directly.
