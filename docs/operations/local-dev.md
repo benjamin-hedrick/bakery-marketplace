@@ -97,6 +97,19 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4328 OTEL_EXPORTER_OTLP_PROT
 Services export only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Traces are kept in memory and lost when the dashboard restarts. The dashboard has no password locally, so it is bound to 127.0.0.1.
 The Next.js server exports a client span for its call to the BFF (also given `OTEL_EXPORTER_OTLP_ENDPOINT`), so a page load shows web-customer → graphql-bff → catalog-service. Gaps: the BFF exports one span per successful GraphQL request (not for 400/404); the page render itself has no span; no log export, traces only.
 
+## Service-to-service authentication (ADR-0018, WI-AUTH-006)
+
+A service that calls another service (ordering to catalog's stock endpoints) uses the OAuth2 client credentials grant against the mock issuer. The mock issuer registers a client only when it has a secret, and it never has one in source:
+
+```
+node scripts/dev/init-env.mjs        # creates ORDERING_CLIENT_SECRET in the git-ignored .env (kept if it already exists; --rotate replaces it)
+docker compose up -d --build mock-oidc
+```
+
+The token request authenticates the client (form fields or HTTP Basic), asks for `scope=bakery-marketplace/.default`, and gets an app-only token: `sub` and `client_id` are the client, `idtyp=app`, `roles` holds the granted app roles (`Stock.Reserve` for `ordering-service`), and there are no user claims. A wrong secret gets `invalid_client`. The old `mock_user_id` shortcut, which handed out user tokens without authentication, no longer exists; log in through the PKCE flow for a user token.
+
+The calling service reads `ServiceAuth__TokenEndpoint`, `ServiceAuth__ClientId`, `ServiceAuth__Scope` and `ServiceAuth__ClientSecret` (see `infra/local/service.env.example`) and stops at startup if one is missing. Nothing in the repository holds a secret; the pipeline generates its own per run when a job needs one. DEV uses a different credential (ADR-0018, phase 2).
+
 ## Seeding
 
 ```
