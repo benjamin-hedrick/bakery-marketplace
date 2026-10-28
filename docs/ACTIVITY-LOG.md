@@ -4,6 +4,9 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — Mock e2e "refetch" failure explained: stale build, not a code bug (branch `fix/e2e-refetch-test`, uncommitted)**
+
+The failure seen after the D-9 change (and also with it stashed) came from `.next` being rebuilt by `skeleton-smoke.mjs` with `GRAPHQL_URL` at the real BFF (:4100). The browser's `/api/graphql` rewrite is fixed at build time, so the mock suite's Refresh got a 500 from :4100. After `npm run build` without `GRAPHQL_URL`: 6/6 mock e2e pass (Chromium, mock on :4000). No test or app code changed; a README note was added. Not done: making the two builds not share `.next` (e.g. a separate `distDir`), which would touch `next.config.js` and the smoke script; say if you want it. CI is unaffected (separate jobs and checkouts).
 **2026-10-28 — D-9 fixed: BFF now issues Relay global IDs (branch `feature/WI-PORT-002-global-ids`, uncommitted)**
 
 `Listing.id` is now base64 of `Listing:<catalog id>`, produced and decoded only in the BFF (`services/graphql-bff/src/global-id.ts`). `listing(id)` and `node(id)` decode strictly: a raw id, malformed base64, a non-canonical encoding, an empty service id or an id of another type returns `null` without calling the catalog. The web app needed no code change (it already passes ids through and URL-encodes them); the mock BFF and the skeleton spec now use global ids.
