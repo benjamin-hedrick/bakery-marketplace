@@ -1,6 +1,7 @@
 using System.Text.Json;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
+using Microsoft.Extensions.Options;
 using OrderingService.Domain;
 using OrderingService.Persistence;
 
@@ -18,7 +19,8 @@ public sealed record PublishResult(int Published, bool Failed)
 /// same event ids, and consumers dedupe on the id. Events go out in sequence order and publishing stops at the first failure, so a consumer
 /// never sees a later event of an order without the earlier ones having been sent first.
 /// </summary>
-public sealed class OrderEventPublisher(IEventPublisher events, OrderStore orders, ILogger<OrderEventPublisher> logger)
+public sealed class OrderEventPublisher(
+    IEventPublisher events, OrderStore orders, OutboxSignal signal, IOptions<OutboxOptions> options, ILogger<OrderEventPublisher> logger)
 {
     private const int MaxCleanupAttempts = 5;
 
@@ -31,6 +33,26 @@ public sealed class OrderEventPublisher(IEventPublisher events, OrderStore order
         [OrderEventTypes.Completed] = Send<OrderCompletedPayload>,
         [OrderEventTypes.Cancelled] = Send<OrderCancelledPayload>,
     };
+
+    /// <summary>
+    /// Publishes the events now, so consumers see them within moments. The order is already stored, so a failure or a slow broker never fails
+    /// the request or delays it beyond <see cref="OutboxOptions.InlinePublishTimeoutSeconds"/>: the events stay in the outbox, the relay is
+    /// woken, and it sends them.
+    /// </summary>
+    public async Task PublishInlineAsync(StoredOrder stored)
+    {
+        try
+        {
+            var timeout = TimeSpan.FromSeconds(options.Value.InlinePublishTimeoutSeconds);
+            var result = await PublishPendingAsync(stored).WaitAsync(timeout);
+            if (result.Failed) signal.Wake();
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Events of order {OrderId} were not published inline; the outbox relay will send them", stored.Order.Id);
+            signal.Wake();
+        }
+    }
 
     public async Task<PublishResult> PublishPendingAsync(StoredOrder stored, CancellationToken ct = default)
     {
