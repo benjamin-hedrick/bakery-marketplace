@@ -28,6 +28,18 @@ public class DomainEventPayloadsTests
     }
 
     [Fact]
+    public void OrderPlacedPayload_TotalIsOptional_SoOlderMessagesStillDeserialize()
+    {
+        const string older = "{\"OrderId\":\"o-1\",\"CustomerId\":\"c-1\",\"VendorId\":\"v-1\",\"LineItems\":[]}";
+
+        var payload = JsonSerializer.Deserialize<OrderPlacedPayload>(older);
+
+        Assert.NotNull(payload);
+        Assert.Null(payload.TotalCents);
+        Assert.Null(payload.Currency);
+    }
+
+    [Fact]
     public void VendorSuspendedPayload_SerializationRoundtrip_Succeeds()
     {
         var payload = new VendorSuspendedPayload("vendor-42", "Violation of policy #4");

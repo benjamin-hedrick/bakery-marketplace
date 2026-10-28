@@ -96,7 +96,8 @@ public sealed class Order
         Status = OrderStatus.Placed;
         Raise(OrderEventTypes.Placed, new OrderPlacedPayload(
             Id, CustomerId, VendorId,
-            _lines.Select(l => new LineItemPayload(l.ListingId, l.ModifierIds, l.Quantity)).ToList()), now);
+            _lines.Select(l => new LineItemPayload(l.ListingId, l.ModifierIds, l.Quantity)).ToList(),
+            TotalCents, Currency), now);
     }
 
     /// <summary>The vendor accepts the order. A requested pickup window is scheduled with it.</summary>

@@ -13,11 +13,17 @@ public record LineItemPayload(
     int Quantity
 );
 
+/// <summary>
+/// <c>TotalCents</c> and <c>Currency</c> were added 2026-10-28 (additive, optional): a receipt or vendor notification needs the
+/// amount. Older messages without them still deserialize.
+/// </summary>
 public record OrderPlacedPayload(
     string OrderId,
     string CustomerId,
     string VendorId,
-    IReadOnlyList<LineItemPayload> LineItems
+    IReadOnlyList<LineItemPayload> LineItems,
+    long? TotalCents = null,
+    string? Currency = null
 );
 
 public record OrderCustomizedPayload(

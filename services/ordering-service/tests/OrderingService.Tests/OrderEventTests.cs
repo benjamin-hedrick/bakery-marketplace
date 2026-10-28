@@ -35,6 +35,18 @@ public class OrderEventTests
     }
 
     [Fact]
+    public void OrderPlacedCarriesTheTotalInCents()
+    {
+        var order = Pending(); // one line: 2 x 900
+
+        order.Place(At(3));
+
+        var payload = Assert.IsType<OrderPlacedPayload>(Assert.Single(order.DequeueEvents()).Payload);
+        Assert.Equal(1800L, payload.TotalCents);
+        Assert.Equal("USD", payload.Currency);
+    }
+
+    [Fact]
     public void ConfirmRaisesConfirmedThenTheScheduledWindow_WithConsecutiveSequenceNumbers()
     {
         var order = Placed();
