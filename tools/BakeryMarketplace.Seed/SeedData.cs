@@ -21,7 +21,7 @@ public static class SeedData
         [IndependentVendorId] = "Independent",
     };
 
-    public static IReadOnlyList<ListingDocument> Listings() => new[]
+    private static ListingDocument[] BaseListings() => new[]
     {
         Listing("listing-sourdough-001", ShopVendorId, "Country Sourdough", "bread", 800,
             "A naturally leavened country loaf.",
@@ -52,6 +52,29 @@ public static class SeedData
             Array.Empty<string>(),
             status: ListingStatuses.Draft),
     };
+
+    // Stock (ADR-0017): sourdough limited and in stock, croissant limited and low (4 is at or below the placeholder threshold of 5),
+    // muffin sold out, cookies limited with a per-order maximum, latte and lemon loaf made to order. A listing that already exists is
+    // left alone when the seed re-runs, so an existing local database keeps its old values until it is reset.
+    private static readonly Dictionary<string, (int Quantity, int? MaxPerOrder)> Stock = new()
+    {
+        ["listing-sourdough-001"] = (12, 4),
+        ["listing-croissant-001"] = (4, null),
+        ["listing-cookies-001"] = (24, 6),
+        ["listing-muffin-001"] = (0, null),
+    };
+
+    public static IReadOnlyList<ListingDocument> Listings()
+    {
+        var all = BaseListings();
+        foreach (var listing in all)
+        {
+            if (!Stock.TryGetValue(listing.Id, out var stock)) continue;
+            listing.AvailableQuantity = stock.Quantity;
+            listing.MaxPerOrder = stock.MaxPerOrder;
+        }
+        return all;
+    }
 
     private static ModifierDocument Mod(string id, string name, int deltaCents, params string[] allergens) =>
         new() { Id = id, Name = name, PriceDeltaCents = deltaCents, Allergens = allergens.ToList() };

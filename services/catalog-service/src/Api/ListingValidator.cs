@@ -62,12 +62,35 @@ public static partial class ListingValidator
         }
 
         ValidateFlags("allergenFlags", request.AllergenFlags, Add);
+        ValidateStock(request.Stock, Add);
 
         if (request.Status is null) { if (statusRequired) Add("status", "Status is required."); }
         else if (!ListingStatuses.IsValid(request.Status))
             Add("status", $"Status must be '{ListingStatuses.Draft}' or '{ListingStatuses.Published}'.");
 
         return errors.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray());
+    }
+
+    /// <summary>Validation for the optional stock block and for an adjustment (ADR-0017).</summary>
+    public static Dictionary<string, string[]> ValidateAdjust(StockAdjustRequest? request)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (request?.Delta is null) errors["delta"] = ["Delta is required."];
+        else if (request.Delta == 0) errors["delta"] = ["Delta cannot be zero."];
+        else if (Math.Abs((long)request.Delta.Value) > StockPolicy.MaxQuantity)
+            errors["delta"] = [$"Delta must be between -{StockPolicy.MaxQuantity} and {StockPolicy.MaxQuantity}."];
+        return errors;
+    }
+
+    private static void ValidateStock(StockRequest? stock, Action<string, string> add)
+    {
+        if (stock is null) return;
+        if (stock.AvailableQuantity is < 0 or > StockPolicy.MaxQuantity)
+            add("stock.availableQuantity", $"Quantity must be between 0 and {StockPolicy.MaxQuantity}, or omitted for made to order.");
+        if (stock.MaxPerOrder is < 1 or > StockPolicy.MaxQuantity)
+            add("stock.maxPerOrder", $"Max per order must be between 1 and {StockPolicy.MaxQuantity}.");
+        if (stock.LowStockThreshold is < 0 or > StockPolicy.MaxQuantity)
+            add("stock.lowStockThreshold", $"Low-stock threshold must be between 0 and {StockPolicy.MaxQuantity}.");
     }
 
     /// <summary>Allergen/flag text is trimmed, lower-cased and de-duplicated so filtering and display agree.</summary>

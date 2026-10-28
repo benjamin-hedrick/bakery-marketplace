@@ -6,7 +6,7 @@ using CatalogService.Domain;
 
 namespace CatalogService.Services;
 
-public enum ListingOutcome { Ok, Created, NotFound, Invalid, VendorNotVerified }
+public enum ListingOutcome { Ok, Created, NotFound, Invalid, VendorNotVerified, Conflict, MadeToOrder, InsufficientStock }
 
 public sealed record ListingResult(ListingOutcome Outcome, ListingDocument? Listing = null, Dictionary<string, string[]>? Errors = null);
 
@@ -17,6 +17,8 @@ public sealed record ListingResult(ListingOutcome Outcome, ListingDocument? List
 /// <item>Public reads show only <c>Published</c> listings of currently <c>Verified</c> vendors. A suspension hides listings at read time;
 /// it does not rewrite them, and a later <c>VendorVerified</c> restores visibility.</item>
 /// <item>The owner is always the caller's subject; writes are partitioned by it, so a vendor cannot even address another vendor's listing.</item>
+/// <item>Stock (ADR-0017): a listing with no <c>availableQuantity</c> is made to order. Edits and adjustments are saved conditionally on the
+/// version they read, and re-read and retried when someone else changed the listing first, so an edit and an order cannot overwrite each other.</item>
 /// </list>
 /// </summary>
 public sealed class ListingService
@@ -26,6 +28,9 @@ public sealed class ListingService
     private readonly IEventPublisher _events;
     private readonly TimeProvider _time;
     private readonly ILogger<ListingService> _logger;
+
+    /// <summary>Re-reads and retries a conditional save this many times before reporting a conflict.</summary>
+    public const int MaxSaveAttempts = 20;
 
     public ListingService(
         IRepository<ListingDocument> listings,
@@ -121,21 +126,71 @@ public sealed class ListingService
         var errors = ListingValidator.Validate(request, statusRequired: false);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
-        var wasPublished = existing.Status == ListingStatuses.Published;
-        var newStatus = request.Status ?? existing.Status;
+        for (var attempt = 0; attempt < MaxSaveAttempts; attempt++)
+        {
+            var wasPublished = existing.Status == ListingStatuses.Published;
+            var wasLowOrOut = StockPolicy.IsLowOrOut(existing);
+            var newStatus = request.Status ?? existing.Status;
 
-        // Only the Draft -> Published transition is gated: an already-published listing of a since-suspended vendor
-        // can still be edited or unpublished, but not (re)published.
-        if (newStatus == ListingStatuses.Published && !wasPublished
-            && !await _vendors.IsVerifiedAsync(existing.VendorId, ct))
-            return new ListingResult(ListingOutcome.VendorNotVerified);
+            // Only the Draft -> Published transition is gated: an already-published listing of a since-suspended vendor
+            // can still be edited or unpublished, but not (re)published.
+            if (newStatus == ListingStatuses.Published && !wasPublished
+                && !await _vendors.IsVerifiedAsync(existing.VendorId, ct))
+                return new ListingResult(ListingOutcome.VendorNotVerified);
 
-        existing.Status = newStatus;
-        Apply(existing, request, _time.GetUtcNow());
-        var saved = await _listings.SaveAsync(existing, existing.VendorId, ct);
+            existing.Status = newStatus;
+            Apply(existing, request, _time.GetUtcNow());
+            var saved = await _listings.SaveIfUnchangedAsync(existing, existing.VendorId, ct);
+            if (saved is not null)
+            {
+                if (!wasPublished && saved.Status == ListingStatuses.Published) await PublishedEventAsync(saved, ct);
+                if (!wasLowOrOut && StockPolicy.IsLowOrOut(saved)) await LowStockEventAsync(saved, ct);
+                return new ListingResult(ListingOutcome.Ok, saved);
+            }
 
-        if (!wasPublished && saved.Status == ListingStatuses.Published) await PublishedEventAsync(saved, ct);
-        return new ListingResult(ListingOutcome.Ok, saved);
+            // Someone (an order, an adjustment, another edit) changed the listing after it was read. The edit is a replacement of
+            // the fields it names, so applying it again to the fresh copy is correct, and keeps stock the request did not mention.
+            var fresh = await _listings.GetAsync(existing.Id, existing.VendorId, ct);
+            if (fresh is null) return new ListingResult(ListingOutcome.NotFound);
+            existing = fresh;
+        }
+        return new ListingResult(ListingOutcome.Conflict);
+    }
+
+    /// <summary>
+    /// Adds <paramref name="delta"/> (negative to remove) to a limited-stock listing's quantity, atomically against concurrent edits and
+    /// orders. A made-to-order listing has no quantity to adjust; the result never goes below zero.
+    /// </summary>
+    public async Task<ListingResult> AdjustStockAsync(ListingDocument existing, int delta, CancellationToken ct = default)
+    {
+        for (var attempt = 0; attempt < MaxSaveAttempts; attempt++)
+        {
+            if (existing.AvailableQuantity is not { } current) return new ListingResult(ListingOutcome.MadeToOrder);
+
+            var next = (long)current + delta;
+            if (next < 0) return new ListingResult(ListingOutcome.InsufficientStock);
+            if (next > StockPolicy.MaxQuantity)
+                return new ListingResult(ListingOutcome.Invalid, Errors: new Dictionary<string, string[]>
+                {
+                    ["delta"] = [$"The quantity cannot exceed {StockPolicy.MaxQuantity}."],
+                });
+
+            var wasLowOrOut = StockPolicy.IsLowOrOut(existing);
+            existing.AvailableQuantity = (int)next;
+            existing.UpdatedAt = _time.GetUtcNow();
+            existing.Version++;
+            var saved = await _listings.SaveIfUnchangedAsync(existing, existing.VendorId, ct);
+            if (saved is not null)
+            {
+                if (!wasLowOrOut && StockPolicy.IsLowOrOut(saved)) await LowStockEventAsync(saved, ct);
+                return new ListingResult(ListingOutcome.Ok, saved);
+            }
+
+            var fresh = await _listings.GetAsync(existing.Id, existing.VendorId, ct);
+            if (fresh is null) return new ListingResult(ListingOutcome.NotFound);
+            existing = fresh;
+        }
+        return new ListingResult(ListingOutcome.Conflict);
     }
 
     // ---- helpers ------------------------------------------------------------------------------
@@ -154,6 +209,12 @@ public sealed class ListingService
             PriceDeltaCents = m.PriceDeltaCents!.Value,
             Allergens = ListingValidator.NormalizeFlags(m.Allergens),
         }).ToList();
+        if (r.Stock is { } stock)
+        {
+            doc.AvailableQuantity = stock.AvailableQuantity;
+            doc.MaxPerOrder = stock.MaxPerOrder;
+            doc.LowStockThreshold = stock.LowStockThreshold;
+        }
         doc.UpdatedAt = now;
         doc.Version++;
     }
@@ -163,6 +224,21 @@ public sealed class ListingService
     /// so a publish failure is logged rather than failing the request: a retry would see an already-published listing
     /// and never re-emit. Closing that dual-write gap is future work.
     /// </summary>
+    /// <summary>Published once when a limited item crosses into low (or sold out), not on every change while it stays low. Same failure handling as above.</summary>
+    private async Task LowStockEventAsync(ListingDocument doc, CancellationToken ct)
+    {
+        try
+        {
+            await _events.PublishAsync(new DomainEventEnvelope<LowStockDetectedPayload>(
+                Guid.NewGuid(), "LowStockDetected", 1, _time.GetUtcNow(), "Listing", doc.Id, doc.Version,
+                new LowStockDetectedPayload(doc.Id, doc.VendorId)), ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "LowStockDetected event could not be published for a persisted listing ({ListingId})", doc.Id);
+        }
+    }
+
     private async Task PublishedEventAsync(ListingDocument doc, CancellationToken ct)
     {
         try
