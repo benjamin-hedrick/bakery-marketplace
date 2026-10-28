@@ -22,7 +22,9 @@ pr:
   drafts: false
 
 pool:
-  vmImage: ubuntu-latest
+  # Pinned, not ubuntu-latest: the latest label migrates to Ubuntu 26.04 between 2026-10-19 and about 2026-11-19, and jobs
+  # can land on either image meanwhile (runner-images issue 14748). Move to ubuntu-26.04 deliberately, after a run on it.
+  vmImage: ubuntu-24.04
 
 variables:
   NODE_VERSION: '24.x'
@@ -41,9 +43,9 @@ jobs:
         displayName: .NET 10 SDK (every project targets net10.0)
         inputs:
           version: '10.0.x'
-      - task: NodeTool@0
+      - task: UseNode@1
         inputs:
-          versionSpec: $(NODE_VERSION)
+          version: $(NODE_VERSION)
       - script: |
           docker compose up -d --wait redis-events
           node scripts/ci/redis-touch.mjs snapshot $(Agent.TempDirectory)/redis-before
@@ -86,9 +88,9 @@ jobs:
     steps:
       - script: mkdir -p $(RESULTS)
         displayName: Create results directory
-      - task: NodeTool@0
+      - task: UseNode@1
         inputs:
-          versionSpec: $(NODE_VERSION)
+          version: $(NODE_VERSION)
       - script: npm ci
         workingDirectory: services/graphql-bff
         displayName: Install
@@ -124,9 +126,9 @@ jobs:
     steps:
       - script: mkdir -p $(RESULTS)
         displayName: Create results directory
-      - task: NodeTool@0
+      - task: UseNode@1
         inputs:
-          versionSpec: $(NODE_VERSION)
+          version: $(NODE_VERSION)
       - script: npm ci
         workingDirectory: apps/web-customer
         displayName: Install
@@ -171,9 +173,9 @@ jobs:
         displayName: .NET 10 SDK (seed tool and catalog-service target net10.0)
         inputs:
           version: '10.0.x'
-      - task: NodeTool@0
+      - task: UseNode@1
         inputs:
-          versionSpec: $(NODE_VERSION)
+          version: $(NODE_VERSION)
       - script: npm ci
         workingDirectory: services/graphql-bff
         displayName: Install BFF

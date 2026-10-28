@@ -4,6 +4,12 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — Pipeline warnings from the first Azure run addressed (branch `chore/pipeline-warnings`, PR pending)**
+
+The first run (on a pre-.NET 10 commit) completed with warnings and no errors. `NodeTool@0` is deprecated: all four uses are now `UseNode@1` (`version`, checked against the task reference). `ubuntu-latest` migrates to Ubuntu 26.04 between 2026-10-19 and about 2026-11-19 with jobs possibly landing on either image: pinned to `ubuntu-24.04`. The Cosmos-adapter warning is deliberate and stays. Not verified: a run on the changed file; whether the pipeline passes on `ubuntu-26.04`.
+
+---
+
 **2026-10-28 — Azure Pipelines triggers reduced (branch `chore/pipeline-triggers`, PR pending)**
 
 `trigger: none` (no runs on pushes to any branch or to `main`); PR validation into `main` kept, drafts skipped; `main` is gated by running the pipeline by hand. Chosen by the human lead (over fully manual or approval-gated) so ADR-0015's required-checks criterion stays reachable. Not verified: how Azure treats the changed triggers (first PR run will show it).
