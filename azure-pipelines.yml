@@ -60,12 +60,16 @@ jobs:
         displayName: Test shared libraries
       - script: dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test catalog-service
-      - script: node scripts/ci/redis-touch.mjs assert $(Agent.TempDirectory)/redis-before 50
+      - script: |
+          set -o pipefail  # a failed script must fail the step, not tee's exit code
+          node scripts/ci/redis-touch.mjs assert $(Agent.TempDirectory)/redis-before 50 2>&1 | tee $(RESULTS)/redis-touch.txt
         displayName: Prove the Redis adapter tests reached real Redis (finding A8)
       - script: |
           echo "##vso[task.logissue type=warning]Cosmos adapter tests did NOT run against Cosmos: they fall back to FakeRepository (open item #31, WI-DATA-003). A green Data.Tests run says nothing about the real adapter."
         displayName: Report what is not covered
-      - script: node scripts/ci/summarize-results.mjs --json $(RESULTS)/dotnet-summary.json $(RESULTS)/trx/*.trx | tee $(RESULTS)/dotnet-summary.md
+      - script: |
+          set -o pipefail  # a failed script must fail the step, not tee's exit code
+          node scripts/ci/summarize-results.mjs --json $(RESULTS)/dotnet-summary.json $(RESULTS)/trx/*.trx | tee $(RESULTS)/dotnet-summary.md
         displayName: Summarize results
         condition: succeededOrFailed()
       - task: PublishTestResults@2
@@ -163,6 +167,15 @@ jobs:
         inputs:
           targetPath: $(RESULTS)
           artifact: web-results
+      - script: mkdir -p apps/web-customer/test-results
+        displayName: Ensure the Playwright output folder exists
+        condition: failed()
+      - task: PublishPipelineArtifact@1
+        displayName: Publish Playwright traces and screenshots (failures only)
+        condition: failed()
+        inputs:
+          targetPath: apps/web-customer/test-results
+          artifact: web-playwright-traces
 
   - job: skeleton
     displayName: Walking skeleton (real stack)
@@ -187,7 +200,7 @@ jobs:
         displayName: Install Chromium
       - script: node scripts/ci/skeleton-smoke.mjs
         displayName: Compose, seed, catalog-service, BFF, Next.js, Playwright
-      - script: node scripts/ci/summarize-results.mjs --json $(RESULTS)/skeleton-summary.json artifacts/skeleton/playwright-junit.xml
+      - script: node scripts/ci/summarize-results.mjs --json artifacts/skeleton/skeleton-summary.json artifacts/skeleton/playwright-junit.xml
         displayName: Summarize results
         condition: succeededOrFailed()
       - task: PublishTestResults@2
@@ -202,3 +215,12 @@ jobs:
         inputs:
           targetPath: artifacts/skeleton
           artifact: skeleton-logs
+      - script: mkdir -p apps/web-customer/test-results
+        displayName: Ensure the Playwright output folder exists
+        condition: failed()
+      - task: PublishPipelineArtifact@1
+        displayName: Publish Playwright traces and screenshots (failures only)
+        condition: failed()
+        inputs:
+          targetPath: apps/web-customer/test-results
+          artifact: skeleton-playwright-traces
