@@ -1,6 +1,6 @@
 # ADR-0017: Stock and Availability Ownership
 
-**Status:** Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter. Not yet built.
+**Status:** Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter. Fields, vendor set/adjust and the public status are built (`WI-CAT-005`, 2026-10-28); reservation and release (`WI-CAT-006`) are not.
 
 ## Context
 

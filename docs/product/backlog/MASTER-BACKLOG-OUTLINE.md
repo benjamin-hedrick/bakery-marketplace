@@ -137,7 +137,7 @@ Scope: Catalog · Primary hat(s): Architect, Engineering/Build · Status: Starte
 - ⚪ CAT-002 (Service Implementation) — Coffee/bakery customization flow (modifier selection UI + validation)
 - ✅ CAT-003 (Integration) — **Detailed, Ready for agents**, see `WI-CAT-003.md` — Consumes `CacheProvider` (EPIC-CACHING) for listing reads. **ADJUSTED (minor) 2026-10-26**: retained as ADR-0014 layer 1; record per-cache contract fields
 - ⚪ CAT-004 (Service Implementation) — Catalog moderation queue hooks (feeds EPIC-ADMIN)
-- 🟢 CAT-005 (Service Implementation) — **Added 2026-10-28**, see `WI-CAT-005.md` — listing stock fields (`availableQuantity`, `maxPerOrder`, `lowStockThreshold`), vendor set/increment/decrement, stock status on reads (ADR-0017)
+- ✅ CAT-005 (Service Implementation) — **Built 2026-10-28, pending review/merge** (71 catalog tests, verified on the real Cosmos emulator; adds optimistic concurrency to `BakeryMarketplace.Data`), see `WI-CAT-005.md` — listing stock fields (`availableQuantity`, `maxPerOrder`, `lowStockThreshold`), vendor set/increment/decrement, stock status on reads (ADR-0017)
 - 🟢 CAT-006 (Service Implementation) — **Added 2026-10-28**, see `WI-CAT-006.md` — atomic stock reserve and release endpoints for ordering (ADR-0017); blocked on `AUTH-006` (service-to-service auth, ADR-0018 Proposed, open item 62)
 - 🟢 AUTH-006 (Service Implementation) — **Added 2026-10-28**, see `WI-AUTH-006.md` — OAuth2 client credentials for service callers: mock issuer, shared library, local secret tooling (phase 1, **built 2026-10-28**, 80 Auth tests); DEV app registrations and credential (phase 2, after the ADR-0018 verification)
 

@@ -23,6 +23,7 @@ Moved from `first-slice-contract.md` §4 and §5; that file stays as the slice-s
 | Cart | `POST /ordering/cart` | Deferred; the cart lives in browser state and `checkout` takes line items | D-2 |
 | Checkout | `POST /ordering/checkout` | Body has `vendorId`, `lineItems`, `pickupWindow` and an `Idempotency-Key` header; no price, total, `customerId` or status from the client. 1-20 per line, at most 10 lines. Idempotent on `(customerId, key)` | D-5, D-6 |
 | Pickup windows | none | New `GET /ordering/pickup-windows?vendorId=`: deterministic 15-minute slots; selectable only if `start` is at least the lead time (default 30 min) ahead, checked again at checkout | D-3, D-8 |
+| Stock | none | `stock` block on listings (see the note under the Listing shape); `POST /catalog/listings/{id}/stock/adjust` with a signed `delta`; public reads never show the exact count | ADR-0017 |
 | Listing reads | role required | `GET /catalog/listings` and `GET /catalog/listings/{id}` are anonymous and return `Published` listings of verified vendors only | D-4 |
 | Time | unspecified | UTC ISO 8601 `Z` in REST and events; display in the vendor's zone (no zone field exists yet, open item 39) | D-7 |
 | IDs | service ids | REST ids unchanged; GraphQL `Listing.id` is a Relay global ID (base64 of `Type:serviceId`), produced and decoded only in the BFF. `vendorId`, `Modifier.id` and cursors stay raw (open item 41) | D-9 |
@@ -155,7 +156,7 @@ Listing {
 }
 ```
 
-*First slice (2026-10-28): `price` and `priceDelta` are `priceCents` and `priceDeltaCents`, with `currency: "USD"` added (D-1). See First-slice mapping.*
+*First slice (2026-10-28): `price` and `priceDelta` are `priceCents` and `priceDeltaCents`, with `currency: "USD"` added (D-1). Stock (ADR-0017, `WI-CAT-005`): `availableQuantity` (absent = made to order), `maxPerOrder` and `lowStockThreshold` are stored on the listing, plus the store's ETag for optimistic concurrency. The REST shape carries them in a `stock` block: `{ status: inStock|low|soldOut, maxPerOrder }` publicly, and also `availableQuantity` and `lowStockThreshold` in the owner's responses. A request's `stock` block replaces all three settings; omitting it on an edit leaves them unchanged. See First-slice mapping.*
 
 **`preferences`** (partition key: `customerId`)
 ```
@@ -178,6 +179,7 @@ PreferenceProfile {
 *(First slice, D-4: both reads are anonymous and return `Published` listings of verified vendors only.)*
 - `POST /catalog/listings` — Vendor role required
 - `PUT /catalog/listings/{id}` — Vendor role + resource-ownership check (ADR-0006)
+- `POST /catalog/listings/{id}/stock/adjust` — Vendor role + ownership; atomic increment or decrement of a limited-stock listing; `409` when it would go below zero or the listing is made to order (added 2026-10-28, `WI-CAT-005`)
 - `GET /catalog/preferences/{customerId}` — Customer role + resource-ownership check
 - `PUT /catalog/preferences/{customerId}` — Customer role + resource-ownership check; implicitly creates the profile on first write (`WI-PREF-001.md`)
 

@@ -100,6 +100,8 @@ Deterministic IDs so tests, SSR smoke and Playwright can assert exact values. Ex
 
 Expected totals for tests (cents): 2× sourdough + `mod-seeds` = **1800**; croissant + `mod-extra-almond` ×1 = **525**; latte + both modifiers ×3 = **1875**. Idempotent: re-running the seed changes nothing. Pickup windows come from the clock-injected generator (D-3), so tests pin the clock instead of seeding windows.
 
+**Stock on the seed (added 2026-10-28, `WI-CAT-005`, ADR-0017):** `listing-sourdough-001` 12 available, max 4 per order (in stock); `listing-croissant-001` 4 (low); `listing-cookies-001` 24, max 6; `listing-muffin-001` 0 (sold out, still listed); `listing-latte-001` and `listing-lemon-loaf-001` are made to order. No listing was added, so the counts and expected totals above are unchanged. A listing that already exists is left alone on re-seed, so an existing local database keeps its old values until it is reset.
+
 ## 8. Contract tests (specified; implemented by `WI-PORT-002`/`CAT-001`/`ORD-001`)
 
 1. **Price not trusted:** a checkout request carrying forged `price`/`total`/`customerId`/`status` fields ignores them; response totals equal §7 expectations.
