@@ -14,6 +14,9 @@ const SEEDED_PUBLISHED = [
   'Oat Milk Latte',
 ];
 
+// D-9: the BFF hands out Relay global ids, base64 of `Type:serviceId`.
+const globalListingId = (serviceId: string) => Buffer.from(`Listing:${serviceId}`).toString('base64');
+
 test('seeded listings are server-rendered from the real catalog, and the draft is not shown', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
@@ -49,14 +52,16 @@ test('hydration is clean and first paint makes no browser-side GraphQL request',
 test('detail page shows allergen flags and modifier prices from the service', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: 'Almond Croissant' }).click();
-  await expect(page).toHaveURL(/\/listings\/listing-croissant-001$/);
+  await expect(page).toHaveURL(
+    new RegExp(`/listings/${encodeURIComponent(globalListingId('listing-croissant-001'))}$`),
+  );
   await expect(page.getByTestId('detail-price')).toHaveText('$4.50');
   await expect(page.getByText('Allergens: gluten, dairy, tree-nut')).toBeVisible();
   await expect(page.getByText('Extra almonds (+$0.75) — contains tree-nut')).toBeVisible();
 });
 
 test('a listing that is not public renders not-found, not an error page', async ({ page }) => {
-  const res = await page.goto('/listings/listing-draft-001');
+  const res = await page.goto(`/listings/${encodeURIComponent(globalListingId('listing-draft-001'))}`);
   expect(res?.status()).toBe(404);
 });
 

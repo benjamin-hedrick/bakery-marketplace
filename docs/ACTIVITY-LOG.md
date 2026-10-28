@@ -4,6 +4,16 @@ Reverse-chronological (newest first). Distinct from `project-log.md` (a current-
 
 ---
 
+**2026-10-28 — D-9 fixed: BFF now issues Relay global IDs (branch `feature/WI-PORT-002-global-ids`, uncommitted)**
+
+`Listing.id` is now base64 of `Listing:<catalog id>`, produced and decoded only in the BFF (`services/graphql-bff/src/global-id.ts`). `listing(id)` and `node(id)` decode strictly: a raw id, malformed base64, a non-canonical encoding, an empty service id or an id of another type returns `null` without calling the catalog. The web app needed no code change (it already passes ids through and URL-encodes them); the mock BFF and the skeleton spec now use global ids.
+- Left as raw service ids on purpose: `vendorId` and `Modifier.id` (references, not `Node` types) and the pagination cursor (opaque to clients, and not covered by D-9). Say if D-9 should extend to them.
+- Verified locally: BFF typecheck, lint, Prettier, 18/18 tests (2 new); web typecheck, lint, Prettier; skeleton smoke 5/5 against the real stack; SSR isolation 200/200.
+- Mock e2e: 5 of 6 pass. `refetch pulls fresh data...` fails, **and it fails the same way with these changes stashed**, so it is not caused by this change. Not investigated.
+- Not done: the D-9 row in the `first-slice-contract.md` "Implementation check" table (it lives on the unmerged docs branch); update it to "fixed" after that PR merges. Not run on Azure.
+
+---
+
 **2026-10-28 — Pipeline warnings from the first Azure run addressed (branch `chore/pipeline-warnings`, PR pending)**
 
 The first run (on a pre-.NET 10 commit) completed with warnings and no errors. `NodeTool@0` is deprecated: all four uses are now `UseNode@1` (`version`, checked against the task reference). `ubuntu-latest` migrates to Ubuntu 26.04 between 2026-10-19 and about 2026-11-19 with jobs possibly landing on either image: pinned to `ubuntu-24.04`. The Cosmos-adapter warning is deliberate and stays. Output gaps fixed in the same PR: the skeleton summary JSON is now written into the published `skeleton-logs` artifact; Playwright traces and screenshots are published on failure (`web-playwright-traces`, `skeleton-playwright-traces`); the Redis guard output is kept as `redis-touch.txt`; and the two steps that pipe through `tee` now use `set -o pipefail` (without it a failing summary reported success: shown locally, exit 0 vs 1). The skeleton job failed on Azure: `next build` type-check could not find `src/__generated__/*` (gitignored Relay output; local runs had stale copies). `skeleton-smoke.mjs` now runs the Relay compiler first; reproduced by deleting the folder, then passed from a clean state. Not verified: a run on the changed file; whether the pipeline passes on `ubuntu-26.04`.
