@@ -8,7 +8,7 @@ Short-lived feature branches, merged to `main` quickly, with feature flags (`EPI
 
 ## Branch naming
 
-`feature/<WI-ID>-short-description` (e.g., `feature/CACHE-001-cache-provider-interface`), `fix/<short-description>` for bugs not tied to a work item. Consistent with `engineering-standards.md`'s "a PR should map to one work item" rule — the branch name should make that mapping obvious without opening the PR.
+`feature/<WI-ID>-short-description` (e.g., `feature/CACHE-001-cache-provider-interface`) for a branch that holds one work item, or `feature/<theme>` (e.g., `feature/slice-ordering`) when several related work items travel together (amended 2026-10-28: one commit stays within one work item, but a branch and PR no longer have to; the human lead chose fewer, larger branches to cut merge overhead), `fix/<short-description>` for bugs not tied to a work item. Consistent with `engineering-standards.md`'s "a PR should map to one work item" rule — the branch name should make that mapping obvious without opening the PR.
 
 ## Promotion path (commit → environment)
 
