@@ -1,6 +1,6 @@
 # Slice 1: project status
 
-**As of 2026-10-28.** Companion documents: [plan and critical path](02-plan-and-critical-path.md), [prioritized backlog](03-prioritized-backlog.md). Scope is the first-slice contract (`docs/architecture/first-slice-contract.md`): **login, browse, customize, choose a pickup window, test checkout, confirmation and status**, through Next.js, the GraphQL BFF and the C# services, with CI and a trace.
+**As of 2026-10-28 (updated after `S1-07b`).** Companion documents: [plan and critical path](02-plan-and-critical-path.md), [prioritized backlog](03-prioritized-backlog.md). Scope is the first-slice contract (`docs/architecture/first-slice-contract.md`): **login, browse, customize, choose a pickup window, test checkout, confirmation and status**, through Next.js, the GraphQL BFF and the C# services, with CI and a trace.
 
 Status words follow the repo rule: nothing is called working unless it was run. "Verified" says where.
 
@@ -8,74 +8,74 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 
 | | |
 |---|---|
-| **Overall** | Backend is complete for slice 1 and ahead of it. The customer-facing half (login, checkout, confirmation) is **not started**. |
-| **Slice 1 remaining** | About **44 points** across 10 items (see the backlog). The critical path is about **29 points** (BFF order path, then checkout UI, then confirmation, then the full-stack journey test, then evidence). |
-| **Biggest risk** | The authenticated browser path has never been run: no login code exists in `apps/web-customer`, and the BFF forwards no token. Everything on that path is first-time work. |
+| **Overall** | The slice-1 customer journey is **built and runs end to end on the real local stack**: login through the mock issuer, browse with stock states, customize, pick a pickup time, place a test order, and see the confirmation, in both states an order can start in (confirmed by itself, or waiting for the bakery). **37 of the 44 points are built.** |
+| **Slice 1 remaining** | `S1-06` (mock issuer hardening, 2 points: output encoding, plus the optional allowlist that waits on D-D) and `S1-09` (evidence, documents and a recorded Azure run, 5 points). |
+| **Biggest risk** | **Nothing built since the login (`S1-03` to `S1-07b`) has run on Azure yet.** It is committed on `feature/slice-1-checkout-ui`, stacked on merged work, and not pushed. The new smoke job also starts ordering-service and relies on a fresh secret created on a clean agent. |
 | **Decisions** | Four of five decided 2026-10-28 (D-A option 1, D-B, D-C header-only, D-E). One open: D-D (mock issuer allowlist), which blocks only part of `S1-06`. |
-| **Pipeline** | The last pushed branch was green on Azure. The current branch (`feature/order-events`, 21 commits) is pushed and its PR is not yet opened or run. |
+| **Pipeline** | Everything up to and including the login (`S1-02`) is merged and was green on Azure. The branch after it is pending a push and a first Azure run. |
 
 ## Delivery status by layer
 
 | Layer | Items | Status | Verified |
 |---|---|---|---|
-| Shared libraries (`tools/`) | cache, events, data, auth (incl. client credentials), secrets, logging, schemas | Done | 167+ library tests; Linux container with a real Redis |
-| Catalog service | listings, stock fields, reserve and release, vendor-verification publish gate | Done (`CAT-001`, `005`, `006`) | 104 tests; real stack with Cosmos emulator and Redis |
-| Ordering service | aggregate, persistence, checkout, pickup windows, outbox and events, order actions | Done (`ORD-001`, `002`, `005`, `006`, `007`; `ORD-003` partly) | 320 tests; Linux container; real stack incl. Placed to Completed on Redis and a Redis outage |
+| Shared libraries (`tools/`) | cache, events, data, auth (client credentials, mock issuer CORS), secrets, logging, schemas | Done | 167+ library tests, Auth suite 100; Linux container with a real Redis |
+| Catalog service | listings, stock fields, reserve and release, vendor-verification publish gate | Done (`CAT-001`, `005`, `006`) | 104 tests; real stack |
+| Ordering service | aggregate, persistence, checkout, pickup windows, outbox and events, order actions, automatic confirmation | Done (`ORD-001`, `002`, `005`, `006`, `007`, `008`; `ORD-003` partly) | 337 tests; Linux container; real stack incl. Placed to Completed on Redis |
 | Service-to-service auth | client credentials, mock issuer support | Phase 1 done (`AUTH-006`); DEV credential not started | Real stack, local only |
-| GraphQL BFF | listings read, trace export | Read-only | 16+ tests (22 in the last full local run, before this branch) |
-| Web customer app | listing page, listing detail, SSR and Relay handoff | Read-only | e2e 6/6 (mock BFF) and skeleton smoke 5/5 (real stack), run earlier this session, not re-run since |
-| Web: login, checkout, confirmation | `CUST-003`, `CUST-004`, login (from superseded `WEB-001`) | **Not started** | n/a |
-| Full-stack journey in CI | skeleton smoke covers browse only | **Not started** for ordering | n/a |
+| GraphQL BFF | listings, stock, pickup windows, order, `placeOrder`, token and trace forwarding | Done (`S1-01`) | 75 tests; real stack through the Next.js rewrite |
+| Web: login | PKCE in the browser, in-memory token | Done (`S1-02`), merged | 25 unit tests, browser tests with a stubbed issuer, real issuer in the smoke |
+| Web: browse, order, checkout, confirmation | stock states, options and quantity, cart, `/checkout`, `/orders/{id}` | Done (`S1-03`, `S1-04`, `S1-05`) | 53 unit tests; 57 browser tests against the mock BFF; the real-stack journey |
+| Real-stack smoke | ordering and the issuer's client secret wired in; journey and wiring specs | Done (`S1-07a`, `S1-07b`) | 18 of 18 locally; two wiring mutations and two journey mutations caught |
+| Evidence, documents, trace | `S1-09` | **Not started** | n/a |
 | Queue display, admin, notifications, vendor UI | out of slice 1 | Not started (by design) | n/a |
 
-"Done" above means built and verified locally; the merged-to-main state differs (see next section).
+"Done" above means built and verified locally; the merged-to-main state is in the next section.
 
 ## What has merged, and what is pending
 
-- **Merged earlier:** auth, catalog work through `CAT-006`, ordering checkout and the first pickup-windows endpoint, formatter and lint gates, tracing.
-- **Pushed, PR pending (`feature/order-events`):** the fake cross-partition query, `ORD-005` (outbox and relay), catalog's explicit `Events:Backend`, `ORD-007`, and docs. The human lead will rebase-merge it.
-- **Not run:** this branch on Azure; anything on real Azure Cosmos or a managed Redis (never run).
+- **Merged:** auth, catalog work through `CAT-006`, ordering checkout, pickup windows, the outbox and events (`ORD-005`), the order actions (`ORD-007`), automatic confirmation (`ORD-008`), the BFF order path (`S1-01`), the web login (`S1-02`) and the slice-1 planning documents.
+- **Local, not pushed (`feature/slice-1-checkout-ui`):** stock states (`S1-05`), the cart and order controls, the checkout page (`S1-03`), the order status page (`S1-04`), the real-stack wiring (`S1-07a`) and the browser journey (`S1-07b`).
+- **Never run:** the unmerged work on Azure; anything on real Azure Cosmos or a managed Redis.
 
-## Verification summary (this session)
+## Verification summary (this session, local)
 
 | Check | Result |
 |---|---|
-| Ordering tests | 320 passed, 3 emulator-gated skipped |
-| Catalog tests | 104 passed |
+| Ordering tests / catalog tests | 337 passed (3 emulator-gated skipped) / 104 passed |
 | Linux container, real Redis (build, format gate, tools, catalog, ordering) | passed; Redis processed 132 commands (needs 50), finding A8 |
-| `dotnet format` whitespace and style | clean |
-| Mutation checks | 6 on `ORD-005`, 8 on `ORD-007` (+1 on item 73), all eventually caught; 1 survivor led to a new test |
-| Real stack, `ORD-005` | 6 orders produced 6 `OrderPlaced` stream entries; with Redis stopped, checkout returned 201 after 2 s and the relay delivered within about 4 s of recovery |
-| Real stack, `ORD-007` | full lifecycle on Redis, ownership and roles, stock release, 8 racing pairs each with one winner |
+| BFF tests | 75 passed |
+| Web unit tests / browser tests against the mock BFF | 53 passed / 57 passed |
+| Real-stack smoke (login, wiring, journey, walking skeleton) | 18 of 18 |
+| Mutation checks | about 90 across the session, all eventually caught; each survivor led to a new test or removed dead code |
+| Bugs found by the real stack | a sold-out listing hid its options and allergens; a retry under a rejected checkout's key is refused (the client now uses a new key) |
 
 ## Gaps that matter to slice 1
 
-Full classification of all 76 register items is in the backlog appendix. The ones on the slice 1 path:
+Full classification of the register is in the backlog appendix. What is left on the slice-1 path:
 
-1. **Authenticated browser path missing end to end.** No PKCE login in the web app, no token forwarding in the BFF, no `placeOrder`, `pickupWindows` or `order` in the schema.
-2. **No customer-visible stock state** (item 64): sold-out and low stock are in the REST responses but not the GraphQL schema or UI.
-3. **Mock issuer login page injects unescaped parameters** (item 32). It is dev-only, but a real browser app will now use it.
-4. **No full-stack order journey in CI.** The smoke stack has no ordering service or mock issuer in the journey.
-5. **Trace across all hops not demonstrated** (items 42, 49), and the green Azure run has no recorded ID (item 44).
-6. **Slice documents drift:** `first-slice-contract.md` still says "status is Placed only", `docs/management/project-plan.md` says Phase 1 is "Not started", and the older plan puts the queue display inside Phase 2 while the first-slice contract excludes it.
+1. **Run it on Azure.** The new smoke job (ordering-service, a fresh secret on a clean agent, the BFF test hook) has only run locally.
+2. **Mock issuer login page injects unescaped parameters** (item 32, `S1-06`). Dev-only, but the real browser app now uses it; the `redirect_uri` allowlist waits on D-D.
+3. **Trace across all hops not demonstrated** (items 42, 49), and the green Azure run has no recorded ID (item 44): `S1-09`.
+4. **Slice documents drift:** `docs/management/project-plan.md` says Phase 1 and 2 are "Not started" and puts the queue display in Phase 2; the first-slice contract excludes it (`S1-09`).
+5. **Known limitations, logged:** login lost on reload (item 24) and the follow-ups in item 77; order lines carry no item names (78); pickup times shown in the customer's zone (79); no order history (80); a rejected checkout's key is spent (81).
 
 ## Decisions (human lead)
 
-| # | Decision | Recommendation | Blocks |
+| # | Decision | Status | Blocks |
 |---|---|---|---|
-| D-A | **Auto-confirm rule** for simple orders (no customization, no pickup window; see the plan for the open question about "has available quantity") | **APPROVED 2026-10-28, option 1:** the rule is "no customization and no pickup window"; it ignores whether the item has a stock counter. Item `ORD-008`; configuration switch now, per-item flag later | `ORD-008` (unblocked) |
-| D-B | **Global-ID scope (item 41):** `Order` gets a global ID; `vendorId`, modifier ids and cursors stay raw | **APPROVED 2026-10-28** | BFF order path (`S1-01`) (unblocked) |
-| D-C | **Session storage:** keep the header-only in-memory token (ADR-0006) for slice 1, or move to a server-side session with an HttpOnly cookie now | **DECIDED 2026-10-28: header-only for now.** The cookie-session stays planned as ADR-0019 after slice 1 (`N-01`) | Web login (`S1-02`) (unblocked) |
-| D-D | **Mock issuer `redirect_uri` allowlist** (security-adjacent) | **Still open.** Only the optional allowlist half of `S1-06` waits on it; the output-encoding fix (item 32) does not | `S1-06` (allowlist part) |
-| D-E | **Queue display in or out of slice 1** | **APPROVED 2026-10-28: out of slice 1.** The older project plan is to be updated (`S1-09`) | scope of the journey spec |
+| D-A | **Auto-confirm rule** for simple orders | **APPROVED 2026-10-28, option 1** (no customization and no pickup window; ignores stock counters). Built as `ORD-008` | done |
+| D-B | **Global-ID scope (item 41)** | **APPROVED 2026-10-28.** `Order` and any field referring to a listing or an order is a global ID; `vendorId`, modifier ids and cursors stay raw | done |
+| D-C | **Session storage** | **DECIDED 2026-10-28: header-only for now.** The cookie-session stays planned as ADR-0019 after slice 1 (`N-01`) | done |
+| D-D | **Mock issuer `redirect_uri` allowlist** (security-adjacent) | **Still open.** Good to add, fine to defer. Only the optional allowlist half of `S1-06` waits on it | `S1-06` (allowlist part) |
+| D-E | **Queue display in or out of slice 1** | **APPROVED 2026-10-28: out of slice 1.** The older project plan is to be updated (`S1-09`) | done |
 
 ## Risks
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Authenticated rewrite path drops or alters `Authorization` or `traceparent` | Low to medium | Medium | Add an explicit e2e test in `S1-01` before building on it |
-| Login lost on reload (in-memory token) makes the demo awkward | Certain | Low | Document it (item 24); Playwright logs in per test; cookie-session as the follow-up |
-| Full-stack CI job becomes slow or flaky once ordering, Cosmos and the issuer are added | Medium | Medium | Add the stack pieces first (`S1-07a`), measure, then the journey spec |
-| Shared files (BFF schema, lockfiles, pipeline YAML) collide between branches | Medium | Low | One owner at a time (`07-shared-file-ownership-and-coordination.md`) |
-| Estimates are relative and uncalibrated against a tracked velocity | Certain | Medium | Treat points as ordering aids, not forecasts; re-estimate after wave 1 |
+| The pipeline's new smoke job fails on Azure for a reason a Windows machine cannot show (secret creation on a clean agent, start-up time of ordering-service, tzdata) | Medium | Medium | Push and read the first run before more is built on it; batch any fixes and push once |
+| The smoke job becomes slow or flaky now that it carries ordering, Cosmos and a browser journey | Medium | Medium | Locally 18 tests run in about 20 s after about 3 minutes of start-up; measure on Azure, keep specs independent of each other's data |
+| Login lost on reload (in-memory token) makes the demo awkward | Certain | Low | Documented (item 24); Playwright logs in per test; cookie-session as the follow-up |
+| Shared files (BFF schema, lockfiles, pipeline YAML) collide between branches | Low now | Low | One owner at a time; the schema owner is finished |
+| Estimates are relative and uncalibrated against a tracked velocity | Certain | Medium | Treat points as ordering aids, not forecasts; the 44-point plan has so far taken the order given, with extra work found by the real stack (the key rule, sold-out options) |
 | Real Azure Cosmos and Redis behavior differs from the emulators | Medium | Medium | Out of slice 1; listed under deployment readiness |
