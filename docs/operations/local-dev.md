@@ -42,6 +42,8 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | `Cosmos__GatewayMode` | `true` (emulator only) | the emulator only works over the gateway; deployed environments keep direct mode |
 | `Cosmos__EnsureCreated` | `true` (local only) | creates the database and `catalog` container (partition key `/vendorId`); deployed environments use Terraform |
 
+**Browser login.** The web app exchanges its authorization code at the issuer's `/token` itself, so the mock issuer answers cross-origin calls from the web app's origin: exact origins only, no wildcard, no credentials (`tools/BakeryMarketplace.Auth/MockOidcCors.cs`). The default is `http://localhost:3000`; set `MockOidc__AllowedOrigins__0`, `__1`, ... on the `mock-oidc` service to change it. The web app reads `NEXT_PUBLIC_AUTH_ISSUER` (default `http://localhost:5100`) at build time.
+
 **The authority must be exactly `http://localhost:5100`.** The mock issuer takes its issuer URL from the request's own host, so tokens carry `iss=http://localhost:5100`, and services reject any token whose issuer differs from their configured authority. A service running *inside* a container could not reach the issuer at that URL; this matters when services are containerized.
 
 **The Cosmos SDK must be 3.63.x or newer.** The shared `BakeryMarketplace.Data` library was on 3.38.1, which throws `IndexOutOfRangeException` while decoding any whole-document query (`SELECT *`, and therefore every LINQ query through `CosmosRepository`) from this emulator; 3.50.0 fails differently; 3.63.0 and 3.63.2 pass. Point reads, writes, projections and `COUNT` work on every version. The library is now on 3.63.2.
