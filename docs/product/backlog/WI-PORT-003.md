@@ -1,6 +1,6 @@
 # WI-PORT-003 --- Quality and CI baseline
 
-> **Outcome note (2026-10-28):** pipeline and CI scripts written and every command run locally; **Update 2026-10-28: green run on Azure DevOps reported by the human lead, so "pipeline runs from clean checkout" is met** (run ID not recorded). Original note: not run on Azure DevOps at write time. No formatter/linter gate (none chosen). Found open item #35. Evidence: `docs/evidence/WI-PORT-003/findings.md`; commands and gaps: `docs/process/quality-gates.md`.
+> **Outcome note (2026-10-28):** pipeline and CI scripts written and every command run locally; **Update 2026-10-28: green run on Azure DevOps reported by the human lead, so "pipeline runs from clean checkout" is met** (the first run's id was not recorded; a later full run, `#20261029.4` on 2026-10-29, is). Original note: not run on Azure DevOps at write time. No formatter/linter gate (none chosen). Found open item #35. Evidence: `docs/evidence/WI-PORT-003/findings.md`; commands and gaps: `docs/process/quality-gates.md`.
 
 ```
 WI ID:               PORT-003
