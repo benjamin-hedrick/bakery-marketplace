@@ -16,3 +16,16 @@ export const SAFE_INTERNAL_MESSAGE = 'Something went wrong. Please try again.';
 export function internalError(traceId: string): GraphQLError {
   return new GraphQLError(SAFE_INTERNAL_MESSAGE, { extensions: { code: 'INTERNAL', reference: traceId } });
 }
+
+/**
+ * An error the client is meant to see: a fixed code and a fixed message, nothing from downstream. Anything else thrown by a resolver is
+ * replaced by {@link internalError}. `UNAUTHENTICATED` means log in; `FORBIDDEN` means this role may not do this.
+ */
+export class ClientError extends GraphQLError {
+  constructor(code: 'UNAUTHENTICATED' | 'FORBIDDEN', message: string) {
+    super(message, { extensions: { code } });
+  }
+}
+
+export const unauthenticated = () => new ClientError('UNAUTHENTICATED', 'Please log in to continue.');
+export const forbidden = () => new ClientError('FORBIDDEN', 'You do not have access to this.');

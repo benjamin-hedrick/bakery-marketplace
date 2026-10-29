@@ -18,6 +18,8 @@ export interface CatalogListing {
   currency: string;
   modifiers: CatalogModifier[];
   allergenFlags: string[];
+  /** The public stock block (ADR-0017): a status and the per-order maximum. Exact quantities are never in a public read. */
+  stock: { status: string; maxPerOrder: number | null };
 }
 export interface CatalogPage {
   items: CatalogListing[];

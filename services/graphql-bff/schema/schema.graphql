@@ -1,5 +1,10 @@
-# WI-PORT-001 proof schema: the read-only subset of docs/architecture/first-slice-contract.md §5.
+# The GraphQL composition contract of docs/architecture/data-model-api-contracts.md ("First-slice mapping"). Shared file: one owner at a time.
+# Read side (WI-PORT-001/002, S1-01a). `placeOrder` and its payload types arrive with S1-01b.
 # ListingConnection/ListingEdge/PageInfo are the standard Relay connection types the contract left implicit.
+# D-9/D-B: Listing and Order ids are Relay global ids (base64 of `Type:serviceId`); vendorId, modifier ids and cursors stay raw service ids.
+
+"An ISO 8601 instant in UTC, as the service sent it."
+scalar DateTime
 
 interface Node {
   id: ID!
@@ -9,6 +14,10 @@ type Query {
   node(id: ID!): Node
   listings(first: Int = 20, after: String): ListingConnection!
   listing(id: ID!): Listing
+  "The pickup windows checkout accepts right now. Public."
+  pickupWindows(vendorId: ID!): [PickupWindow!]!
+  "The caller's own order. Null when it does not exist or is someone else's. Needs a bearer token (UNAUTHENTICATED without one)."
+  order(id: ID!): Order
 }
 
 type Listing implements Node {
@@ -20,6 +29,20 @@ type Listing implements Node {
   price: Money!
   modifiers: [Modifier!]!
   allergenFlags: [String!]!
+  stock: Stock!
+}
+
+"What a customer may know about availability (ADR-0017). Exact quantities are never public."
+type Stock {
+  status: StockStatus!
+  "The most a customer can buy in one order; null means no per-order limit beyond the global one."
+  maxPerOrder: Int
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW
+  SOLD_OUT
 }
 
 type Modifier {
@@ -32,6 +55,11 @@ type Modifier {
 type Money {
   cents: Int!
   currency: String!
+}
+
+type PickupWindow {
+  start: DateTime!
+  end: DateTime!
 }
 
 type ListingConnection {
@@ -47,4 +75,34 @@ type ListingEdge {
 type PageInfo {
   hasNextPage: Boolean!
   endCursor: String
+}
+
+type Order implements Node {
+  id: ID!
+  status: OrderStatus!
+  vendorId: ID!
+  lineItems: [OrderLineItem!]!
+  total: Money!
+  "Null when the customer did not request a window (it is optional, D-3)."
+  pickupWindow: PickupWindow
+  createdAt: DateTime!
+}
+
+type OrderLineItem {
+  listingId: ID!
+  modifierIds: [ID!]!
+  quantity: Int!
+  "The line total in cents (unit price times quantity, options included), as ordering-service computed it."
+  price: Money!
+}
+
+"One value per ordering-service OrderStatus; no states are introduced here."
+enum OrderStatus {
+  PENDING
+  PLACED
+  CONFIRMED
+  IN_PREPARATION
+  READY_FOR_FULFILLMENT
+  COMPLETED
+  CANCELLED
 }
