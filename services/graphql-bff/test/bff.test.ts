@@ -84,7 +84,10 @@ let catalogUrl: string;
 before(async () => {
   await new Promise<void>((r) => catalog.listen(0, '127.0.0.1', r));
   catalogUrl = `http://127.0.0.1:${(catalog.address() as AddressInfo).port}`;
-  bff = createServer({ port: 0, catalogUrl, timeoutMs: 300 }, { log, exporter: (s) => spans.push(s) });
+  bff = createServer(
+    { port: 0, catalogUrl, orderingUrl: 'http://127.0.0.1:1', timeoutMs: 300 },
+    { log, exporter: (s) => spans.push(s) },
+  );
   await new Promise<void>((r) => bff.listen(0, '127.0.0.1', r));
   bffUrl = `http://127.0.0.1:${(bff.address() as AddressInfo).port}/graphql`;
 });
@@ -230,7 +233,10 @@ describe('client-safe errors (contract section 6)', () => {
   }
 
   test('an unreachable service is also INTERNAL', async () => {
-    const dead = createServer({ port: 0, catalogUrl: 'http://127.0.0.1:1', timeoutMs: 300 }, { log });
+    const dead = createServer(
+      { port: 0, catalogUrl: 'http://127.0.0.1:1', orderingUrl: 'http://127.0.0.1:1', timeoutMs: 300 },
+      { log },
+    );
     await new Promise<void>((r) => dead.listen(0, '127.0.0.1', r));
     const res = await fetch(`http://127.0.0.1:${(dead.address() as AddressInfo).port}/graphql`, {
       method: 'POST',

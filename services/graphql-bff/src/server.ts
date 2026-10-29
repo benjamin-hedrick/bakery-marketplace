@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { buildSchema, execute, parse, validate, GraphQLError, type ExecutionResult } from 'graphql';
 import type { Config } from './config.ts';
 import { createCatalogClient, type CatalogClient } from './catalog-client.ts';
-import { DownstreamError, internalError } from './errors.ts';
+import { createOrderingClient, type OrderingClient } from './ordering-client.ts';
+import { ClientError, DownstreamError, internalError } from './errors.ts';
 import { rootValue, type Context } from './resolvers.ts';
 import { createOtlpExporter, type SpanExporter } from './otlp.ts';
 import { startTrace, toTraceparent } from './trace.ts';
@@ -23,9 +24,10 @@ export const jsonLogger: Logger = {
 
 export function createServer(
   config: Config,
-  deps: { catalog?: CatalogClient; log?: Logger; exporter?: SpanExporter } = {},
+  deps: { catalog?: CatalogClient; ordering?: OrderingClient; log?: Logger; exporter?: SpanExporter } = {},
 ): http.Server {
   const catalog = deps.catalog ?? createCatalogClient(config.catalogUrl, config.timeoutMs);
+  const ordering = deps.ordering ?? createOrderingClient(config.orderingUrl, config.timeoutMs);
   const log = deps.log ?? jsonLogger;
   const exportSpan = deps.exporter ?? createOtlpExporter(config.otlpEndpoint);
 
@@ -65,7 +67,8 @@ export function createServer(
       return send(400, { errors: [{ message: 'Invalid request body', extensions: { code: 'BAD_REQUEST' } }] });
     }
 
-    const result = await run(source, variables, operationName, { catalog, trace }, log);
+    const authorization = bearerOnly(headerValue(req.headers.authorization));
+    const result = await run(source, variables, operationName, { catalog, ordering, trace, authorization }, log);
     log.info({
       msg: 'graphql request',
       traceId: trace.traceId,
@@ -121,7 +124,7 @@ async function run(
   // Errors raised by a resolver are logged in full here and replaced by the safe shape; the client never sees the detail.
   const mapped = result.errors.map((err) => {
     const cause = err.originalError;
-    if (!cause) return err;
+    if (!cause || cause instanceof ClientError) return err; // validation errors and the few errors meant for the client
     log.error({
       msg: 'resolver failed',
       traceId: ctx.trace.traceId,
@@ -138,6 +141,14 @@ async function run(
 
 function headerValue(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
+}
+
+/**
+ * The caller's credential, only when it is a bearer token (one word after "Bearer"). Anything else is treated as no credential. The value is
+ * passed on unchanged and is never logged or put in a trace: the BFF does not validate it, the service it is sent to does (ADR-0006).
+ */
+function bearerOnly(v: string | undefined): string | undefined {
+  return v !== undefined && /^Bearer [^\s]+$/i.test(v) ? v : undefined;
 }
 
 async function readBody(req: http.IncomingMessage): Promise<string> {
