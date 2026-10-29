@@ -28,6 +28,24 @@ public static class MockOidcIssuer
 
     private record AuthCodeData(string UserId, string RedirectUri, string? CodeChallenge, string? CodeChallengeMethod, DateTimeOffset ExpiresAt);
 
+    /// <summary>Encodes a value for HTML text and quoted attributes, so nothing the page is sent can become markup.</summary>
+    private static string Html(string? value) => System.Net.WebUtility.HtmlEncode(value ?? "");
+
+    /// <summary>The callback of the local web app, used by the runnable host unless it is configured otherwise.</summary>
+    public static readonly string[] DefaultRedirectUris = ["http://localhost:3000/auth/callback"];
+
+    /// <summary>A registered redirect_uri is an absolute http(s) address with no fragment, no credentials and no wildcard.</summary>
+    private static string ValidateRedirectUri(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || value.Contains('#') || uri.UserInfo.Length > 0)
+        {
+            throw new ArgumentException($"'{value}' is not a redirect URI (an absolute http or https address without a fragment or credentials).", nameof(value));
+        }
+        return value;
+    }
+
     /// <summary>
     /// Maps the mock OIDC endpoints to the given route builder.
     /// </summary>
@@ -37,11 +55,21 @@ public static class MockOidcIssuer
     /// Service clients allowed to use the client credentials grant. With none registered the grant refuses every request.
     /// A client's secret must be at least <see cref="MockClient.MinimumSecretLength"/> characters.
     /// </param>
+    /// <param name="redirectUris">
+    /// The redirect_uri values the login flow may send a browser back to, each an absolute http(s) address compared EXACTLY (no prefix, case or
+    /// trailing-slash leniency) and never redirected to otherwise. Null accepts any address (the library default, for tests); the runnable host
+    /// passes <see cref="DefaultRedirectUris"/> or its configuration, and an empty list refuses every login.
+    /// </param>
     public static IEndpointRouteBuilder MapMockOidcIssuer(
-        this IEndpointRouteBuilder endpoints, string audience = "bakery-marketplace", IReadOnlyCollection<MockClient>? clients = null)
+        this IEndpointRouteBuilder endpoints,
+        string audience = "bakery-marketplace",
+        IReadOnlyCollection<MockClient>? clients = null,
+        IReadOnlyCollection<string>? redirectUris = null)
     {
         var registeredClients = (clients ?? Array.Empty<MockClient>()).ToDictionary(c => c.ClientId, StringComparer.Ordinal);
         foreach (var client in registeredClients.Values) client.Validate();
+        var allowedRedirects = redirectUris?.Select(ValidateRedirectUri).ToHashSet(StringComparer.Ordinal);
+        bool RedirectAllowed(string redirectUri) => allowedRedirects is null || allowedRedirects.Contains(redirectUri);
 
         endpoints.MapGet("/.well-known/openid-configuration", (HttpRequest request) =>
         {
@@ -83,9 +111,10 @@ public static class MockOidcIssuer
 
         endpoints.MapGet("/authorize", (HttpRequest request, string? client_id, string? redirect_uri, string? response_type, string? state, string? code_challenge, string? code_challenge_method) =>
         {
-            if (string.IsNullOrEmpty(redirect_uri) || response_type != "code")
+            // The refusal text is fixed: nothing the caller sent is echoed back, and an unregistered address is never redirected to.
+            if (string.IsNullOrEmpty(redirect_uri) || response_type != "code" || !RedirectAllowed(redirect_uri))
             {
-                return Results.BadRequest("Invalid authorize request. Expected response_type=code and a valid redirect_uri.");
+                return Results.BadRequest("Invalid authorize request. Expected response_type=code and a registered redirect_uri.");
             }
 
             var html = $@"
@@ -106,13 +135,13 @@ public static class MockOidcIssuer
     <ul>
         {string.Join("\n", MockUsers.All.Values.Distinct().Select(u => $@"
             <li>
-                <form method='POST' action='{request.PathBase}/authorize/submit'>
-                    <input type='hidden' name='userId' value='{u.Id}' />
-                    <input type='hidden' name='redirect_uri' value='{redirect_uri}' />
-                    <input type='hidden' name='state' value='{state}' />
-                    <input type='hidden' name='code_challenge' value='{code_challenge}' />
-                    <input type='hidden' name='code_challenge_method' value='{code_challenge_method}' />
-                    <button type='submit'>Login as {u.Name} ({u.Role})</button>
+                <form method='POST' action='{Html(request.PathBase.Value)}/authorize/submit'>
+                    <input type='hidden' name='userId' value='{Html(u.Id)}' />
+                    <input type='hidden' name='redirect_uri' value='{Html(redirect_uri)}' />
+                    <input type='hidden' name='state' value='{Html(state)}' />
+                    <input type='hidden' name='code_challenge' value='{Html(code_challenge)}' />
+                    <input type='hidden' name='code_challenge_method' value='{Html(code_challenge_method)}' />
+                    <button type='submit'>Login as {Html(u.Name)} ({Html(u.Role)})</button>
                 </form>
             </li>
         "))}
@@ -136,13 +165,20 @@ public static class MockOidcIssuer
                 return Results.BadRequest("Invalid user.");
             }
 
+            // The form is client-controlled, so the address is checked again here, before any code exists for it.
+            if (string.IsNullOrEmpty(redirectUri) || !RedirectAllowed(redirectUri))
+            {
+                return Results.BadRequest("Invalid authorize request. Expected a registered redirect_uri.");
+            }
+
             var code = Guid.NewGuid().ToString("N");
             AuthCodes[code] = new AuthCodeData(userId, redirectUri, codeChallenge, codeChallengeMethod, DateTimeOffset.UtcNow.AddMinutes(5));
 
-            var redirectUrl = $"{redirectUri}?code={code}";
+            // Built with proper query-string encoding: a state like "a&code=x" or one with a line break is data, never syntax.
+            var redirectUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(redirectUri, "code", code);
             if (!string.IsNullOrEmpty(state))
             {
-                redirectUrl += $"&state={state}";
+                redirectUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(redirectUrl, "state", state);
             }
 
             return Results.Redirect(redirectUrl);
