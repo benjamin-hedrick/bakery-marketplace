@@ -58,6 +58,7 @@ Related trackers, not duplicated here: `docs/product/backlog/PARKING-LOT.md` (tr
 | `WI-CAT-003` | Integration | Cache-aside integration for listing reads | `CAT-001`, `CACHE-002` |
 | `WI-ORD-001` | Service Implementation | Cart + checkout (payment stubbed — `EPIC-PAYMENTS` not yet built) | **Built 2026-10-28, pending review/merge** (221 ordering tests, also on Linux; verified end to end on the real stack; payment is a stub, `OrderPlaced` is not yet published) |
 | `WI-ORD-007` | Service Implementation | Order action endpoints: vendor confirm/decline/start/ready/complete/cancel, customer cancel (added 2026-10-28, approved) | **Built 2026-10-28, pending review/merge** (320 ordering tests, also on Linux; verified on the real stack incl. Placed-to-Completed on Redis; `complete` is direct until `ORD-003`; open item 76) |
+| `WI-ORD-008` | Service Implementation | Automatic confirmation of orders with no options and no requested pickup window (added 2026-10-28, approved as D-A option 1) | **Built 2026-10-28, pending review/merge** (337 ordering tests; five mutation checks; per-item flag deferred) |
 | `WI-QUE-001` | Service Implementation | Order-status read-model (event-fed, CQRS) | `ORD-005`, `EVT-003`, `DATA-002` |
 
 Two real design choices surfaced while detailing this batch, captured as Open Points on the relevant items rather than decided silently — see `WI-CAT-001.md` (where catalog-service stores derived vendor-verification status) and `WI-ORD-001.md` (the exact shape of the payment-step stub). Neither blocks starting the batch; both should be confirmed before/during implementation.
@@ -160,6 +161,8 @@ Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build ·
 - ✅ ORD-004 (Interface/Contract) — **Detailed, Ready for agents**, see `WI-ORD-004.md` — `FulfillmentStrategy` interface (the ACL boundary itself, per ADR-0001) — this is the seam a future Delivery strategy would plug into, and the top of this epic's critical path
 - ✅ ORD-005 (Integration) — **Built 2026-10-28, pending review/merge**, see `WI-ORD-005.md` — Publish domain events (`OrderPlaced`, `OrderCustomized`, `PickupWindowScheduled`, `OrderReadyForPickup`, `OrderCompleted` per ADR-0003/glossary) via the event backbone (EPIC-EVENTING)
 - ✅ ORD-006 (Integration) — **Detailed, Ready for agents**, see `WI-ORD-006.md` — Consumes `Repository<T>` for Cosmos-backed persistence (EPIC-DATA-STORE)
+- ✅ ORD-007 (Service Implementation) — **Built 2026-10-28, pending review/merge**, see `WI-ORD-007.md` — order action endpoints (vendor confirm, decline, start, ready, complete, cancel; customer cancel)
+- ✅ ORD-008 (Service Implementation) — **Built 2026-10-28, pending review/merge**, see `WI-ORD-008.md` — automatic confirmation of orders with no options and no requested pickup window
 
 ### EPIC-QUEUE-DISPLAY — Live Order-Queue Display
 Scope: Ordering & Fulfillment (read-side) · Primary hat(s): Architect, Engineering/Build · Status: Started (2 of 2 items detailed)
