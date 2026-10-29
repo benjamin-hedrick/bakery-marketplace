@@ -29,6 +29,12 @@ foreach (var entry in builder.Configuration.GetSection("MockOidc:Clients").GetCh
     app.Logger.LogInformation("Mock client registered: {Client}", client);
 }
 
+// The browser app exchanges its authorization code here directly, so the web app's origin(s) may call this issuer cross-origin. Exact origins
+// only (MockOidc__AllowedOrigins__0, __1, ...); the default is the local Next.js dev/start port.
+app.UseMockOidcBrowserCors(builder.Configuration.GetSection("MockOidc:AllowedOrigins").Get<string[]>() is { Length: > 0 } configured
+    ? configured
+    : MockOidcCors.DefaultOrigins);
+
 app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients);
 
 app.Run();
