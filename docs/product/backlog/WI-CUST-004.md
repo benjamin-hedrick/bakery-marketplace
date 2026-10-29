@@ -9,6 +9,8 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Outcome note (2026-10-28):** built on `feature/slice-1-checkout-ui` as `S1-04`. `/orders/{id}` is client-rendered behind the login and always read from the network (the status moves on without the page knowing; **Refresh status** asks again). It shows the status in words (Order received / confirmed / being prepared / ready for pickup / picked up / cancelled), a short reference, what was ordered, the server's total, the pickup time or "No specific pickup time", and that no payment was taken. An order that does not exist or is not the customer's reads as not found. Item and option names are read from the listings, because an order line carries ids and the price charged (open item 78). Logging out reloads the home page so nothing fetched while logged in stays in the page's memory. Order history is not built. **Verified (local):** 8 browser tests including both confirmed and waiting states, the login gate, refresh, a load failure and logout; six mutation checks, each failing a test.
+
 > **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements are retained. **Implementation changes**: a client-rendered Next.js page (authenticated), with data through the GraphQL BFF via Relay (ADR-0012/0013). Order status shown is the persisted, authoritative state from `ordering-service` (`WI-PORT-007`). Responses are `private, no-store` (ADR-0014). **Dependencies change**: blocked by `WI-PORT-002` and `WI-PORT-007` instead of `WI-WEB-001`. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 
