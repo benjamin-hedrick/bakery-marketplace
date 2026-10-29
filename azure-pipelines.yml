@@ -204,7 +204,7 @@ jobs:
         workingDirectory: apps/web-customer
         displayName: Install Chromium
       - script: node scripts/ci/skeleton-smoke.mjs
-        displayName: Compose, seed, catalog-service, BFF, Next.js, Playwright
+        displayName: Compose, seed, catalog-service, ordering-service, BFF, Next.js, Playwright
       - script: node scripts/ci/summarize-results.mjs --json artifacts/skeleton/skeleton-summary.json artifacts/skeleton/playwright-junit.xml
         displayName: Summarize results
         condition: succeededOrFailed()
