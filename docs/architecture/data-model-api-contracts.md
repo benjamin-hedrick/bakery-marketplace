@@ -136,6 +136,8 @@ enum PlaceOrderErrorCode {
 
 Expected failures (the codes above) are **typed payloads**, so Relay can render them without error boundaries. Unexpected failures (downstream down, timeout, unhandled) become a top-level GraphQL error with `extensions.code = "INTERNAL"`, a fixed safe message, and `extensions.reference = <trace id>` (ADR-0016). Stack traces, downstream URLs and raw payloads never reach the client.
 
+*As built, read side (S1-01a, 2026-10-28; the authoritative schema is `services/graphql-bff/schema/schema.graphql`):* `Listing.stock { status maxPerOrder }` is added (`IN_STOCK`, `LOW`, `SOLD_OUT`; item 64). `Order.pickupWindow` is **nullable** (the window is optional, D-3). `OrderStatus` also has `PENDING`, one value per ordering-service status. `DateTime` is a declared scalar (ISO 8601, UTC, as the service sent it). `OrderLineItem.price` is the line total in cents. `Order` has a Relay global id (`Order:<id>`, D-B), and `node(id)` resolves a `Listing` or an `Order`. `pickupWindows(vendorId)` is public; `order(id)` and `node` for an `Order` need a bearer token, forwarded unchanged to ordering-service and to nothing else. Errors meant for the client carry `extensions.code`: `UNAUTHENTICATED` (no token, or ordering answered 401) and `FORBIDDEN` (ordering answered 403, for a role that may not read orders). An order that does not exist, or is not the caller's, is `null`. A stock or order status the BFF does not recognize is an `INTERNAL` error, never a guess. `placeOrder` and its payload types are not built yet (`S1-01b`).
+
 ---
 
 ## `catalog-service`

@@ -68,7 +68,7 @@ export Cosmos__ConnectionString="AccountEndpoint=http://localhost:8081/;AccountK
 dotnet run --project tools/BakeryMarketplace.Seed
 ASPNETCORE_ENVIRONMENT=Development Data__Backend=cosmos Events__Backend=redis ASPNETCORE_URLS=http://localhost:5200 \
   dotnet run --project services/catalog-service/src                                  # terminal 1
-(cd services/graphql-bff && npm ci && CATALOG_URL=http://localhost:5200 npm start)   # terminal 2, port 4100
+(cd services/graphql-bff && npm ci && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)   # terminal 2, port 4100 (ORDERING_URL is needed for pickupWindows and order)
 (cd apps/web-customer && npm ci && GRAPHQL_URL=http://localhost:4100/graphql npm run build \
   && GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3000)                 # terminal 3
 (cd apps/web-customer && npm run test:skeleton)                                        # Playwright smoke

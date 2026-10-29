@@ -166,7 +166,8 @@ The slice now has one configured zone for every vendor (`Pickup:TimeZoneId`, def
 Type: Contract inconsistency · Source: first-slice contract implementation check (2026-10-28) · Hat: Architect
 `PayoutReconciledPayload.NetAmount` is `decimal`; `data-model-api-contracts.md` still uses unqualified `price`, `priceDelta`, `grossAmount`. Part of `WI-PORT-006` pass 2. **Partly resolved 2026-10-28:** the data-model doc now uses `priceCents` / `priceDeltaCents` and has a payout-money row; `PayoutReconciledPayload.NetAmount` is still `decimal` in code.
 
-**41. Scope of the GraphQL global-ID rule (D-9) is unconfirmed**
+**41. Scope of the GraphQL global-ID rule (D-9) is unconfirmed** — **Resolved 2026-10-28 (D-B)**
+Resolution (human lead, 2026-10-28): `Order` is also a Relay global id (`Order:<id>`, built in `S1-01a`); `vendorId`, modifier ids and cursors stay raw service ids because they are not Relay nodes. Original description:
 Type: Open decision · Source: D-9 fix (2026-10-28) · Hat: Architect
 Only `Listing.id` is a global ID. `vendorId`, `Modifier.id` and pagination cursors stay raw service ids. Confirm, especially for `vendorId` as the argument of the future `pickupWindows` query.
 
@@ -258,7 +259,8 @@ OAuth2 client credentials was chosen. `WI-AUTH-006` phase 1 (mock issuer, shared
 Type: Missing API · Source: `WI-CAT-005` (2026-10-28) · Hat: Engineering/Build
 Only public reads exist (Published, verified vendors, no exact stock). A vendor sees the exact quantity only in the responses to their own create, edit and adjust calls, and cannot list their drafts or current stock. A vendor-facing read (list and get own listings, with the owner view) is needed before any vendor UI; mind the id-only lookup cost noted in `ListingService`.
 
-**64. Stock status and `maxPerOrder` are not in the GraphQL schema**
+**64. Stock status and `maxPerOrder` are not in the GraphQL schema** — **Schema half resolved 2026-10-28 (`S1-01a`); UI half pending (`S1-05`)**
+Resolution so far: `Listing.stock { status maxPerOrder }` is in the BFF schema (`IN_STOCK`, `LOW`, `SOLD_OUT`), verified through the real catalog. Still to do: show the states in the listing UI and disable a sold-out item. Original description:
 Type: Contract follow-up · Source: `WI-CAT-005` (2026-10-28) · Hat: Architect, Engineering/Build
 The catalog REST responses now carry `stock`, but the BFF schema (`services/graphql-bff/schema/schema.graphql`, a shared file) and the web app do not expose them, so customers cannot see in stock, low or sold out yet. Add `Listing.stock { status maxPerOrder }` with the next BFF/web change, and show sold-out and low states in the listing UI.
 
@@ -283,7 +285,8 @@ Checkout stores the order as `Placed` but publishes nothing (`ORD-005` is not bu
 Type: Tracking · Source: `WI-ORD-001` (2026-10-28), ADR-0005, item 53 · Hat: Architect
 `StubPaymentProcessor` approves everything and logs a warning each time. A real authorization (`PAY-001`) must use the order id as its idempotency key and be voided if the save fails after the authorization succeeded (today a failed save releases the stock but would leave a real authorization standing). Capture at confirm follows item 53.
 
-**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout**
+**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout** — **Read side built 2026-10-28 (`S1-01a`); `placeOrder` and the web checkout remain**
+Built so far: `Query.pickupWindows`, `Query.order` and `node(Order)` in the BFF, with the caller's bearer token forwarded to ordering only (`S1-01a`). Remaining: `Mutation.placeOrder` with the rejection codes (`S1-01b`), the checkout UI (`CUST-003`) and the confirmation view (`CUST-004`). Original description:
 Type: Follow-up · Source: `WI-ORD-001` (2026-10-28) · Hat: Engineering/Build
 The REST side is done, including `GET /ordering/pickup-windows`. Still to build: `Mutation.placeOrder` and `Query.pickupWindows`/`order` in the BFF schema (a shared file) with the contract's `PlaceOrderRejected` codes mapped from this service's error codes (including `insufficient_stock`), the Relay/web checkout UI with the demo-mode banner (`CUST-003`), and the order confirmation view (`CUST-004`).
 
