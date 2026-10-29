@@ -31,7 +31,7 @@ Priority: **P0** slice 1 critical path, **P1** slice 1 off the critical path, **
 | S1-07a | **BUILT 2026-10-28 (smoke 12/12 locally, incl. 5 new real-stack ordering checks; not yet run on Azure).** **Stack wiring in the smoke and pipeline.** Add the mock issuer, the ordering service (Cosmos, Redis, client secret via `init-env`) and its environment to `skeleton-smoke.mjs` and `azure-pipelines.yml`; update `local-dev.md`. | 3 | P1 | none | Pipeline YAML is a shared file | Do early to surface CI problems before the UI exists. Measure the added run time. |
 | S1-07b | **BUILT 2026-10-28 (18/18 on the real stack locally incl. 6 journey tests; not yet on Azure).** **Journey spec and CI.** Playwright: browse, see stock states, log in, customize, choose a window, order; confirmation shows Placed (customized or windowed) and Confirmed (simple) with no vendor step; duplicate submit shows one order; declined test payment; expired login. Runs locally and in the pipeline. | 5 | P0 | S1-04, S1-05, S1-07a, S1-08 | none | Deterministic data from the seed; no sleeps. |
 | S1-08 | **BUILT 2026-10-28** **`ORD-008` auto-confirm** (proposed, see the plan). Rule in ordering, configuration switch, `OrderPlaced` then `OrderConfirmed` from one write, record that the confirmation was automatic, tests including the outbox order and cancel-after-confirm stock release, lifecycle and contract docs updated. | 3 | P1 | D-A (approved, option 1) | Approved 2026-10-28 | The rule ignores stock-counter tracking, so no catalog change and no extra points. Needed by `S1-04` and `S1-07b` to show Confirmed. |
-| S1-09 | **Evidence and reconciliation.** Trace across web, BFF, ordering and catalog (items 42, 49) captured; record the Azure run ID (item 44); update `first-slice-contract.md` (status, `placeOrder`, items 58 and 41), `WI-CUST-*`, `WI-PORT-002` and the outline; refresh `project-plan.md`; evidence file for the slice. | 5 | P0 | S1-07b | none | Last in the chain. |
+| S1-09 | **BUILT 2026-10-28 except the recorded Azure run id (item 44), which needs a green run (evidence: `docs/evidence/slice-1/findings.md`).** **Evidence and reconciliation.** Trace across web, BFF, ordering and catalog (items 42, 49) captured; record the Azure run ID (item 44); update `first-slice-contract.md` (status, `placeOrder`, items 58 and 41), `WI-CUST-*`, `WI-PORT-002` and the outline; refresh `project-plan.md`; evidence file for the slice. | 5 | P0 | S1-07b | none | Last in the chain. |
 
 **Slice 1 total: 44. Critical path: S1-01, S1-03, S1-04, S1-07b, S1-09 = 29.**
 
@@ -127,7 +127,7 @@ Buckets: **S1** needed for slice 1; **NEXT** planned after slice 1; **DEP** need
 | 51 | Availability windows / per-item pickup rules | DEF | Placeholders acceptable for slice 1 |
 | 52 | Who owns stock | DONE | ADR-0017 |
 | 53 | Payment timing vs vendor confirmation | NEXT | N-08; note `ORD-008` interaction |
-| 54 | Vendor order-action endpoints | DONE | `ORD-007`, pending merge |
+| 54 | Vendor order-action endpoints | DONE | `ORD-007`, merged to main |
 | 55 | Vendor-response timeout | DEF | |
 | 56 | Pickup no-show rule | DONE | |
 | 57 | Customer cancellation window and refunds | DEF | |

@@ -164,6 +164,22 @@ Expected totals for tests (cents): 2× sourdough + `mod-seeds` = **1800**; crois
 
 Follow-ups, not yet scheduled: (a) D-9 needs a code change in the BFF (global ID encode/decode, `Type:serviceId`) before a second node type or any stored/linked ID depends on raw ids; it is a BFF-only change but touches the Relay schema and the web-customer routes. (b) A vendor time-zone field must be added when `ORD-003` lands. (c) `PayoutReconciledPayload` money type and the data-model doc's price names should be reconciled with D-1 (the rename is already announced in contract §4).
 
+### Slice 1 as built, 2026-10-28 (reconciliation of the decisions against the finished slice; register item 58)
+
+The slice is built and runs end to end on the real local stack (`docs/management/slice-1/01-project-status.md`, `docs/evidence/slice-1/findings.md`). Where the build differs from, or settles, a decision above:
+
+| Decision | As built |
+|---|---|
+| D-2 cart | Still a browser cart, conceptually the `Pending` order, but it lives in `sessionStorage` rather than the Relay store, because logging in is a full page navigation to the issuer and back and would lose an in-memory cart. It holds ids, options, quantities and what was shown; nothing sensitive. |
+| D-3 pickup windows | The window is optional. `GET /ordering/pickup-windows` is public and always fetched fresh by the checkout. |
+| D-5 quantity limits | The 1 to 20 and 10 lines are placeholders for a per-item maximum (`maxPerOrder`, from the catalog's stock block) with a global cap, enforced by ordering. The web app mirrors them only as hints. |
+| D-6 idempotency | The key belongs to one content of the order and one outcome. The client reuses it after an unexpected failure or a timeout (an order may exist, and the retry returns it), and uses a **new** key after a typed rejection and whenever the order changes, because ordering will not re-reserve stock under the key of a rejected attempt (open item 81). |
+| D-7 time zone | Instants are UTC end to end; the web app shows them in the **browser's** zone without naming it (open item 79). |
+| D-8 lead time | A 30-minute lead time, 15-minute slots, 08:00 to 17:00 Eastern converted per date, for today and two more days; all configuration. Per-item or per-vendor lead times are not built. |
+| D-9 IDs | `Listing` and `Order` are Relay global IDs, and so is any field that refers to one; `vendorId`, option ids and cursors stay raw (open item 41, resolved). |
+| D-10 payment hook | `X-Test-Payment: decline` reaches ordering through the BFF only when the BFF runs with `ENABLE_TEST_HOOKS=1`; ordering also ignores it in Production. |
+| Order status path (section 1, "Placed only") | Settled by `WI-ORD-008`: an order with no options and no requested window confirms by itself, so both `Confirmed` and `Placed` appear without a vendor; vendor actions exist as an API (`WI-ORD-007`) with no UI. |
+
 ## 12. Next steps
 
 1. ~~Human lead approves or amends §3–§11~~ **Done**: D-1 to D-4 2026-10-26, D-5 to D-10 2026-10-28.
