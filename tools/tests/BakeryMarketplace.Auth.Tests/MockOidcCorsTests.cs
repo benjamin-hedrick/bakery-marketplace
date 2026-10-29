@@ -144,7 +144,11 @@ public class MockOidcCorsTests
     [Fact]
     public void AnOriginThatIsNotJustSchemeHostAndPortIsRejectedAtStartup()
     {
-        foreach (var bad in new[] { "*", "localhost:3000", "http://localhost:3000/path", "http://*.example", "" })
+        foreach (var bad in new[]
+                 {
+                     "*", "localhost:3000", "http://localhost:3000/path", "http://*.example", "", "http://localhost:3000/",
+                     "http://localhost:3000?x=1", "http://user@localhost:3000", "ftp://localhost:3000",
+                 })
         {
             Assert.Throws<ArgumentException>(() => CreateServer(bad));
         }
