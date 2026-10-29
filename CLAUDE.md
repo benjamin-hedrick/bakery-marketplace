@@ -35,7 +35,7 @@ npm run test:e2e         # Playwright (Chromium); `npx playwright install chromi
 npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/operations/local-dev.md)
 ```
 
-GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (46 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
+GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (75 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `ENABLE_TEST_HOOKS=1` forwards the declined-payment test hook and must never be set outside tests). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
 
 Generated Relay artifacts (`src/__generated__/`) are gitignored; `npm run relay` recreates them. `ENABLE_TEST_HOOKS` must never be set outside tests. Details: `apps/web-customer/README.md`.
 
