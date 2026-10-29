@@ -18,7 +18,7 @@
 | BFF format, lint, typecheck, tests | `npm ci && npm run format:check && npm run lint && npm run typecheck && npm test` in `services/graphql-bff` | Node >= 24 | `bff` |
 | Web format (also `scripts/` and `azure-pipelines.yml`), lint, typecheck (runs `relay-compiler`) | `npm ci && npm run format:check && npm run lint && npm run typecheck` in `apps/web-customer` | Node >= 24 | `web` |
 | Web build + mock e2e | `npm run test:e2e` in `apps/web-customer` (builds, starts a mock BFF, Chromium) | `npx playwright install chromium` | `web` |
-| Walking skeleton, real stack | `node scripts/ci/skeleton-smoke.mjs` (Compose, seed, catalog, BFF, Next.js, Playwright, teardown) | Docker, .NET, Node, the two `npm ci` runs | `skeleton` |
+| Walking skeleton, real stack | `node scripts/ci/skeleton-smoke.mjs` (local secrets, Compose with the mock issuer, seed, catalog, ordering, BFF, Next.js, Playwright, teardown) | Docker, .NET, Node, the two `npm ci` runs | `skeleton` |
 | Result summary | `node scripts/ci/summarize-results.mjs [--json out] <trx or junit files>` | | all |
 
 ## Formatter and linter decision (2026-10-28)
