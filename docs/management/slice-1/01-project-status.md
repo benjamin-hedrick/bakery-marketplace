@@ -11,7 +11,7 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 | **Overall** | Backend is complete for slice 1 and ahead of it. The customer-facing half (login, checkout, confirmation) is **not started**. |
 | **Slice 1 remaining** | About **44 points** across 10 items (see the backlog). The critical path is about **29 points** (BFF order path, then checkout UI, then confirmation, then the full-stack journey test, then evidence). |
 | **Biggest risk** | The authenticated browser path has never been run: no login code exists in `apps/web-customer`, and the BFF forwards no token. Everything on that path is first-time work. |
-| **Decisions waiting on the human lead** | Five (listed below). Two block work in the first wave. |
+| **Decisions** | Four of five decided 2026-10-28 (D-A option 1, D-B, D-C header-only, D-E). One open: D-D (mock issuer allowlist), which blocks only part of `S1-06`. |
 | **Pipeline** | The last pushed branch was green on Azure. The current branch (`feature/order-events`, 21 commits) is pushed and its PR is not yet opened or run. |
 
 ## Delivery status by layer
@@ -59,15 +59,15 @@ Full classification of all 76 register items is in the backlog appendix. The one
 5. **Trace across all hops not demonstrated** (items 42, 49), and the green Azure run has no recorded ID (item 44).
 6. **Slice documents drift:** `first-slice-contract.md` still says "status is Placed only", `docs/management/project-plan.md` says Phase 1 is "Not started", and the older plan puts the queue display inside Phase 2 while the first-slice contract excludes it.
 
-## Decisions needed from the human lead
+## Decisions (human lead)
 
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
-| D-A | **Auto-confirm rule** for simple orders (no customization, no pickup window; see the plan for the open question about "has available quantity") | Approve as new item `ORD-008`; configuration switch now, per-item flag later | `ORD-008`, the Playwright confirmed-vs-placed cases |
-| D-B | **Global-ID scope (item 41):** `Order` gets a global ID; `vendorId`, modifier ids and cursors stay raw | Approve | BFF order path (`S1-01`) |
-| D-C | **Session storage:** keep the header-only in-memory token (ADR-0006) for slice 1, or move to a server-side session with an HttpOnly cookie now | Keep header-only for slice 1; schedule the cookie-session as ADR-0019 right after (needs your approval either way, it is auth logic) | Web login (`S1-02`) |
-| D-D | **Mock issuer `redirect_uri` allowlist** (security-adjacent) | Approve a small allowlist for the local web origins | `S1-06` |
-| D-E | **Queue display in or out of slice 1** | Out, as the first-slice contract says; update the older project plan | scope of `S1-08` |
+| D-A | **Auto-confirm rule** for simple orders (no customization, no pickup window; see the plan for the open question about "has available quantity") | **APPROVED 2026-10-28, option 1:** the rule is "no customization and no pickup window"; it ignores whether the item has a stock counter. Item `ORD-008`; configuration switch now, per-item flag later | `ORD-008` (unblocked) |
+| D-B | **Global-ID scope (item 41):** `Order` gets a global ID; `vendorId`, modifier ids and cursors stay raw | **APPROVED 2026-10-28** | BFF order path (`S1-01`) (unblocked) |
+| D-C | **Session storage:** keep the header-only in-memory token (ADR-0006) for slice 1, or move to a server-side session with an HttpOnly cookie now | **DECIDED 2026-10-28: header-only for now.** The cookie-session stays planned as ADR-0019 after slice 1 (`N-01`) | Web login (`S1-02`) (unblocked) |
+| D-D | **Mock issuer `redirect_uri` allowlist** (security-adjacent) | **Still open.** Only the optional allowlist half of `S1-06` waits on it; the output-encoding fix (item 32) does not | `S1-06` (allowlist part) |
+| D-E | **Queue display in or out of slice 1** | **APPROVED 2026-10-28: out of slice 1.** The older project plan is to be updated (`S1-09`) | scope of the journey spec |
 
 ## Risks
 
