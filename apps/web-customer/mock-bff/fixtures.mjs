@@ -1,13 +1,12 @@
 // Deterministic fixtures. Fixture A mirrors the first-slice seed (contract §7, prices in integer cents).
 // Fixture B shares no names or IDs with A, so any cross-request leak is detectable.
-// Like the real BFF (D-9, D-B): a listing's id is a Relay global id, a modifier's id and a vendor id are the raw service ids.
-const gid = (type, id) => Buffer.from(`${type}:${id}`).toString('base64');
+// Like the real BFF (D-9, D-B): a listing's id is a Relay global id (made in server.mjs), a modifier's id and a vendor id are the raw service ids.
 
 const IN_STOCK = { status: 'IN_STOCK', maxPerOrder: null };
 
 const listing = (id, vendorId, name, category, priceCents, modifiers, allergenFlags, stock = IN_STOCK) => ({
   __typename: 'Listing',
-  id: gid('Listing', id),
+  id, // the raw service id: server.mjs turns it into the Relay global id once, as the real BFF does
   vendorId,
   name,
   description: `${name} (fixture)`,

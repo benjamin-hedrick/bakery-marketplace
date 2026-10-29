@@ -27,6 +27,23 @@ export class UnauthenticatedError extends Error {
   }
 }
 
+interface GraphQLErrorEntry {
+  message: string;
+  extensions?: { code?: string; reference?: string };
+}
+
+/** The BFF answered with errors (not an expected failure, which comes back as data). `reference` is the trace id to quote when asking for help. */
+export class GraphQLRequestError extends Error {
+  readonly codes: string[];
+  readonly reference: string | undefined;
+  constructor(errors: GraphQLErrorEntry[]) {
+    super(`GraphQL errors: ${errors.map((e) => e.message).join('; ')}`);
+    this.name = 'GraphQLRequestError';
+    this.codes = errors.map((e) => e.extensions?.code).filter((c): c is string => typeof c === 'string');
+    this.reference = errors.find((e) => typeof e.extensions?.reference === 'string')?.extensions?.reference;
+  }
+}
+
 /** The bearer token of the current login, as request headers. Evaluated per request, because the login can change at any time. */
 function sessionHeaders(): Record<string, string> {
   const token = session.getAccessToken();
@@ -81,7 +98,7 @@ function makeFetch(
         session.clear(); // the token was missing, expired or refused: the login is over
         throw new UnauthenticatedError();
       }
-      throw new Error(`GraphQL errors: ${json.errors.map((e: { message: string }) => e.message).join('; ')}`);
+      throw new GraphQLRequestError(json.errors);
     }
     return json;
   };

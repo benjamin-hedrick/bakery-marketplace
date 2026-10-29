@@ -1,69 +1,12 @@
 import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import type { ConsoleMessage, Page, Request, Route } from '@playwright/test';
+import type { ConsoleMessage, Page } from '@playwright/test';
+import { APP, authorizationOfNextGraphQL, fakeToken, ISSUER, stubIssuer } from './helpers';
 
 // S1-02: login in the browser. The issuer is stubbed inside the browser (page.route), so the whole Authorization Code + PKCE flow is checked
 // deterministically here; the skeleton suite does the same against the real mock issuer.
 
-const ISSUER = 'http://localhost:5100';
-const APP = 'http://localhost:3000';
-
-const b64url = (v: unknown) => Buffer.from(JSON.stringify(v)).toString('base64url');
-function fakeToken(claims: Record<string, unknown> = {}) {
-  const exp = Math.floor(Date.now() / 1000) + 3600;
-  const payload = {
-    sub: 'user-customer-1',
-    name: 'Alice Customer',
-    email: 'alice@customer.local',
-    roles: 'Customer',
-    exp,
-    ...claims,
-  };
-  return `${b64url({ alg: 'RS256', typ: 'JWT' })}.${b64url(payload)}.${Buffer.from('not-a-real-signature').toString('base64url')}`;
-}
 const challengeOf = (verifier: string) => createHash('sha256').update(verifier).digest('base64url');
-
-interface Issuer {
-  authorizeUrls: URL[];
-  tokenBodies: URLSearchParams[];
-}
-
-/** Stubs the issuer: /authorize redirects straight back with a code; /token answers with `token`. */
-async function stubIssuer(
-  page: Page,
-  opts: { token?: string; tokenStatus?: number; callbackQuery?: (state: string) => string } = {},
-): Promise<Issuer> {
-  const seen: Issuer = { authorizeUrls: [], tokenBodies: [] };
-  await page.route(`${ISSUER}/authorize*`, async (route: Route) => {
-    const url = new URL(route.request().url());
-    seen.authorizeUrls.push(url);
-    const query =
-      opts.callbackQuery?.(url.searchParams.get('state')!) ?? `code=code-1&state=${url.searchParams.get('state')}`;
-    await route.fulfill({ status: 302, headers: { location: `${APP}/auth/callback?${query}` } });
-  });
-  await page.route(`${ISSUER}/token`, async (route: Route) => {
-    seen.tokenBodies.push(new URLSearchParams(route.request().postData() ?? ''));
-    const ok = (opts.tokenStatus ?? 200) === 200;
-    await route.fulfill({
-      status: opts.tokenStatus ?? 200,
-      contentType: 'application/json',
-      headers: { 'access-control-allow-origin': APP },
-      body: JSON.stringify(
-        ok
-          ? { access_token: opts.token ?? fakeToken(), token_type: 'Bearer', expires_in: 3600 }
-          : { error: 'invalid_grant' },
-      ),
-    });
-  });
-  return seen;
-}
-
-/** The Authorization header of the next GraphQL call the page makes after `trigger`. */
-async function authorizationOfNextGraphQL(page: Page, trigger: () => Promise<void>): Promise<string | undefined> {
-  const request: Promise<Request> = page.waitForRequest((r) => r.url().includes('/api/graphql'));
-  await trigger();
-  return (await request).headers()['authorization'];
-}
 
 const refresh = (page: Page) => () => page.getByRole('button', { name: 'Refresh' }).click();
 
