@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using BakeryMarketplace.EventSchemas;
+using Microsoft.Extensions.Options;
 using OrderingService.Domain;
 using OrderingService.Outbox;
 using OrderingService.Persistence;
@@ -26,6 +27,7 @@ public sealed partial class CheckoutService(
     IPaymentProcessor payments,
     PickupSchedule schedule,
     OrderEventPublisher eventPublisher,
+    IOptions<CheckoutOptions> checkoutOptions,
     TimeProvider time,
     ILogger<CheckoutService> logger)
 {
@@ -85,6 +87,7 @@ public sealed partial class CheckoutService(
         foreach (var line in lines) order.AddLine(line, now);
         if (window is not null) order.SetFulfillmentDetails(FulfillmentDetails.ForPickup(window.Start, window.End), now);
         order.Place(now);
+        if (checkoutOptions.Value.AutoConfirm && AutoConfirmPolicy.Qualifies(order)) order.Confirm(now, automatic: true); // WI-ORD-008
 
         // ---- reserve stock, pay (stub), store ----
         var reserved = false;

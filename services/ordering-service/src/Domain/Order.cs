@@ -101,13 +101,16 @@ public sealed class Order
             TotalCents, Currency), now);
     }
 
-    /// <summary>The vendor accepts the order. The strategy (pickup: <c>PickupFulfillment</c>) reacts to the event and schedules what was requested.</summary>
-    public void Confirm(DateTimeOffset now)
+    /// <summary>
+    /// The order is accepted: by the vendor, or with <paramref name="automatic"/> by the checkout rule (<see cref="Checkout.AutoConfirmPolicy"/>).
+    /// The strategy (pickup: <c>PickupFulfillment</c>) reacts to the event and schedules what was requested.
+    /// </summary>
+    public void Confirm(DateTimeOffset now, bool automatic = false)
     {
         Require(OrderStatus.Placed, "confirm");
 
         Status = OrderStatus.Confirmed;
-        Raise(OrderEventTypes.Confirmed, new OrderConfirmedPayload(Id, FulfillmentType, Fulfillment), now);
+        Raise(OrderEventTypes.Confirmed, new OrderConfirmedPayload(Id, FulfillmentType, Fulfillment, automatic), now);
     }
 
     public void StartPreparation(DateTimeOffset now)
