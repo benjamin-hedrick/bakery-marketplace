@@ -67,6 +67,14 @@ export async function authorizationOfNextGraphQL(
   return (await request).headers()['authorization'];
 }
 
+/** Logs out, which reloads the home page (so nothing the page learned while logged in survives), and waits for that reload. */
+export async function logOut(page: Page) {
+  const reloaded = page.waitForEvent('load');
+  await page.getByRole('button', { name: 'Log out' }).click();
+  await reloaded;
+  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+}
+
 /** Logs in through the stubbed issuer from whatever page is open, and waits until the header shows the user. */
 export async function logIn(page: Page) {
   await page.getByRole('button', { name: 'Log in' }).first().click();

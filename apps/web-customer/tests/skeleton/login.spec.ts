@@ -34,7 +34,9 @@ test('a customer logs in through the real issuer, the BFF call carries a signed 
   );
   expect(stored).not.toContain(header!.split('.')[2]); // the signature is nowhere in the browser's storage
 
+  const reloaded = page.waitForEvent('load'); // logging out reloads the home page, so nothing fetched while logged in survives
   await page.getByRole('button', { name: 'Log out' }).click();
+  await reloaded;
   await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
   expect(
     await authorizationOfNextGraphQL(() => page.getByRole('button', { name: 'Refresh' }).click(), page),

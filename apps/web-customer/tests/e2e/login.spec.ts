@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import type { ConsoleMessage, Page } from '@playwright/test';
-import { APP, authorizationOfNextGraphQL, fakeToken, ISSUER, stubIssuer } from './helpers';
+import { APP, authorizationOfNextGraphQL, fakeToken, ISSUER, logOut, stubIssuer } from './helpers';
 
 // S1-02: login in the browser. The issuer is stubbed inside the browser (page.route), so the whole Authorization Code + PKCE flow is checked
 // deterministically here; the skeleton suite does the same against the real mock issuer.
@@ -92,8 +92,7 @@ test('the token is sent to the BFF while logged in, and not before or after', as
   await expect(page.getByTestId('user-name')).toBeVisible();
   expect(await authorizationOfNextGraphQL(page, refresh(page))).toBe(`Bearer ${token}`);
 
-  await page.getByRole('button', { name: 'Log out' }).click();
-  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+  await logOut(page);
   expect(await authorizationOfNextGraphQL(page, refresh(page))).toBeUndefined();
 });
 
@@ -189,7 +188,6 @@ test('logging in and out produces no console warnings or errors', async ({ page 
   await page.goto('/');
   await page.getByRole('button', { name: 'Log in' }).click();
   await expect(page.getByTestId('user-name')).toBeVisible();
-  await page.getByRole('button', { name: 'Log out' }).click();
-  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+  await logOut(page);
   expect(problems, problems.join('\n')).toEqual([]);
 });

@@ -28,7 +28,14 @@ export function finishLogin(search: URLSearchParams): Promise<{ returnTo: string
   return completeLogin(search, browserDeps());
 }
 
-/** Ends the login. The token only ever existed in memory, so there is nothing else to remove. */
+/**
+ * Ends the login. The token only ever existed in memory, so there is nothing else to remove, except what the page has learned with it:
+ * Relay keeps what it fetched (an order, say) in the page's memory. A full reload drops all of it, so whoever logs in next on this tab
+ * can never be shown the previous customer's data. (The order being built is not personal data and stays in the cart.)
+ */
 export function logout(): void {
   session.clear();
+  // A full navigation on purpose, not router.push: only a reload empties the page's memory.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.assign('/');
 }
