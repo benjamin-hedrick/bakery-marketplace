@@ -32,6 +32,7 @@ public sealed class CatalogFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseSetting("Events:Backend", "inmemory"); // read by Program.cs before the host is built, so it must be a host setting
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Auth:Authority"] = Issuer,

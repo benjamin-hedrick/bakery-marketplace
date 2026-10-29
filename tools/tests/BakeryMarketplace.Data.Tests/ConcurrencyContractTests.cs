@@ -106,6 +106,27 @@ public abstract class ConcurrencyContractTests
         Assert.Equal("first", two!.Name);
     }
 
+    protected async Task Run_AQueryWithNoPartitionKeySpansAllPartitions()
+    {
+        var repo = CreateRepository();
+        await repo.SaveIfUnchangedAsync(New("q1", "qp-a"), "qp-a");
+        await repo.SaveIfUnchangedAsync(New("q2", "qp-b"), "qp-b");
+        await repo.SaveIfUnchangedAsync(New("q3", "qp-b"), "qp-b");
+
+        var one = await Collect(repo.QueryAsync("qp-b", q => q.Where(e => e.Name == "first" && e.Counter == 0 && e.Id != "q1")));
+        var all = await Collect(repo.QueryAsync("", q => q.Where(e => e.Id == "q1" || e.Id == "q2" || e.Id == "q3")));
+
+        Assert.Equal(["q2", "q3"], one.Select(e => e.Id).OrderBy(i => i));
+        Assert.Equal(["q1", "q2", "q3"], all.Select(e => e.Id).OrderBy(i => i));
+    }
+
+    private static async Task<List<VersionedEntity>> Collect(IAsyncEnumerable<VersionedEntity> source)
+    {
+        var list = new List<VersionedEntity>();
+        await foreach (var item in source) list.Add(item);
+        return list;
+    }
+
     protected async Task Run_ConcurrentReadModifyWriteLoopsLoseNoUpdate()
     {
         var repo = CreateRepository();
@@ -140,6 +161,7 @@ public sealed class FakeConcurrencyTests : ConcurrencyContractTests
     [Fact] public Task ADeletedEntityCannotBeSavedConditionally() => Run_ADeletedEntityCannotBeSavedConditionally();
     [Fact] public Task ReadersGetIndependentCopies() => Run_ReadersGetIndependentCopies();
     [Fact] public Task ConcurrentReadModifyWriteLoopsLoseNoUpdate() => Run_ConcurrentReadModifyWriteLoopsLoseNoUpdate();
+    [Fact] public Task AQueryWithNoPartitionKeySpansAllPartitions() => Run_AQueryWithNoPartitionKeySpansAllPartitions();
 
     [Fact]
     public async Task AnEntityTypeWithoutETagsCannotBeSavedConditionally()
@@ -202,4 +224,5 @@ public sealed class CosmosConcurrencyTests : ConcurrencyContractTests, IAsyncLif
     [EmulatorFact] public Task ADeletedEntityCannotBeSavedConditionally() => Run_ADeletedEntityCannotBeSavedConditionally();
     [EmulatorFact] public Task ReadersGetIndependentCopies() => Run_ReadersGetIndependentCopies();
     [EmulatorFact] public Task ConcurrentReadModifyWriteLoopsLoseNoUpdate() => Run_ConcurrentReadModifyWriteLoopsLoseNoUpdate();
+    [EmulatorFact] public Task AQueryWithNoPartitionKeySpansAllPartitions() => Run_AQueryWithNoPartitionKeySpansAllPartitions();
 }

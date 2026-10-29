@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using BakeryMarketplace.EventSchemas;
 using OrderingService.Domain;
+using OrderingService.Outbox;
 using OrderingService.Persistence;
 
 namespace OrderingService.Checkout;
@@ -16,13 +17,15 @@ namespace OrderingService.Checkout;
 /// catalog reservation (keyed by the same id) is repeatable, and a retry returns the original order. A hash of the request is stored with
 /// the order; the same key with a different request is refused.
 /// </para>
-/// Not here yet: publishing <c>OrderPlaced</c> (<c>ORD-005</c>) and a real payment (<c>PAY-001</c>).
+/// Events (<c>ORD-005</c>): <c>OrderPlaced</c> is stored with the order and then published straight away; if that fails or is slow the
+/// outbox relay publishes it. Not here yet: a real payment (<c>PAY-001</c>).
 /// </summary>
 public sealed partial class CheckoutService(
     ICatalogGateway catalog,
     OrderStore orders,
     IPaymentProcessor payments,
     PickupSchedule schedule,
+    OrderEventPublisher eventPublisher,
     TimeProvider time,
     ILogger<CheckoutService> logger)
 {
@@ -115,6 +118,7 @@ public sealed partial class CheckoutService(
             {
                 reserved = false; // the order now owns the reservation
                 logger.LogInformation("Order {OrderId} placed: {Lines} line(s), {TotalCents} cents", orderId, order.Lines.Count, order.TotalCents);
+                await eventPublisher.PublishInlineAsync(created);
                 return new CheckoutResult(CheckoutOutcome.Created, created);
             }
 

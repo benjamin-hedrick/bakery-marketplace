@@ -54,6 +54,8 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
             ["ServiceAuth:ClientId"] = FakeCatalogServer.ClientId,
             ["ServiceAuth:Scope"] = "bakery-marketplace/.default",
             ["ServiceAuth:ClientSecret"] = _clientSecret,
+            ["Events:Backend"] = "inmemory",
+            ["Outbox:RelayEnabled"] = "false", // tests drive sweeps themselves; a background loop would make them timing-dependent
         })
         {
             builder.UseSetting(key, value);

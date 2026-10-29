@@ -32,6 +32,9 @@ public interface IRepository<T> where T : class
     /// Returns entities within <paramref name="partitionKey"/> matching the composed predicate.
     /// The <paramref name="query"/> function receives an IQueryable and returns a filtered/ordered IQueryable.
     /// The implementation translates this to a safe, parameterized store query — never raw string concatenation.
+    /// An empty <paramref name="partitionKey"/> queries across ALL partitions (what <see cref="CosmosRepository{T}"/> does and what the fake
+    /// now does too). That costs more than a single-partition query: use it for background maintenance, such as sweeping for pending outbox
+    /// events, never on a request path.
     /// </summary>
     IAsyncEnumerable<T> QueryAsync(
         string partitionKey,

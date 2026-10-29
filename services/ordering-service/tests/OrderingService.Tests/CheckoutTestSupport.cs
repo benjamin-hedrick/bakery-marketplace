@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OrderingService.Checkout;
 using OrderingService.Domain;
+using OrderingService.Orders;
+using OrderingService.Outbox;
 using OrderingService.Persistence;
 
 namespace OrderingService.Tests;
@@ -121,6 +123,9 @@ internal sealed class FlakyOrderRepository(IRepository<OrderDocument> inner) : I
     /// <summary>Pretends another request created the order first: the next conditional save reports a conflict.</summary>
     public bool ConflictOnNextCreate { get; set; }
 
+    /// <summary>Every conditional save reports a conflict (an order that other writers keep changing).</summary>
+    public bool ConflictAlways { get; set; }
+
     /// <summary>After a conflict was reported, reads fail (to prove a lost race never releases the winner's stock).</summary>
     public bool FailReadsAfterConflict { get; set; }
 
@@ -138,6 +143,7 @@ internal sealed class FlakyOrderRepository(IRepository<OrderDocument> inner) : I
     public Task<OrderDocument?> SaveIfUnchangedAsync(OrderDocument entity, string partitionKey, CancellationToken ct = default)
     {
         if (FailWrites) throw new InvalidOperationException("scripted store failure");
+        if (ConflictAlways) return Task.FromResult<OrderDocument?>(null);
         if (ConflictOnNextCreate)
         {
             ConflictOnNextCreate = false;
@@ -154,16 +160,59 @@ internal sealed class CheckoutFixture
     public RecordingPayments Payments { get; } = new();
     public ManualTime Time { get; } = new(Seed.Now);
     public FlakyOrderRepository Repository { get; } = new(new FakeRepository<OrderDocument>(d => d.Id));
+    public RecordingEvents Events { get; } = new();
+    public OutboxOptions Outbox { get; } = new();
+    public OutboxSignal Signal { get; } = new();
     public OrderStore Store { get; }
+    public OrderEventPublisher Publisher { get; }
+    public OutboxRelay Relay { get; }
     public CheckoutService Service { get; }
+    public OrderActionService Actions { get; }
 
     public CheckoutFixture()
     {
         Store = new OrderStore(Repository);
+        Publisher = new OrderEventPublisher(Events, Store, Signal, Options.Create(Outbox), NullLogger<OrderEventPublisher>.Instance);
+        Relay = new OutboxRelay(Store, Publisher, Signal, Options.Create(Outbox), Time, NullLogger<OutboxRelay>.Instance);
         Service = new CheckoutService(
-            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Time, NullLogger<CheckoutService>.Instance);
+            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher, Time,
+            NullLogger<CheckoutService>.Instance);
+        Actions = new OrderActionService(Store, Catalog, Publisher, Time, NullLogger<OrderActionService>.Instance);
     }
 
     public Task<CheckoutResult> CheckoutAsync(CheckoutRequest? request = null, string? key = null, string customer = "customer-1", bool decline = false) =>
         Service.CheckoutAsync(customer, key ?? Seed.NewKey(), request ?? Seed.Request(), decline);
+}
+
+/// <summary>Records every published envelope; can be scripted to fail or to hang, like a broker that is down or slow.</summary>
+internal sealed class RecordingEvents : BakeryMarketplace.Eventing.IEventPublisher
+{
+    private readonly object _gate = new();
+    private readonly List<(Guid EventId, string EventType, long Sequence, string AggregateId, string? Traceparent, object Payload)> _published = [];
+
+    public bool Fail { get; set; }
+
+    /// <summary>When set, publishing waits for this to complete (a hung broker).</summary>
+    public Task? Hang { get; set; }
+
+    /// <summary>When set, only this event type fails.</summary>
+    public string? FailOnlyType { get; set; }
+
+    public IReadOnlyList<(Guid EventId, string EventType, long Sequence, string AggregateId, string? Traceparent, object Payload)> Published
+    {
+        get
+        {
+            lock (_gate) return _published.ToList();
+        }
+    }
+
+    public async Task PublishAsync<T>(BakeryMarketplace.Eventing.DomainEventEnvelope<T> envelope, CancellationToken ct = default)
+    {
+        if (Hang is not null) await Hang;
+        if (Fail || FailOnlyType == envelope.EventType) throw new InvalidOperationException("scripted broker failure");
+        lock (_gate)
+        {
+            _published.Add((envelope.EventId, envelope.EventType, envelope.SequenceNumber, envelope.AggregateId, envelope.Traceparent, envelope.Payload!));
+        }
+    }
 }

@@ -1,11 +1,15 @@
 using BakeryMarketplace.Auth;
 using BakeryMarketplace.Data;
+using BakeryMarketplace.Eventing;
 using BakeryMarketplace.Logging;
 using BakeryMarketplace.Secrets;
 using Microsoft.Azure.Cosmos;
 using OrderingService.Api;
 using OrderingService.Checkout;
+using OrderingService.Orders;
+using OrderingService.Outbox;
 using OrderingService.Persistence;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +63,27 @@ else
 }
 builder.Services.AddSingleton<OrderStore>();
 
+// Events (ADR-0003, WI-ORD-005). The backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory" (tests and throwaway runs).
+// There is no default, because silently falling back to in-memory would drop every order event while looking healthy.
+var eventsBackend = builder.Configuration["Events:Backend"];
+if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
+{
+    var redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
+    builder.Services.AddSingleton<IEventPublisher>(new RedisStreamsEventTransport(redis));
+}
+else if (string.Equals(eventsBackend, "inmemory", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<IEventPublisher>(new InMemoryEventTransport());
+}
+else
+{
+    throw new InvalidOperationException("Events:Backend must be set to 'redis' or 'inmemory'. There is no default, so events are never lost silently.");
+}
+builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection("Outbox"));
+builder.Services.AddSingleton<OutboxSignal>();
+builder.Services.AddSingleton<OrderEventPublisher>();
+builder.Services.AddHostedService<OutboxRelay>();
+
 // Checkout (WI-ORD-001).
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<PickupScheduleOptions>(builder.Configuration.GetSection("Pickup"));
@@ -75,6 +100,7 @@ builder.Services.AddHttpClient(CatalogGateway.PublicClientName, c => { c.BaseAdd
 builder.Services.AddHttpClient(CatalogGateway.ServiceClientName, c => { c.BaseAddress = catalogUrl; c.Timeout = catalogTimeout; }).AddServiceAuthHandler();
 builder.Services.AddSingleton<ICatalogGateway, CatalogGateway>();
 builder.Services.AddSingleton<CheckoutService>();
+builder.Services.AddSingleton<OrderActionService>(); // WI-ORD-007
 
 var app = builder.Build();
 
@@ -86,6 +112,7 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.MapPickupWindowEndpoints();
 app.MapCheckoutEndpoints();
+app.MapOrderActionEndpoints();
 
 app.Run();
 

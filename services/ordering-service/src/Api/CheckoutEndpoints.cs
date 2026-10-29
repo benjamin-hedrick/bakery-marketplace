@@ -7,7 +7,7 @@ using OrderingService.Persistence;
 namespace OrderingService.Api;
 
 /// <summary>Stable, client-safe error body: a machine-readable code, a message, and optional per-field or per-line detail.</summary>
-public sealed record ApiError(string Code, string Message, IReadOnlyDictionary<string, string[]>? Errors = null, IReadOnlyList<StockLineRejection>? Lines = null);
+public sealed record ApiError(string Code, string Message, IReadOnlyDictionary<string, string[]>? Errors = null, IReadOnlyList<StockLineRejection>? Lines = null, string? CurrentStatus = null);
 
 public sealed record OrderLineDto(string ListingId, IReadOnlyList<string> Modifiers, int Quantity, int UnitPriceCents, long PriceCents);
 
@@ -87,7 +87,7 @@ public static class CheckoutEndpoints
         return app;
     }
 
-    private static string? SubjectOf(ClaimsPrincipal user) =>
+    internal static string? SubjectOf(ClaimsPrincipal user) =>
         user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     private static IResult Error(int status, CheckoutResult r)
