@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { graphql, useRefetchableFragment } from 'react-relay';
 import type { ListingsList_query$key } from '../__generated__/ListingsList_query.graphql';
 import { formatMoney } from '../lib/money';
+import { StockBadge } from './StockBadge';
 
 const fragment = graphql`
   fragment ListingsList_query on Query @refetchable(queryName: "ListingsListRefetchQuery") {
@@ -17,6 +18,9 @@ const fragment = graphql`
             currency
           }
           allergenFlags
+          stock {
+            status
+          }
         }
       }
     }
@@ -43,7 +47,7 @@ export function ListingsList({ query }: { query: ListingsList_query$key }) {
         {data.listings.edges.map(({ node }) => (
           <li key={node.id} data-testid="listing">
             <Link href={`/listings/${encodeURIComponent(node.id)}`}>{node.name}</Link>{' '}
-            <span data-testid="price">{formatMoney(node.price)}</span>{' '}
+            <span data-testid="price">{formatMoney(node.price)}</span> <StockBadge status={node.stock.status} />{' '}
             <small>
               {node.category}
               {node.allergenFlags.length ? ` · contains ${node.allergenFlags.join(', ')}` : ''}
