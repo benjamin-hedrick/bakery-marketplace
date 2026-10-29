@@ -1,5 +1,6 @@
 import { Environment, Network, RecordSource, Store } from 'relay-runtime';
 import type { FetchFunction } from 'relay-runtime';
+import { session } from '../auth/session.ts';
 import { exportClientSpan } from './otlp';
 
 // Relay has no public name for its serialized record map, so derive it from the constructor.
@@ -18,7 +19,26 @@ interface Tracing {
   endpoint: string | undefined;
 }
 
-function makeFetch(url: string, headers: Record<string, string> = {}, tracing?: Tracing): FetchFunction {
+/** The BFF said the login is missing or no longer accepted. The session has been ended; the page should offer to log in again. */
+export class UnauthenticatedError extends Error {
+  constructor() {
+    super('Your login has ended. Please log in again.');
+    this.name = 'UnauthenticatedError';
+  }
+}
+
+/** The bearer token of the current login, as request headers. Evaluated per request, because the login can change at any time. */
+function sessionHeaders(): Record<string, string> {
+  const token = session.getAccessToken();
+  return token ? { authorization: `Bearer ${token}` } : {};
+}
+
+function makeFetch(
+  url: string,
+  headers: Record<string, string> = {},
+  tracing?: Tracing,
+  dynamicHeaders?: () => Record<string, string>,
+): FetchFunction {
   return async (params, variables) => {
     const startedAtMs = Date.now();
     const started = performance.now();
@@ -40,7 +60,7 @@ function makeFetch(url: string, headers: Record<string, string> = {}, tracing?: 
     try {
       res = await fetch(url, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...headers, ...traceHeaders },
+        headers: { 'content-type': 'application/json', ...headers, ...dynamicHeaders?.(), ...traceHeaders },
         body: JSON.stringify({ query: params.text, variables }),
       });
     } catch (e) {
@@ -54,6 +74,13 @@ function makeFetch(url: string, headers: Record<string, string> = {}, tracing?: 
     const json = await res.json();
     done(res.status, !!json.errors?.length);
     if (json.errors?.length) {
+      if (
+        dynamicHeaders &&
+        json.errors.some((e: { extensions?: { code?: string } }) => e.extensions?.code === 'UNAUTHENTICATED')
+      ) {
+        session.clear(); // the token was missing, expired or refused: the login is over
+        throw new UnauthenticatedError();
+      }
       throw new Error(`GraphQL errors: ${json.errors.map((e: { message: string }) => e.message).join('; ')}`);
     }
     return json;
@@ -92,7 +119,8 @@ let browserEnvironment: Environment | undefined;
 export function getBrowserEnvironment(): Environment {
   if (typeof window === 'undefined') throw new Error('getBrowserEnvironment() called on the server');
   browserEnvironment ??= new Environment({
-    network: Network.create(makeFetch(BROWSER_GRAPHQL_URL)),
+    // The token goes only to our own origin (the Next.js rewrite to the BFF), and only from the browser (ADR-0012, item 26).
+    network: Network.create(makeFetch(BROWSER_GRAPHQL_URL, {}, undefined, sessionHeaders)),
     store: new Store(new RecordSource()),
   });
   return browserEnvironment;
