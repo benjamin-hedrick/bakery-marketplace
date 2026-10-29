@@ -285,8 +285,8 @@ Checkout stores the order as `Placed` but publishes nothing (`ORD-005` is not bu
 Type: Tracking · Source: `WI-ORD-001` (2026-10-28), ADR-0005, item 53 · Hat: Architect
 `StubPaymentProcessor` approves everything and logs a warning each time. A real authorization (`PAY-001`) must use the order id as its idempotency key and be voided if the save fails after the authorization succeeded (today a failed save releases the stock but would leave a real authorization standing). Capture at confirm follows item 53.
 
-**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout** — **BFF and web built 2026-10-28 (`S1-01`, `S1-03`, `S1-04`); only the real-stack journey in CI (`S1-07`) remains**
-Built: the BFF queries and `placeOrder` (`S1-01`), the checkout page (`CUST-003` as `S1-03`) and the order status page (`CUST-004` as `S1-04`), tested against a mock BFF in the browser. Remaining: the journey against the real ordering service, in CI (`S1-07`). Original description:
+**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout** — **Resolved 2026-10-28 (`S1-01`, `S1-03`, `S1-04`, `S1-07`)**
+Built and verified end to end: the BFF queries and `placeOrder` (`S1-01`), the checkout page (`S1-03`) and the order status page (`S1-04`), and the browser journey against the real ordering service in the smoke (`S1-07b`, 18/18 locally; not yet on Azure). Original description:
 Type: Follow-up · Source: `WI-ORD-001` (2026-10-28) · Hat: Engineering/Build
 The REST side is done, including `GET /ordering/pickup-windows`. Still to build: `Mutation.placeOrder` and `Query.pickupWindows`/`order` in the BFF schema (a shared file) with the contract's `PlaceOrderRejected` codes mapped from this service's error codes (including `insufficient_stock`), the Relay/web checkout UI with the demo-mode banner (`CUST-003`), and the order confirmation view (`CUST-004`).
 
@@ -331,3 +331,7 @@ Windows are UTC instants (D-7) and the checkout and order pages format them in t
 **80. A customer cannot see their orders as a list**
 Type: Missing capability · Source: `S1-04` (2026-10-28) · Hat: Product
 The order page is reached by the id `placeOrder` returned; there is no order history and no way back to an order except that link (the browser's history, or the id). Needs an `orders` query in ordering-service (partitioned by customer already, ADR-0004) and the BFF, and a page. Not part of slice 1.
+
+**81. A retry under the key of a rejected checkout gets `conflict`, not the original answer**
+Type: Rough edge · Source: `S1-07b` (2026-10-28) · Hat: Engineering/Build
+After a typed rejection (a declined payment, say) the attempt's reservation is released, and the catalog will not reserve again for that order id (ADR-0017: a released reservation is final, so a late duplicate cannot hold stock for a dead order). Ordering derives the order id from `(customer, key)`, so reusing that key later fails at the reserve step with the generic "the stock changed while placing the order" (`conflict`). The web client avoids it (a rejection spends its key, see the first-slice contract), but another client, or a user retrying from a stale tab, would see a misleading message. Better: ordering recognizes that case and returns a distinct code ("start a new checkout"), or the catalog distinguishes "released" from "changed". Also relevant to `PAY-001`, where a declined real payment will be retried with the same intent.

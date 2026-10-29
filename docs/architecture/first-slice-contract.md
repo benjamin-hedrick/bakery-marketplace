@@ -84,6 +84,8 @@ Parallelism: a listing detail page may fetch `listing` and `pickupWindows` concu
 
 **As built (2026-10-28, `WI-ORD-001`):** the order id is derived from `(customerId, key)` so the create-only write decides a race; no Cosmos unique-key constraint is needed. Codes added to this table: `insufficient_stock` (409, with the quantity available per line), `validation_failed` (422), `downstream_unavailable` (503). The stock reservation (`CAT-006`) uses the same order id, so a retry never holds stock twice.
 
+**A rejected attempt spends its key (found by the real-stack journey, `S1-07b`, 2026-10-28).** Because the order id comes from the key, and the catalog does not re-reserve stock for an order id it has released, a retry under the key of an attempt that ended in a typed rejection (`PlaceOrderRejected`: a declined payment, no stock, a taken window) is refused with `conflict`. The client therefore uses a **new key after any rejection**, and keeps the **same key only after an unexpected failure or a timeout**, where an order may exist and the retry returns it. A change to the order always gets a new key.
+
 ## 7. Seed data contract (reuse `WI-DEV-004`; no second seed source)
 
 Deterministic IDs so tests, SSR smoke and Playwright can assert exact values. Extends `DEV-004`'s 2 vendors / 5–10 listings; the slice needs only the subset below.
