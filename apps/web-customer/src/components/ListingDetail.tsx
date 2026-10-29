@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { graphql, useLazyLoadQuery } from 'react-relay';
 import type { ListingDetailQuery } from '../__generated__/ListingDetailQuery.graphql';
 import { formatMoney } from '../lib/money';
+import { AddToOrder } from './AddToOrder';
 import { StockBadge } from './StockBadge';
 
 export const listingDetailQuery = graphql`
   query ListingDetailQuery($id: ID!) {
     listing(id: $id) {
       id
+      vendorId
       name
       description
       category
@@ -54,14 +56,7 @@ export function ListingDetail({ id }: { id: string }) {
         {listing.stock.maxPerOrder ? ` · up to ${listing.stock.maxPerOrder} per order` : ''}
       </p>
       <p>Allergens: {listing.allergenFlags.join(', ') || 'none flagged'}</p>
-      <h2>Options</h2>
-      <ul>
-        {listing.modifiers.map((m) => (
-          <li key={m.id}>
-            {m.name} (+{formatMoney(m.priceDelta)}){m.allergens.length ? ` — contains ${m.allergens.join(', ')}` : ''}
-          </li>
-        ))}
-      </ul>
+      <AddToOrder listing={listing} />
     </main>
   );
 }
