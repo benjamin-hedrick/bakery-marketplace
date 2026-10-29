@@ -1,14 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import type { APIRequestContext } from '@playwright/test';
-import { globalId, userToken } from './support';
+import { globalId, quantity, userToken } from './support';
 
 // S1-07a: the real stack is wired end to end for ordering (compose + seed + catalog + ordering + BFF + the mock issuer), proven without a
 // browser. The browser journey on top of it is S1-07b. Needs the whole local stack; see README.
 
 const BFF = process.env.BFF_URL ?? 'http://localhost:4100';
 const ORDERING = process.env.ORDERING_URL ?? 'http://localhost:5300';
-const CATALOG = process.env.CATALOG_URL ?? 'http://localhost:5200';
 const SOURDOUGH = 'listing-sourdough-001';
 
 // Query results differ per test, so the data is deliberately loosely typed (the only `any` in this file).
@@ -26,15 +25,6 @@ async function gql(request: APIRequestContext, query: string, variables: object 
   });
   expect(res.status()).toBe(200);
   return (await res.json()) as GqlBody;
-}
-
-/** The vendor's own view of a listing's quantity (+1 then -1, as the response shows the count). Only the owner can read it. */
-async function quantity(request: APIRequestContext, vendorToken: string, listing: string): Promise<number> {
-  const headers = { authorization: `Bearer ${vendorToken}` };
-  const up = await request.post(`${CATALOG}/catalog/listings/${listing}/stock/adjust`, { data: { delta: 1 }, headers });
-  const body = (await up.json()) as { stock: { availableQuantity: number } };
-  await request.post(`${CATALOG}/catalog/listings/${listing}/stock/adjust`, { data: { delta: -1 }, headers });
-  return body.stock.availableQuantity - 1;
 }
 
 const PLACE = `mutation($input: PlaceOrderInput!) { placeOrder(input: $input) { __typename

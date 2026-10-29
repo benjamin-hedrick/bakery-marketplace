@@ -74,8 +74,9 @@ const timeOf = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { ho
 
 /**
  * The checkout (first-slice contract section 6). It sends what to ask for and shows what the server says: the server prices the order,
- * checks the limits and the window, and decides. The idempotency key belongs to one content of the order, so it is reused when the same
- * order is submitted again (a retry after an error returns the original order) and replaced as soon as anything about the order changes.
+ * checks the limits and the window, and decides. The idempotency key belongs to one content of the order and one outcome: it is reused when
+ * the same order is submitted again after an unexpected error or a timeout (an order may exist, and the retry returns it), and replaced as
+ * soon as anything about the order changes or the attempt was rejected (nothing was placed, and the rejected attempt's key is spent).
  */
 export function CheckoutForm() {
   const cart = useCart();
@@ -132,6 +133,10 @@ export function CheckoutForm() {
           cartStore.clear();
           void router.push(`/orders/${encodeURIComponent(placeOrder.order.id)}`);
         } else if (placeOrder.__typename === 'PlaceOrderRejected') {
+          // A rejection is final: nothing was placed, and the attempt's reservation (if it got that far) has been given back. Ordering will
+          // not re-reserve for the same order id, which is derived from the key, so a retry needs a new key. (An unexpected error is different:
+          // an order may exist, so onError keeps the key and the retry returns it.)
+          attempt.current = null;
           setProblem({ kind: 'rejected', ...placeOrder });
           if (placeOrder.code === 'PICKUP_WINDOW_UNAVAILABLE') {
             setSelected('');
