@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app';
 import { RelayEnvironmentProvider } from 'react-relay';
+import { SiteHeader } from '../components/SiteHeader.tsx';
 import type { RelayRecords } from '../lib/relay/environment';
 import { useHydratedEnvironment } from '../lib/relay/useHydratedEnvironment';
 
@@ -10,6 +11,7 @@ export default function App({ Component, pageProps }: AppProps<PageProps>) {
   const environment = useHydratedEnvironment(relayRecords);
   return (
     <RelayEnvironmentProvider environment={environment}>
+      <SiteHeader />
       <Component {...rest} />
     </RelayEnvironmentProvider>
   );
