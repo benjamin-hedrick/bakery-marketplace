@@ -147,6 +147,9 @@ jobs:
       - script: npm run typecheck
         workingDirectory: apps/web-customer
         displayName: Typecheck (runs relay-compiler first)
+      - script: npm run test:unit
+        workingDirectory: apps/web-customer
+        displayName: Unit tests (login library, Node test runner)
       - script: npx playwright install --with-deps chromium
         workingDirectory: apps/web-customer
         displayName: Install Chromium
