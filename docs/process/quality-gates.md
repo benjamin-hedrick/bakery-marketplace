@@ -1,6 +1,6 @@
 # Quality gates and CI baseline
 
-`WI-PORT-003`, ADR-0015. What the pipeline (`azure-pipelines.yml`) runs, the exact commands to reproduce each step locally, and what it does **not** cover. **The pipeline has run green on Azure DevOps** (reported by the human lead 2026-10-28; run ID not recorded; the deliberate Cosmos-adapter warning remains; not run on `ubuntu-26.04`). Every command below was also run locally (see `docs/evidence/WI-PORT-003/findings.md`).
+`WI-PORT-003`, ADR-0015. What the pipeline (`azure-pipelines.yml`) runs, the exact commands to reproduce each step locally, and what it does **not** cover. **The pipeline has run green on Azure DevOps** (reported by the human lead 2026-10-28; most recent recorded run `#20261029.4`, 2026-10-29, which included ordering-service and the browser journey; the deliberate Cosmos-adapter warning remains; not run on `ubuntu-26.04`). Every command below was also run locally (see `docs/evidence/WI-PORT-003/findings.md`).
 
 ## Commands
 
@@ -13,7 +13,7 @@
 | Cosmos order-store tests (emulator) | `COSMOS_CONNECTION_STRING=... dotnet test services/ordering-service/tests/OrderingService.Tests --filter CosmosOrderStore` (same variable and emulator as the row below); skipped without it, never faked; not run in CI | the Cosmos vNext emulator | `dotnet` |
 | Cosmos concurrency and batch contract tests (emulator) | `COSMOS_CONNECTION_STRING="AccountEndpoint=http://localhost:8081/;AccountKey=<the emulator's documented key>" dotnet test tools/tests/BakeryMarketplace.Data.Tests --filter "FullyQualifiedName~CosmosConcurrency|FullyQualifiedName~CosmosBatch"` after `docker compose up -d cosmos` | the Cosmos vNext emulator; without the variable the 14 tests are reported as skipped (never faked); **not run in CI** | `dotnet` |
 | Linux reproduction of the .NET test steps | `node scripts/ci/linux-check.mjs [tools|catalog|ordering]` | Docker; tests the **committed** tree (a temporary git worktree) in `mcr.microsoft.com/dotnet/sdk:10.0`; emulator tests skip as in the pipeline | `node`, `docker` |
-| ordering-service tests | `dotnet test services/ordering-service/tests/OrderingService.Tests` | nothing (pure domain tests, no I/O); added 2026-10-28, not yet run on Azure | `dotnet` |
+| ordering-service tests | `dotnet test services/ordering-service/tests/OrderingService.Tests` | nothing (pure domain tests, no I/O); added 2026-10-28; passed in the Azure run `#20261029.4` | `dotnet` |
 | Redis really reached | `node scripts/ci/redis-touch.mjs snapshot <f>` before, `... assert <f> 50` after | Redis | `dotnet` |
 | BFF format, lint, typecheck, tests | `npm ci && npm run format:check && npm run lint && npm run typecheck && npm test` in `services/graphql-bff` | Node >= 24 | `bff` |
 | Web format (also `scripts/` and `azure-pipelines.yml`), lint, typecheck (runs `relay-compiler`) | `npm ci && npm run format:check && npm run lint && npm run typecheck` in `apps/web-customer` | Node >= 24 | `web` |

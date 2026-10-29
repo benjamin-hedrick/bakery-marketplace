@@ -8,11 +8,11 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 
 | | |
 |---|---|
-| **Overall** | The slice-1 customer journey is **built and runs end to end on the real local stack**: login through the mock issuer, browse with stock states, customize, pick a pickup time, place a test order, and see the confirmation, in both states an order can start in (confirmed by itself, or waiting for the bakery). **About 43 of the 44 points are built.** |
-| **Slice 1 remaining** | One part of `S1-09`: recording the id of a green Azure run in `docs/evidence/WI-PORT-003/findings.md` (item 44). It cannot be done before that run exists. The rest of `S1-09` (trace evidence across the hops, the privacy scan, the stale plan and status documents, the contract reconciliation) is on `feature/slice-1-evidence`, awaiting its PR. |
-| **Biggest risk** | **The merged customer journey (`S1-03` to `S1-07b`) has had one Azure run, which found one bug in a test (fixed on `feature/slice-1-hardening`) and nothing else in that job; a full green run is not recorded yet.** The smoke job now starts ordering-service and relies on a secret created on a clean agent, which only Azure can fully confirm. |
+| **Overall** | **Slice 1 is complete: all 44 points are built and verified; only the documents of `S1-09` are still waiting for their PR.** The customer journey (login through the mock issuer, browse with stock states, customize, pick a pickup time, place a test order, see the confirmation in both states an order can start in) runs end to end on the real local stack, and the whole pipeline including that journey passed on Azure in run `#20261029.4` (reported by the human lead). |
+| **Slice 1 remaining** | Nothing in scope. What follows is the next-after-slice work in `03-prioritized-backlog.md` (section B) and the register items marked "NEXT" or "before any deployment". |
+| **Biggest risk** | **Nothing has been deployed, and nothing has run against real Azure Cosmos, a managed Redis or Application Insights.** Everything above is the local stack and the Azure build agent. The cookie-session and the DEV credentials (`N-01`, `N-02`) gate any deployed environment. |
 | **Decisions** | All five decided 2026-10-28 (D-A option 1, D-B, D-C header-only, D-D allowlist built, D-E). Open for later: the cookie-session (`N-01`, ADR-0019). |
-| **Pipeline** | Merged to `main`: everything through the browser journey (`S1-07b`); that run was red on one test, which was a bug in the test. The fix and `S1-06` are in `feature/slice-1-hardening` (pushed, PR next); the evidence and plan documents are in `feature/slice-1-evidence` (local, stacked on it). |
+| **Pipeline** | Merged to `main`: all of the slice, the fix and the mock issuer hardening. Azure run `#20261029.4` (the PR build of `feature/slice-1-hardening`) passed; the run before it had failed on one test, which was a bug in the test. The evidence and plan documents are in `feature/slice-1-evidence`, awaiting its PR. |
 
 ## Delivery status by layer
 
@@ -27,7 +27,7 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 | Web: browse, order, checkout, confirmation | stock states, options and quantity, cart, `/checkout`, `/orders/{id}` | Done (`S1-03`, `S1-04`, `S1-05`), merged | 53 unit tests; 57 browser tests against the mock BFF; the real-stack journey |
 | Real-stack smoke | ordering and the issuer's client secret wired in; journey and wiring specs | Done (`S1-07a`, `S1-07b`) | 18 of 18 locally; two wiring mutations and two journey mutations caught |
 | Mock issuer hardening | encoding, safe redirect, redirect_uri allowlist (`S1-06`) | Done | 133 Auth tests; real container in the smoke |
-| Evidence, documents, trace | `S1-09` | Built on `feature/slice-1-evidence` (not yet merged); the Azure run id is outstanding | A checkout and a page load each traced across their services; no secrets or identity in any span; `docs/evidence/slice-1/findings.md` |
+| Evidence, documents, trace | `S1-09` | Done; on `feature/slice-1-evidence`, awaiting its PR | A checkout and a page load each traced across their services; no secrets or identity in any span; `docs/evidence/slice-1/findings.md`; the Azure run id is recorded |
 | Queue display, admin, notifications, vendor UI | out of slice 1 | Not started (by design) | n/a |
 
 "Done" above means built and verified locally; the merged-to-main state is in the next section.
@@ -35,19 +35,20 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 ## What has merged, and what is pending
 
 - **Merged:** auth, catalog work through `CAT-006`, ordering checkout, pickup windows, the outbox and events (`ORD-005`), the order actions (`ORD-007`), automatic confirmation (`ORD-008`), the BFF order path (`S1-01`), the web login (`S1-02`), stock states, the cart, the checkout and order status pages (`S1-03`, `S1-04`, `S1-05`), the real-stack wiring (`S1-07a`) and the browser journey (`S1-07b`), with the slice-1 planning documents.
-- **Pushed, PR pending (`feature/slice-1-hardening`):** the fix to the journey's pickup-time assertion and the mock issuer hardening (`S1-06`).
-- **Local (`feature/slice-1-evidence`):** the trace evidence and the slice findings (`S1-09`), the refreshed project plan, the outline's merge statuses and the first-slice contract reconciliation.
-- **Never run:** the unmerged work on Azure; anything on real Azure Cosmos or a managed Redis.
+- **Awaiting its PR (`feature/slice-1-evidence`):** the trace evidence and the slice findings (`S1-09`), the refreshed project plan, the outline's merge statuses, the first-slice contract reconciliation and the Azure run record.
+- **Merged earlier:** the fix to the journey's pickup-time assertion and the mock issuer hardening (`S1-06`), in `feature/slice-1-hardening`.
+- **Never run:** anything on real Azure Cosmos, a managed Redis, Application Insights or any deployed environment.
 
 ## Verification summary (this session, local)
 
 | Check | Result |
 |---|---|
 | Ordering tests / catalog tests | 337 passed (3 emulator-gated skipped) / 104 passed |
-| Linux container, real Redis (build, format gate, tools, catalog, ordering) | passed; Redis processed 132 commands (needs 50), finding A8 |
+| Linux container, real Redis (build, format gate, tools, catalog, ordering, Auth 133) | passed; Redis processed 128 commands (needs 50), finding A8 |
 | BFF tests | 75 passed |
 | Web unit tests / browser tests against the mock BFF | 53 passed / 57 passed |
-| Real-stack smoke (login, wiring, journey, walking skeleton) | 18 of 18 |
+| Real-stack smoke (login, issuer hardening, wiring, journey, walking skeleton) | 21 of 21 locally, and with tracing on; the same job passed on Azure in run `#20261029.4` (reported) |
+| Trace across the hops, privacy scan of every exported span | a checkout through the BFF, ordering and the catalog; a page load through web, BFF and catalog; no token, key, secret, e-mail or customer identity exported (`docs/evidence/slice-1/findings.md`) |
 | Mutation checks | about 90 across the session, all eventually caught; each survivor led to a new test or removed dead code |
 | Bugs found by the real stack | a sold-out listing hid its options and allergens; a retry under a rejected checkout's key is refused (the client now uses a new key) |
 
@@ -55,10 +56,8 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 
 Full classification of the register is in the backlog appendix. What is left on the slice-1 path:
 
-1. **Run it on Azure.** The new smoke job (ordering-service, a fresh secret on a clean agent, the BFF test hook) has only run locally.
-2. **Record a green Azure run (item 44).** The trace evidence (items 42 and 49) is done; only the run id is waiting for the run.
-3. **Slice documents drift: fixed** on `feature/slice-1-evidence` (the project plan, the outline's merge statuses, the first-slice contract reconciliation).
-4. **Known limitations, logged:** login lost on reload (item 24) and the follow-ups in item 77; order lines carry no item names (78); pickup times shown in the customer's zone (79); no order history (80); a rejected checkout's key is spent (81).
+1. **Nothing in scope remains.** Azure run `#20261029.4` is recorded (item 44, whose `ubuntu-26.04` half stays open); the trace evidence (items 42 and 49) and the document reconciliation are done.
+2. **Known limitations, logged:** login lost on reload (item 24) and the follow-ups in item 77; order lines carry no item names (78); pickup times shown in the customer's zone (79); no order history (80); a rejected checkout's key is spent (81).
 
 ## Decisions (human lead)
 
