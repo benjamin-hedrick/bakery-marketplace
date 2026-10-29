@@ -27,7 +27,7 @@ Frontend proof (`apps/web-customer`, Node 25.9.0 was used; exact LTS pin is stil
 ```
 npm ci
 npm run typecheck        # relay-compiler, then tsc
-npm run test:unit        # login library, Node test runner (25 tests)
+npm run test:unit        # login and cart libraries, Node test runner (53 tests)
 npm run build            # relay-compiler + next build
 npm run mock             # mock GraphQL on :4000
 ENABLE_TEST_HOOKS=1 npx next start -p 3000

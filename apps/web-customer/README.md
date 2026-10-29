@@ -34,6 +34,15 @@ Authorization Code with PKCE for a public client (ADR-0006), done entirely in th
 - **Configuration.** `NEXT_PUBLIC_AUTH_ISSUER` (default `http://localhost:5100`) and `NEXT_PUBLIC_AUTH_CLIENT_ID` (default `web-customer`) are read at build time; they are public values.
 - **Tests.** `npm run test:unit` (Node's test runner: PKCE against the RFC 7636 vector, session, callback checks); `tests/e2e/login.spec.ts` (issuer stubbed in the browser); `tests/skeleton/login.spec.ts` (the real mock issuer).
 
+## Ordering (`S1-03`, `S1-04`, `S1-05`)
+
+- **The order being built** is a cart in `sessionStorage` (`src/lib/cart/`): ids, options, quantities and what was shown, nothing sensitive. It survives a reload and the login redirect (a full page navigation). Limits and totals in it are hints; ordering-service prices the order and decides.
+- **Listing page:** stock status in words (in stock, low, sold out), option checkboxes, a quantity up to the per-order limit, **Add to order**. An item from another bakery needs an explicit "start a new order".
+- **`/checkout`** (client-rendered, behind `RequireLogin`): review the order, pick a pickup time (optional, always fetched fresh, shown in the browser's time zone), **Place test order**. The idempotency key is reused for the same order content and replaced when anything changes; the button is disabled in flight. Typed rejections (`PlaceOrderRejected`) and unexpected failures each have a message; the order is kept on any failure.
+- **`/orders/{id}`** (client-rendered, behind the login): the status in words, what was ordered, the server's total and the pickup time; read from the network every time; **Refresh status**. An order that is missing or not the customer's reads as not found.
+- **Logging out reloads the home page** so Relay's in-memory store cannot show the next person anything the previous customer fetched.
+- **Tests.** `npm run test:unit` (cart, auth); `npm run test:e2e` runs 56 browser tests against the mock BFF, which now also serves `pickupWindows`, `placeOrder` and `order`. Header `x-place-order: rejected:<CODE> | shortfall | internal | unauthenticated | slow` scripts `placeOrder` there (see `mock-bff/server.mjs`).
+
 ## How the Relay/SSR pattern works
 
 - `getServerSideProps` creates a **new** Relay environment per request, fetches the page query, and returns the store's records as page props. Next escapes them into `__NEXT_DATA__`.

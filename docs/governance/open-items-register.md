@@ -259,8 +259,8 @@ OAuth2 client credentials was chosen. `WI-AUTH-006` phase 1 (mock issuer, shared
 Type: Missing API · Source: `WI-CAT-005` (2026-10-28) · Hat: Engineering/Build
 Only public reads exist (Published, verified vendors, no exact stock). A vendor sees the exact quantity only in the responses to their own create, edit and adjust calls, and cannot list their drafts or current stock. A vendor-facing read (list and get own listings, with the owner view) is needed before any vendor UI; mind the id-only lookup cost noted in `ListingService`.
 
-**64. Stock status and `maxPerOrder` are not in the GraphQL schema** — **Schema half resolved 2026-10-28 (`S1-01a`); UI half pending (`S1-05`)**
-Resolution so far: `Listing.stock { status maxPerOrder }` is in the BFF schema (`IN_STOCK`, `LOW`, `SOLD_OUT`), verified through the real catalog. Still to do: show the states in the listing UI and disable a sold-out item. Original description:
+**64. Stock status and `maxPerOrder` are not in the GraphQL schema** — **Resolved 2026-10-28 (`S1-01a` schema, `S1-05` UI)**
+Resolution: `Listing.stock { status maxPerOrder }` is in the BFF schema and shown as words (in stock, low, sold out) on the list and detail pages, with the quantity limited to the per-order maximum and a sold-out item not orderable. Original description:
 Type: Contract follow-up · Source: `WI-CAT-005` (2026-10-28) · Hat: Architect, Engineering/Build
 The catalog REST responses now carry `stock`, but the BFF schema (`services/graphql-bff/schema/schema.graphql`, a shared file) and the web app do not expose them, so customers cannot see in stock, low or sold out yet. Add `Listing.stock { status maxPerOrder }` with the next BFF/web change, and show sold-out and low states in the listing UI.
 
@@ -285,8 +285,8 @@ Checkout stores the order as `Placed` but publishes nothing (`ORD-005` is not bu
 Type: Tracking · Source: `WI-ORD-001` (2026-10-28), ADR-0005, item 53 · Hat: Architect
 `StubPaymentProcessor` approves everything and logs a warning each time. A real authorization (`PAY-001`) must use the order id as its idempotency key and be voided if the save fails after the authorization succeeded (today a failed save releases the stock but would leave a real authorization standing). Capture at confirm follows item 53.
 
-**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout** — **BFF side built 2026-10-28 (`S1-01a`, `S1-01b`); the web checkout and confirmation remain**
-Built so far: `Query.pickupWindows`, `Query.order`, `node(Order)` (`S1-01a`) and `Mutation.placeOrder` with typed rejections (`S1-01b`) in the BFF, with the caller's bearer token forwarded to ordering only. Remaining: the checkout UI (`CUST-003`) and the confirmation view (`CUST-004`). Original description:
+**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout** — **BFF and web built 2026-10-28 (`S1-01`, `S1-03`, `S1-04`); only the real-stack journey in CI (`S1-07`) remains**
+Built: the BFF queries and `placeOrder` (`S1-01`), the checkout page (`CUST-003` as `S1-03`) and the order status page (`CUST-004` as `S1-04`), tested against a mock BFF in the browser. Remaining: the journey against the real ordering service, in CI (`S1-07`). Original description:
 Type: Follow-up · Source: `WI-ORD-001` (2026-10-28) · Hat: Engineering/Build
 The REST side is done, including `GET /ordering/pickup-windows`. Still to build: `Mutation.placeOrder` and `Query.pickupWindows`/`order` in the BFF schema (a shared file) with the contract's `PlaceOrderRejected` codes mapped from this service's error codes (including `insufficient_stock`), the Relay/web checkout UI with the demo-mode banner (`CUST-003`), and the order confirmation view (`CUST-004`).
 
@@ -319,3 +319,15 @@ Orders are partitioned by customer (ADR-0004), but a vendor acting on an order k
 **77. Login follow-ups the mock issuer hides**
 Type: Tracking · Source: `S1-02` (2026-10-28) · Hat: Engineering/Build, Security
 Four things work locally but need attention against a real identity provider. (1) **Logout** only ends the in-memory session; the issuer's own session (single sign-on cookie) is not ended, because the mock has none. A real provider needs its end-session endpoint (`id_token_hint`, post-logout redirect). (2) The authorization **code travels in the callback URL's query**, so the Next.js server and any proxy in front of it can log it. It is single-use, bound to the PKCE verifier, and useless without it, and the callback page sets `no-referrer`, but access-log redaction for `/auth/callback` should be confirmed at deployment. (3) The **PKCE verifier sits in `sessionStorage`** for the length of the redirect (the standard approach); a script running on our origin could read it, though such a script could equally start its own login, so this is no weaker than holding the token in memory. (4) `NEXT_PUBLIC_AUTH_ISSUER` and the client id are **baked in at build time**, so each environment needs its own build or a runtime config endpoint. Also: the mock issuer still accepts any `redirect_uri` and its login page reflects parameters unescaped (items 32 and `D-D`); the `S1-06` encoding fix should land before any demo.
+
+**78. An order line has no item or option names**
+Type: Gap · Source: `S1-04` (2026-10-28) · Hat: Architect, Engineering/Build
+`OrderDto` (and so the GraphQL `Order`) carries listing ids, option ids, the quantity and the price charged, but no names. The confirmation page reads them from the live listings, so an item that was later renamed, unpublished or removed shows as "Item" (or an option as its id), and one order read makes one listing read per distinct item. An order is a record of what was bought, so ordering-service should store the item and option names at purchase time (as it does the price) and return them; then the page needs no listing reads and an old order stays readable. Needed before order history.
+
+**79. Pickup times are shown in the customer's time zone, not the bakery's**
+Type: Design gap · Source: `S1-03` (2026-10-28) · Hat: Product, Engineering/Build
+Windows are UTC instants (D-7) and the checkout and order pages format them in the browser's zone. A customer in another zone than the bakery sees a time that is correct for them but is not the time on the shop's clock, and nothing says which zone is shown. The bakery's zone is configuration of ordering-service (`Pickup:TimeZoneId`, item 39: no per-vendor zone). Show the zone name with each time, or show the bakery's local time, once the vendor's zone is a field the BFF can return.
+
+**80. A customer cannot see their orders as a list**
+Type: Missing capability · Source: `S1-04` (2026-10-28) · Hat: Product
+The order page is reached by the id `placeOrder` returned; there is no order history and no way back to an order except that link (the browser's history, or the id). Needs an `orders` query in ordering-service (partitioned by customer already, ADR-0004) and the BFF, and a page. Not part of slice 1.
