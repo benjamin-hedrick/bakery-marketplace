@@ -28,7 +28,37 @@ export interface OrderingOrder {
   updatedAt: string;
 }
 
+/** The checkout request body of ordering-service, with service ids (the BFF has already decoded the global ids). */
+export interface CheckoutBody {
+  vendorId: string;
+  lineItems: { listingId: string; modifierIds: string[]; quantity: number }[];
+  pickupWindow: { start: string; end: string } | null;
+}
+
+/** The stable error body of ordering-service (ApiError). */
+export interface OrderingError {
+  code: string;
+  message?: string;
+  errors?: Record<string, string[]> | null;
+  lines?: { listingId: string; reason: string; available?: number | null }[] | null;
+}
+
+export type PlaceResult =
+  { kind: 'order'; order: OrderingOrder } | { kind: 'error'; status: number; error: OrderingError };
+
 export interface OrderingClient {
+  /**
+   * Places an order for the caller. The expected 4xx answers (422, 409, 402, and 401/403) come back as `kind: 'error'` for the caller to map; a
+   * success (201, or 200 for a repeat of the same checkout) is `kind: 'order'`. Anything else (5xx, a body that is not JSON, a timeout) throws
+   * a {@link DownstreamError}. `testPayment` is the D-10 hook, passed only when the BFF was started with test hooks enabled.
+   */
+  placeOrder(
+    body: CheckoutBody,
+    authorization: string,
+    idempotencyKey: string,
+    trace: TraceContext,
+    testPayment?: 'decline',
+  ): Promise<PlaceResult>;
   /** Public. */
   pickupWindows(vendorId: string, trace: TraceContext): Promise<OrderingWindow[]>;
   /**
@@ -42,16 +72,25 @@ export function createOrderingClient(
   baseUrl: string,
   timeoutMs: number,
   fetchImpl: typeof fetch = fetch,
+  checkoutTimeoutMs: number = timeoutMs,
 ): OrderingClient {
-  async function request(path: string, trace: TraceContext, authorization?: string): Promise<Response> {
+  async function request(
+    path: string,
+    trace: TraceContext,
+    authorization?: string,
+    init: { method?: string; headers?: Record<string, string>; body?: string; timeoutMs?: number } = {},
+  ): Promise<Response> {
     try {
       return await fetchImpl(`${baseUrl}${path}`, {
+        method: init.method ?? 'GET',
         headers: {
           accept: 'application/json',
           traceparent: toTraceparent(trace),
           ...(authorization ? { authorization } : {}),
+          ...init.headers,
         },
-        signal: AbortSignal.timeout(timeoutMs),
+        ...(init.body !== undefined ? { body: init.body } : {}),
+        signal: AbortSignal.timeout(init.timeoutMs ?? timeoutMs),
       });
     } catch (e) {
       // Only the error's name is kept: a message can carry the URL, and nothing here may carry the credential.
@@ -60,6 +99,27 @@ export function createOrderingClient(
   }
 
   return {
+    async placeOrder(body, authorization, idempotencyKey, trace, testPayment) {
+      const res = await request('/ordering/checkout', trace, authorization, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': idempotencyKey,
+          ...(testPayment ? { 'x-test-payment': testPayment } : {}),
+        },
+        body: JSON.stringify(body),
+        timeoutMs: checkoutTimeoutMs,
+      });
+      if (res.status === 200 || res.status === 201) return { kind: 'order', order: await parse<OrderingOrder>(res) };
+      if ([401, 402, 403, 409, 422].includes(res.status)) {
+        // A 401 or 403 has no useful body; the others carry the stable error body. One that is not JSON is not trusted as a known failure.
+        const error = res.status === 401 || res.status === 403 ? { code: 'auth' } : await parse<OrderingError>(res);
+        if (typeof error?.code !== 'string')
+          throw new DownstreamError('ordering returned an error body without a code', res.status);
+        return { kind: 'error', status: res.status, error };
+      }
+      throw new DownstreamError(`ordering checkout returned ${res.status}`, res.status);
+    },
     async pickupWindows(vendorId, trace) {
       const res = await request(`/ordering/pickup-windows?${new URLSearchParams({ vendorId })}`, trace);
       if (!res.ok) throw new DownstreamError(`ordering pickup windows returned ${res.status}`, res.status);

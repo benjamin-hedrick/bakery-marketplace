@@ -111,6 +111,8 @@ before(async () => {
       catalogUrl: `http://127.0.0.1:${port(catalog)}`,
       orderingUrl: `http://127.0.0.1:${port(ordering)}`,
       timeoutMs: 300,
+      checkoutTimeoutMs: 300,
+      testHooks: false,
     },
     { log, exporter: () => {} },
   );
@@ -222,7 +224,7 @@ describe('Query.order and node(Order)', () => {
       pickupWindow: { start: '2026-11-02T14:00:00+00:00', end: '2026-11-02T14:15:00+00:00' },
       lineItems: [
         {
-          listingId: 'listing-sourdough-001',
+          listingId: listingGid, // a Listing global id, so a line links back to its Listing node
           modifierIds: ['mod-seeds'],
           quantity: 2,
           price: { cents: 1800, currency: 'USD' },

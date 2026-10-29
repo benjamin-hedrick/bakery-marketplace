@@ -10,6 +10,8 @@ export interface Context {
   trace: TraceContext;
   /** The caller's `Authorization: Bearer ...` header, only when it has that shape. Forwarded to ordering-service and nowhere else. */
   authorization?: string | undefined;
+  /** The D-10 test hook, set only when the BFF has test hooks enabled and the caller asked for exactly `decline`. */
+  testPayment?: 'decline' | undefined;
 }
 
 const MAX_PAGE = 50;
@@ -62,7 +64,7 @@ const toOrder = (o: OrderingOrder) => ({
   status: () => enumValue('order status', ORDER_STATUS, o.status),
   vendorId: o.vendorId,
   lineItems: o.lineItems.map((l) => ({
-    listingId: l.listingId,
+    listingId: toGlobalId('Listing', l.listingId),
     modifierIds: l.modifiers,
     quantity: l.quantity,
     price: money(l.priceCents, o.currency),
@@ -85,7 +87,97 @@ async function readOrder(serviceId: string, ctx: Context) {
   }
 }
 
+// ---- placeOrder -------------------------------------------------------------------------------------------------------------
+
+interface PlaceOrderInput {
+  idempotencyKey: string;
+  vendorId: string;
+  lineItems: { listingId: string; modifierIds: string[]; quantity: number }[];
+  pickupWindow?: { start: string; end: string } | null;
+}
+
+// Expected failures, by the error code ordering-service returns. The client sees the BFF's own fixed text, never ordering's (first-slice
+// contract section 6). A code that is not here is a contract violation: an internal error, not a guess.
+const REJECTIONS: Record<string, { code: string; message: string }> = {
+  invalid_quantity: { code: 'INVALID_QUANTITY', message: 'A quantity is outside what can be ordered.' },
+  invalid_modifier: { code: 'INVALID_MODIFIER', message: 'An option is not available for that item.' },
+  validation_failed: { code: 'VALIDATION_FAILED', message: 'The order could not be placed as entered.' },
+  idempotency_key_reuse: {
+    code: 'VALIDATION_FAILED',
+    message: 'That checkout was already used for a different order. Start again.',
+  },
+  listing_unavailable: { code: 'LISTING_UNAVAILABLE', message: 'An item is no longer available.' },
+  insufficient_stock: { code: 'INSUFFICIENT_STOCK', message: 'There is not enough stock for part of this order.' },
+  pickup_window_unavailable: {
+    code: 'PICKUP_WINDOW_UNAVAILABLE',
+    message: 'That pickup time is no longer available. Choose another.',
+  },
+  conflict: { code: 'CONFLICT', message: 'The stock changed while placing the order. Please try again.' },
+  payment_declined: { code: 'PAYMENT_DECLINED', message: 'The payment was declined.' },
+};
+const MAX_FIELD_PROBLEMS = 20;
+
+const rejected = (
+  code: string,
+  message: string,
+  fields: { field: string; message: string }[] = [],
+  shortfalls: unknown[] = [],
+) => ({
+  __typename: 'PlaceOrderRejected',
+  code,
+  message,
+  fields,
+  shortfalls,
+});
+
+/** Field problems from ordering's error body, which is written to be shown but is shortened and capped here. */
+function fieldProblems(errors: Record<string, string[]> | null | undefined) {
+  return Object.entries(errors ?? {})
+    .flatMap(([field, messages]) =>
+      messages.map((message) => ({ field: field.slice(0, 100), message: message.slice(0, 200) })),
+    )
+    .slice(0, MAX_FIELD_PROBLEMS);
+}
+
+async function placeOrder(args: { input: PlaceOrderInput }, ctx: Context) {
+  if (!ctx.authorization) throw unauthenticated();
+  const { input } = args;
+
+  // Listing global ids are decoded here (D-9). One that does not decode is the caller's mistake, found before anything is sent.
+  const problems: { field: string; message: string }[] = [];
+  const lineItems = input.lineItems.map((l, i) => {
+    const listingId = serviceIdFor('Listing', l.listingId);
+    if (listingId === null) problems.push({ field: `lineItems[${i}].listingId`, message: 'That is not a valid item.' });
+    return { listingId: listingId ?? '', modifierIds: l.modifierIds, quantity: l.quantity };
+  });
+  if (problems.length > 0) return rejected('VALIDATION_FAILED', 'The order could not be placed as entered.', problems);
+
+  const result = await ctx.ordering.placeOrder(
+    {
+      vendorId: input.vendorId,
+      lineItems,
+      pickupWindow: input.pickupWindow ? { start: input.pickupWindow.start, end: input.pickupWindow.end } : null,
+    },
+    ctx.authorization,
+    input.idempotencyKey,
+    ctx.trace,
+    ctx.testPayment,
+  );
+
+  if (result.kind === 'order') return { __typename: 'PlaceOrderSuccess', order: toOrder(result.order) };
+
+  if (result.status === 401) throw unauthenticated();
+  if (result.status === 403) throw forbidden();
+  const mapped = REJECTIONS[result.error.code];
+  if (mapped === undefined) throw new DownstreamError('unknown checkout error code from ordering', result.status);
+  const shortfalls = (result.error.lines ?? [])
+    .filter((l) => l.reason === 'insufficient_stock' && typeof l.available === 'number')
+    .map((l) => ({ listingId: toGlobalId('Listing', l.listingId), available: l.available }));
+  return rejected(mapped.code, mapped.message, fieldProblems(result.error.errors), shortfalls);
+}
+
 export const rootValue = {
+  placeOrder,
   async listings(args: { first?: number; after?: string | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
     const page = await ctx.catalog.list({ limit: first, after: args.after ?? undefined }, ctx.trace);
