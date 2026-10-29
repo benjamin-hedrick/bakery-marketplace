@@ -61,6 +61,17 @@ public class OrderEventTests
         Assert.Equal(FulfillmentType.Pickup, payload.FulfillmentType);
         Assert.Equal(At(60), payload.Details?.Pickup?.WindowStart);
         Assert.Equal(At(75), payload.Details?.Pickup?.WindowEnd);
+        Assert.False(payload.Automatic); // a vendor's acceptance
+    }
+
+    [Fact]
+    public void AnAutomaticConfirmationSaysSoInItsEvent()
+    {
+        var order = Placed();
+
+        order.Confirm(At(4), automatic: true);
+
+        Assert.True(Assert.IsType<OrderConfirmedPayload>(Assert.Single(order.DequeueEvents()).Payload).Automatic);
     }
 
     [Fact]

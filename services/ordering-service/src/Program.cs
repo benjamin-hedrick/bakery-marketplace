@@ -88,6 +88,7 @@ builder.Services.AddHostedService<OutboxRelay>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<PickupScheduleOptions>(builder.Configuration.GetSection("Pickup"));
 builder.Services.AddSingleton<PickupSchedule>();
+builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection("Checkout"));
 builder.Services.AddSingleton<IPaymentProcessor, StubPaymentProcessor>(); // a stub until PAY-001: no money moves
 
 // The catalog: public listing reads need no credentials; stock reserve and release authenticate as this service (ADR-0018). A missing or unsafe

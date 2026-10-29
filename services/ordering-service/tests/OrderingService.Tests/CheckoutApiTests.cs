@@ -202,7 +202,7 @@ public sealed class CheckoutApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var order = await JsonOf(response);
         Assert.Equal("customer-1", order.GetProperty("customerId").GetString());
-        Assert.Equal("Placed", order.GetProperty("status").GetString());
+        Assert.Equal("Confirmed", order.GetProperty("status").GetString()); // the server's rule (no options, no window: WI-ORD-008), not the client's "Completed"
         Assert.Equal(800, order.GetProperty("totalCents").GetInt64());
     }
 

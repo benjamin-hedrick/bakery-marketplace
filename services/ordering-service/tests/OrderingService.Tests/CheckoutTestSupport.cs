@@ -162,6 +162,7 @@ internal sealed class CheckoutFixture
     public FlakyOrderRepository Repository { get; } = new(new FakeRepository<OrderDocument>(d => d.Id));
     public RecordingEvents Events { get; } = new();
     public OutboxOptions Outbox { get; } = new();
+    public CheckoutOptions CheckoutSettings { get; } = new();
     public OutboxSignal Signal { get; } = new();
     public OrderStore Store { get; }
     public OrderEventPublisher Publisher { get; }
@@ -175,8 +176,8 @@ internal sealed class CheckoutFixture
         Publisher = new OrderEventPublisher(Events, Store, Signal, Options.Create(Outbox), NullLogger<OrderEventPublisher>.Instance);
         Relay = new OutboxRelay(Store, Publisher, Signal, Options.Create(Outbox), Time, NullLogger<OutboxRelay>.Instance);
         Service = new CheckoutService(
-            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher, Time,
-            NullLogger<CheckoutService>.Instance);
+            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher,
+            Options.Create(CheckoutSettings), Time, NullLogger<CheckoutService>.Instance);
         Actions = new OrderActionService(Store, Catalog, Publisher, Time, NullLogger<OrderActionService>.Instance);
     }
 

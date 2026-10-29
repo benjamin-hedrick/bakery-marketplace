@@ -115,6 +115,16 @@ public class DomainEventPayloadsTests
     }
 
     [Fact]
+    public void OrderConfirmedPayload_AutomaticIsFalseWhenAbsentAndSurvivesARoundTripWhenTrue()
+    {
+        var older = JsonSerializer.Deserialize<OrderConfirmedPayload>("{\"OrderId\":\"order-9\"}");
+        var automatic = JsonSerializer.Deserialize<OrderConfirmedPayload>(JsonSerializer.Serialize(new OrderConfirmedPayload("order-9", Automatic: true)));
+
+        Assert.False(older?.Automatic); // a message from before the field existed was a vendor's acceptance
+        Assert.True(automatic?.Automatic);
+    }
+
+    [Fact]
     public void OrderCancelReason_IsACodeSet_NotFreeText()
     {
         Assert.Equal(
