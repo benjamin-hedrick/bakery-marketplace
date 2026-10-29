@@ -8,11 +8,11 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 
 | | |
 |---|---|
-| **Overall** | The slice-1 customer journey is **built and runs end to end on the real local stack**: login through the mock issuer, browse with stock states, customize, pick a pickup time, place a test order, and see the confirmation, in both states an order can start in (confirmed by itself, or waiting for the bakery). **37 of the 44 points are built.** |
-| **Slice 1 remaining** | `S1-06` (mock issuer hardening, 2 points: output encoding, plus the optional allowlist that waits on D-D) and `S1-09` (evidence, documents and a recorded Azure run, 5 points). |
+| **Overall** | The slice-1 customer journey is **built and runs end to end on the real local stack**: login through the mock issuer, browse with stock states, customize, pick a pickup time, place a test order, and see the confirmation, in both states an order can start in (confirmed by itself, or waiting for the bakery). **39 of the 44 points are built.** |
+| **Slice 1 remaining** | `S1-09` only (5 points): the trace across all hops, a recorded Azure run, and reconciling the stale planning documents. The mock issuer hardening (`S1-06`) is built. |
 | **Biggest risk** | **Nothing built since the login (`S1-03` to `S1-07b`) has run on Azure yet.** It is committed on `feature/slice-1-checkout-ui`, stacked on merged work, and not pushed. The new smoke job also starts ordering-service and relies on a fresh secret created on a clean agent. |
 | **Decisions** | Four of five decided 2026-10-28 (D-A option 1, D-B, D-C header-only, D-E). One open: D-D (mock issuer allowlist), which blocks only part of `S1-06`. |
-| **Pipeline** | Everything up to and including the login (`S1-02`) is merged and was green on Azure. The branch after it is pending a push and a first Azure run. |
+| **Pipeline** | Everything up to and including the login (`S1-02`) is merged and was green on Azure. `feature/slice-1-checkout-ui` is pushed and waits for its PR and first Azure run; `feature/mock-issuer-hardening` (`S1-06`) is local, stacked on it. |
 
 ## Delivery status by layer
 
@@ -26,6 +26,7 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 | Web: login | PKCE in the browser, in-memory token | Done (`S1-02`), merged | 25 unit tests, browser tests with a stubbed issuer, real issuer in the smoke |
 | Web: browse, order, checkout, confirmation | stock states, options and quantity, cart, `/checkout`, `/orders/{id}` | Done (`S1-03`, `S1-04`, `S1-05`) | 53 unit tests; 57 browser tests against the mock BFF; the real-stack journey |
 | Real-stack smoke | ordering and the issuer's client secret wired in; journey and wiring specs | Done (`S1-07a`, `S1-07b`) | 18 of 18 locally; two wiring mutations and two journey mutations caught |
+| Mock issuer hardening | encoding, safe redirect, redirect_uri allowlist (`S1-06`) | Done | 133 Auth tests; real container in the smoke |
 | Evidence, documents, trace | `S1-09` | **Not started** | n/a |
 | Queue display, admin, notifications, vendor UI | out of slice 1 | Not started (by design) | n/a |
 
@@ -54,10 +55,9 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 Full classification of the register is in the backlog appendix. What is left on the slice-1 path:
 
 1. **Run it on Azure.** The new smoke job (ordering-service, a fresh secret on a clean agent, the BFF test hook) has only run locally.
-2. **Mock issuer login page injects unescaped parameters** (item 32, `S1-06`). Dev-only, but the real browser app now uses it; the `redirect_uri` allowlist waits on D-D.
-3. **Trace across all hops not demonstrated** (items 42, 49), and the green Azure run has no recorded ID (item 44): `S1-09`.
-4. **Slice documents drift:** `docs/management/project-plan.md` says Phase 1 and 2 are "Not started" and puts the queue display in Phase 2; the first-slice contract excludes it (`S1-09`).
-5. **Known limitations, logged:** login lost on reload (item 24) and the follow-ups in item 77; order lines carry no item names (78); pickup times shown in the customer's zone (79); no order history (80); a rejected checkout's key is spent (81).
+2. **Trace across all hops not demonstrated** (items 42, 49), and the green Azure run has no recorded ID (item 44): `S1-09`.
+3. **Slice documents drift:** `docs/management/project-plan.md` says Phase 1 and 2 are "Not started" and puts the queue display in Phase 2; the first-slice contract excludes it (`S1-09`).
+4. **Known limitations, logged:** login lost on reload (item 24) and the follow-ups in item 77; order lines carry no item names (78); pickup times shown in the customer's zone (79); no order history (80); a rejected checkout's key is spent (81).
 
 ## Decisions (human lead)
 
@@ -66,7 +66,7 @@ Full classification of the register is in the backlog appendix. What is left on 
 | D-A | **Auto-confirm rule** for simple orders | **APPROVED 2026-10-28, option 1** (no customization and no pickup window; ignores stock counters). Built as `ORD-008` | done |
 | D-B | **Global-ID scope (item 41)** | **APPROVED 2026-10-28.** `Order` and any field referring to a listing or an order is a global ID; `vendorId`, modifier ids and cursors stay raw | done |
 | D-C | **Session storage** | **DECIDED 2026-10-28: header-only for now.** The cookie-session stays planned as ADR-0019 after slice 1 (`N-01`) | done |
-| D-D | **Mock issuer `redirect_uri` allowlist** (security-adjacent) | **Still open.** Good to add, fine to defer. Only the optional allowlist half of `S1-06` waits on it | `S1-06` (allowlist part) |
+| D-D | **Mock issuer `redirect_uri` allowlist** (security-adjacent) | **Built 2026-10-28 (`S1-06`)**, following "good to add". Exact match against `MockOidc:RedirectUris`, default the local web app's callback | done |
 | D-E | **Queue display in or out of slice 1** | **APPROVED 2026-10-28: out of slice 1.** The older project plan is to be updated (`S1-09`) | done |
 
 ## Risks
