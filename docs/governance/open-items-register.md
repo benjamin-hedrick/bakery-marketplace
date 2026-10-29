@@ -285,8 +285,8 @@ Checkout stores the order as `Placed` but publishes nothing (`ORD-005` is not bu
 Type: Tracking · Source: `WI-ORD-001` (2026-10-28), ADR-0005, item 53 · Hat: Architect
 `StubPaymentProcessor` approves everything and logs a warning each time. A real authorization (`PAY-001`) must use the order id as its idempotency key and be voided if the save fails after the authorization succeeded (today a failed save releases the stock but would leave a real authorization standing). Capture at confirm follows item 53.
 
-**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout** — **Read side built 2026-10-28 (`S1-01a`); `placeOrder` and the web checkout remain**
-Built so far: `Query.pickupWindows`, `Query.order` and `node(Order)` in the BFF, with the caller's bearer token forwarded to ordering only (`S1-01a`). Remaining: `Mutation.placeOrder` with the rejection codes (`S1-01b`), the checkout UI (`CUST-003`) and the confirmation view (`CUST-004`). Original description:
+**70. No BFF `placeOrder` mutation, pickup-windows query, or web checkout** — **BFF side built 2026-10-28 (`S1-01a`, `S1-01b`); the web checkout and confirmation remain**
+Built so far: `Query.pickupWindows`, `Query.order`, `node(Order)` (`S1-01a`) and `Mutation.placeOrder` with typed rejections (`S1-01b`) in the BFF, with the caller's bearer token forwarded to ordering only. Remaining: the checkout UI (`CUST-003`) and the confirmation view (`CUST-004`). Original description:
 Type: Follow-up · Source: `WI-ORD-001` (2026-10-28) · Hat: Engineering/Build
 The REST side is done, including `GET /ordering/pickup-windows`. Still to build: `Mutation.placeOrder` and `Query.pickupWindows`/`order` in the BFF schema (a shared file) with the contract's `PlaceOrderRejected` codes mapped from this service's error codes (including `insufficient_stock`), the Relay/web checkout UI with the demo-mode banner (`CUST-003`), and the order confirmation view (`CUST-004`).
 
