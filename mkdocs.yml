@@ -39,5 +39,8 @@ nav:
       - Budget / Cost Estimate: management/budget-cost-estimate.md
       - Stakeholder Communications Plan: management/stakeholder-communications-plan.md
       - Portfolio Slice Plans: management/portfolio-slice/README.md
+      - Slice 1 Status: management/slice-1/01-project-status.md
+      - Slice 1 Plan and Critical Path: management/slice-1/02-plan-and-critical-path.md
+      - Slice 1 Prioritized Backlog: management/slice-1/03-prioritized-backlog.md
 theme:
   name: material
