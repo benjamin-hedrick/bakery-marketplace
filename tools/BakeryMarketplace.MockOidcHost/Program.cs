@@ -35,6 +35,12 @@ app.UseMockOidcBrowserCors(builder.Configuration.GetSection("MockOidc:AllowedOri
     ? configured
     : MockOidcCors.DefaultOrigins);
 
-app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients);
+// Logins may only send a browser back to a registered redirect_uri, compared exactly (MockOidc__RedirectUris__0, __1, ...); the default is the
+// local web app's callback. This also stops the issuer being used to bounce someone to another site.
+var redirectUris = builder.Configuration.GetSection("MockOidc:RedirectUris").Get<string[]>() is { Length: > 0 } registered
+    ? registered
+    : MockOidcIssuer.DefaultRedirectUris;
+
+app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients, redirectUris);
 
 app.Run();
