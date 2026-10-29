@@ -71,6 +71,17 @@ describe('adding to the cart', () => {
     assert.equal(cart.lines[0]!.quantity, 3);
   });
 
+  test('a stored cart whose options are in another order still merges with the same choices', () => {
+    const stored = parseCart({
+      vendorId: 'v',
+      lines: [{ ...sourdough({ modifiers: [seeds, sliced] }), modifiers: [seeds, sliced].reverse() }],
+    });
+    assert.ok(stored);
+    const { cart } = must(addLine(stored, 'v', sourdough({ modifiers: [seeds, sliced], quantity: 2 })));
+    assert.equal(cart.lines.length, 1);
+    assert.equal(cart.lines[0]!.quantity, 3);
+  });
+
   test('the same item with different options is a different line', () => {
     let { cart } = must(addLine(EMPTY_CART, 'v', sourdough({ modifiers: [seeds] })));
     ({ cart } = must(addLine(cart, 'v', sourdough({ modifiers: [] }))));
