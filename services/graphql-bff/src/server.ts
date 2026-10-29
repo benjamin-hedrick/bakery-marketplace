@@ -27,7 +27,8 @@ export function createServer(
   deps: { catalog?: CatalogClient; ordering?: OrderingClient; log?: Logger; exporter?: SpanExporter } = {},
 ): http.Server {
   const catalog = deps.catalog ?? createCatalogClient(config.catalogUrl, config.timeoutMs);
-  const ordering = deps.ordering ?? createOrderingClient(config.orderingUrl, config.timeoutMs);
+  const ordering =
+    deps.ordering ?? createOrderingClient(config.orderingUrl, config.timeoutMs, undefined, config.checkoutTimeoutMs);
   const log = deps.log ?? jsonLogger;
   const exportSpan = deps.exporter ?? createOtlpExporter(config.otlpEndpoint);
 
@@ -68,7 +69,18 @@ export function createServer(
     }
 
     const authorization = bearerOnly(headerValue(req.headers.authorization));
-    const result = await run(source, variables, operationName, { catalog, ordering, trace, authorization }, log);
+    // The D-10 hook: only when test hooks are on, and only the one value the hook defines.
+    const testPayment =
+      config.testHooks && headerValue(req.headers['x-test-payment'])?.toLowerCase() === 'decline'
+        ? 'decline'
+        : undefined;
+    const result = await run(
+      source,
+      variables,
+      operationName,
+      { catalog, ordering, trace, authorization, testPayment },
+      log,
+    );
     log.info({
       msg: 'graphql request',
       traceId: trace.traceId,
