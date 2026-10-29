@@ -183,7 +183,7 @@ Type: Test isolation · Source: e2e investigation (2026-10-28) · Hat: Platform 
 
 **44. The green Azure run has no recorded run ID, and `ubuntu-26.04` is untested** — **Run recorded 2026-10-29; the `ubuntu-26.04` half stays open**
 Type: Evidence gap · Source: `WI-PORT-003` (2026-10-28) · Hat: Platform Engineering
-Recorded 2026-10-29: Azure Pipelines run `#20261029.4` (the PR build of `feature/slice-1-hardening`, passed, reported by the human lead) in `docs/evidence/WI-PORT-003/findings.md`; the numeric build id or link is not recorded. Still open: the pipeline is pinned to `ubuntu-24.04`; move deliberately after a run on 26.04.
+Recorded 2026-10-29: Azure Pipelines run `#20261029.4` (the PR build of `feature/slice-1-hardening`, passed, reported by the human lead) in `docs/evidence/WI-PORT-003/findings.md`; build id 18; a link is not recorded. Still open: the pipeline is pinned to `ubuntu-24.04`; move deliberately after a run on 26.04.
 
 **45. The Azure Pipelines check is a soft gate, not a GitHub required check**
 Type: Accepted risk · Source: ADR-0015 amendment (2026-10-28) · Hat: Manager/Lead

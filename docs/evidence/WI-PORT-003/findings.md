@@ -12,9 +12,9 @@ After the pipeline fixes (results directory, .NET 10, `UseNode@1`, `ubuntu-24.04
 
 ## Update 2026-10-29: a recorded run of the whole pipeline, with ordering and the browser journey
 
-**Azure Pipelines run `#20261029.4`**, the PR build of `feature/slice-1-hardening`, reported by the human lead as **passed and completed** (the branch was then rebase-merged to `main` and deleted). This is the first recorded run of the pipeline as it now stands: the `skeleton` job starts ordering-service and the mock issuer's client secret, runs the browser journey against the real stack, and the run included the fix to the journey's pickup-time assertion. The PR run of the previous branch (ordering, the checkout and order pages, the journey) had failed that one test, which was a bug in the test, not in the app, and everything else in it was clean.
+**Azure Pipelines run `#20261029.4` (build id 18)**, the PR build of `feature/slice-1-hardening`, reported by the human lead as **passed and completed** (the branch was then rebase-merged to `main` and deleted). This is the first recorded run of the pipeline as it now stands: the `skeleton` job starts ordering-service and the mock issuer's client secret, runs the browser journey against the real stack, and the run included the fix to the journey's pickup-time assertion. The PR run of the previous branch (ordering, the checkout and order pages, the journey) had failed that one test, which was a bug in the test, not in the app, and everything else in it was clean.
 
-What is and is not recorded: the run name above is as the human lead gave it. Not recorded here: the numeric build id or link, and per-job test counts (the results were not read from Azure). Locally the same smoke is 21 of 21. Still not verified: `ubuntu-26.04`; the pipeline stays pinned to `ubuntu-24.04` (open item 44).
+What is and is not recorded: the run name and the build id (**18**) are as the human lead gave them. Not recorded here: a link, and per-job test counts (the results were not read from Azure). Locally the same smoke is 21 of 21. Still not verified: `ubuntu-26.04`; the pipeline stays pinned to `ubuntu-24.04` (open item 44).
 
 ## Local runs
 
