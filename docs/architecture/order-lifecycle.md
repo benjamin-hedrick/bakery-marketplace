@@ -17,6 +17,7 @@ Cancel (actor and reason code):   Placed, Confirmed                    --> Cance
 - **Customization is part of building the order.** There is no change to a placed order, so no post-placement `Customize`; the glossary's `OrderCustomized` event is unused (retire it when nothing references it).
 - **Place** requires 1 to 10 lines, each 1 to 20 units (D-5 placeholders until per-item maximums exist, open item 51). Prices are integer cents set by `ordering-service` (D-1); the aggregate checks that totals add up.
 - **Confirm** is the vendor accepting the order. The strategy then schedules a requested pickup window (`PickupWindowScheduled`, raised by `PickupFulfillment`, not by the Order); there is no counter-offer in v1. An order with no window (the vendor or item does not use windows) confirms with nothing to schedule.
+- **Automatic confirmation (`WI-ORD-008`, human lead, 2026-10-28).** An order with no modifier on any line and no requested pickup window needs nothing from the vendor, so checkout confirms it in the same write that places it: `OrderPlaced` then `OrderConfirmed` with `Automatic = true`. An order with an option or a requested window stays `Placed` for the vendor. The rule ignores stock counters (option 1); a per-item or per-vendor control is the intended refinement, and `Checkout:AutoConfirm` switches the rule off. A customer can still cancel a `Confirmed` order.
 - **Cancel** carries an actor and a reason code, never free text (it may contain personal data):
 
 | Actor | Allowed from | Reason codes |

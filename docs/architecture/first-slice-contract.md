@@ -16,7 +16,7 @@
 | Customization | Modifier selection validated by `catalog-service` data, priced server-side | Allergy *personalization* (`SRCH-001`, `CUST-006`) is **out of the first slice**; plain `allergenFlags` are shown |
 | Pickup window | `ordering-service` validates the chosen window | Window list is deterministic and generated (see D-3) |
 | Checkout | Order built from server-side prices and persisted | Payment is `IPaymentProcessor` stub that always succeeds, named and logged as a stub (`WI-ORD-001`); no Stripe |
-| Confirmation/status | Read from persisted `orders` | Status is `Placed` only in this slice; later transitions exist in the domain but have no UI |
+| Confirmation/status | Read from persisted `orders` | Status is `Confirmed` for an order with no options and no requested window (automatic, `WI-ORD-008`, 2026-10-28) and `Placed` otherwise; vendor transitions exist (`WI-ORD-007`) but have no UI |
 
 Explicitly out: reviews, payouts, vendor-side queue UI, preferences, search ranking, sponsored placement, delivery.
 
