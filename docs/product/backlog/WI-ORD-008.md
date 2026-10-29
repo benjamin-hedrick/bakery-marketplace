@@ -13,7 +13,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Built 2026-10-28 (pending review/merge)
+Status:               Built 2026-10-28 (merged to main)
 Size:                 S (3 points)
 ```
 

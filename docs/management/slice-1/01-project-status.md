@@ -8,11 +8,11 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 
 | | |
 |---|---|
-| **Overall** | The slice-1 customer journey is **built and runs end to end on the real local stack**: login through the mock issuer, browse with stock states, customize, pick a pickup time, place a test order, and see the confirmation, in both states an order can start in (confirmed by itself, or waiting for the bakery). **39 of the 44 points are built.** |
-| **Slice 1 remaining** | `S1-09` only (5 points): the trace across all hops, a recorded Azure run, and reconciling the stale planning documents. The mock issuer hardening (`S1-06`) is built. |
-| **Biggest risk** | **Nothing built since the login (`S1-03` to `S1-07b`) has run on Azure yet.** It is committed on `feature/slice-1-checkout-ui`, stacked on merged work, and not pushed. The new smoke job also starts ordering-service and relies on a fresh secret created on a clean agent. |
-| **Decisions** | Four of five decided 2026-10-28 (D-A option 1, D-B, D-C header-only, D-E). One open: D-D (mock issuer allowlist), which blocks only part of `S1-06`. |
-| **Pipeline** | Everything up to and including the login (`S1-02`) is merged and was green on Azure. `feature/slice-1-checkout-ui` is pushed and waits for its PR and first Azure run; `feature/mock-issuer-hardening` (`S1-06`) is local, stacked on it. |
+| **Overall** | The slice-1 customer journey is **built and runs end to end on the real local stack**: login through the mock issuer, browse with stock states, customize, pick a pickup time, place a test order, and see the confirmation, in both states an order can start in (confirmed by itself, or waiting for the bakery). **About 43 of the 44 points are built.** |
+| **Slice 1 remaining** | One part of `S1-09`: recording the id of a green Azure run in `docs/evidence/WI-PORT-003/findings.md` (item 44). It cannot be done before that run exists. The rest of `S1-09` (trace evidence across the hops, the privacy scan, the stale plan and status documents, the contract reconciliation) is on `feature/slice-1-evidence`, awaiting its PR. |
+| **Biggest risk** | **The merged customer journey (`S1-03` to `S1-07b`) has had one Azure run, which found one bug in a test (fixed on `feature/slice-1-hardening`) and nothing else in that job; a full green run is not recorded yet.** The smoke job now starts ordering-service and relies on a secret created on a clean agent, which only Azure can fully confirm. |
+| **Decisions** | All five decided 2026-10-28 (D-A option 1, D-B, D-C header-only, D-D allowlist built, D-E). Open for later: the cookie-session (`N-01`, ADR-0019). |
+| **Pipeline** | Merged to `main`: everything through the browser journey (`S1-07b`); that run was red on one test, which was a bug in the test. The fix and `S1-06` are in `feature/slice-1-hardening` (pushed, PR next); the evidence and plan documents are in `feature/slice-1-evidence` (local, stacked on it). |
 
 ## Delivery status by layer
 
@@ -24,18 +24,19 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 | Service-to-service auth | client credentials, mock issuer support | Phase 1 done (`AUTH-006`); DEV credential not started | Real stack, local only |
 | GraphQL BFF | listings, stock, pickup windows, order, `placeOrder`, token and trace forwarding | Done (`S1-01`) | 75 tests; real stack through the Next.js rewrite |
 | Web: login | PKCE in the browser, in-memory token | Done (`S1-02`), merged | 25 unit tests, browser tests with a stubbed issuer, real issuer in the smoke |
-| Web: browse, order, checkout, confirmation | stock states, options and quantity, cart, `/checkout`, `/orders/{id}` | Done (`S1-03`, `S1-04`, `S1-05`) | 53 unit tests; 57 browser tests against the mock BFF; the real-stack journey |
+| Web: browse, order, checkout, confirmation | stock states, options and quantity, cart, `/checkout`, `/orders/{id}` | Done (`S1-03`, `S1-04`, `S1-05`), merged | 53 unit tests; 57 browser tests against the mock BFF; the real-stack journey |
 | Real-stack smoke | ordering and the issuer's client secret wired in; journey and wiring specs | Done (`S1-07a`, `S1-07b`) | 18 of 18 locally; two wiring mutations and two journey mutations caught |
 | Mock issuer hardening | encoding, safe redirect, redirect_uri allowlist (`S1-06`) | Done | 133 Auth tests; real container in the smoke |
-| Evidence, documents, trace | `S1-09` | **Not started** | n/a |
+| Evidence, documents, trace | `S1-09` | Built on `feature/slice-1-evidence` (not yet merged); the Azure run id is outstanding | A checkout and a page load each traced across their services; no secrets or identity in any span; `docs/evidence/slice-1/findings.md` |
 | Queue display, admin, notifications, vendor UI | out of slice 1 | Not started (by design) | n/a |
 
 "Done" above means built and verified locally; the merged-to-main state is in the next section.
 
 ## What has merged, and what is pending
 
-- **Merged:** auth, catalog work through `CAT-006`, ordering checkout, pickup windows, the outbox and events (`ORD-005`), the order actions (`ORD-007`), automatic confirmation (`ORD-008`), the BFF order path (`S1-01`), the web login (`S1-02`) and the slice-1 planning documents.
-- **Local, not pushed (`feature/slice-1-checkout-ui`):** stock states (`S1-05`), the cart and order controls, the checkout page (`S1-03`), the order status page (`S1-04`), the real-stack wiring (`S1-07a`) and the browser journey (`S1-07b`).
+- **Merged:** auth, catalog work through `CAT-006`, ordering checkout, pickup windows, the outbox and events (`ORD-005`), the order actions (`ORD-007`), automatic confirmation (`ORD-008`), the BFF order path (`S1-01`), the web login (`S1-02`), stock states, the cart, the checkout and order status pages (`S1-03`, `S1-04`, `S1-05`), the real-stack wiring (`S1-07a`) and the browser journey (`S1-07b`), with the slice-1 planning documents.
+- **Pushed, PR pending (`feature/slice-1-hardening`):** the fix to the journey's pickup-time assertion and the mock issuer hardening (`S1-06`).
+- **Local (`feature/slice-1-evidence`):** the trace evidence and the slice findings (`S1-09`), the refreshed project plan, the outline's merge statuses and the first-slice contract reconciliation.
 - **Never run:** the unmerged work on Azure; anything on real Azure Cosmos or a managed Redis.
 
 ## Verification summary (this session, local)
@@ -55,8 +56,8 @@ Status words follow the repo rule: nothing is called working unless it was run. 
 Full classification of the register is in the backlog appendix. What is left on the slice-1 path:
 
 1. **Run it on Azure.** The new smoke job (ordering-service, a fresh secret on a clean agent, the BFF test hook) has only run locally.
-2. **Trace across all hops not demonstrated** (items 42, 49), and the green Azure run has no recorded ID (item 44): `S1-09`.
-3. **Slice documents drift:** `docs/management/project-plan.md` says Phase 1 and 2 are "Not started" and puts the queue display in Phase 2; the first-slice contract excludes it (`S1-09`).
+2. **Record a green Azure run (item 44).** The trace evidence (items 42 and 49) is done; only the run id is waiting for the run.
+3. **Slice documents drift: fixed** on `feature/slice-1-evidence` (the project plan, the outline's merge statuses, the first-slice contract reconciliation).
 4. **Known limitations, logged:** login lost on reload (item 24) and the follow-ups in item 77; order lines carry no item names (78); pickup times shown in the customer's zone (79); no order history (80); a rejected checkout's key is spent (81).
 
 ## Decisions (human lead)

@@ -175,6 +175,7 @@ Only `Listing.id` is a global ID. `vendorId`, `Modifier.id` and pagination curso
 **42. Remaining tracing gaps in the walking skeleton**
 Type: Verification gap · Source: `WI-PORT-005` evidence (2026-10-28) · Hat: Platform Engineering
 Done 2026-10-28: Next.js server span (a three-tier trace shows in Aspire), catalog event-consumer spans (tested), TraceId in the catalog's console log scopes. Still open: scopes appear in the console only because `IncludeScopes` is set in the Development config, so deployed environments need structured log export; no log export; `GetServerSideProps` page render has no span; the skeleton smoke was not run with tracing on; no consumer span has been seen in a dashboard (no event is published during a request yet).
+**Update 2026-10-28 (`S1-09`):** the whole real-stack smoke ran with tracing on (21 of 21), a page load and a checkout each came out as one trace across their services, and a scan of every exported span for tokens, keys, secrets, e-mail addresses and customer identity found none (`docs/evidence/slice-1/findings.md`). Still open: log export, the page-render span, any dashboard (Aspire or Application Insights) was not used for this capture, the browser hop is untraced (a checkout trace starts at the BFF), and order events have no consumer span yet.
 
 **43. Mock e2e and the skeleton smoke share `.next`** — **Resolved 2026-10-28**
 Type: Test isolation · Source: e2e investigation (2026-10-28) · Hat: Platform Engineering
@@ -203,6 +204,7 @@ Implemented in `WI-ORD-001`: D-5 quantity limits (aggregate and checkout), D-6 i
 **49. Other C# services do not call `AddBakeryTelemetry`**
 Type: Tracking · Source: `WI-PORT-005` (2026-10-28) · Hat: Platform Engineering
 Only catalog-service is wired. `ordering-service`, `admin-service` and `notification-service` are empty scaffolds; wire them when they gain endpoints.
+**Update 2026-10-28 (`S1-09`):** `ordering-service` calls `AddBakeryTelemetry` and exported spans in the slice-1 capture (a checkout is one trace through the BFF, ordering and the catalog); only the two empty scaffolds, `admin-service` and `notification-service`, remain unwired.
 
 **50. Rethink the role of `docs/ACTIVITY-LOG.md`**
 Type: Process · Source: human lead (2026-10-28) · Hat: Manager/Lead
@@ -220,7 +222,7 @@ Catalog owns a running quantity counter (absent = made to order); vendors set or
 Type: Decision to amend · Source: lifecycle review (2026-10-28), ADR-0005, `event-storming.md` · Hat: Architect
 Event-storming charges at checkout. With a vendor confirm step the agreed direction is authorize at `Place`, capture at `Confirm`, release on decline, expiry or cancellation. (`WI-ORD-008`, 2026-10-28: orders with no options and no requested window confirm at checkout, so for them authorize and capture happen together; `PAY-001` must handle both shapes.) ADR-0005 needs a dated amendment; `ORD-001`'s stubbed payment step should follow it. Refund rules beyond basic initiation stay deferred (item 6).
 
-**54. Vendor order-action endpoints** — **Built 2026-10-28 (`WI-ORD-007`, pending review/merge); the approved design is recorded there**
+**54. Vendor order-action endpoints** — **Built 2026-10-28 (`WI-ORD-007`, merged to main); the approved design is recorded there**
 Type: Missing API · Source: lifecycle review (2026-10-28) · Hat: Engineering/Build
 Drafted in `order-lifecycle.md` and specified as `WI-ORD-007`. Authorization (role plus ownership) is auth logic: the human lead approved adding it; details will be iterated. Remaining: who completes an order (item 59), and item 33 (mock vendor ids) for testing.
 
@@ -236,7 +238,8 @@ Handled by the existing rules: the vendor can cancel an order from any non-final
 Type: Policy · Source: lifecycle review (2026-10-28) · Hat: Product
 Built into the aggregate as decided: the customer may cancel while `Placed` or `Confirmed`; once preparation starts only the vendor can. Refund and fee consequences are not defined (ties to items 6 and 53).
 
-**58. First-slice decisions shifted by the lifecycle**
+**58. First-slice decisions shifted by the lifecycle** — **Resolved 2026-10-28 (`S1-09`)**
+Resolution: the first-slice contract has a dated "Slice 1 as built" section that reconciles D-2, D-3, D-5 to D-10 and the order-status path with the finished slice. Original description:
 Type: Reconciliation · Source: lifecycle review (2026-10-28) · Hat: Architect
 D-2 (browser cart) still holds but the cart is conceptually the `Pending` order; D-5 becomes per-item maxima with a global cap; D-8's lead time may be per item or vendor; the walking skeleton's order-status path now needs a vendor confirm action to progress beyond `Placed`. Update `first-slice-contract.md` and `WI-ORD-001`/`003` with dated notes when those items are picked up.
 
@@ -277,7 +280,7 @@ A reservation is stored beside the listings (same container and partition, so on
 Type: Accepted edge case · Source: `WI-CAT-006` (2026-10-28) · Hat: Product
 If a vendor sets an absolute quantity after an order reserved stock, a later release adds the reserved units back on top of the vendor's number. ADR-0017 accepts that a vendor-set value overrides reservations made since they last looked; the reverse (a release after a manual reset) is the same trade. Revisit with item 61 (special handling of prepared or defective items).
 
-**68. `OrderPlaced` is never published, and a placed order cannot recover it** — **Resolved 2026-10-28 (`WI-ORD-005`, pending review/merge)**
+**68. `OrderPlaced` is never published, and a placed order cannot recover it** — **Resolved 2026-10-28 (`WI-ORD-005`, merged to main)**
 Resolution: raised events are stored inside the order document in the same write as the state change, published inline at checkout, and swept by `OutboxRelay` when that misses. Verified on the real stack, including a Redis outage and recovery (see `WI-ORD-005.md`). Original description:
 Type: Gap · Source: `WI-ORD-001` (2026-10-28) · Hat: Architect, Engineering/Build
 Checkout stores the order as `Placed` but publishes nothing (`ORD-005` is not built), and the aggregate's raised events are not stored, so an order placed now has no `OrderPlaced` for `ORD-005` to find later. `ORD-005` should publish through an outbox: store the pending events with the order document in the same write, and publish from there (this also closes the "no outbox" half of item 30). Until then the vendor is not notified and the queue read-model has nothing to read.
@@ -336,3 +339,7 @@ The order page is reached by the id `placeOrder` returned; there is no order his
 **81. A retry under the key of a rejected checkout gets `conflict`, not the original answer**
 Type: Rough edge · Source: `S1-07b` (2026-10-28) · Hat: Engineering/Build
 After a typed rejection (a declined payment, say) the attempt's reservation is released, and the catalog will not reserve again for that order id (ADR-0017: a released reservation is final, so a late duplicate cannot hold stock for a dead order). Ordering derives the order id from `(customer, key)`, so reusing that key later fails at the reserve step with the generic "the stock changed while placing the order" (`conflict`). The web client avoids it (a rejection spends its key, see the first-slice contract), but another client, or a user retrying from a stale tab, would see a misleading message. Better: ordering recognizes that case and returns a distinct code ("start a new checkout"), or the catalog distinguishes "released" from "changed". Also relevant to `PAY-001`, where a declined real payment will be retried with the same intent.
+
+**82. Tracing rough edges seen in the slice-1 capture**
+Type: Tracking · Source: `S1-09` (2026-10-28), `docs/evidence/slice-1/findings.md` · Hat: Platform Engineering
+(1) **A silent no-export hazard.** The C# services export only if `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` is set as well as the endpoint; with the endpoint alone the .NET exporter defaults to gRPC and its spans vanish against an HTTP port, with no error, and the BFF and web server (hand-rolled OTLP/HTTP) export fine, so a trace looks half there. Either default the protocol in `AddBakeryTelemetry` when an HTTP endpoint is given, or log a warning. (2) **The browser is not traced**, so a customer's click is not the start of its trace; a checkout trace begins at the BFF. (3) **Expected not-found reads are marked as errors** (Cosmos 404s for "is there a reservation or an order yet?"), which would swamp an error-rate view; filter them in the dashboard or the collector. (4) **A cold stack's first checkout takes about 4.7 s** (issuer metadata about 2 s, ordering's service token about 2 s) against 55 to 78 ms afterwards; warm the issuer before a demo, and see whether a deployed issuer behaves the same. (5) Exporting the variable in a shell also makes `docker buildx` export spans to it.
