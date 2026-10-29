@@ -153,7 +153,7 @@ test('the test banner is on the page and next to the button', async ({ page }) =
 });
 
 test.describe('what the customer sees when the order cannot be placed (first-slice contract section 6)', () => {
-  test('a declined test payment keeps the order and a retry with the same content reuses the same key', async ({
+  test('a declined test payment keeps the order, and the retry uses a new key because the rejected attempt is spent', async ({
     page,
   }) => {
     await atCheckout(page);
@@ -166,30 +166,46 @@ test.describe('what the customer sees when the order cannot be placed (first-sli
     await expect(page.getByTestId('checkout-rejection')).toHaveAttribute('data-code', 'PAYMENT_DECLINED');
     await expect(page.getByTestId('order-line')).toHaveCount(1); // nothing was lost
 
+    // Nothing was placed and the attempt's reservation was given back; ordering will not reserve again under the same key (the order id
+    // comes from it), so reusing it would only ever be refused. The real stack showed this (S1-07b).
     const retry = page.waitForRequest(isPlaceOrder);
     await placeButton(page).click();
-    expect(inputOf(await retry).idempotencyKey).toBe(firstKey); // the same order, asked again
+    expect(inputOf(await retry).idempotencyKey).not.toBe(firstKey);
 
     await script(page, null); // payment would now be approved
-    const approved = page.waitForRequest(isPlaceOrder);
     await placeButton(page).click();
-    expect(inputOf(await approved).idempotencyKey).toBe(firstKey);
     await expect(page).toHaveURL(/\/orders\/.+/);
+  });
+
+  test('after an unexpected failure the retry reuses the key, because an order may exist and the retry then returns it', async ({
+    page,
+  }) => {
+    await atCheckout(page);
+    await script(page, 'internal');
+
+    const first = page.waitForRequest(isPlaceOrder);
+    await placeButton(page).click();
+    const firstKey = inputOf(await first).idempotencyKey;
+    await expect(page.getByTestId('checkout-error')).toBeVisible();
+
+    const retry = page.waitForRequest(isPlaceOrder);
+    await placeButton(page).click();
+    expect(inputOf(await retry).idempotencyKey).toBe(firstKey);
   });
 
   test('changing the order gets a new key, so the server never sees one key with two different orders', async ({
     page,
   }) => {
     await atCheckout(page, 'Country Sourdough', { quantity: '2' });
-    await script(page, 'rejected:CONFLICT');
+    await script(page, 'internal'); // an outcome the customer cannot know, so the key is kept...
 
     const first = page.waitForRequest(isPlaceOrder);
     await placeButton(page).click();
     const firstKey = inputOf(await first).idempotencyKey;
-    await expect(page.getByTestId('checkout-rejection')).toBeVisible();
+    await expect(page.getByTestId('checkout-error')).toBeVisible();
 
-    await page.getByLabel('Quantity of Country Sourdough').selectOption('3');
-    await expect(page.getByTestId('checkout-rejection')).toHaveCount(0); // the message was about the old order
+    await page.getByLabel('Quantity of Country Sourdough').selectOption('3'); // ...until the order itself changes
+    await expect(page.getByTestId('checkout-error')).toHaveCount(0); // the message was about the old order
     const second = page.waitForRequest(isPlaceOrder);
     await placeButton(page).click();
     expect(inputOf(await second).idempotencyKey).not.toBe(firstKey);

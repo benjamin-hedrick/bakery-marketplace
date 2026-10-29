@@ -70,10 +70,16 @@ export const fixtures = {
       [['mod-caraway', 'Caraway', 25, []]],
       ['gluten'],
     ),
-    listing('listing-roll-900', 'vendor-b-900', 'Cinnamon Roll', 'Pastry', 400, [], ['gluten', 'dairy'], {
-      status: 'SOLD_OUT',
-      maxPerOrder: null,
-    }),
+    listing(
+      'listing-roll-900',
+      'vendor-b-900',
+      'Cinnamon Roll',
+      'Pastry',
+      400,
+      [['mod-icing', 'Icing', 50, ['dairy']]],
+      ['gluten', 'dairy'],
+      { status: 'SOLD_OUT', maxPerOrder: null },
+    ),
     listing('listing-brew-900', 'vendor-b-901', 'Cold Brew', 'Coffee', 450, [['mod-oat', 'Oat milk', 60, []]], []),
   ],
 };

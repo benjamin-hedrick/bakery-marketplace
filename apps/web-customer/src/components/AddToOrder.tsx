@@ -31,7 +31,25 @@ export function AddToOrder({ listing }: { listing: OrderableListing }) {
   const [notice, setNotice] = useState<Notice | null>(null);
 
   if (!canOrder(listing.stock.status)) {
-    return <p data-testid="not-orderable">This item cannot be ordered right now.</p>;
+    // Not orderable, but the options and their allergens stay visible: dietary-safety information does not depend on availability.
+    return (
+      <section>
+        <p data-testid="not-orderable">This item cannot be ordered right now.</p>
+        {listing.modifiers.length > 0 ? (
+          <>
+            <h2>Options</h2>
+            <ul data-testid="options-readonly">
+              {listing.modifiers.map((m) => (
+                <li key={m.id}>
+                  {m.name} (+{formatMoney(m.priceDelta)})
+                  {m.allergens.length ? ` — contains ${m.allergens.join(', ')}` : ''}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+      </section>
+    );
   }
 
   const maxQuantity = Math.min(MAX_QUANTITY, listing.stock.maxPerOrder ?? MAX_QUANTITY);
