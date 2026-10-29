@@ -1,8 +1,11 @@
 // Deterministic fixtures. Fixture A mirrors the first-slice seed (contract §7, prices in integer cents).
 // Fixture B shares no names or IDs with A, so any cross-request leak is detectable.
+// Like the real BFF (D-9, D-B): a listing's id is a Relay global id, a modifier's id and a vendor id are the raw service ids.
 const gid = (type, id) => Buffer.from(`${type}:${id}`).toString('base64');
 
-const listing = (id, vendorId, name, category, priceCents, modifiers, allergenFlags) => ({
+const IN_STOCK = { status: 'IN_STOCK', maxPerOrder: null };
+
+const listing = (id, vendorId, name, category, priceCents, modifiers, allergenFlags, stock = IN_STOCK) => ({
   __typename: 'Listing',
   id: gid('Listing', id),
   vendorId,
@@ -11,12 +14,13 @@ const listing = (id, vendorId, name, category, priceCents, modifiers, allergenFl
   category,
   priceCents,
   modifiers: modifiers.map(([mid, mname, delta, allergens]) => ({
-    id: gid('Modifier', mid),
+    id: mid,
     name: mname,
     priceDeltaCents: delta,
     allergens,
   })),
   allergenFlags,
+  stock,
 });
 
 export const fixtures = {
@@ -32,6 +36,7 @@ export const fixtures = {
         ['mod-sliced', 'Sliced', 0, []],
       ],
       ['gluten'],
+      { status: 'IN_STOCK', maxPerOrder: 4 },
     ),
     listing(
       'listing-croissant-001',
@@ -41,6 +46,7 @@ export const fixtures = {
       450,
       [['mod-extra-almond', 'Extra almond', 75, ['tree-nut']]],
       ['gluten', 'dairy', 'tree-nut'],
+      { status: 'LOW', maxPerOrder: null },
     ),
     listing(
       'listing-latte-001',
@@ -65,7 +71,10 @@ export const fixtures = {
       [['mod-caraway', 'Caraway', 25, []]],
       ['gluten'],
     ),
-    listing('listing-roll-900', 'vendor-b-900', 'Cinnamon Roll', 'Pastry', 400, [], ['gluten', 'dairy']),
+    listing('listing-roll-900', 'vendor-b-900', 'Cinnamon Roll', 'Pastry', 400, [], ['gluten', 'dairy'], {
+      status: 'SOLD_OUT',
+      maxPerOrder: null,
+    }),
     listing('listing-brew-900', 'vendor-b-901', 'Cold Brew', 'Coffee', 450, [['mod-oat', 'Oat milk', 60, []]], []),
   ],
 };
