@@ -49,7 +49,7 @@ public static class MockOidcCors
         if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
             || uri.AbsolutePath != "/" || uri.Query.Length > 0 || uri.Fragment.Length > 0 || uri.UserInfo.Length > 0
-            || origin.EndsWith('/') || origin.Contains('*'))
+            || origin.EndsWith('/')) // a wildcard never parses as a URI, so "*" and "http://*.example" are rejected above
         {
             throw new ArgumentException($"'{origin}' is not an origin (scheme://host[:port]).", nameof(origin));
         }
