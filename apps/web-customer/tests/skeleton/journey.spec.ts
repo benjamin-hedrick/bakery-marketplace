@@ -97,9 +97,13 @@ test('an order with an option and a pickup time waits for the bakery, with the o
   await addToOrder(page, 'Country Sourdough', { option: 'Add seeds (+$1.00) — contains sesame' });
   await toCheckout(page);
 
+  // Real pickup times depend on the clock and the zone this runs in, so nothing here assumes a particular hour or format. The last window
+  // offered is days away, so it cannot slip inside the 30-minute lead time between choosing it and placing the order (the first one can).
   const times = page.getByLabel('Pickup time');
   await expect(times).toBeEnabled();
-  await times.selectOption({ index: 1 }); // the first real window ordering offers
+  await times.selectOption({ index: (await times.locator('option').count()) - 1 });
+  const chosen = (await times.locator('option:checked').innerText()).trim(); // e.g. "9:15 AM – 9:30 AM" or "12:00 PM – 12:15 PM"
+  expect(chosen).toMatch(/\d/);
   await placeButton(page).click();
 
   await expect(page).toHaveURL(/\/orders\/.+/);
@@ -108,7 +112,8 @@ test('an order with an option and a pickup time waits for the bakery, with the o
   await expect(page.getByTestId('order-item')).toContainText('1 × Country Sourdough');
   await expect(page.getByTestId('order-item')).toContainText('Add seeds');
   await expect(page.getByTestId('order-total')).toHaveText('$9.00'); // $8.00 + $1.00, priced by the server
-  await expect(page.getByTestId('order-pickup')).toHaveText(/^Pickup .+\d:\d\d [AP]M – \d:\d\d [AP]M$/);
+  await expect(page.getByTestId('order-pickup')).toHaveText(/^Pickup /);
+  await expect(page.getByTestId('order-pickup')).toContainText(chosen); // the time the customer picked is the time shown
 });
 
 test('a declined test payment keeps the order and takes nothing; the same order then goes through', async ({
