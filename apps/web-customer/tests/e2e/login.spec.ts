@@ -135,8 +135,8 @@ test('login returns to the page it was started from, and an unsafe destination f
   const detailPath = new URL(page.url()).pathname;
 
   await page.getByRole('button', { name: 'Log in' }).click();
+  await expect(page).toHaveURL(`${APP}${detailPath}`); // back where it started, once the callback has finished navigating
   await expect(page.getByTestId('user-name')).toBeVisible();
-  expect(new URL(page.url()).pathname).toBe(detailPath);
 });
 
 test('the token is sent to the BFF while logged in, and not before or after', async ({ page }) => {
