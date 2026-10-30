@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests
+
 ```
 WI ID:               DATA-002
 Title:                CosmosRepository<T> implementation
@@ -5,7 +7,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-DATA-STORE
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 M
 ```
 

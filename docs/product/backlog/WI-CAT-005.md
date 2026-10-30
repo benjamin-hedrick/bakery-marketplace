@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: the Outcome note under this banner; `services/catalog-service`
+
 > **Outcome note (2026-10-28):** built on `feature/service-auth` (the human lead asked to keep going on one branch). `Listing` has `availableQuantity` (absent = made to order), `maxPerOrder`, `lowStockThreshold` and an ETag. A `stock` block on create or edit sets all three; an edit with no `stock` block leaves stock alone, which keeps a counter safe from unrelated edits. `POST /catalog/listings/{id}/stock/adjust` applies a signed delta. Public reads show `stock.status` (`inStock`, `low`, `soldOut`) and `maxPerOrder`, never the count; the owner's write responses include the count and threshold. `LowStockDetected` is published when an item crosses into low or sold out, not while it stays there. The seed carries stock on its existing listings (sourdough 12 and max 4, croissant 4 = low, cookies 24 and max 6, muffin 0 = sold out, latte and lemon loaf made to order), so seed counts and totals are unchanged.
 >
 > **Needed a shared-library change:** the spec's "atomic against the listing's version" had nothing to build on, because `IRepository<T>` had no optimistic concurrency (open item 30). `IETagged` and `SaveIfUnchangedAsync` were added to `BakeryMarketplace.Data`; edits and adjustments save conditionally and re-read and retry on conflict.
@@ -11,7 +13,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-CATALOG
 Shared with epic(s):  EPIC-ORDERING
 Hat/Owner:            Engineering/Build
-Status:               Ready (added 2026-10-28)
+Status:               Done
 Size:                 M
 ```
 

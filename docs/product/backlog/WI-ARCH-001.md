@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/architecture/c4/context.md`, `container.md`
+
 ```
 WI ID:               ARCH-001
 Title:                C4 Diagrams — System Context + Container

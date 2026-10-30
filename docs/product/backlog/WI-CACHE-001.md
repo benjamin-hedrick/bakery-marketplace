@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Caching` and its tests
+
 ```
 WI ID:               CACHE-001
 Title:                Define CacheProvider interface + shared contract test suite
@@ -5,7 +7,7 @@ Type:                 Interface/Contract
 Epic:                 EPIC-CACHING
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 
@@ -16,7 +18,7 @@ ADR-0002 establishes an environment-conditional caching strategy: a `CacheProvid
 - *Decisions*: `docs/architecture/adr/0002-cache-strategy.md` (the full design this implements)
 - *Interfaces*: none consumed — this item defines one, not consumes one
 - *Environment/tooling*: `docs/architecture/tech-stack.md` local-dev table (Cache row) for how the two implementations are expected to run locally vs. cloud
-- *Test/chaos methodology*: `project-process-framework/domains/software-systems/architecture-patterns.md` — the adapter + contract-test + chaos decorator pattern this item is the "adapter interface" half of
+- *Test/chaos methodology*: the adapter + contract-test + chaos decorator pattern described under "`tools/` shared libraries" in `CLAUDE.md` — this item is the "adapter interface" half of it
 - *Business context*: none needed — this is a pure infrastructure/architecture concern with no direct business-rule input
 
 **You do not need to know about**

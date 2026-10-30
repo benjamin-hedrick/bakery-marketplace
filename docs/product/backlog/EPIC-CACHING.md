@@ -1,3 +1,5 @@
+> **Status:** 4 of 4 items with a spec done (CACHE-005 is held and has no spec)
+
 ```
 Epic ID:            EPIC-CACHING
 Title:               Caching layer (environment-conditional, with local fallback)
@@ -14,7 +16,7 @@ Constituent work items:
   - WI-CACHE-003 (Service Implementation — LocalCacheProvider + ResilientCacheProvider decorator) — Done, agent-delivered, spec-reviewed
   - WI-CACHE-004 (Test/Mock/Chaos — ChaosCacheProvider + fallback proof tests) — Done, agent-delivered, spec-reviewed
   - WI-CACHE-005 (Infra/Environment — Terraform enable_managed_redis toggle + Compose with-redis profile) — 🛑 HOLD, vendor under reconsideration (open item #22); cloud caching backend choice explicitly deferred per 2026-09-12 planning session
-Status:              4 of 5 items detailed; 4 done, 1 (CACHE-005) held
+Status:              4 of 4 items with a spec done (CACHE-005 is held and has no spec)
 ```
 
-> **Reconciliation note (2026-10-26).** ADR-0014 names this epic's cache as **layer 1 (server/data-source)** of three. Every item here is retained unchanged. The Relay client store and HTTP/CDN layers are governed by ADR-0014 and documented for the listing path by `WI-PORT-004`, which also records `WI-CAT-003`'s use of this cache in the per-cache contract format. See `docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+> **Reconciliation note (2026-10-26).** ADR-0014 names this epic's cache as **layer 1 (server/data-source)** of three. Every item here is retained unchanged. The Relay client store and HTTP/CDN layers are governed by ADR-0014 and documented for the listing path by `WI-PORT-004`, which also records `WI-CAT-003`'s use of this cache in the per-cache contract format. See `docs/product/backlog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.

@@ -1,6 +1,6 @@
 # ADR-0017: Stock and Availability Ownership
 
-**Status:** Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter. Fields, vendor set/adjust and the public status (`WI-CAT-005`) and atomic reservation and release (`WI-CAT-006`) are built and verified locally (2026-10-28); the caller in `ordering-service` (`ORD-001`) is not.
+**Status:** Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter.
 
 ## Context
 
@@ -37,3 +37,7 @@ Vendors list items either with a limited quantity or as made to order. A limited
 
 - ADR-0004 (Cosmos, partition by vendor), ADR-0009, ADR-0001 (the Order stays fulfillment-agnostic; stock is not a fulfillment concern)
 - `WI-CAT-005`, `WI-CAT-006`, `WI-ORD-001`; open items 51, 52, 61, 62
+
+## Amendment note (2026-10-30: caller built)
+
+The status line used to say the caller in `ordering-service` was not built. It is: checkout reserves stock through the catalog's reserve endpoint and releases it when payment is declined, the save fails, or the vendor declines or cancels (`WI-ORD-001`, `WI-ORD-007`). Fields, vendor set and adjust, the public status (`WI-CAT-005`) and atomic reserve and release (`WI-CAT-006`) are built. Verified locally on the real stack on 2026-10-28; not deployed. Reservation records are never cleaned up (register item 66).

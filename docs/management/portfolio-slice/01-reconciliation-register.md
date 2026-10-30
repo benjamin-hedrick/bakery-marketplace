@@ -1,5 +1,7 @@
 # Existing documentation reconciliation register
 
+> **Status:** Historical · folded into `WI-PORT-006` and its dispositions records (`docs/product/backlog/reconciliation/`). Every candidate below has since been handled: ADR-0011 is superseded by ADR-0012; `tech-stack.md` and `data-model-api-contracts.md` were amended; ADR-0002 is extended by ADR-0014; `docker-compose.yml` is built; `.github/workflows/ci.yml` was removed on 2026-10-28; `infra/` is labelled in `tech-stack.md`; apps and services were verified (`docs/evidence/facts-sheet-2026-10-29.md`).
+
 **Proposal only. Inspect the current tree and approve a file-by-file
 change plan before editing.**
 

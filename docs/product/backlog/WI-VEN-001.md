@@ -1,3 +1,5 @@
+> **Status:** Ready
+
 ```
 WI ID:               VEN-001
 Title:                Vendor profile + application (VendorType: Shop | Independent)

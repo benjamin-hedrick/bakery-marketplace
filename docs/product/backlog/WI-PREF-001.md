@@ -1,3 +1,5 @@
+> **Status:** Ready
+
 ```
 WI ID:               PREF-001
 Title:                Preference Profile CRUD

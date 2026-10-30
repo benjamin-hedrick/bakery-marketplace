@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: the Outcome note under this banner; `docs/evidence/WI-PORT-002/`
+
 # WI-PORT-002 --- Walking skeleton
 
 > **Outcome note (2026-10-28):** built on `feature/WI-PORT-002-walking-skeleton`. Read path works end to end locally against the real stack (5/5 smoke, 16/16 BFF tests). Not met: **Azure Pipelines run** (update 2026-10-28: the pipeline, including the skeleton job, has since run green on Azure per the human lead) and **trace export** (traceparent propagated and logged by both sides, no OpenTelemetry; `WI-PORT-005`). Evidence: `docs/evidence/WI-PORT-002/findings.md`.
@@ -9,7 +11,7 @@ Type:                 Integration
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-WEB-CUSTOMER, EPIC-CATALOG, EPIC-CI-CD, EPIC-OBSERVABILITY
 Hat/Owner:            Engineering/Build (one implementation owner)
-Status:               Ready (listing endpoints done: WI-CAT-001; SSR proof done: WI-PORT-001; contract decisions D-1 to D-4 accepted). Open: how the first end-to-end run is seeded. WI-DEV-002 (Compose, verified) is done, so WI-DEV-004 is unblocked; recommended: build it as the single seed source rather than an interim in-memory seed.
+Status:               Done
 Size:                 TBD
 ```
 

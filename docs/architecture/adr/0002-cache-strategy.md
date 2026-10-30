@@ -1,6 +1,6 @@
 # ADR-0002: Cache Strategy — Environment-Conditional Managed Redis with Local Fallback
 
-**Status:** Accepted — extended by [ADR-0014](0014-cache-layers.md) (2026-10-26)
+**Status:** Accepted, amended 2026-09-11 to 2026-10-30
 
 ## Context
 
@@ -90,3 +90,7 @@ The specific managed cache vendor (Azure Cache for Redis) is under reconsiderati
 ## Amendment note (ADR-0014 — cache layers, 2026-10-26)
 
 ADR-0014 names this ADR's cache as **layer 1 (server/data-source)** of three, and adds governance for the Relay client store (layer 2) and HTTP/browser/CDN caching (layer 3) introduced by ADR-0012/0013. **Nothing in this ADR's design changes**: `ICacheProvider`, the Redis/local providers, `ResilientCacheProvider`, `ChaosCacheProvider`, cache-aside on listings and search, the 60s TTL, and the rule that order/cart data is never cached all stand. The one addition: each cache entry point (e.g. `WI-CAT-003`'s listing reads) now records owner, key/scope, freshness, invalidation, failure behavior, privacy classification and a test, per ADR-0014.
+
+## Amendment note (2026-10-30: what is wired)
+
+The decision is unchanged. The server cache is a library in `tools/BakeryMarketplace.Caching` (`ICacheProvider`, a Redis provider, `LocalCacheProvider` on `IMemoryCache`, `ResilientCacheProvider`, `ChaosCacheProvider`) with a shared contract-test base; its 16 tests passed on 2026-10-30. **No service uses it as a cache yet**: the catalog cache-aside (`WI-CAT-003`) is not built. The Terraform snippet in this ADR (`enable_managed_redis`) is not in `infra/`, which has only the Key Vault module. The local fallback is described here as an LRU map; the implementation is `IMemoryCache`.

@@ -1,6 +1,6 @@
 # ADR-0003: Event-Driven Backbone
 
-**Status:** Accepted
+**Status:** Accepted, amended 2026-10-30
 
 ## Context
 
@@ -81,3 +81,13 @@ A shared contract-test suite runs against both transports ("publish then consume
 - ADR-0002 — shares the adapter/contract-test/chaos pattern; deliberately differs on "can local drop to zero dependency"
 - `tech-stack.md` — free-tier-first principle (with the accepted local-eventing exception noted above)
 - Glossary — domain event names formalized here into the envelope structure
+
+## Amendment note (2026-10-30: as built)
+
+The decision is unchanged. Differences between the text above and the code:
+
+- The envelope is defined in `tools/BakeryMarketplace.Eventing` (`DomainEventEnvelope`) with payloads in `tools/BakeryMarketplace.EventSchemas`; there is no `/tools/event-schemas` folder. The envelope has an optional `Traceparent` field added by ADR-0016.
+- `ordering-service` publishes through an **outbox**: events are stored with the order and a relay publishes them to Redis Streams (`WI-ORD-005`). This ADR describes publishing but not that pattern.
+- Built: the Redis Streams transport and an in-memory transport. Not built: the Event Grid transport (`EVT-002`) and `ChaosEventTransport`.
+- The dead-letter stream exists for handlers that fail repeatedly. An entry that cannot be deserialized is acknowledged and dropped without dead-lettering (`RedisStreamsEventTransport`), so "the dead-letter path is reachable" does not cover malformed entries.
+- Consumer groups are named per event type, not per service (open-items register item 29).

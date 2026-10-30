@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/history/review-2026-10/closing-record.md` (pass 2: every tracked document read and reconciled; steps 0 to 11 of the edit plan done); the open findings are in `docs/product/backlog/gap-catalog/`
+
 # WI-PORT-006 — Reconcile existing project artifacts with the accepted portfolio-slice decisions
 
 ```
@@ -7,9 +9,11 @@ Type:                 Document/Artifact
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-ARCH-DOCS, EPIC-GOVERNANCE
 Hat/Owner:            Architect (one named integrator; domain reviewers may advise)
-Status:               In Progress — decision-level pass done 2026-10-26; document-content pass remaining
+Status:               Done
 Size:                 M
 ```
+
+> **Outcome note (2026-10-30).** Pass 2 read every tracked Markdown file, checked the facts by running the build and the tests, and reconciled the documents with what was built: status banners on every spec and epic, seven specs rewritten to match the build, a generated `STATUS.md`, ADR status lines and notes, a `Status:` on every register item, diagrams drawn from the code, `docs/method/`, a front door that matches the repository, and archives under `docs/history/`. What is not done is tracked, not lost: 125 gap-catalog rows (each Done, Partly, Open or Dropped, with where it is tracked), 11 Deferred specs and the register. The closing record lists every finding and decision. The plan's "Pass 2" rows below are kept as written.
 
 **Priority:** Blocking for broad delegation; may run in parallel with the isolated SSR proof (`WI-PORT-001`).
 
@@ -19,7 +23,7 @@ Make the existing repository consistent with the accepted portfolio decisions (A
 
 ## Method
 
-Use the repo's existing reconciliation format: a dated `RECONCILIATION-DISPOSITIONS-YYYY-MM-DD.md` record in `docs/product/backlog/worklog/reconciliation/`. Don't start a parallel register. Historical work-item specs aren't rewritten. Superseded, adjusted, obsolete or cancelled items get a dated reconciliation note at the top, plus a matching note in `MASTER-BACKLOG-OUTLINE.md`.
+Use the repo's existing reconciliation format: a dated `RECONCILIATION-DISPOSITIONS-YYYY-MM-DD.md` record in `docs/product/backlog/reconciliation/`. Don't start a parallel register. Historical work-item specs aren't rewritten. Superseded, adjusted, obsolete or cancelled items get a dated reconciliation note at the top, plus a matching note in `epic-catalog.md`.
 
 1. Inspect the current branch and working tree; capture the baseline commit and the available build/test commands.
 2. Read the current file and its linked ADR/backlog references before proposing a disposition.
@@ -29,11 +33,11 @@ Use the repo's existing reconciliation format: a dated `RECONCILIATION-DISPOSITI
 6. Do not delete `.github/workflows/ci.yml` or claim Azure Pipelines is authoritative until ADR-0015's exit criteria are met.
 7. Close only when every in-scope row has a disposition and verification. Unresolved rows stay explicitly deferred, with an owner and a trigger.
 
-**Source-of-truth rules**: ADRs own decisions; plans (`docs/management/portfolio-slice/`) own the implementation approach; API/schema contracts own actual behavior; work items own task acceptance; `docs/ACTIVITY-LOG.md` records what happened. Avoid duplicate or contradictory copies.
+**Source-of-truth rules**: ADRs own decisions; plans (`docs/management/portfolio-slice/`) own the implementation approach; API/schema contracts own actual behavior; work items own task acceptance; `docs/history/ACTIVITY-LOG.md` records what happened. Avoid duplicate or contradictory copies.
 
 ## Pass 1 — decision level (done 2026-10-26)
 
-Recorded in `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`: ADR-0012 to ADR-0016 accepted; ADR-0011 superseded; amendment notes on ADR-0002/0007/0008; ADR index and `tech-stack.md` updated; affected backlog items annotated; open-items register updated.
+Recorded in `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`: ADR-0012 to ADR-0016 accepted; ADR-0011 superseded; amendment notes on ADR-0002/0007/0008; ADR index and `tech-stack.md` updated; affected backlog items annotated; open-items register updated.
 
 ## Pass 2 — document content (remaining register)
 
@@ -58,7 +62,7 @@ Recorded in `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`: 
 
 - Every impacted source-of-truth document and implementation area has a register row.
 - Each row has a disposition, rationale, decision reference, and verification or an explicit deferral.
-- This item is linked from `MASTER-BACKLOG-OUTLINE.md` and `EPIC-PORTFOLIO-SLICE.md`.
+- This item is linked from `epic-catalog.md` and `EPIC-PORTFOLIO-SLICE.md`.
 - Existing work-item IDs and dependencies are not duplicated or silently renumbered.
 - No code, ADR or historical record is changed before the pass's change plan is approved.
 - The final handoff summarizes changes, deferred items, checks run, and contradictions discovered.

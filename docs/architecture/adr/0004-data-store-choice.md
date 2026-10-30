@@ -1,6 +1,6 @@
 # ADR-0004: Primary Data Store — Azure Cosmos DB (SQL API), Container-per-Context
 
-**Status:** Accepted
+**Status:** Accepted, amended 2026-10-30
 
 ## Context
 
@@ -69,3 +69,7 @@ Contract test suite run against both, to catch behavioral drift
 - ADR-0001 — same "isolate now, allow splitting later" posture as the Fulfillment ACL
 - ADR-0002 / ADR-0003 — same adapter + contract-test pattern reused for data access
 - Bounded context map — container-per-context boundaries mirror the context map directly; vendor-side read models confirm the CQRS pattern already used for Admin/Moderation
+
+## Amendment note (2026-10-30: as built)
+
+The decision is unchanged. The local emulator is the Cosmos **vNext** emulator (`docker-compose.yml`), not the Linux emulator named above; it needs Cosmos SDK 3.63.x or later. Two containers exist in code: `catalog` (partition key `/vendorId`) and `orders` (`/customerId`). The `catalog` container also holds the per-vendor status documents in a reserved partition and the stock reservation records (ADR-0017; register item 66). The `order-status-readmodel`, `vendors`, `preferences`, `reviews` and `payouts` containers are not built.

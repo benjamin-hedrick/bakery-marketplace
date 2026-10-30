@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.EventSchemas` and its tests
+
 ```
 WI ID:               TOOL-001
 Title:                Domain event payload records (/tools/event-schemas)
@@ -5,7 +7,7 @@ Type:                 Interface/Contract
 Epic:                 EPIC-SHARED-TOOLING
 Shared with epic(s):  EPIC-EVENTING (payload types are consumed by EVT-002/003 once built)
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 

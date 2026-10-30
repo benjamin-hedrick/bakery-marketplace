@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Caching` (Redis provider) and its tests
+
 ```
 WI ID:               CACHE-002
 Title:                RedisCacheProvider implementation
@@ -5,7 +7,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-CACHING
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready — unblocked for local use (see below)
+Status:               Done
 Size:                 S
 ```
 

@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/product/personas.md`
+
 ```
 WI ID:               PROD-001
 Title:                Draft personas / Jobs-to-be-Done

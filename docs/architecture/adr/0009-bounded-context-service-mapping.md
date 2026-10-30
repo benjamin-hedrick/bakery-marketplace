@@ -47,4 +47,4 @@ This ADR makes that mapping explicit and formal, rather than leaving it as an im
 - ADR-0001 — same "isolate in code, allow splitting later" posture, applied to the Fulfillment Strategy seam
 - ADR-0004 — same posture, applied to Cosmos DB's shared account
 - `docs/architecture/c4/container.md` — the diagram whose drafting surfaced this gap; the 🔶-flagged proposal there is now confirmed by this ADR
-- `project-process-framework/core/phase-sequence.md` (Phase 4) and `domains/software-systems/architecture-patterns.md` — process fix so this sequencing gap (deciding after scaffolding instead of before) doesn't recur on a future project
+- Process lesson: this sequencing gap (the mapping decided after scaffolding instead of before) was found by drawing the container diagram, a surprise (`docs/method/glossary.md`): the missing decision became this record. The proactive half is context completeness: before scaffolding, ask which structural decisions the scaffold would make implicitly and make them explicitly first.

@@ -1,6 +1,6 @@
 # ADR-0001: Fulfillment Strategy Extensibility — Pickup-Only v1, Delivery Deferred
 
-**Status:** Accepted
+**Status:** Accepted, amended 2026-10-30
 
 ## Context
 
@@ -40,4 +40,12 @@ Introduce a **Fulfillment Strategy** abstraction as the boundary between Orderin
 
 - Bounded context map — Ordering → Fulfillment Strategy (ACL edge)
 - Glossary — `Fulfillment Strategy` term
-- `portfolio-plan.md` — MVP line (Fulfillment: delivery/dispatch listed as Deferred)
+- `docs/product/scope.md` — MVP line (Fulfillment: delivery/dispatch listed as Deferred)
+
+## Amendment note (2026-10-30: as built)
+
+The decision is unchanged. What exists, checked against the code and `docs/architecture/order-lifecycle.md`:
+
+- The seam is built: the Order is fulfillment-agnostic, raises `OrderReadyForFulfillment`, and accepts `OrderFulfillmentCompleted` as the inbound event; the contracts are in `tools/BakeryMarketplace.EventSchemas/FulfillmentContracts.cs`.
+- `PickupFulfillment` (`WI-ORD-003`) is **not built**. `PickupWindowScheduled` and `OrderReadyForPickup`, which the lifecycle assigns to it, are raised by nothing yet. Until it exists, a vendor completes an order through a direct command (`POST /ordering/orders/{id}/complete`), so the events-only contract holds in the design but not yet on the complete path.
+- The status vocabulary gained `Pending` (the customer building the order, before `Placed`), and cancellation follows an actor and reason table instead of "any state". Both are in the lifecycle document.

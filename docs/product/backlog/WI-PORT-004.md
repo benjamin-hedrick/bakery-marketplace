@@ -1,3 +1,5 @@
+> **Status:** Ready
+
 # WI-PORT-004 --- Cache contract for listing path
 
 ```
@@ -7,7 +9,7 @@ Type:                 Interface/Contract
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-CACHING
 Hat/Owner:            Architect / Engineering/Build (one owner)
-Status:               Blocked (by WI-PORT-002)
+Status:               Ready
 Size:                 TBD
 ```
 

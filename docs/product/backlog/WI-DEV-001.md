@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `BakeryMarketplace.slnx` and the projects it lists
+
 ```
 WI ID:               DEV-001
 Title:                Scaffold the base .NET solution and project structure
@@ -5,7 +7,7 @@ Type:                 Infra/Environment
 Epic:                 EPIC-LOCAL-DEV
 Shared with epic(s):  EPIC-SHARED-TOOLING (the /tools libraries this scaffold wires up already exist as folders)
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 
@@ -14,7 +16,7 @@ ADR-0010 describes the intended solution structure — one .NET solution, one AS
 
 Also resolves `WI-WEB-001`'s Open Point on CORS: the CORS policy each service needs for the frontend's local origin is added directly as an acceptance criterion here, rather than waiting on a separate not-yet-detailed item.
 
-**Numbering note**: this item is `DEV-001` as of 2026-09-13. `EPIC-LOCAL-DEV` previously had a different item already occupying `DEV-001` (the real `docker-compose.yml`, drafted 2026-09-12) — that item and the epic's other two items were renumbered up by one (`DEV-001→002`, `DEV-002→003`, `DEV-003→004`) so this genuinely more-foundational item could take the `DEV-001` slot. See `WI-DEV-002.md` and `WI-DEV-004.md` for the renamed files, and `MASTER-BACKLOG-OUTLINE.md`'s `EPIC-LOCAL-DEV` section for the full renumbering note.
+**Numbering note**: this item is `DEV-001` as of 2026-09-13. `EPIC-LOCAL-DEV` previously had a different item already occupying `DEV-001` (the real `docker-compose.yml`, drafted 2026-09-12) — that item and the epic's other two items were renumbered up by one (`DEV-001→002`, `DEV-002→003`, `DEV-003→004`) so this genuinely more-foundational item could take the `DEV-001` slot. See `WI-DEV-002.md` and `WI-DEV-004.md` for the renamed files, and `epic-catalog.md`'s `EPIC-LOCAL-DEV` section for the full renumbering note.
 
 **Inputs / References**
 - *Decisions*: ADR-0010 (solution structure, one project per service, shared `/tools` libraries), ADR-0008 (frontend calls services directly — informs the CORS addendum below)
@@ -38,7 +40,7 @@ Also resolves `WI-WEB-001`'s Open Point on CORS: the CORS policy each service ne
   - Project references from each service to the specific `/tools/BakeryMarketplace.*` libraries it actually needs (e.g., `CatalogService` references `.Caching`, `.Data`, `.Auth`, `.EventSchemas`, `.Logging`; `NotificationService` references `.Eventing`, `.Logging` only — no service references a tool library it has no documented need for)
 - Each service project builds successfully (`dotnet build`) with no application logic beyond a minimal health-check endpoint (`GET /health`) proving the project runs
 - Each service project registers `UseCorrelationId()` (`WI-TOOL-002`) and a basic CORS policy allowing the frontend's local dev origin (configurable, not hardcoded) — this is the concrete piece `WI-WEB-001`'s CORS open point needed to attach to
-- A short note added to `docs/ACTIVITY-LOG.md` (as part of this item's own completion) confirming whether Batch 1's delivered agent code already made its own conflicting scaffold assumptions — if so, flag as a reconciliation follow-up, don't silently overwrite
+- A short note added to `docs/history/ACTIVITY-LOG.md` (as part of this item's own completion) confirming whether Batch 1's delivered agent code already made its own conflicting scaffold assumptions — if so, flag as a reconciliation follow-up, don't silently overwrite
 
 **Dependencies**
 - Blocks: all of Batch 4 (`ORD-004`, `CAT-001`, `ORD-002`, `ORD-003`, `ORD-006`, `ORD-005`, `CAT-003`, `ORD-001`, `QUE-001` — every one of them needs a real service project to actually add code to, not just the shared `/tools` libraries Batch 1/2 already scaffolded), `WI-WEB-001`'s CORS open point
@@ -49,7 +51,7 @@ Also resolves `WI-WEB-001`'s Open Point on CORS: the CORS policy each service ne
 See `docs/process/definition-of-done.md`. Item-specific addition: verify this against Batch 1's actual delivered code, not just against ADR-0010's description in isolation — if Batch 1's agents already assumed a different structure, that discrepancy must be surfaced explicitly (per `worklog-2026-09-07.md`'s recommended action), not quietly reconciled without a note.
 
 **AI-agent suitability**
-Yes, with one flagged caveat. The scaffold itself is fully specified by ADR-0010 and the existing `/tools` structure — no judgment call needed. The one thing that isn't agent-resolvable in isolation: whether Batch 1's already-delivered code conflicts with this structure can only be checked once Batch 1's actual output is reviewed (already done — see `docs/ACTIVITY-LOG.md`'s 2026-09-12 entry) — the reconciliation Open Point below should be treated as confirmed-clear unless that review's notes say otherwise.
+Yes, with one flagged caveat. The scaffold itself is fully specified by ADR-0010 and the existing `/tools` structure — no judgment call needed. The one thing that isn't agent-resolvable in isolation: whether Batch 1's already-delivered code conflicts with this structure can only be checked once Batch 1's actual output is reviewed (already done — see `docs/history/ACTIVITY-LOG.md`'s 2026-09-12 entry) — the reconciliation Open Point below should be treated as confirmed-clear unless that review's notes say otherwise.
 
 **Open Points (working)**
 - [ ] Reconcile against Batch 1's actual delivered project structure — the 2026-09-12 review pass checked signatures/contract-tests against spec but did not specifically check for a conflicting solution/project-layout assumption; worth a quick confirmation pass rather than assuming silence means clear.

@@ -1,6 +1,6 @@
 # ADR-0000: Title
 
-**Status:** Proposed | Accepted | Superseded
+**Status:** Proposed | Accepted | Accepted, amended <dates> | Superseded by ADR-N
 
 ## Context
 What is the issue we're facing?

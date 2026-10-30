@@ -1,6 +1,6 @@
 # ADR-0008: API Gateway — Azure API Management (Consumption Tier), Zero-Trust Dual Validation
 
-**Status:** Accepted — amended by [ADR-0013](0013-graphql-bff-relay.md) (2026-10-26)
+**Status:** Accepted, amended 2026-10-26
 
 ## Context
 

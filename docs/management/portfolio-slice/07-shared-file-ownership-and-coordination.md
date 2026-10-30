@@ -1,5 +1,7 @@
 # Shared-file ownership and coordination plan
 
+> **Status:** Adopted plan, in force · checked 2026-10-30. The named-owner table below is superseded by `09`: this is a solo-led project, so the lead is the integrator for every shared area. The rule that matters in practice is the shared-file one: one branch at a time edits the register, the spec banners that feed `STATUS.md`, `epic-catalog.md`, `mkdocs.yml`, `CLAUDE.md`, the pipeline YAML and the GraphQL schema (`docs/process/branching-strategy.md`).
+
 > **Adopted 2026-10-26** from the portfolio planning packet. Decisions referenced here are recorded in ADR-0012 to ADR-0016; this file holds the implementation approach, not the decisions. See `RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 ## What “one owner” means

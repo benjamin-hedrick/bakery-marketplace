@@ -1,3 +1,5 @@
+> **Status:** Ready
+
 ```
 WI ID:               VEN-002
 Title:                Verification status workflow (Pending → Verified / Suspended)

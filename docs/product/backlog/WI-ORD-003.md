@@ -1,3 +1,5 @@
+> **Status:** In progress · remaining: pickup windows are built; the `PickupFulfillment` events remain
+
 ```
 WI ID:               ORD-003
 Title:                PickupFulfillment strategy implementation
@@ -5,7 +7,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In progress
 Size:                 S
 ```
 
@@ -13,7 +15,7 @@ Size:                 S
 >
 > **Reconciliation note (2026-10-28) — ADJUSTED (event layering, open item 59).** `PickupFulfillment` raises the pickup-specific events: `PickupWindowScheduled` on `OrderConfirmed` (which now carries the fulfillment details) and `OrderReadyForPickup` on `OrderReadyForFulfillment`. The Order no longer raises either. Completion: a *pickup confirmed* command (the vendor's `complete` endpoint, `WI-ORD-007`) is handled here and publishes `OrderFulfillmentCompleted`; the Order's handler calls `Complete`. See `docs/architecture/order-lifecycle.md`.
 >
-> **Reconciliation note (2026-10-26) — ADJUSTED.** (D-3) Adds a simple window source: `GET /ordering/pickup-windows?vendorId=` returns deterministic, clock-injected 15-minute slots within one configured set of hours, with a minimum lead time (D-8). Per-vendor hours, per-slot capacity and stock tied to a window are deferred. See `docs/architecture/first-slice-contract.md` (decisions D-n) and `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+> **Reconciliation note (2026-10-26) — ADJUSTED.** (D-3) Adds a simple window source: `GET /ordering/pickup-windows?vendorId=` returns deterministic, clock-injected 15-minute slots within one configured set of hours, with a minimum lead time (D-8). Per-vendor hours, per-slot capacity and stock tied to a window are deferred. See `docs/architecture/first-slice-contract.md` (decisions D-n) and `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 
 **Context / Why**

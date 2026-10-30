@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/architecture/data-model-api-contracts.md`
+
 ```
 WI ID:               ARCH-003
 Title:                Data Model / API Contracts (per service)

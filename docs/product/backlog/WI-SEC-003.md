@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Secrets` and its tests
+
 ```
 WI ID:               SEC-003
 Title:                Fail-fast startup validation for missing/malformed secrets
@@ -5,7 +7,7 @@ Type:                 Test/Mock/Chaos
 Epic:                 EPIC-SECRETS
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 

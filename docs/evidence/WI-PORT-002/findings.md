@@ -1,5 +1,7 @@
 # WI-PORT-002 Findings: walking skeleton (SSR -> BFF -> C# listing read)
 
+> **Current result (2026-10-30):** this read path was the first step; slice 1 extended it to ordering, and the real-stack journeys (21) passed in each of 3 runs on 2026-10-30. Where this file says `CorrelationIdMiddleware` trusts an inbound header, that was fixed on 2026-10-28 (see `WI-PORT-005` and ADR-0016): it never adopts the inbound value.
+
 **Date:** 2026-10-28 · **Branch:** `feature/WI-PORT-002-walking-skeleton` · **Code:** `services/graphql-bff/`, `apps/web-customer/`, `azure-pipelines.yml`
 
 ## Result

@@ -1,3 +1,5 @@
+> **Status:** 6 of 7 items done (PORT-004 Ready)
+
 ```
 Epic ID:            EPIC-PORTFOLIO-SLICE
 Title:               Portfolio vertical slice — Next.js SSR → GraphQL BFF → C# services, with CI, tracing and test evidence
@@ -7,7 +9,7 @@ Goal:                Prove one production-shaped browse-to-order slice end to en
                      without domain ownership, explicit cache behavior, a trace across available hops, Azure Pipelines
                      gates, deterministic tests), with evidence linked to real commits, test output and traces.
 Related references:  ADR-0012 to ADR-0016; docs/management/portfolio-slice/ (implementation plans);
-                     docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md
+                     docs/product/backlog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md
 Constituent work items:
   - WI-PORT-001 (Test/Mock/Chaos — Next.js Pages Router + Relay SSR proof) — Done 2026-10-26; proceed, in-repo Relay pattern (relay-nextjs rejected)
   - WI-PORT-002 (Integration — walking skeleton, one listing read path) — Ready; CAT-001 and PORT-001 done. Open: seeding for the first end-to-end run (DEV-002 done; DEV-004 now unblocked and recommended)
@@ -16,7 +18,7 @@ Constituent work items:
   - WI-PORT-005 (Integration — trace propagation + safe logs) — blocked by PORT-002; supersedes OBS-002
   - WI-PORT-006 (Document/Artifact — reconcile existing artifacts) — In Progress (pass 1 done 2026-10-26)
   - WI-PORT-007 (Interface/Contract — first-slice contract + GraphQL mapping) — Done 2026-10-28 (D-1 to D-10 accepted; mapping moved into `data-model-api-contracts.md`); prerequisite to broad delegation
-Status:              Started (7 of 7 items detailed; 1 in progress)
+Status:              6 of 7 items done (PORT-004 Ready)
 ```
 
 **Sequence** (from `docs/management/portfolio-slice/05-agent-rules-and-sequence.md`): `PORT-006` and `PORT-001` can run in parallel → `PORT-007` must complete before broad frontend/service delegation → assign shared-file owners (`07-shared-file-ownership-and-coordination.md`) → `PORT-002` → `PORT-003`/`PORT-004`/`PORT-005` in parallel where their file scopes don't conflict.

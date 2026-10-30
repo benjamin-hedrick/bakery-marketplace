@@ -7,8 +7,8 @@ Role-based, not name-based — `MGMT-006` (team/hiring plan) doesn't exist yet, 
 | Role | Needs to know | Cadence |
 |---|---|---|
 | Executive Sponsor | Phase-level progress, budget status, any risk that's moved to High likelihood/impact | At each phase boundary (`docs/management/project-plan.md`'s 8 phases), plus immediately on an escalation trigger (below) |
-| Product Owner | Backlog priority, On-Deck queue changes, epic completion | Whenever the On-Deck queue changes (already a live artifact — `MASTER-BACKLOG-OUTLINE.md`), not a separate report |
-| Engineering Lead / Architect | New ADRs, architecture-review outcomes, any process-completeness gap surfaced (per `context-completeness.md`'s "surprise as a trigger" rule) | As they happen — ADRs and process fixes are self-documenting via `docs/ACTIVITY-LOG.md` |
+| Product Owner | Backlog priority, plan changes, epic completion | Whenever `docs/product/backlog/current-plan.md` changes (already a live artifact), not a separate report |
+| Engineering Lead / Architect | New ADRs, architecture-review outcomes, any context-completeness gap surfaced (a surprise, `docs/method/glossary.md`) | As they happen — ADRs and process fixes are self-documenting via `docs/history/ACTIVITY-LOG.md` |
 | Operations Lead | SLA error-budget status, any risk-register entry that materializes | Monthly (aligned to the SLA's monthly error-budget window), plus immediately on budget exhaustion |
 
 ## Cadence, tied to real checkpoints
@@ -21,7 +21,7 @@ Role-based, not name-based — `MGMT-006` (team/hiring plan) doesn't exist yet, 
 
 - **SLA error budget exhausted** (per `docs/operations/sla.md`'s policy: feature-flag freeze + incident review) → Operations Lead notifies Executive Sponsor and Engineering Lead immediately, not at the next scheduled review
 - **A risk-register entry's likelihood or impact increases** (e.g., R-10's schedule risk actually materializing — a phase significantly overrunning its expected relative sequencing) → Product Owner and Executive Sponsor notified, with the specific risk ID cited, not a vague "things are behind"
-- **A new "surprise" per `context-completeness.md`** that changes a prior architectural decision (like the API Gateway zero-trust discovery, or the bounded-context-to-service mapping gap) → Engineering Lead and Product Owner notified as soon as it's identified, before the fix is even fully drafted — the discovery itself is the signal, not just the resolution
+- **A new "surprise" (the surprise rule, `docs/method/glossary.md`)** that changes a prior architectural decision (like the API Gateway zero-trust discovery, or the bounded-context-to-service mapping gap) → Engineering Lead and Product Owner notified as soon as it's identified, before the fix is even fully drafted — the discovery itself is the signal, not just the resolution
 
 ## Explicitly not covered here
 

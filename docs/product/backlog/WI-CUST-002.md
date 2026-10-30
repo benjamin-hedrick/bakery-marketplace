@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md`
+
 ```
 WI ID:               CUST-002
 Title:                Listing browse + detail view
@@ -5,13 +7,13 @@ Type:                 Service Implementation
 Epic:                 EPIC-WEB-CUSTOMER
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               Done
 Size:                 M
 ```
 
 > **Update (2026-10-28):** stock states (in stock, low, sold out) on the list and detail pages and the order controls (`S1-03`, `S1-05`) are built; see `WI-CUST-003.md`.
 
-> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements (browse/detail, allergy flags and modifiers surfaced prominently) are retained. **Implementation changes**: a Next.js page rendered with SSR (public, no token), with data from the GraphQL BFF via Relay (ADR-0012/0013), and HTTP cache policy per ADR-0014. **Dependencies change**: blocked by `WI-PORT-002` and `WI-PORT-007` instead of `WI-WEB-001` (superseded). The first listing read path is proven by `WI-PORT-002`; this item completes the full view. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements (browse/detail, allergy flags and modifiers surfaced prominently) are retained. **Implementation changes**: a Next.js page rendered with SSR (public, no token), with data from the GraphQL BFF via Relay (ADR-0012/0013), and HTTP cache policy per ADR-0014. **Dependencies change**: blocked by `WI-PORT-002` and `WI-PORT-007` instead of `WI-WEB-001` (superseded). The first listing read path is proven by `WI-PORT-002`; this item completes the full view. See `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 
 **Context / Why**

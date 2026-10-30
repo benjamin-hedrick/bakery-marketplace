@@ -1,5 +1,7 @@
 # WI-PORT-003 Findings: quality and CI baseline
 
+> **Current result (2026-10-30):** the pipeline has run green on Azure DevOps, reported by the lead; the last recorded run is `#20261029.4` (build id 18, 2026-10-29), which included ordering-service and the browser journey, with the deliberate Cosmos-adapter warning. The "has not run on Azure" sentence under Result below was true on 2026-10-28 and is kept as the record. Not run on `ubuntu-26.04`. The check is a soft gate.
+
 **Date:** 2026-10-28 · **Branch:** `feature/WI-PORT-003-ci-baseline` · **Files:** `azure-pipelines.yml`, `scripts/ci/`, `docs/process/quality-gates.md`
 
 ## Result

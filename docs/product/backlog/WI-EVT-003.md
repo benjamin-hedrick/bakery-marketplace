@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Eventing` (Redis Streams transport) and its tests
+
 ```
 WI ID:               EVT-003
 Title:                RedisStreamsPublisher / RedisStreamsSubscriber implementation
@@ -5,7 +7,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-EVENTING
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 M
 ```
 

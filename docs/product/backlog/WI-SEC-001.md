@@ -1,3 +1,5 @@
+> **Status:** Built · missing verification: the Terraform module exists; `terraform plan` has never been run
+
 ```
 WI ID:               SEC-001
 Title:                Per-environment Key Vault + managed identity RBAC grants (Terraform)
@@ -5,7 +7,7 @@ Type:                 Infra/Environment
 Epic:                 EPIC-SECRETS
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Built
 Size:                 M
 ```
 

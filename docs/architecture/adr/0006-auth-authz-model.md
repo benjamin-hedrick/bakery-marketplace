@@ -1,6 +1,6 @@
 # ADR-0006: Authentication & Authorization Model
 
-**Status:** Accepted
+**Status:** Accepted, amended 2026-09-11 to 2026-10-30
 
 ## Context
 
@@ -87,3 +87,6 @@ ADR-0011 (frontend framework) requires a real browser redirect flow (Authorizati
 
 Service-to-service calls use the OAuth2 client credentials grant (ADR-0018). The shared middleware validates the resulting app-only token like any other; the new `ServiceStockReserve` policy needs the `Stock.Reserve` app role **and** an app-only token (`idtyp=app` plus a client id), so a user token never passes it and a service token never passes the user policies. `Auth:Audiences` lets a service accept more than one audience. The local mock issuer gained real client authentication, and its earlier unauthenticated `client_credentials` shortcut that returned user tokens (including Admin) was removed (2026-10-28, `WI-AUTH-006` phase 1). The decision above is otherwise unchanged.
 
+## Current reading (2026-10-30)
+
+The decision is unchanged. Where the text above says Azure AD B2C, read Microsoft Entra External ID (see the amendment note above). The mock issuer (`WI-AUTH-005`) and the validation middleware (`tools/BakeryMarketplace.Auth`, written here as `/tools/auth-middleware`) are built and used by the services; Entra is not configured anywhere. `web-admin`, listed above as a client, does not exist. The "open item" section on secrets management was resolved by ADR-0007.

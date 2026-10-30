@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/operations/monitoring-alerting.md`
+
 ```
 WI ID:               OPS-003
 Title:                Draft the monitoring/alerting plan

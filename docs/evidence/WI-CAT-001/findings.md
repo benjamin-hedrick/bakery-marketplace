@@ -1,5 +1,7 @@
 # WI-CAT-001 Findings — Listing CRUD + modifier/allergy model
 
+> **Current result (2026-10-30):** acceptance met. The catalog tests (104 in `CatalogService.Tests`) passed on 2026-10-30. The Cosmos and Redis paths were run end to end against the local emulator and Redis Streams (see below). Not deployed.
+
 **Date:** 2026-10-26 · **Branch:** `feature/CAT-001-listing-crud` · **Code:** `services/catalog-service/` · **Result:** acceptance criteria met against in-memory backends; Cosmos and Redis paths later run end to end against the local emulator and Redis Streams (WI-DEV-002, 2026-10-26)
 
 ## Acceptance results

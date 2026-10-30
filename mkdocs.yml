@@ -1,39 +1,65 @@
 site_name: Bakery/Coffee Marketplace — Portfolio Docs
 docs_dir: docs
+# The site is not published. Pages that are not listed below (review records, history, most specs) are still built and linked from the pages that cite them.
 nav:
   - Home: index.md
-  - Project Log: project-log.md
-  - Activity Log: ACTIVITY-LOG.md
+  - Status and plan:
+      - Current Plan: product/backlog/current-plan.md
+      - Status: product/backlog/STATUS.md
+      - Epic Catalog: product/backlog/epic-catalog.md
+      - Gap Catalog: product/backlog/gap-catalog/README.md
+      - Open Items Register: governance/open-items-register.md
   - Product:
       - Vision: product/vision.md
       - Personas: product/personas.md
+      - Scope: product/scope.md
       - Roadmap: product/roadmap.md
+      - Demo Milestones: product/demo-milestones.md
       - OKRs: product/okrs.md
       - Backlog: product/backlog/README.md
   - Architecture:
-      - Tech Stack Overview: architecture/tech-stack.md
-      - Capability Map: architecture/capability-map.md
+      - Container Diagram: architecture/c4/container.md
+      - Request Path: architecture/request-path.md
+      - Context and Components:
+          - System Context: architecture/c4/context.md
+          - Service Components: architecture/c4/component-services.md
+      - Patterns: architecture/patterns.md
+      - ADRs: architecture/adr/README.md
+      - Decision Timeline: architecture/decision-timeline.md
+      - Tech Stack: architecture/tech-stack.md
+      - NFRs: architecture/nfrs.md
       - Data Model / API Contracts: architecture/data-model-api-contracts.md
       - First-Slice Contract: architecture/first-slice-contract.md
       - Order Lifecycle: architecture/order-lifecycle.md
-      - C4 Diagrams: architecture/c4/README.md
-      - ADRs: architecture/adr/README.md
+      - Capability Map: architecture/capability-map.md
       - DDD: architecture/ddd/README.md
-      - NFRs: architecture/nfrs.md
-  - Process:
-      - Engineering Standards: process/engineering-standards.md
-      - Definition of Ready: process/definition-of-ready.md
-      - Definition of Done: process/definition-of-done.md
-      - Branching Strategy: process/branching-strategy.md
   - Operations:
+      - Local Development: operations/local-dev.md
       - SLA/SLO: operations/sla.md
       - Monitoring / Alerting Plan: operations/monitoring-alerting.md
       - Runbooks: operations/runbooks/README.md
       - Postmortems: operations/postmortems/README.md
-  - Governance:
-      - Architecture Review: governance/architecture-review.md
-      - Open Items Register: governance/open-items-register.md
+  - Process:
+      - Engineering Standards: process/engineering-standards.md
+      - Quality Gates: process/quality-gates.md
+      - Definition of Ready: process/definition-of-ready.md
+      - Definition of Done: process/definition-of-done.md
+      - Branching Strategy: process/branching-strategy.md
+  - Method:
+      - Overview: method/README.md
+      - Status and Supersession: method/status-and-supersession.md
+      - Glossary: method/glossary.md
+      - AI Collaboration: method/ai-collaboration.md
+      - Context Completeness: method/context-completeness.md
+      - Surprise Rule: method/surprise-rule.md
+      - Decision Checklists: method/decision-checklists.md
+      - Rule Authoring: method/rule-authoring.md
+      - Lessons: method/lessons.md
+      - Work Item Template: method/work-item-template.md
+      - Register Item Template: method/register-item-template.md
+      - Document Lifecycles: method/document-lifecycles.md
   - Management:
+      - Overview: management/README.md
       - Project Plan: management/project-plan.md
       - Risk Register: management/risk-register.md
       - Budget / Cost Estimate: management/budget-cost-estimate.md
@@ -42,5 +68,14 @@ nav:
       - Slice 1 Status: management/slice-1/01-project-status.md
       - Slice 1 Plan and Critical Path: management/slice-1/02-plan-and-critical-path.md
       - Slice 1 Prioritized Backlog: management/slice-1/03-prioritized-backlog.md
+  - Governance:
+      - Architecture Review: governance/architecture-review.md
+  - Evidence:
+      - Slice 1 Findings: evidence/slice-1/findings.md
+      - Test Reliability: evidence/test-reliability/findings.md
+      - Test and Timing Baseline: evidence/baseline-2026-10-30.md
+  - History:
+      - Overview: history/README.md
+      - Activity Log: history/ACTIVITY-LOG.md
 theme:
   name: material

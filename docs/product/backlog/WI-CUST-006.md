@@ -1,3 +1,5 @@
+> **Status:** Ready
+
 ```
 WI ID:               CUST-006
 Title:                Personalized dietary-safety highlighting on browse
@@ -9,7 +11,7 @@ Status:               Ready
 Size:                 S
 ```
 
-> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements are retained. **Implementation changes**: built on `CUST-002`'s Next.js/Relay browse view. Personalized results come through the GraphQL BFF using the caller's token, so personalized responses are `private, no-store` and must not reuse the public SSR listing cache (ADR-0014). See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements are retained. **Implementation changes**: built on `CUST-002`'s Next.js/Relay browse view. Personalized results come through the GraphQL BFF using the caller's token, so personalized responses are `private, no-store` and must not reuse the public SSR listing cache (ADR-0014). See `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 
 **Context / Why**

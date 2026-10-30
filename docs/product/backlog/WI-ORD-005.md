@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: the Outcome note under this banner; `services/ordering-service`
+
 > **Outcome note (2026-10-28):** built on `feature/order-events`. Raised events are stored **inside the order document**, in the same single write as the state change (`OrderStore.TryCreateAsync` / `TryUpdateAsync`), so an order and its pending events cannot disagree. Checkout then publishes them inline (bounded by `Outbox:InlinePublishTimeoutSeconds`, default 2; a failure or timeout never fails the checkout), and `OutboxRelay` sweeps whatever the inline path missed. Delivery is at-least-once with **deterministic event ids** (hash of order id and sequence number), so a repeat carries the same id and consumers dedupe (ADR-0003). Events of one order publish in sequence order and stop at the first failure. The request's `traceparent` is stored with each entry and travels in the envelope (ADR-0016). Payloads are the `TOOL-001` records. Resolves open item 68 and the ordering half of item 30.
 >
 > **The sweep:** one cross-partition query on a sparse `pendingSince` property (UTC milliseconds, **absent** when nothing is pending, so the index only holds orders that need work). The relay backs off while idle (base 5 s, up to 60 s), varies its delay by ±20% so instances do not poll in step, skips events younger than a 3 s grace period (the inline publish is probably still running), and is woken at once by an inline failure on the same instance. That in-memory signal is an accelerator, never a gate: a crashed instance cannot signal, so the timed sweep stays. Settings are under `Outbox:*`. Scale-up options are in open item 72.
@@ -17,7 +19,7 @@ Type:                 Integration
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 

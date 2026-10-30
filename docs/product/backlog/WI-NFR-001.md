@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/architecture/nfrs.md`
+
 ```
 WI ID:               NFR-001
 Title:                Draft the Non-Functional Requirements document

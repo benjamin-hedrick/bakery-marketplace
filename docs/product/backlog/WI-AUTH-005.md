@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.MockOidcHost` and the `MockOidc*` tests in `tools/tests/BakeryMarketplace.Auth.Tests`
+
 ```
 WI ID:               AUTH-005
 Title:                Local mock OIDC issuer — token minting + PKCE authorization-code flow

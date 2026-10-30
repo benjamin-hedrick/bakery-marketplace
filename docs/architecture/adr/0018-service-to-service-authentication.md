@@ -1,6 +1,6 @@
 # ADR-0018: Service-to-Service Authentication (OAuth2 Client Credentials)
 
-**Status:** Proposed (2026-10-28); **phase 1 (local) built 2026-10-28 on `feature/service-auth`**, DEV not started. The direction (OAuth2 client credentials, chosen by the human lead for demonstration) is settled; the **credential type for DEV and later is not**. Final selection waits on the verification list below.
+**Status:** Proposed (2026-10-28)
 
 ## Context
 
@@ -88,3 +88,7 @@ What exists today:
 ## Related
 
 ADR-0006, ADR-0007, ADR-0008, ADR-0017; `WI-AUTH-006`; `WI-CAT-006`; open items 21 (Entra tenant config), 33, 62.
+
+## Progress (2026-10-30)
+
+Status stays Proposed. The direction, OAuth2 client credentials, was chosen by the human lead for demonstration and is settled. Phase 1 (local) is built (`WI-AUTH-006`, `feature/service-auth`, 2026-10-28): the mock issuer's client-credentials grant, the shared client library, and local secret tooling. DEV is not started. The credential type for DEV and later is **not** settled: final selection waits on the verification list above (register item 62).

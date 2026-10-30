@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/operations/sla.md`
+
 ```
 WI ID:               OPS-001
 Title:                Draft the SLA/SLO document

@@ -1,3 +1,5 @@
+> **Status:** In review · decision: labor and time cost left open by design; the lead decides whether to fill it
+
 ```
 WI ID:               MGMT-005
 Title:                Draft the budget / cost estimate
@@ -5,7 +7,7 @@ Type:                 Document/Artifact
 Epic:                 EPIC-PM-ARTIFACTS
 Shared with epic(s):  none
 Hat/Owner:            Manager/Lead
-Status:               Review — content complete, 1 open decision remains (labor/time cost, see below)
+Status:               In review
 Size:                 S
 ```
 
