@@ -515,3 +515,8 @@ Type: Process · Source: the lead (2026-10-30) · Hat: Platform Engineering
 Status: Open
 On 2026-10-30 a new script, `scripts/ci/secret-scan.mjs`, was committed without running Prettier and the PR's web job failed on `format:check` (that check covers `scripts/` and `azure-pipelines.yml`). `CLAUDE.md` already says to run `format:check` and `lint` before pushing, but the checks are spread over two projects and a person or an assistant has to remember which one covers which path. Add one script (for example `scripts/ci/node-gates.mjs`) that runs `format:check`, `lint` and `typecheck` in `apps/web-customer` and `services/graphql-bff`, plus `scripts/docs/status.mjs --check`, and exits non-zero on any failure; mention it in `CLAUDE.md` and `docs/process/quality-gates.md`; decide whether it also becomes an optional git pre-push hook. Related: items 90 and 94 (where to enforce checks; marking rules as hard or default), and `docs/method/lessons.md` L-19.
 
+**96. No way for an operator to see how many events are waiting in the outbox**
+Type: Known limitation · Source: `WI-OPS-002` (2026-10-30) · Hat: Operations, Engineering/Build
+Status: Open
+With Redis stopped, ordering-service accepted orders and held their events for the relay (`docs/evidence/runbook-event-broker-2026-10-30.md`). The only signals are `warn` log lines and comparing Redis stream lengths with the orders placed. `GET /health` answers `Healthy` and there is no `/metrics` endpoint or custom metric in `services/ordering-service/src`. A count and age of pending outbox entries (a gauge, and a log line or health detail when it passes a threshold) would let the runbook and `docs/operations/monitoring-alerting.md` name a real signal. Not built, not designed. Related: items 72, 74 and 75.
+

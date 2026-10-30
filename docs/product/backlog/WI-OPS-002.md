@@ -1,4 +1,4 @@
-> **Status:** Ready · ready to start; first scenario chosen from verified behavior
+> **Status:** Done · evidence: `docs/evidence/runbook-event-broker-2026-10-30.md`; the runbook is `docs/operations/runbooks/event-broker-unavailable-during-checkout.md`
 
 ```
 WI ID:               OPS-002
@@ -7,11 +7,13 @@ Type:                 Document/Artifact
 Epic:                 EPIC-OPS-ARTIFACTS
 Shared with epic(s):  EPIC-BACKUP-DR (BDR-003 is a disaster-recovery runbook)
 Hat/Owner:            Operations
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 
 > Created 2026-10-30 from a title-only entry in the epic catalog, so the item shows up in `STATUS.md`. Build one runbook, test it by following it on the local stack, then add scenarios one at a time.
+
+> **Outcome note (2026-10-30).** Built as specified: a template (`template.md`), the first runbook, and a README listing written and planned scenarios. The runbook was followed on the local stack and the run recorded; it found one gap (no operator-visible pending-event count), recorded as register item 96. The open point about seeing the pending count is answered: today there is no way. Changes from the original plan: none to scope; the stuck-entry scenario stays planned because it was not reproduced.
 
 **Context / Why**
 A runbook says what to do when something fails. The first one should describe a failure whose behavior is already shown: the event broker (Redis Streams) being down while a customer checks out. The slice-1 work showed that the checkout still succeeds after the 2-second inline publish timeout and that the outbox relay sends the events once Redis returns (`WI-ORD-005`).

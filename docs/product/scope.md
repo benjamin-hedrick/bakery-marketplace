@@ -85,7 +85,7 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 | Artifact | Scope | State |
 |---|---|---|
 | SLA/SLO | MVP | Done as targets, none measured: [SLA](../operations/sla.md) |
-| Runbook | MVP-lite | Ready to start: [`WI-OPS-002`](backlog/WI-OPS-002.md); only a README exists |
+| Runbook | MVP-lite | Built: [`WI-OPS-002`](backlog/WI-OPS-002.md); one runbook (event broker unavailable during checkout), tested locally; more scenarios planned |
 | Monitoring and alerting plan | MVP-lite | Done as policy, not implemented: [plan](../operations/monitoring-alerting.md) |
 | Staged incident postmortem | Post-launch | Proposed: [`WI-LAUNCH-002`](backlog/WI-LAUNCH-002.md); [test reliability](../evidence/test-reliability/findings.md) is the nearest record |
 | On-call rotation | Deferred | Not written |
