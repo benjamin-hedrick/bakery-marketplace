@@ -17,6 +17,7 @@
 | Linux reproduction of the .NET test steps | `node scripts/ci/linux-check.mjs [tools|catalog|ordering]` | Docker; tests the **committed** tree (a temporary git worktree) in `mcr.microsoft.com/dotnet/sdk:10.0`; emulator tests skip as in the pipeline | `node`, `docker` |
 | ordering-service tests | `dotnet test services/ordering-service/tests/OrderingService.Tests` | nothing (pure domain tests, no I/O); added 2026-10-28; passed in the Azure run `#20261029.4` | `dotnet` |
 | Redis really reached | `node scripts/ci/redis-touch.mjs snapshot <f>` before, `... assert <f> 50` after | Redis | `dotnet` |
+| **All Node gates in one command** | `node scripts/ci/node-gates.mjs` (add `--tests` for the BFF and web unit tests): the BFF and web format, lint and typecheck rows below plus the documentation status check; runs every step and lists all failures; exit 1 on any. Run it before every push | `npm ci` in both projects | `bff`, `web` |
 | BFF format, lint, typecheck, tests | `npm ci && npm run format:check && npm run lint && npm run typecheck && npm test` in `services/graphql-bff` | Node >= 24 | `bff` |
 | Web format (also `scripts/` and `azure-pipelines.yml`), lint, typecheck (runs `relay-compiler`) | `npm ci && npm run format:check && npm run lint && npm run typecheck` in `apps/web-customer` | Node >= 24 | `web` |
 | Web build + mock e2e | `npm run test:e2e` in `apps/web-customer` (builds, starts a mock BFF, Chromium) | `npx playwright install chromium` | `web` |
