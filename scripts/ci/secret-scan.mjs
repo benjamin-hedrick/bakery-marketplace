@@ -18,7 +18,17 @@ const image = 'zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a
 const args = ['run', '--rm'];
 // On Linux the container user must own the mounted files or git refuses the repository ("dubious ownership").
 if (process.platform !== 'win32') args.push('--user', `${process.getuid()}:${process.getgid()}`);
-args.push('-v', `${root}:/repo:ro`, image, 'git', '/repo', '--config', '/repo/.gitleaks.toml', '--redact', '--no-banner');
+args.push(
+  '-v',
+  `${root}:/repo:ro`,
+  image,
+  'git',
+  '/repo',
+  '--config',
+  '/repo/.gitleaks.toml',
+  '--redact',
+  '--no-banner',
+);
 
 const r = spawnSync('docker', args, { stdio: 'inherit', env: { ...process.env, MSYS_NO_PATHCONV: '1' } });
 if (r.error || r.status === null || r.status > 1) {
