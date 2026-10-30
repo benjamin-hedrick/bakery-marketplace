@@ -42,4 +42,4 @@ azure-pipelines.yml  build and test pipeline (no deployment stage)
 
 Work items are specs in `docs/product/backlog/` with a status on line 1; `docs/product/backlog/STATUS.md` is generated from them. Decisions are ADRs that are amended with dated notes and never rewritten. Anything found and not fixed goes in the [open-items register](docs/governance/open-items-register.md). The vocabulary, templates and lifecycles are in [docs/method](docs/method/README.md). Much of the code and documentation was written with an AI coding assistant under human direction and review; `CLAUDE.md` holds the rules it works to.
 
-A documentation site configuration exists (`mkdocs.yml`, MkDocs Material) but the site is not published. There is no licence file yet, so no reuse rights are granted.
+A documentation site configuration exists (`mkdocs.yml`, MkDocs Material) but the site is not published. The code and documents are released under the MIT licence (`LICENSE`).

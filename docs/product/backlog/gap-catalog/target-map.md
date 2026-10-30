@@ -53,7 +53,7 @@ Priorities (lead, 2026-10-29): **P1** polished, consistent repo that can go publ
 | T-33 | Traceability table: work item to tests to evidence (the XRay idea without the tool), generated from the status table | A | None | T-08 | Create | M | Open | `WI-QA-001` |
 | T-34 | The AI-assisted testing experiment from `portfolio-slice/02` and `05` Phase 4: protocol, baseline, results, rejected cases, review cost | A | Planned, never run | plans, test-reliability | Run + write | L | Open | `WI-QA-003` |
 | T-35 | Mobile/Maestro decision and a small proof (first verify Maestro's current web support; otherwise a thin mobile client or document as a decision) | A | Plan says "future path only" | `portfolio-slice/00` | Decide, then M to L | M-L | Open | `WI-QA-003` |
-| T-36 | Security and supply-chain checks in the pipeline: dependency audit, secret scan, SBOM | A, P1 | Lock files only; `npm audit` run by hand | worklog STD-002/003 | Create | M | Open | `WI-SEC-004` |
+| T-36 | Security and supply-chain checks in the pipeline: dependency audit, secret scan, SBOM | A, P1 | Lock files only; `npm audit` run by hand; secret scan added to the pipeline 2026-10-30 (not yet run on Azure) | worklog STD-002/003 | Create | M | Partly | `WI-SEC-004` |
 
 ## Tier 1 (continued): operations and project (P1)
 
