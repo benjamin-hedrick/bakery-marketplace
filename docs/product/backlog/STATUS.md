@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 50 |
 | In progress | 2 |
-| In review | 2 |
+| In review | 3 |
 | Built | 1 |
-| Ready | 13 |
+| Ready | 12 |
 | Proposed | 4 |
 | Deferred | 15 |
 | Superseded | 1 |
@@ -131,7 +131,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [PROD-001](WI-PROD-001.md) | Draft personas / Jobs-to-be-Done | EPIC-PRODUCT-STRATEGY | Done | evidence: `docs/product/personas.md` |
 | [PROD-002](WI-PROD-002.md) | Competitive scan | EPIC-PRODUCT-STRATEGY | Proposed | decision: the lead sets the scope (which comparable products, how deep) |
 | [PROD-003](WI-PROD-003.md) | Monetization model | EPIC-PRODUCT-STRATEGY | Proposed | decision: the commission percentage and ad revenue split are business assumptions the lead sets |
-| [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | EPIC-PRODUCT-STRATEGY | Ready | ready to start and iterate |
+| [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | EPIC-PRODUCT-STRATEGY | In review | decision: the lead sets the targets and confirms the north-star definition; first version written 2026-10-30 |
 | [QA-001](WI-QA-001.md) | Test strategy and guides | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead picks up the test strategy |
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the baseline needs to be repeated or trended |
 | [QA-003](WI-QA-003.md) | Planned experiments: AI-assisted testing and the mobile question | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead decides to run the experiments |

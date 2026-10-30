@@ -14,7 +14,7 @@ The documentation reconciliation (`WI-PORT-006`) is finished and is going throug
 
 **Priorities (set 2026-10-29):** 1. a polished, consistent repository that can be public, showing AI collaboration, architecture and software, and business and project work; 2. it builds and runs locally; 3. more evidence and coverage; 4. deploy and tear down a dev environment; 5. a public demo.
 
-**Next session:** `WI-REPO-003` (how deferred items, notes and delegated-work findings are tracked) and register item 94 (marking the rules in `CLAUDE.md`) are the two items deferred to a later session; the first spec to pick up is the lead's choice (`WI-OPS-002` and `WI-PROD-004` are Ready).
+**Next session:** `WI-REPO-003` (how deferred items, notes and delegated-work findings are tracked) and register item 94 (marking the rules in `CLAUDE.md`) are the two items deferred to a later session; the first spec to pick up is the lead's choice (`WI-OPS-002` is Done and `WI-PROD-004` is in review, 2026-10-30).
 
 ## Where the next work is
 
@@ -25,7 +25,7 @@ The candidate product work after slice 1, with sizes and priorities, is the "Nex
 
 ## Artifacts that are planned but not written
 
-The deferred and proposed artifacts (RACI, hiring plan, competitive scan, monetization model, prioritization, sprint plan, postmortem) and the two ready to start (a runbook, the OKRs) each have a spec; filter `STATUS.md` by Deferred, Proposed or Ready. `docs/product/scope.md` shows each artifact's state beside its role.
+The deferred and proposed artifacts (RACI, hiring plan, competitive scan, monetization model, prioritization, sprint plan, postmortem) and the two started on 2026-10-30 (a runbook, done; the OKRs, in review) each have a spec; filter `STATUS.md` by Deferred, Proposed or Ready. `docs/product/scope.md` shows each artifact's state beside its role.
 
 ## How to find things
 

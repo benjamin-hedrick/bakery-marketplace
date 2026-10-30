@@ -1,4 +1,4 @@
-> **Status:** Ready · ready to start and iterate
+> **Status:** In review · decision: the lead sets the targets and confirms the north-star definition; first version written 2026-10-30
 
 ```
 WI ID:               PROD-004
@@ -7,11 +7,13 @@ Type:                 Document/Artifact
 Epic:                 EPIC-PRODUCT-STRATEGY
 Shared with epic(s):  none
 Hat/Owner:            Digital Product Manager
-Status:               Ready
+Status:               In review
 Size:                 S
 ```
 
 > Created 2026-10-30 from a title-only entry in the epic catalog, so the item shows up in `STATUS.md`. Replaces the stub `docs/product/okrs.md`. Iterative: ship a first version, then revise after each slice.
+
+> **Outcome note (2026-10-30).** First version written in `docs/product/okrs.md`: the five suggested themes, 17 key results (13 measured today, 4 not yet measurable), baselines from the evidence records and the repository. Targets and the north-star definition are proposals for the lead. The themes carried through unevenly: see the review note at the bottom of that file (O3 and O1 are the weak ones). Move to Done when the lead has set the targets; revise after each slice.
 
 **Context / Why**
 The vision names a north-star safety metric and nothing else. The repository exists as an experiment in building a small product with AI collaboration while keeping skills and technology current, so its objectives are both product-shaped and practice-shaped. Measures that already exist (test counts, timings, defects caught) give real baselines.

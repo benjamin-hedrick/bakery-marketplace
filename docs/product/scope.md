@@ -78,7 +78,7 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 | Personas and jobs to be done | MVP | Done: [personas](personas.md) |
 | Competitive scan | MVP-lite | Proposed: [`WI-PROD-002`](backlog/WI-PROD-002.md) |
 | Monetization model | MVP-lite | Proposed: [`WI-PROD-003`](backlog/WI-PROD-003.md) |
-| Success metrics and OKRs | MVP | Ready to start: [`WI-PROD-004`](backlog/WI-PROD-004.md); [OKRs](okrs.md) is a stub until then |
+| Success metrics and OKRs | MVP | In review: [`WI-PROD-004`](backlog/WI-PROD-004.md); [OKRs](okrs.md) first version written, targets for the lead to set |
 
 **Operations and SRE**
 
