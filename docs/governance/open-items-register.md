@@ -512,8 +512,9 @@ Status: Deferred · trigger: a later session; editing `CLAUDE.md` needs the lead
 
 **95. One local command for the Node gates**
 Type: Process · Source: the lead (2026-10-30) · Hat: Platform Engineering
-Status: Open
+Status: Resolved 2026-10-30
 On 2026-10-30 a new script, `scripts/ci/secret-scan.mjs`, was committed without running Prettier and the PR's web job failed on `format:check` (that check covers `scripts/` and `azure-pipelines.yml`). `CLAUDE.md` already says to run `format:check` and `lint` before pushing, but the checks are spread over two projects and a person or an assistant has to remember which one covers which path. Add one script (for example `scripts/ci/node-gates.mjs`) that runs `format:check`, `lint` and `typecheck` in `apps/web-customer` and `services/graphql-bff`, plus `scripts/docs/status.mjs --check`, and exits non-zero on any failure; mention it in `CLAUDE.md` and `docs/process/quality-gates.md`; decide whether it also becomes an optional git pre-push hook. Related: items 90 and 94 (where to enforce checks; marking rules as hard or default), and `docs/method/lessons.md` L-19.
+Resolution: `scripts/ci/node-gates.mjs` runs format, lint and typecheck in both projects and the documentation status check (`--tests` adds the unit tests), runs every step and exits 1 on any failure; checked by passing on the repository and failing, with the Prettier warning shown, on a planted unformatted file in `scripts/`. It is listed in `CLAUDE.md` and `docs/process/quality-gates.md`. No git pre-push hook was added: the command is the single place the checks live, and a hook can call it if the lead wants enforcement (item 90).
 
 **96. No way for an operator to see how many events are waiting in the outbox**
 Type: Known limitation · Source: `WI-OPS-002` (2026-10-30) · Hat: Operations, Engineering/Build
