@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: the Outcome note under this banner; `services/ordering-service`
+
 > **Outcome note (2026-10-28):** built on `feature/order-events`. `POST /ordering/orders/{id}/` `confirm`, `decline`, `start-preparation`, `ready`, `complete` (policy `VendorRole`) and `cancel` (a `Customer` or `Vendor` token; other roles `403`, no token `401`). **Ownership:** a vendor acts only on an order whose `vendorId` equals the token subject, a customer only on their own; anyone else gets `404`, byte for byte the same body as an order that does not exist. The service also checks the role itself, so owning the vendor id without the Vendor role is not enough. **Actor and reason come from who owns the order, never the request:** a customer cancel is `CustomerRequested`; a vendor cancel of a `Placed` order is `VendorDeclined` and later `VendorCancelled`; `decline` is Placed only. The aggregate decides every transition: a refused one (including repeating the current step) is `409 invalid_transition` carrying `currentStatus`, and nothing is stored or published. The order and its event are one write; an ETag conflict re-reads and decides again (up to three attempts, then `409 concurrent_update`). `decline` and every cancel release the order's stock at the catalog **after** the save (ADR-0017); a failed release is logged for cleanup (item 62) and does not undo the cancellation. The event is published inline, with the relay as fallback (`ORD-005`).
 >
 > **Decisions (human lead, 2026-10-28):** repeat of an action is `409`, not an idempotent `200`; stock is released after saving; `complete` is a direct vendor command for now and moves behind `PickupFulfillment` when `ORD-003` lands (open item 59). No payment void or capture yet (items 53, 69).
@@ -13,7 +15,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  EPIC-AUTH
 Hat/Owner:            Engineering/Build
-Status:               Ready for design iteration (added 2026-10-28; approved by the human lead; auth details to be iterated)
+Status:               Done
 Size:                 M
 ```
 

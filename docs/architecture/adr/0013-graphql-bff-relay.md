@@ -1,6 +1,6 @@
 # ADR-0013: GraphQL BFF (Node.js/TypeScript) and Relay Client
 
-**Status:** Accepted (2026-10-26) — amends ADR-0008 (frontend entry path). Validation pending `WI-PORT-002`.
+**Status:** Accepted (2026-10-26) — amends ADR-0008 (frontend entry path).
 
 ## Context
 
@@ -57,3 +57,9 @@ ADR-0008 made Azure API Management the single entry point for the frontend apps,
 - ADR-0006 — auth model, unchanged
 - ADR-0016 — trace propagation through the BFF
 - `open-items-register.md` #20 — re-resolved by this ADR
+
+## Validation outcome (2026-10-30)
+
+The BFF is built (`services/graphql-bff`) and validated end to end by slice 1: browse, `placeOrder`, `order` and `pickupWindows` run through it against the real services. On 2026-10-30, 75 BFF tests passed, and 21 real-stack journeys passed in each of 3 runs. It is composition and error mapping only; business rules stay in the C# services.
+
+The latency budget this ADR asks for "once measured" has one data point from the slice-1 capture (`docs/evidence/slice-1/findings.md`): the first checkout on a cold stack took about 4.7 s (token metadata fetches from a cold mock issuer), and the following checkouts took 55 to 78 ms. The BFF's checkout timeout is 15 s. This is a local measurement, not a budget.

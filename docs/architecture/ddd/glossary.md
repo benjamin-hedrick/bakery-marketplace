@@ -1,5 +1,7 @@
 # Ubiquitous Language Glossary
 
+> **Status:** Current · checked 2026-10-30. Domain terms only; the process vocabulary is `docs/method/glossary.md`.
+
 ## Actors
 
 | Term | Definition |

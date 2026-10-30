@@ -1,6 +1,6 @@
 # ADR-0010: Service Implementation Language & Framework — C# / .NET
 
-**Status:** Accepted
+**Status:** Accepted, amended 2026-10-28 and 2026-10-30
 
 ## Context
 
@@ -44,3 +44,7 @@ Not a real debate — this was a direct instruction, not an open technology eval
 ## Amendment 2026-10-28: target .NET 10 (LTS)
 
 Human lead approved moving every project from .NET 8 to **.NET 10** (`net10.0`). The decision above (C#, ASP.NET Core Web API, the library choices) stands; only the framework version changes. Reasons: the local SDK and the Azure Pipelines agent were already on 10, the pipeline otherwise needed both SDKs, and .NET 8 support ends in November 2026. Container Apps images move to `mcr.microsoft.com/dotnet/aspnet:10.0` (the mock OIDC host already did). Effects found while upgrading: `Microsoft.AspNetCore.Authentication.JwtBearer` 10.x requires `System.IdentityModel.Tokens.Jwt` 8.19.2 or newer, and a project may no longer reference two assemblies that each define a global `Program` (the Seed tool now has an explicit entry point). Evidence: `docs/evidence/WI-PORT-003/findings.md`.
+
+## Amendment note (2026-10-30: as built)
+
+Every project targets `net10.0` (the 2026-10-28 amendment above). The Event Grid and Key Vault SDK packages listed in this ADR are not referenced by any project yet; the cloud transports and secret access they are for are not built.

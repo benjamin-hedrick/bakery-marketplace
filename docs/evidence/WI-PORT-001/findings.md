@@ -1,5 +1,7 @@
 # WI-PORT-001 Findings — Next.js Pages Router + Relay SSR proof
 
+> **Current result (2026-10-30):** the recommendation (proceed, in-repo Relay integration) was followed, and `apps/web-customer` implements slice 1 on it. Follow-ups at the end of this file: the connection types were added; the root workspace was **not** created (the packages stay separate); the exact Node LTS pin is still open (`engines` say Node 24 or later); ADR-0012 has a validation outcome and a 2026-10-30 note; the `x-fixture` hooks remain in the mock-backed suite only, gated by `ENABLE_TEST_HOOKS`.
+
 **Date:** 2026-10-26 · **Branch:** `feature/PORT-001-relay-ssr-proof` · **Code:** `apps/web-customer/` · **Recommendation: PROCEED** (with an in-repo Relay integration, not `relay-nextjs`)
 
 ## Versions and configuration

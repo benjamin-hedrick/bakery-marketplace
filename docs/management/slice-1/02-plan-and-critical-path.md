@@ -1,6 +1,6 @@
 # Slice 1: plan and critical path
 
-**As of 2026-10-28.** See also the [status](01-project-status.md) and the [prioritized backlog](03-prioritized-backlog.md) (item IDs `S1-xx` are defined there).
+**As of 2026-10-29.** See also the [status](01-project-status.md) and the [prioritized backlog](03-prioritized-backlog.md) (item IDs `S1-xx` are defined there).
 
 **Sequencing is relative, not calendar-dated**, as in `docs/management/project-plan.md`: available hours per week are not decided, so there are no dates. Sizes are story points on a relative scale (backlog document); they order the work and show where the weight is, and are not a forecast.
 

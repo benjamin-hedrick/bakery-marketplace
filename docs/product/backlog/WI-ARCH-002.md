@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/architecture/capability-map.md`
+
 ```
 WI ID:               ARCH-002
 Title:                Capability Map / Business Architecture View
@@ -17,7 +19,7 @@ Every architecture artifact so far (bounded context map, C4, ADRs) is technical-
 - *Interfaces*: none
 - *Environment/tooling*: not applicable
 - *Test/chaos methodology*: not applicable
-- *Business context*: `docs/architecture/ddd/bounded-contexts.md` (the core/supporting/generic classification this reuses, not re-derives), `docs/product/personas.md` (which persona each capability serves), `portfolio-plan.md` (the MVP-line legend this map's priority column reuses)
+- *Business context*: `docs/architecture/ddd/bounded-contexts.md` (the core/supporting/generic classification this reuses, not re-derives), `docs/product/personas.md` (which persona each capability serves), `docs/product/scope.md` (the MVP-line legend this map's priority column reuses)
 
 **You do not need to know about**
 - Any technical implementation detail — this document is intentionally non-technical

@@ -69,7 +69,7 @@ graph TB
 
 ## Priority, reusing the existing MVP-line legend
 
-No new priority scale — this map uses exactly the legend from `portfolio-plan.md`: every capability above listed as "Core" or feeding a Core context is MVP; "Supporting"/"Generic" capabilities are mostly MVP-lite (per each capability's underlying epic status in `MASTER-BACKLOG-OUTLINE.md`) except where explicitly Deferred (full ad-bidding under Advertising, delivery/dispatch under Ordering & Fulfillment).
+No new priority scale — this map uses exactly the legend from `docs/product/scope.md`: every capability above listed as "Core" or feeding a Core context is MVP; "Supporting"/"Generic" capabilities are mostly MVP-lite (per each capability's underlying epic status in `epic-catalog.md`) except where explicitly Deferred (full ad-bidding under Advertising, delivery/dispatch under Ordering & Fulfillment).
 
 ## Related
 

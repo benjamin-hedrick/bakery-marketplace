@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Data` and its tests
+
 ```
 WI ID:               DATA-001
 Title:                Define IRepository<T> interface + contract tests
@@ -5,7 +7,7 @@ Type:                 Interface/Contract
 Epic:                 EPIC-DATA-STORE
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 

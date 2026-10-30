@@ -2,7 +2,7 @@
 
 Listings, customization/modifiers, allergy flags, search/discovery.
 
-**Status: `WI-CAT-001` implemented** (listing CRUD, modifiers, allergen flags, vendor-verification publish gate). Search ranking, dietary-preference filtering, sponsored placement, preferences and the cache-aside read path (`CAT-003`) are not built. Findings and evidence: `docs/evidence/WI-CAT-001/findings.md`.
+**Status (2026-10-30): built, run locally only.** Listing CRUD, modifiers, allergen flags and the vendor-verification publish gate (`WI-CAT-001`); stock fields, vendor set and adjust, and public stock status (`WI-CAT-005`); atomic stock reserve and release for ordering, behind a service credential (`WI-CAT-006`, ADR-0017). The endpoints for stock (`POST /catalog/listings/{id}/stock/adjust`, `POST /catalog/stock/reservations`, `DELETE /catalog/stock/reservations/{orderId}`) are in addition to the table below, which dates from the first-slice contract. Not built: search ranking, dietary-preference filtering, sponsored placement, preferences, and the cache-aside read path (`CAT-003`). Evidence: `docs/evidence/WI-CAT-001/findings.md`; components: `docs/architecture/c4/component-services.md`.
 
 ## Endpoints (first-slice contract §4; money is integer cents, USD)
 

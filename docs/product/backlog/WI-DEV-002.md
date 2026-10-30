@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: merged `c945b18`; verified under Docker, `docs/operations/local-dev.md`
+
 ```
 WI ID:               DEV-002
 Title:                Real docker-compose.yml
@@ -5,11 +7,11 @@ Type:                 Infra/Environment
 Epic:                 EPIC-LOCAL-DEV
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Done 2026-10-26 (merged c945b18) — verified under Docker; see docs/operations/local-dev.md
+Status:               Done
 Size:                 M
 ```
 
-> **Reconciliation note (2026-10-26) — ADJUSTED.** Scope grows: once they exist, the Compose file also runs the Next.js app(s) and the GraphQL BFF (ADR-0012/0013) and a local OpenTelemetry trace viewer (ADR-0016, chosen in `WI-PORT-005`). The APIM reverse-proxy stand-in (`GW-005`) is obsolete and is **not** to be added (ADR-0008 amendment). See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+> **Reconciliation note (2026-10-26) — ADJUSTED.** Scope grows: once they exist, the Compose file also runs the Next.js app(s) and the GraphQL BFF (ADR-0012/0013) and a local OpenTelemetry trace viewer (ADR-0016, chosen in `WI-PORT-005`). The APIM reverse-proxy stand-in (`GW-005`) is obsolete and is **not** to be added (ADR-0008 amendment). See `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 
 **Renumbering note (2026-09-13)**: this item was `DEV-001` prior to 2026-09-13. It was renumbered to `DEV-002` when `WI-DEV-001` (base .NET solution/project scaffold, closing `worklog-2026-09-07.md`'s gap #1) was added and took the `DEV-001` slot instead, since that scaffold is the more foundational prerequisite. No other content in this file changed beyond the ID itself and the two cross-references noted below.

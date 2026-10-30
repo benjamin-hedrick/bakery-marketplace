@@ -1,5 +1,16 @@
 # Vertical slice and quality plan
 
+> **Status:** Adopted plan · status checked 2026-10-30.
+
+| Part of the plan | State |
+|---|---|
+| Increments 1 to 4 (walking skeleton, listing, options and pickup, checkout) | Done in slice 1 |
+| Increment 5, operational proof | CI, a correlated trace and safe errors done; a controlled-failure trace not recorded as such (a Redis outage was run for the outbox); a flake baseline taken once by hand (2026-10-30) |
+| Test layers | Unit and domain invariants, contract, integration, Playwright journeys built; resilience tests partial (idempotency, duplicate submit, declined payment; no timeout test because the payment stub has no delay, register 92) |
+| AI-assisted test experiment | Not done |
+| CI gates | Format, lint, type, build, unit and journey tests in the pipeline; no flake quarantine (none was needed) |
+| Metrics | The record format is defined (`quality-gates.md`); one baseline exists; no series |
+
 > **Adopted 2026-10-26** from the portfolio planning packet. Decisions referenced here are recorded in ADR-0012 to ADR-0016; this file holds the implementation approach, not the decisions. See `RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 ## Journey and increments

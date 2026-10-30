@@ -1,5 +1,7 @@
 # Existing models and maps to reuse
 
+> **Status:** Adopted plan, mostly done · checked 2026-10-30. The mapping artifact it asks for exists: the sequence diagram is in `docs/architecture/first-slice-contract.md` §2 and `docs/architecture/request-path.md`; the container map was rewritten (`docs/architecture/c4/container.md`) and the context map updated. The inventory table's "how it should be used" column is advice from 2026-10-26, not a to-do list.
+
 > **Adopted 2026-10-26** from the portfolio planning packet. Decisions referenced here are recorded in ADR-0012 to ADR-0016; this file holds the implementation approach, not the decisions. See `RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 The repository already contains domain models and several architecture maps. Do not start by redrawing them from scratch. Inspect these sources, identify inconsistencies, and extend only where the chosen frontend/BFF boundary or first-slice implementation genuinely requires it.

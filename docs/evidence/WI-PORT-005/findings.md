@@ -1,5 +1,7 @@
 # WI-PORT-005 Findings: trace propagation (phase 1, local Aspire dashboard)
 
+> **Current result (2026-10-30):** built, and later phases are recorded below (collector configs validated, the Next.js server span, consumer spans for the catalog). The slice-1 capture (`docs/evidence/slice-1/findings.md`) ran the whole smoke with tracing on: one trace across the web server, the BFF, ordering and the catalog, and a scan of exported spans found no token, key or secret. The "partial" status above means the open follow-ups: register items 36, 37, 42 and 82 (hand-rolled exporters, no cloud pipeline, no page-render span, an untraced browser).
+
 **Date:** 2026-10-28 · **Branch:** `feature/WI-PORT-005-trace-propagation` · **Status:** partial; see "Not done"
 
 ## What was run

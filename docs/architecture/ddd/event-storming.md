@@ -1,5 +1,7 @@
 # Event Storming Session Output
 
+> **Status:** Snapshot · the session was run in September 2026; flow 2 was updated 2026-10-28 and the built-state table below on 2026-10-30. This is a design model: policies, notifications and payment steps are intended behavior, not all built.
+
 Walks the main business processes end-to-end: Command → Aggregate → Domain Event → Policy/Reaction → Read Model, in process order. This exercise surfaced four events that existed as real business moments but had never been named anywhere — `ReviewSubmitted`, `PayoutReconciled`, `ListingApproved`, `ListingRejected` — added to `docs/architecture/ddd/glossary.md` and to the relevant services' event lists in `docs/architecture/data-model-api-contracts.md` as part of this exercise, not left living only in this document.
 
 ## Legend
@@ -75,6 +77,18 @@ graph LR
     E7 --> P3
 ```
 
+### Flow 2: what is built (2026-10-30)
+
+| Element | State |
+|---|---|
+| Commands `PlaceOrder`, `ConfirmOrder`, `StartPreparation`, `MarkReady`, `CancelOrder` and the events `OrderPlaced`, `OrderConfirmed`, `OrderPreparationStarted`, `OrderReadyForFulfillment`, `OrderCompleted`, `OrderCancelled` | Built in the Order aggregate and the vendor and customer action endpoints. Orders with no option and no requested window confirm themselves at checkout |
+| `ConfirmPickup` and `OrderFulfillmentCompleted`, `PickupWindowScheduled`, `OrderReadyForPickup` (the `PickupFulfillment` policies) | Not built (`WI-ORD-003`); a vendor completes an order directly |
+| Policy "order-status-readmodel updates" and the read model | Not built (`WI-QUE-001`) |
+| Policies that notify the vendor or the customer | Not built (`notification-service` is a scaffold) |
+| Stripe authorize and capture | Not built; a named stub approves every payment (`PAY-001`) |
+| "release authorization and stock" on cancel | Stock release is built; there is no authorization to release |
+| "eligible for review; triggers payout reconciliation" | Not built |
+
 ## Flow 3 — Review & Payout *(this exercise named 2 new events here)*
 
 ```mermaid
@@ -113,7 +127,7 @@ graph LR
 
 ## What this exercise found
 
-Consistent with `project-process-framework/core/context-completeness.md`'s framing — this isn't a gap to be embarrassed about, it's exactly what the exercise is for. Four real business moments (a review being submitted, a payout actually reconciling, a moderation decision going either way) existed operationally but had no named event anywhere before this document was written. Both `glossary.md` and `data-model-api-contracts.md` were corrected as part of this same item, not left for a future cleanup pass.
+This is context completeness at work (`docs/method/glossary.md`): finding events that existed operationally but had never been named isn't a gap to be embarrassed about, it's exactly what the exercise is for. Four real business moments (a review being submitted, a payout actually reconciling, a moderation decision going either way) existed operationally but had no named event anywhere before this document was written. Both `glossary.md` and `data-model-api-contracts.md` were corrected as part of this same item, not left for a future cleanup pass.
 
 ## Related
 

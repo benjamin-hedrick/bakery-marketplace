@@ -1,3 +1,5 @@
+> **Status:** Ready
+
 ```
 WI ID:               PREF-002
 Title:                Publish Preference Snapshot via Open Host Service (Search + Ordering)

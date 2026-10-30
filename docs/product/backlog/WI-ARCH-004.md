@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/architecture/ddd/event-storming.md`
+
 ```
 WI ID:               ARCH-004
 Title:                Formal Event-Storming Session Output

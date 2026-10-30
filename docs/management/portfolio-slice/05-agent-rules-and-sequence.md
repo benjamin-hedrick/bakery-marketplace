@@ -1,5 +1,16 @@
 # Agent operating rules and implementation sequence
 
+> **Status:** Adopted plan · status checked 2026-10-30. The rules are still followed (they are in `CLAUDE.md` and `docs/process/`); the sequence below is mostly done.
+
+| Phase | State |
+|---|---|
+| 0 Inspect, adopt ADRs, reconcile docs, pin runtimes, SSR/Relay proof | Done, except the exact Node LTS pin (engines say Node 24 or later) and the documentation reconciliation, which `WI-PORT-006` pass 2 is finishing |
+| 1 One query, typed client, SSR listing, contract test, smoke test, trace, pipeline | Done |
+| 2 Listing UX and error states, Relay refetch, cache tests, accessibility | Mostly done; cache tests and an accessibility pass beyond lint rules are not |
+| 3 Options and pickup, validation, test payment, idempotent order, confirmation, failure tests | Done |
+| 4 Invariant and property tests, flake metrics, AI-testing experiment, security and dependency checks | Not done (see `current-plan.md` for where the next work is listed) |
+| 5 Mobile, notifications, real payment, distributed cache, rich search | Not started |
+
 > **Adopted 2026-10-26** from the portfolio planning packet. Decisions referenced here are recorded in ADR-0012 to ADR-0016; this file holds the implementation approach, not the decisions. See `RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 ## Task contract

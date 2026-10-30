@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: the Outcome note under this banner; `services/ordering-service`
+
 > **Outcome note (2026-10-28):** built on `feature/slice-1-order-journey`. At checkout, after the order is placed, `AutoConfirmPolicy` confirms it in the same write when **no line has a modifier and no pickup window was requested**; otherwise the order stays `Placed` for the vendor. The stored order, its `OrderPlaced` (sequence 1) and its `OrderConfirmed` (sequence 2) leave the outbox together, in order. `OrderConfirmedPayload` gained an optional `Automatic` flag (default `false`, so older messages read as a vendor's acceptance) so consumers and the later vendor read model can tell the two apart. `Checkout:AutoConfirm` (default `true`) switches the rule off. Per **D-A, option 1** (human lead, 2026-10-28) the rule does not look at stock counters, so made-to-order and counted items are treated alike; a per-item or per-vendor control is the intended refinement.
 >
 > **What did not change:** cancel (a customer may cancel a `Confirmed` order, which releases the stock), the vendor's later steps, and the vendor's `confirm` endpoint (it answers `409` for an already-confirmed order). Payment is still a stub; item 53's "authorize at place, capture at confirm" collapses into one step for these orders and `PAY-001` must account for that.
@@ -13,7 +15,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Built 2026-10-28 (merged to main)
+Status:               Done
 Size:                 S (3 points)
 ```
 

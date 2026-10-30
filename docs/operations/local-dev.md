@@ -1,8 +1,75 @@
 # Local Development Environment
 
-How to run the local infrastructure from `docker-compose.yml` (`WI-DEV-002`). Application services are **not** containers yet: run them on the host with `dotnet run` against the ports below.
+> **Status:** Current · "Run slice 1" verified 2026-10-30 by following it step by step in a fresh clone on Windows 11 (Docker Desktop). The rest was verified on 2026-10-26 to 2026-10-28 and is marked below. Nothing here is deployed; application services are not containers, so you run them on the host against the ports below.
 
-> **Verification status (2026-10-26):** `docker compose up` was run and verified on Docker Desktop (Windows), including the `with-redis` profile. A real `catalog-service` ran against the real Cosmos emulator, Redis Streams and the mock issuer container end to end. See "What is and is not verified".
+## Run slice 1
+
+Slice 1 is a customer logging in, browsing listings with stock, building a cart, placing a test order (the payment is a stub) and watching the order's status. This path starts the whole real stack by hand. To run it all in one command, with teardown, use `node scripts/ci/skeleton-smoke.mjs` instead (it does the same steps and then the Playwright journeys).
+
+**You need:** Docker, the .NET 10 SDK, Node 24 or later (the BFF needs it), git, and a bash-like shell (Git Bash on Windows). First-time downloads (Docker images, NuGet and npm packages) are not counted below.
+
+Run from the repository root. Steps 4 to 7 each keep a process running, so use a terminal each (or `&`).
+
+```
+# 1. Create the local secrets (git-ignored .env; prints no values)
+node scripts/dev/init-env.mjs
+
+# 2. Infrastructure: Redis Streams, the Cosmos emulator, the mock identity issuer
+docker compose up -d --build
+node scripts/dev/check-env.mjs --wait 180        # exit 0 when all three are up
+
+# 3. Seed 7 listings and mark both vendors verified
+export COSMOS_KEY="$(node -e "console.log(require('fs').readFileSync('scripts/ci/skeleton-smoke.mjs','utf8').match(/EMULATOR_KEY =\s*'([^']+)'/)[1])")"   # the emulator's published fixed key
+export COSMOS_CS="AccountEndpoint=http://localhost:8081/;AccountKey=${COSMOS_KEY}"
+Cosmos__ConnectionString="$COSMOS_CS" dotnet run --project tools/BakeryMarketplace.Seed
+
+# 4. catalog-service on :5200
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5200 Data__Backend=cosmos Events__Backend=redis \
+  Redis__ConnectionString=127.0.0.1:6379 Cosmos__ConnectionString="$COSMOS_CS" \
+  dotnet run --no-launch-profile --project services/catalog-service/src
+
+# 5. ordering-service on :5300 (calls the catalog as itself, with the secret from step 1)
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 Data__Backend=cosmos Events__Backend=redis \
+  Redis__ConnectionString=127.0.0.1:6379 Cosmos__ConnectionString="$COSMOS_CS" \
+  ServiceAuth__ClientSecret="$(grep '^ORDERING_CLIENT_SECRET=' .env | cut -d= -f2-)" \
+  dotnet run --no-launch-profile --project services/ordering-service/src
+
+# 6. GraphQL BFF on :4100
+(cd services/graphql-bff && npm ci)
+(cd services/graphql-bff && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)
+#    To run the journeys later (below), start it with ENABLE_TEST_HOOKS=1 as well. That forwards the declined-payment test hook; never set it outside tests.
+
+# 7. Customer web app on :3000 (GRAPHQL_URL is read at build time and at run time, so set it for both)
+(cd apps/web-customer && npm ci)
+(cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run build)    # also compiles the Relay artifacts, which are git-ignored
+(cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3000)
+```
+
+**Check it is up:** `curl localhost:5200/health`, `localhost:5300/health`, `localhost:4100/healthz` and `localhost:3000/` each return 200. Through the BFF:
+
+```
+curl -s -X POST localhost:4100/graphql -H 'content-type: application/json' \
+  -d '{"query":"{ listings(first: 3) { edges { node { name price { cents currency } stock { status } } } } }"}'
+```
+
+**Use it:** open http://localhost:3000, press Log in, choose "Login as Alice Customer (Customer)" (the mock issuer lists its users on its own page), open a listing, add it to the order, go to checkout, optionally pick a pickup time, and press "Place test order". A banner says no payment is taken. A plain order (no option, no pickup time) confirms by itself; one with an option or a pickup time stays "Order received" until a vendor acts. A reload logs you out, because the token is held in memory only (register item 24).
+
+**Run the journeys against this stack:** `cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run test:skeleton` (21 tests; they sign in as the mock users and place real orders). Two of them use the declined-payment hook, so the BFF must have been started with `ENABLE_TEST_HOOKS=1` (step 6); that is how it was started for the run recorded below.
+
+**Stop and reset:** stop the four processes, then `docker compose down`. Data is not persisted. Seeding twice changes nothing, so stock used by an earlier run stays used (for example the Almond Croissant sells out in the journeys); `docker compose down` and `up` again resets it.
+
+### What this was run against (2026-10-30)
+
+| Step | Result |
+|---|---|
+| Fresh `git clone` of the committed tree, steps 1 to 7 as written, with Docker images and package caches already warm | Everything healthy about 91 s after the first command (infrastructure 9 s, seed 15 s, web build about 60 s) |
+| `curl` checks and the GraphQL query above | 200 on all four health endpoints; three listings returned with prices in cents and stock status |
+| `npm run test:skeleton` against the hand-started stack | 21 passed in 16.8 s; the first journey took 9.1 s (cold issuer fetches, see `patterns.md` section 10) and the rest 0.3 to 1.1 s |
+| `npm run build` with `src/__generated__` deleted | Succeeded, so the build step compiles the Relay artifacts itself |
+
+**Not verified:** the first-ever run on a machine with nothing cached (image pulls, NuGet and npm downloads); Linux or macOS hosts; logging in and ordering by hand in a browser (the journeys do it with Playwright); a second run on the same stack.
+
+Other reference below: services and ports, environment variables, tracing, service authentication, ordering-service details, seeding, and the known gaps.
 
 ## Start, check, stop
 
@@ -13,7 +80,7 @@ node scripts/dev/check-env.mjs --wait 90    # add --with-redis when using the pr
 docker compose down                         # data is not persisted
 ```
 
-Requires Docker and Node 18+. Without the `with-redis` profile, services should use `CACHE_BACKEND=local` (ADR-0002). `check-env.mjs` exits 0 when everything is up and 1 otherwise. Between runs, `docker compose down && docker compose up -d` resets all state (the emulator keeps data while its container lives).
+Requires Docker and Node 24 or later. Without the `with-redis` profile, services should use `CACHE_BACKEND=local` (ADR-0002). `check-env.mjs` exits 0 when everything is up and 1 otherwise. Between runs, `docker compose down && docker compose up -d` resets all state (the emulator keeps data while its container lives).
 
 ## Services and ports
 
@@ -62,23 +129,6 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | The emulator's documented fixed account key works | Verified (authenticated operations succeeded) |
 | The Cosmos emulator over HTTPS, Linux/macOS hosts, and Docker Desktop on other machines | **Not verified** |
 | Emulator persistence across `down`, resource usage under load, startup time on a cold pull | **Not measured** |
-
-## Run the walking skeleton (WI-PORT-002)
-
-Four processes on the host after `docker compose up` and the seed below. From the repo root (the emulator key is the documented public one):
-
-```
-export Cosmos__ConnectionString="AccountEndpoint=http://localhost:8081/;AccountKey=<emulator key>"
-dotnet run --project tools/BakeryMarketplace.Seed
-ASPNETCORE_ENVIRONMENT=Development Data__Backend=cosmos Events__Backend=redis ASPNETCORE_URLS=http://localhost:5200 \
-  dotnet run --project services/catalog-service/src                                  # terminal 1
-(cd services/graphql-bff && npm ci && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)   # terminal 2, port 4100 (ORDERING_URL is needed for pickupWindows and order)
-(cd apps/web-customer && npm ci && GRAPHQL_URL=http://localhost:4100/graphql npm run build \
-  && GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3000)                 # terminal 3
-(cd apps/web-customer && npm run test:skeleton)                                        # Playwright smoke
-```
-
-`GRAPHQL_URL` is read at build time (the `/api/graphql` rewrite) and at run time (SSR), so set it for both. Trace ids appear in the BFF's JSON log and in catalog-service's console log in Development (`TraceId:` in the scope). Evidence: `docs/evidence/WI-PORT-002/`.
 
 ## Viewing traces (WI-PORT-005)
 
@@ -141,8 +191,8 @@ Writes 7 listings (6 Published, 1 Draft negative case) for `vendor-shop-001` and
 
 ## Known gaps in this environment
 
-1. **The Cosmos adapter tests do not actually test Cosmos by default.** `CosmosRepositoryTests` default to `https://localhost:8081`, but this emulator serves HTTP, so the tests cannot connect and silently return early: they report 4/4 passing without touching Cosmos. Pointed at the real emulator (`COSMOS_CONNECTION_STRING=AccountEndpoint=http://localhost:8081/;...`), **3 of 4 fail** with `Document does not contain an id field`, because the test entity serializes as `Id` and Cosmos requires lowercase `id`. The adapter itself works (catalog uses it with explicit property names). Fixing the tests and removing the silent skip is `WI-DATA-003`, which this item unblocks (open item #31).
+1. **The Cosmos adapter tests do not actually test Cosmos by default** (register item 31, still open on 2026-10-30). `CosmosRepositoryTests` default to `https://localhost:8081`, but this emulator serves HTTP, so the tests cannot connect and silently return early: they report 4/4 passing without touching Cosmos. Pointed at the real emulator (`COSMOS_CONNECTION_STRING=AccountEndpoint=http://localhost:8081/;...`), **3 of 4 fail** with `Document does not contain an id field`, because the test entity serializes as `Id` and Cosmos requires lowercase `id`. The adapter itself works (catalog uses it with explicit property names). Fixing the tests and removing the silent skip is `WI-DATA-003`, which this item unblocks (open item #31).
 2. **Mock users and seed vendors (resolved 2026-10-27).** Ownership requires the token subject to equal the listing's `vendorId`. The issuer now also offers `vendor-shop-001` and `vendor-indep-001` as login users (role Vendor), matching the seeded vendors, so each can edit only its own listings. `user-vendor-1` remains but owns no seeded listings.
 3. **(Fixed 2026-10-28, `S1-06`; kept for the record.) The mock issuer's login page reflected query parameters unescaped** (`redirect_uri`, `state`, `code_challenge`; confirmed by sending a script payload). Dev-only and loopback-bound here, but it is a defect in `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs` (`WI-AUTH-005`); fix with HTML encoding.
-4. **The Redis Streams transport acknowledges messages it cannot deserialize without dead-lettering them** (reconciliation finding B2, still open). Not exercised here.
-5. **No Stripe CLI wiring** (`WI-DEV-003`), **no application containers**, and no Next.js, BFF or trace viewer yet; those arrive with `WI-PORT-002`/`005`.
+4. **The Redis Streams transport acknowledges messages it cannot deserialize without dead-lettering them** (register item 88; first noted as reconciliation finding B2). Not exercised here.
+5. **No Stripe CLI wiring** (no spec; part of `PAY-001`, backlog N-08) and **no application containers** (register item 71). The Next.js app, the BFF and the trace viewer exist and run on the host as described above.

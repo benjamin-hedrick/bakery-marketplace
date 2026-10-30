@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/process/engineering-standards.md`
+
 ```
 WI ID:               MGMT-004
 Title:                Draft engineering standards (PR/review guidelines, onboarding)

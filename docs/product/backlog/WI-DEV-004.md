@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: the Outcome note under this banner; `tools/BakeryMarketplace.Seed`
+
 ```
 WI ID:               DEV-004
 Title:                Seed / fixture data script
@@ -5,7 +7,7 @@ Type:                 Infra/Environment
 Epic:                 EPIC-LOCAL-DEV
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 
@@ -13,7 +15,7 @@ Size:                 S
 > - Seed events go onto the real Redis stream `events:{eventType}` as a JSON `envelope` field (camelCase), with the per-aggregate `sequenceNumber` that `catalog-service` uses to ignore stale events. `VendorVerified` for each seeded vendor works as built.
 > - The `catalog` Cosmos container (partition key `/vendorId`) is created by `catalog-service` when `Cosmos:EnsureCreated` is on; the seed must create it too or run after the service has started once.
 > - **Seed vendor ids must be reconciled with the mock users.** Ownership needs the token `sub` to equal the listing's `vendorId`, and the mock vendor's `sub` is `user-vendor-1`, so seed vendors such as `vendor-shop-001` cannot be edited by any mock user. Either seed with the mock user's id or add matching users to the issuer.
-> - Use the deterministic ids and expected totals in `docs/architecture/first-slice-contract.md` §7. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+> - Use the deterministic ids and expected totals in `docs/architecture/first-slice-contract.md` §7. See `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 > **Outcome note (2026-10-27) — built as `tools/BakeryMarketplace.Seed`.** Seeds 7 listings (6 Published, 1 Draft) for the two contract vendors and publishes `VendorVerified` for both; idempotent (verified by a second run on the real stack and by `SeederTests`). Deviations: (1) **preference profiles not seeded**: no preference model exists (`PREF-001`); (2) the contract's Oat Milk Latte has no allergen flag, so "at least one allergy flag each" is not met for it; the contract wins; (3) the mock-user/vendor-id mismatch is resolved by adding mock users `vendor-shop-001` and `vendor-indep-001` to the issuer (approved 2026-10-27; `MockUser.cs`, no authorization logic changed); (4) run manually, not auto-run by Compose.
 

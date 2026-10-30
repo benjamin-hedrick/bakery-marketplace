@@ -1,5 +1,10 @@
 # Cache and AI-collaboration plans
 
+> **Status:** Adopted plan · status checked 2026-10-30. Two parts are out of date.
+
+- **Cache layers:** layer 1 (the server cache library) is built and unused by any service; layers 2 and 3 are documented in ADR-0014 but no per-cache record or test exists (`WI-PORT-004`, `WI-CAT-003` unbuilt). The cache review is register item 89.
+- **Evidence ledger:** the plan says entries go in `docs/history/ACTIVITY-LOG.md`. That log takes no new entries (register item 50). Evidence now goes in commit messages and pull request text, `docs/evidence/` for runs, and the register for findings; the AI-collaboration record is planned for `docs/method/`.
+
 > **Adopted 2026-10-26** from the portfolio planning packet. Decisions referenced here are recorded in ADR-0012 to ADR-0016; this file holds the implementation approach, not the decisions. See `RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 ## Three cache layers
@@ -36,7 +41,7 @@ verified results. Agents separate facts from assumptions and stop when
 contracts are ambiguous. Do not let agents concurrently edit shared
 files without an integration owner.
 
-Evidence ledger: recorded as entries in `docs/ACTIVITY-LOG.md` (the
+Evidence ledger: recorded as entries in `docs/history/ACTIVITY-LOG.md` (the
 existing chronological record, not a separate ledger). Each entry
 carries: work-item ID/date; agent/tool/model if known;
 task/context version; starting commit; files changed; human review;

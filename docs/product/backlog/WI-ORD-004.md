@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `services/ordering-service` (the fulfillment seam) and its tests
+
 ```
 WI ID:               ORD-004
 Title:                FulfillmentStrategy interface (ACL boundary)

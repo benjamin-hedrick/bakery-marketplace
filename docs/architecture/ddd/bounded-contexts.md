@@ -1,5 +1,7 @@
 # Bounded Context Map
 
+> **Status:** Current · checked 2026-10-30. This is the domain design. Only the Catalog and Ordering contexts are implemented (in `catalog-service` and `ordering-service`); see `docs/architecture/c4/container.md`.
+
 ## Strategic classification
 
 **Core domains** (differentiators — invest design effort here first)

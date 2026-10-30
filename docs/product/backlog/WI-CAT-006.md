@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: the Outcome note under this banner; `services/catalog-service`
+
 > **Outcome note (2026-10-28):** built on `feature/service-auth`. `POST /catalog/stock/reservations` reserves every line of an order in **one Cosmos transactional batch** (a decrement per limited-stock listing plus the order's reservation record, in the vendor's partition): all or nothing, idempotent by order id, duplicate lines for one listing summed, a rejection lists every problem line (`listing_not_found`, `not_available`, `exceeds_max_per_order`, `insufficient_stock` with the quantity available) and changes nothing. `DELETE /catalog/stock/reservations/{orderId}?vendorId=` returns only the stock that was actually taken, once, and only into a listing that is still limited-stock; a released reservation cannot be reserved again. Both need an app-only token with the `Stock.Reserve` role (`AUTH-006`); user tokens, tokens without the role and tokens that are not app-only are refused. `LowStockDetected` is published when a reservation pushes a listing into low.
 >
 > **Differences from the spec:** the release endpoint takes `vendorId` as a **query parameter**, because a reservation lives in the vendor's partition and an order id alone does not say which; an unknown reservation is a `404`. Several lines for one listing are summed by the catalog rather than rejected.
@@ -13,7 +15,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-CATALOG
 Shared with epic(s):  EPIC-ORDERING, EPIC-AUTH
 Hat/Owner:            Engineering/Build
-Status:               Built 2026-10-28 (see outcome note); the caller in `ORD-001` and deployed credentials remain
+Status:               Done
 Size:                 M
 ```
 

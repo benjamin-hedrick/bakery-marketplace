@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Caching` (chaos provider) and its tests
+
 ```
 WI ID:               CACHE-004
 Title:                ChaosCacheProvider decorator + fallback proof tests
@@ -5,7 +7,7 @@ Type:                 Test/Mock/Chaos
 Epic:                 EPIC-CACHING
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 

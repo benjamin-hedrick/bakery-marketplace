@@ -1,6 +1,6 @@
 # ADR-0012: Frontend Framework — Next.js (Pages Router) with SSR
 
-**Status:** Accepted (2026-10-26) — supersedes ADR-0011. Integration validation pending `WI-PORT-001`.
+**Status:** Accepted (2026-10-26) — supersedes ADR-0011.
 
 ## Context
 
@@ -58,3 +58,7 @@ The proof **passed**: SSR content before hydration, no hydration warnings, clien
 - **Next.js must be 16.4.3 or later** (16.4.0 has critical advisories).
 
 Not yet verified: a Node LTS runtime, Firefox/WebKit, `next dev` StrictMode behavior, authenticated pages, mutations. Evidence: `docs/evidence/WI-PORT-001/findings.md`.
+
+## Amendment note (2026-10-30: slice 1)
+
+The validation outcome above covered the proof of concept (`WI-PORT-001`). Since then `apps/web-customer` has implemented slice 1 on this stack (login, browse, cart, checkout, order status; `docs/evidence/slice-1/findings.md`). On 2026-10-30 its 53 unit tests passed, 57 mock-backed browser tests passed in each of 10 runs, and 21 real-stack journeys passed in each of 3 runs (`docs/evidence/baseline-2026-10-30.md`). Nothing is deployed.

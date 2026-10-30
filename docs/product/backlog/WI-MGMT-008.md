@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/process/branching-strategy.md`
+
 ```
 WI ID:               MGMT-008
 Title:                Draft the branching/release strategy

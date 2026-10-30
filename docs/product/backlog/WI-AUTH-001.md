@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Auth` and `tools/tests/BakeryMarketplace.Auth.Tests`
+
 ```
 WI ID:               AUTH-001
 Title:                JWT validation middleware + resource-ownership helper (/tools/auth-middleware equivalent)
@@ -5,7 +7,7 @@ Type:                 Interface/Contract
 Epic:                 EPIC-AUTH
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 M
 ```
 

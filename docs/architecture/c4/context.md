@@ -1,5 +1,7 @@
 # System Context Diagram
 
+> **Status:** Current · updated 2026-10-30. The diagram shows the intended system boundary. The notes below say what exists today.
+
 Actors interact with the platform as a single system boundary; the platform integrates with two external systems for identity and payments.
 
 ```mermaid
@@ -15,7 +17,7 @@ graph TB
 
     subgraph External Systems
         STRIPE["Stripe Connect<br/>(Payments & Payouts — ADR-0005)"]
-        B2C["Azure AD B2C<br/>(Identity Provider — ADR-0006)"]
+        IDP["Microsoft Entra External ID<br/>(Identity Provider — ADR-0006, amended)"]
     end
 
     CUST -->|"Browses, customizes, orders, manages dietary preferences"| SYS
@@ -24,10 +26,11 @@ graph TB
     ADMIN -->|"Verifies vendors, moderates listings"| SYS
 
     SYS -->|"Commission-split charges, vendor payouts"| STRIPE
-    SYS -->|"Authenticates all actors, issues JWTs"| B2C
+    SYS -->|"Authenticates all actors, issues JWTs"| IDP
 ```
 
 **Notes**
+- **What exists today (2026-10-30):** only the customer path runs, locally. Identity is a mock OIDC issuer that stands in for Entra (a real tenant is not configured), and payments are a named stub (Stripe is not integrated). Shops and independent vendors act only through the services' REST endpoints (no vendor UI exists), and there is no admin or moderator tooling (`admin-service` is an empty scaffold). See [the container diagram](container.md) for what runs.
 - Actors match the glossary (`docs/architecture/ddd/glossary.md`) exactly — no invented actors.
 - A Courier actor is deliberately absent — delivery/dispatch is a designed-for, not-built, v2 extension (ADR-0001).
 - The email/SMS transport underlying Notification dispatch is intentionally not shown as an external system here — it was never decided which provider (if any) handles this, so showing one would be an invented dependency. See `docs/product/backlog/PARKING-LOT.md`.

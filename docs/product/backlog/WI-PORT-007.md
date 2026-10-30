@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: the Outcome note under this banner
+
 # WI-PORT-007 — Define first-slice domain/API contract and mapping
 
 > **Outcome note (2026-10-28):** done. Decisions D-1 to D-4 accepted 2026-10-26 and D-5 to D-10 accepted as written 2026-10-28; the REST shapes and GraphQL schema draft moved into `docs/architecture/data-model-api-contracts.md` ("First-slice mapping") under `WI-PORT-006` pass 2, and `first-slice-contract.md` stays as the slice-scope record. Implementation check against the code (D-9 and D-7 gaps) is in the contract's section 11; D-9 was fixed the same day. Remaining contract-level follow-ups are open items 39 to 41 and 48 in `open-items-register.md`.
@@ -9,7 +11,7 @@ Type:                 Interface/Contract
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-CATALOG, EPIC-ORDERING, EPIC-WEB-CUSTOMER
 Hat/Owner:            Architect (one contract integrator)
-Status:               Done 2026-10-28 (see outcome note; the header was stale until then)
+Status:               Done
 Size:                 TBD
 ```
 

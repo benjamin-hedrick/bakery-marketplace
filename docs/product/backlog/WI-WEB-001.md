@@ -1,3 +1,5 @@
+> **Status:** Superseded by `WI-PORT-001` and `WI-PORT-002`
+
 ```
 WI ID:               WEB-001
 Title:                Shared frontend scaffold + PKCE auth pattern (React/Vite)
@@ -5,13 +7,13 @@ Type:                 Service Implementation
 Epic:                 EPIC-WEB-CUSTOMER
 Shared with epic(s):  EPIC-QUEUE-DISPLAY (QUE-002 builds on this same scaffold/auth pattern)
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               Superseded
 Size:                 M
 ```
 
 > **Update (2026-10-28):** the PKCE, in-memory-token and no-refresh-token requirements carried forward from this item were delivered for the Next.js app by `S1-02` (see `apps/web-customer/README.md`, "Login"), as a Next.js page flow rather than the Vite scaffold described below.
 
-> **Reconciliation note (2026-10-26) — SUPERSEDED.** Superseded by `WI-PORT-001` (Next.js + Relay SSR proof) and `WI-PORT-002` (walking skeleton, the first real frontend scaffold), per ADR-0012, which supersedes ADR-0011. The Vite scaffold and direct-to-service base URLs no longer apply. **Carried forward**: Authorization Code + PKCE against `AUTH-005`, the in-memory-only access token, no refresh-token handling (open item #24), and an authenticated-fetch wrapper. Requests now go to the GraphQL BFF (ADR-0013) rather than to services. The spec below is kept unchanged as the historical record. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
+> **Reconciliation note (2026-10-26) — SUPERSEDED.** Superseded by `WI-PORT-001` (Next.js + Relay SSR proof) and `WI-PORT-002` (walking skeleton, the first real frontend scaffold), per ADR-0012, which supersedes ADR-0011. The Vite scaffold and direct-to-service base URLs no longer apply. **Carried forward**: Authorization Code + PKCE against `AUTH-005`, the in-memory-only access token, no refresh-token handling (open item #24), and an authenticated-fetch wrapper. Requests now go to the GraphQL BFF (ADR-0013) rather than to services. The spec below is kept unchanged as the historical record. See `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
 
 
 **Context / Why**

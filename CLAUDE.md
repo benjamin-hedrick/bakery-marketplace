@@ -4,20 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. `catalog-service` has real listing endpoints (`WI-CAT-001`; in-memory backends by default, Cosmos and Redis verified against the local Compose stack). `ordering-service` has the `Order` aggregate, order persistence, and `POST /ordering/checkout` with `GET /ordering/orders/{id}` (`WI-ORD-002`, `-006`, `-001`: payment is a stub and no events are published yet); `admin-service` and `notification-service` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` runs the local infrastructure (Redis Streams, Cosmos vNext emulator, mock OIDC issuer; `docs/operations/local-dev.md`) but no application containers. The only frontend code is the `WI-PORT-001` proof in `apps/web-customer` (Next.js + Relay against a mock GraphQL server); `web-admin` and `web-queue-display` are empty. Don't describe anything as working unless you've run it.
+A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. `catalog-service` has real listing endpoints (`WI-CAT-001`; in-memory backends by default, Cosmos and Redis verified against the local Compose stack). `ordering-service` has the `Order` aggregate and persistence, checkout with idempotency, pickup windows, vendor and customer order actions, automatic confirmation, and an outbox with a relay that publishes order events (payment is a stub); `admin-service` and `notification-service` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` runs the local infrastructure (Redis Streams, Cosmos vNext emulator, mock OIDC issuer; `docs/operations/local-dev.md`) but no application containers. `apps/web-customer` implements slice 1 (login, browse with stock, cart, checkout, order status) on Next.js + Relay, and the GraphQL BFF in `services/graphql-bff` sits in front of the services; `web-admin` and `web-queue-display` are empty. All of it runs locally only; nothing is deployed. Don't describe anything as working unless you've run it.
 
 ## Commands
 
 .NET 10 (projects target `net10.0`; the `.slnx` format needs SDK 9+). There are two solutions:
 
-- `BakeryMarketplace.slnx` (root): the 4 service projects, the 7 `tools/` libraries, and the catalog-service test project (`services/catalog-service/tests/`).
+- `BakeryMarketplace.slnx` (root): the 4 service projects, the 9 `tools/` projects, and the catalog and ordering service test projects (`services/*/tests/`).
 - `tools/BakeryMarketplace.slnx`: the 7 library test projects under `tools/tests/` (**not** the service tests; run those via their own path or the root solution).
 
 ```
 dotnet build BakeryMarketplace.slnx
 dotnet test tools/BakeryMarketplace.slnx
 dotnet test tools/tests/BakeryMarketplace.Auth.Tests --filter "FullyQualifiedName~MockOidcIssuerTests"
-dotnet test services/catalog-service/tests/CatalogService.Tests   # 28 tests; hosts the real service in-process
+dotnet test services/catalog-service/tests/CatalogService.Tests   # 104 tests; hosts the real service in-process
+dotnet test services/ordering-service/tests/OrderingService.Tests # 340 tests, 3 skipped
 ```
 
 The framework is xUnit. The Redis and Cosmos adapter tests read `REDIS_CONNECTION_STRING` (default `localhost:6379`), and some fall back to in-memory fakes when Docker dependencies aren't running (reconciliation finding A8). A green run without Docker doesn't prove the real adapters work.
@@ -59,9 +60,9 @@ Formatting and linting (decided 2026-10-28, `docs/process/quality-gates.md`): `d
 
 ## Architecture (needs several files to see)
 
-**Decisions live in `docs/architecture/adr/` (0001–0016).** Read the ADR index first. Amendments are appended as dated notes at the bottom of the ADR, never by rewriting its decision text. Superseded ADRs stay in place with a status line (ADR-0011 is superseded by ADR-0012).
+**Decisions live in `docs/architecture/adr/` (0001–0018; 0018 is Proposed).** Read the ADR index first. Amendments are appended as dated notes at the bottom of the ADR, never by rewriting its decision text. Superseded ADRs stay in place with a status line (ADR-0011 is superseded by ADR-0012).
 
-**Target shape (ADR-0012/0013, adopted 2026-10-26, not yet built):** Next.js Pages Router apps (SSR only for public listing pages) → Node/TypeScript GraphQL BFF with a Relay client → C# REST services. In the cloud the BFF calls services through Azure API Management; locally it calls them directly. **C# services own all business rules, pricing, availability and order state; the BFF is composition and error mapping only.** Don't put domain logic in the BFF or let the GraphQL schema become a second domain model.
+**Shape (ADR-0012/0013, adopted 2026-10-26; built and run locally only, not deployed):** Next.js Pages Router apps (SSR only for public listing pages) → Node/TypeScript GraphQL BFF with a Relay client → C# REST services. In the cloud the BFF calls services through Azure API Management; locally it calls them directly. **C# services own all business rules, pricing, availability and order state; the BFF is composition and error mapping only.** Don't put domain logic in the BFF or let the GraphQL schema become a second domain model.
 
 **Services (ADR-0009):** 13 bounded contexts are grouped onto 4 services (`catalog`, `ordering`, `admin`, `notification`) under a modular-monolith rule: co-located contexts still talk through the same interfaces and events they would use if they were separate.
 
@@ -69,16 +70,16 @@ Formatting and linting (decided 2026-10-28, `docs/process/quality-gates.md`): `d
 
 **Caching is three layers (ADR-0014):** the server cache is ADR-0002's `ICacheProvider` + `ResilientCacheProvider` (built and tested). Relay's client store and HTTP/CDN caching are governed by ADR-0014. Authenticated or personalized responses default to `private, no-store`. Order and cart data is never cached.
 
-**Correlation (ADR-0016):** W3C `traceparent` is the only propagated mechanism. `X-Correlation-Id` becomes a response-only alias of the trace ID. The existing `CorrelationIdMiddleware` still trusts an inbound header; changing that is `WI-PORT-005`.
+**Correlation (ADR-0016):** W3C `traceparent` is the only propagated mechanism. `X-Correlation-Id` becomes a response-only alias of the trace ID. `CorrelationIdMiddleware` never adopts an inbound header (done, ADR-0016).
 
 **Auth:** `tools/BakeryMarketplace.Auth` holds the JWT/ownership middleware and a local mock OIDC issuer (PKCE). Every service validates tokens and ownership itself, even behind the gateway (zero trust, ADR-0006/0008).
 
 ## Working conventions
 
 - No secrets in files
-- **Work items are the unit of work.** Specs are `docs/product/backlog/WI-*.md`; commits map to one work item (say which in the message), while a branch and PR may group several related work items and is named for the theme (e.g. `feature/slice-ordering`; `feature/<WI-ID>-short-description` still fits a single item). Trunk-based, `docs/process/branching-strategy.md`. To limit conflicts: rebase on `origin/main` before pushing, check `git status` before `git add -A`, and keep shared-file edits (log, register, outline) to one branch at a time. Start from `docs/project-log.md` and the On Deck section of `MASTER-BACKLOG-OUTLINE.md`.
-- **Don't rewrite historical `WI-*.md` specs.** Record supersession or adjustment as a dated reconciliation note at the top of the file, and mark it in `MASTER-BACKLOG-OUTLINE.md`. **That outline, not the `Status:` field in a WI file, is authoritative for status** (many WI headers are stale).
-- **Reconciliation records** go in `docs/product/backlog/worklog/reconciliation/RECONCILIATION-DISPOSITIONS-<date>.md`. `docs/ACTIVITY-LOG.md` (newest first, don't edit history) is **paused for new entries from 2026-10-28** because every branch prepends to the same lines and conflicts; its role is being rethought (open item 50). Until then put what happened in commit messages and the PR description, and unresolved items in the register.
+- **Work items are the unit of work.** Specs are `docs/product/backlog/WI-*.md`; commits map to one work item (say which in the message), while a branch and PR may group several related work items and is named for the theme (e.g. `feature/slice-ordering`; `feature/<WI-ID>-short-description` still fits a single item). Trunk-based, `docs/process/branching-strategy.md`. To limit conflicts: rebase on `origin/main` before pushing, check `git status` before `git add -A`, and keep shared-file edits (register, `STATUS.md` inputs, `epic-catalog.md`, `mkdocs.yml`) to one branch at a time. Start from `docs/product/backlog/current-plan.md` and `docs/product/backlog/STATUS.md`.
+- **Keep specs accurate, and never edit ADR decision text.** Status words, notes and the spec rules are in `docs/method/status-and-supersession.md`: a Ready spec is rewritten to the current design; a built spec gets an as-built body with a short "Changes from the original plan" section (git keeps the original); supersession or adjustment is a dated note at the top of the file. **The status banner on line 1 of the spec is authoritative; `docs/product/backlog/STATUS.md` is generated from the banners** (`node scripts/docs/status.mjs`, with `--check` to verify). Run it after changing any banner or ADR status line.
+- **Reconciliation records** go in `docs/product/backlog/reconciliation/RECONCILIATION-DISPOSITIONS-<date>.md`. The activity log is closed and kept unchanged in `docs/history/ACTIVITY-LOG.md`; put what happened in commit messages and the PR description, and unresolved items in the register.
 - Shared-file edits (schema, lockfile, root config, pipeline YAML, central docs) need a single owner at a time: `docs/management/portfolio-slice/07-shared-file-ownership-and-coordination.md`.
 - **Unreconciled items go in `docs/governance/open-items-register.md`** (the running list) in the same change that finds them, so nothing is dropped and later sessions don't re-analyze it. Mark resolved items `Resolved <date>`; don't delete them.
 - Cosmos access uses parameterized queries via the SDK only; no raw query string construction (`nfrs.md` §3.4).

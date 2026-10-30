@@ -1,6 +1,6 @@
 # ADR-0007: Secrets Management
 
-**Status:** Accepted — amended by [ADR-0015](0015-azure-pipelines-ci-cd.md) (2026-10-26)
+**Status:** Accepted, amended 2026-10-26 and 2026-10-28
 
 ## Context
 

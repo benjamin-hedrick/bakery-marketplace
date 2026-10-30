@@ -1,6 +1,6 @@
 # Prioritized backlog with estimates
 
-**As of 2026-10-28.** Companion to the [status](01-project-status.md) and the [plan and critical path](02-plan-and-critical-path.md). This is a planning view; the authoritative status of a work item stays in `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md`, and unreconciled findings stay in `docs/governance/open-items-register.md`. New IDs here (`S1-xx`) are planning handles; each becomes a `WI-*.md` file (or maps onto an existing one) when picked up.
+**As of 2026-10-29.** Companion to the [status](01-project-status.md) and the [plan and critical path](02-plan-and-critical-path.md). This is a planning view; the authoritative status of a work item is the banner on its spec, collected in `docs/product/backlog/STATUS.md`, and unreconciled findings stay in `docs/governance/open-items-register.md`. New IDs here (`S1-xx`) are planning handles; each becomes a `WI-*.md` file (or maps onto an existing one) when picked up.
 
 ## Estimating scale
 

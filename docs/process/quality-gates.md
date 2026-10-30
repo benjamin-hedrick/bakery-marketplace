@@ -1,5 +1,7 @@
 # Quality gates and CI baseline
 
+> **Status:** Current · updated 2026-10-30 (test counts, the documentation checks and the enforcement summary were added; the rest dates from 2026-10-28 and is unchanged).
+
 `WI-PORT-003`, ADR-0015. What the pipeline (`azure-pipelines.yml`) runs, the exact commands to reproduce each step locally, and what it does **not** cover. **The pipeline has run green on Azure DevOps** (reported by the human lead 2026-10-28; most recent recorded run `#20261029.4`, 2026-10-29, which included ordering-service and the browser journey; the deliberate Cosmos-adapter warning remains; not run on `ubuntu-26.04`). Every command below was also run locally (see `docs/evidence/WI-PORT-003/findings.md`).
 
 ## Commands
@@ -20,6 +22,10 @@
 | Web build + mock e2e | `npm run test:e2e` in `apps/web-customer` (builds, starts a mock BFF, Chromium) | `npx playwright install chromium` | `web` |
 | Walking skeleton, real stack | `node scripts/ci/skeleton-smoke.mjs` (local secrets, Compose with the mock issuer, seed, catalog, ordering, BFF, Next.js, Playwright, teardown) | Docker, .NET, Node, the two `npm ci` runs | `skeleton` |
 | Result summary | `node scripts/ci/summarize-results.mjs [--json out] <trx or junit files>` | | all |
+| Documentation status | `node scripts/docs/status.mjs --check` (regenerate with no flag): every spec has a banner, headers agree with banners, epic counts match their specs, `STATUS.md` is current | Node | **none: not in the pipeline** |
+| Documentation links | `node scripts/docs/linkcheck.mjs <repo root> <out.json>`: relative links and backtick paths that name repo files; also counts a list of stale phrases. Reports; has no pass or fail threshold yet | Node, git | **none** |
+| Docs site build | `mkdocs build` (needs `pip install mkdocs-material`; not installed in the repo's tooling). Run once on 2026-10-30: built, one link outside `docs/` found and fixed. The site is not published | Python | **none** |
+| Diagram syntax | no script in the repository. On 2026-10-30 the Mermaid blocks were parsed ad hoc with `mermaid@11.4.1` and `jsdom` | Node | **none** |
 
 ## Formatter and linter decision (2026-10-28)
 
@@ -29,10 +35,10 @@ Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config
 
 ## What is not a gate (and why)
 
-- **Analyzer warnings are not errors.** The .NET build reports 46 `CA` warnings (mostly `CA1510`, `CA1861`, `CA1873`). They are visible, not gating; fix them in a separate pass, then turn on `TreatWarningsAsErrors`.
+- **Analyzer warnings are not errors.** The .NET build reported 46 `CA` warnings when this was written (2026-10-28) and 82 warnings in a clean-clone build on 2026-10-30 (mostly `CA1510`, `CA1861`, `CA1873`). They are visible, not gating; fix them in a separate pass, then turn on `TreatWarningsAsErrors`.
 - **ESLint is the `recommended` set only** (not type-checked); `tsc --noEmit` covers types. `scripts/` is formatted but not linted (ESLint config lives in each package).
 - **Docs, Markdown and `.graphql` are not formatted** (`.prettierignore`).
-- **Cosmos adapter tests** (`BakeryMarketplace.Data.Tests`): they do **not** run against Cosmos. They default to `https://localhost:8081`, the emulator speaks HTTP, and they fall back to `FakeRepository`; against the real emulator 3 of 4 fail. The pipeline logs a warning saying so. Fix is `WI-DATA-003` (open item #31).
+- **Cosmos adapter tests** (`BakeryMarketplace.Data.Tests`): they do **not** run against Cosmos. They default to `https://localhost:8081`, the emulator speaks HTTP, and they fall back to `FakeRepository`; against the real emulator 3 of 4 fail. The pipeline logs a warning saying so. The fix was named `WI-DATA-003`, which has no spec (open item #31, still open on 2026-10-30).
 - **Redis adapter tests** fall back to in-memory fakes if the connection fails, with no signal. The pipeline starts Redis, uses `127.0.0.1` (see below) and fails the job if Redis saw fewer than 50 commands during the tests.
 - **Security scanning, deployment, post-deploy smoke, contract tests beyond those in the suites above, load/chaos**: not built.
 - **Playwright**: Chromium only. Node on the agent is 24.x; the PORT-001 proof ran on 25.9.
@@ -42,6 +48,40 @@ Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config
 
 1. `localhost` can silently defeat the Redis tests. On the Windows machine used, `REDIS_CONNECTION_STRING` unset (default `localhost:6379`) connected nothing: all 16 Caching tests passed while Redis saw 2 commands. With `127.0.0.1:6379` they ran against Redis (86 commands for the Caching + Eventing suites). The pipeline sets `127.0.0.1:6379`.
 2. The Eventing Redis suite was not repeatable: tests shared one event type, hence one Redis consumer group, and competed for each other's messages. It was already failing on re-runs and became a frequent failure on a fresh Redis under .NET 10 (2 of 3 runs; 4 of 4 passed on .NET 8). **Fixed 2026-10-28**: every test uses event types of its own; 5 consecutive runs on one Redis pass. The silent fallback to fakes (finding 1) is still open (#35).
+
+## Test baseline (2026-10-30)
+
+Run locally on a Windows machine from the committed tree, then again in a fresh clone (`docs/evidence/baseline-2026-10-30.md`). Passed, failed and skipped are separate.
+
+| Suite | Result |
+|---|---|
+| Shared libraries (`tools/BakeryMarketplace.slnx`, 7 projects) | 214 passed, 0 failed, 15 skipped (the Data project's emulator-gated tests) |
+| `CatalogService.Tests` | 104 passed |
+| `OrderingService.Tests` | 337 passed, 3 skipped, 0 failed |
+| `services/graphql-bff` | 75 passed |
+| `apps/web-customer` unit | 53 passed |
+| Mock-backed browser suite | 57 tests, 10 runs: 570 executions, 0 failures; 27.6 to 30.0 s a run; one worker, no retries |
+| SSR isolation | 200 of 200 responses contained only their own fixture |
+| Real-stack journeys | 21 tests; 3 full-stack runs and 1 hand-started stack, all passed; 18.9 to 19.7 s of tests; the first journey on a cold stack about 9 s |
+
+Not run in the pipeline: the emulator-gated Cosmos tests, the real-stack journeys beyond the `skeleton` job, mutation checks (a sample of 10 by hand: 9 killed, 1 survived, register 85).
+
+## Where each check is enforced (2026-10-30)
+
+"Enforced" means something fails or blocks without a person remembering to run it. The Azure Pipelines check itself is a soft gate: nothing blocks a merge with a red or missing check (below).
+
+| Check | Runs in the pipeline on a PR | Locally | Blocks a merge |
+|---|---|---|---|
+| .NET format and style, build, shared-library, catalog and ordering tests | Yes (`dotnet` job) | Commands above | No (soft gate: the lead reads the check) |
+| BFF format, lint, typecheck, tests | Yes (`bff` job) | Yes | No |
+| Web format, lint, typecheck, mock browser suite | Yes (`web` job) | Yes | No |
+| Real-stack journeys | Yes (`skeleton` job) | `skeleton-smoke.mjs` | No |
+| Documentation status check | **No** | `status.mjs --check`; listed in the Definition of Done and `CLAUDE.md`, which rely on memory | **No** |
+| Link check | **No** | `linkcheck.mjs`; no threshold, 202 unresolved paths in its baseline | **No** |
+| Diagram syntax | **No** | ad hoc | **No** |
+| Secret scan, dependency audit | **No** (not built) | none | **No** |
+
+Where to enforce the documentation checks is open: register item 90 lists the options (a pipeline step, a git hook, a Claude Code hook, a baseline mode for the link check). Until it is decided, the two checks are conventions.
 
 ## When the pipeline runs
 

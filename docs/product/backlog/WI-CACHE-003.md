@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Caching` (local and resilient providers) and its tests
+
 ```
 WI ID:               CACHE-003
 Title:                LocalCacheProvider + ResilientCacheProvider decorator
@@ -5,7 +7,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-CACHING
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 M
 ```
 

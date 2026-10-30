@@ -1,3 +1,5 @@
+> **Status:** Ready
+
 ```
 WI ID:               SRCH-001
 Title:                Search/filter by dietary preference (consumes Preference Snapshot)
@@ -10,7 +12,7 @@ Size:                 M
 ```
 
 **Context / Why**
-`PREF-002` publishes a Preference Snapshot (in-process, per ADR-0009's modular monolith rule, since Preferences and Search are both hosted in `catalog-service`) but nothing consumes it — the actual dietary-safety filtering the bounded context map describes has never been implemented. This is vision principle 1's headline promise ("dietary safety is first-class... surfaced at browse... not buried"), and closing it is the reason `LOCAL-MILESTONES.md`'s M4 exists as its own milestone rather than being folded into M3.
+`PREF-002` publishes a Preference Snapshot (in-process, per ADR-0009's modular monolith rule, since Preferences and Search are both hosted in `catalog-service`) but nothing consumes it — the actual dietary-safety filtering the bounded context map describes has never been implemented. This is vision principle 1's headline promise ("dietary safety is first-class... surfaced at browse... not buried"), and closing it is the reason `docs/product/demo-milestones.md`'s M4 exists as its own milestone rather than being folded into M3.
 
 **A product decision made explicitly here, not left implicit**: conflicting listings are **flagged, not silently excluded**, by default — matching the vision's "impossible to miss" framing (Dana's persona) more directly than silent removal would, and consistent with `CUST-002`'s existing requirement that allergy flags be visible, not buried in a secondary view. An explicit "hide conflicting items" mode is also supported as an opt-in, so a customer who wants a strictly-filtered view can get one — but flag-first is the default. This is a judgment call, not a business decision resolved elsewhere; flagged as adjustable, not fixed.
 

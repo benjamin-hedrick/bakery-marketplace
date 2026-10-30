@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/management/stakeholder-communications-plan.md`
+
 ```
 WI ID:               MGMT-007
 Title:                Draft the stakeholder communications plan

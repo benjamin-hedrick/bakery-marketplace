@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: merged `6175e05`; `docs/evidence/WI-PORT-001/findings.md`
+
 # WI-PORT-001 --- Prove Next.js Pages Router + Relay SSR
 
 ```
@@ -7,7 +9,7 @@ Type:                 Test/Mock/Chaos (technical proof)
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-WEB-CUSTOMER
 Hat/Owner:            Engineering/Build (one owner)
-Status:               Done 2026-10-26 (merged 6175e05) — all acceptance criteria met; evidence in docs/evidence/WI-PORT-001/findings.md
+Status:               Done
 Size:                 TBD
 ```
 

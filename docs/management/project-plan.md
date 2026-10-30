@@ -1,6 +1,6 @@
 # Project Plan (Execution-Level)
 
-Distinct from `portfolio-plan.md` (scope, MVP-line legend, artifact ownership) and `MASTER-BACKLOG-OUTLINE.md`'s Suggested Build Order (epic sequencing). This document is the phase/milestone view a lead would actually track progress against — it references those two rather than restating them.
+Distinct from `docs/product/scope.md` (scope, MVP-line legend, artifact ownership, each with its state), `docs/product/roadmap.md` (now, next, later) and `docs/product/demo-milestones.md` (what a person can do locally) and `docs/product/backlog/epic-catalog.md` (the epics; the September build order is in `docs/history/backlog-outline-2026-10-29.md`). This document is the phase/milestone view a lead would actually track progress against — it references those two rather than restating them.
 
 **Sequencing is relative, not calendar-dated** — phases are ordered "this before that," not scheduled to specific dates. Actual pace depends on available hours/week, which hasn't been decided; adding fabricated dates here would be worse than no dates at all. See `WI-MGMT-001`'s Open Points.
 
@@ -8,7 +8,7 @@ Distinct from `portfolio-plan.md` (scope, MVP-line legend, artifact ownership) a
 
 **As of 2026-10-28.** Phase 0 is done. Phase 1 (shared infrastructure) is built and tested locally, except the cloud adapters and the gateway. **Phase 2's first slice, the customer journey from login through browse, customize and order to the confirmation, is built and passes on the real local stack**; the phase as written is still open, because it also names the live queue display and preferences (the queue display was taken out of slice 1 on purpose, decision D-E). Phases 4 and 5 are partly underway (local environment, CI baseline, tracing). Phase 3 (the remaining domain epics) has not started beyond what ordering needed. Phase 6 runs in parallel. Nothing has been deployed anywhere, and nothing has run against real Azure Cosmos, a managed Redis or Application Insights.
 
-For the detail behind this summary, in order of usefulness: `docs/management/slice-1/01-project-status.md` (what is built and how it was verified), `docs/governance/open-items-register.md` (what is unreconciled), `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md` (the status of each work item; it, not a work item's own `Status:` field, is authoritative) and git history. `docs/ACTIVITY-LOG.md` is paused for new entries (open item 50). If this summary ever drifts from those, trust them.
+For the detail behind this summary, in order of usefulness: `docs/management/slice-1/01-project-status.md` (what is built and how it was verified), `docs/governance/open-items-register.md` (what is unreconciled), `docs/product/backlog/STATUS.md` (the status of each work item, generated from the spec banners) and git history. `docs/history/ACTIVITY-LOG.md` is paused for new entries (open item 50). If this summary ever drifts from those, trust them.
 
 ## Phase 0 — Planning & Architecture *(Done)*
 
@@ -37,7 +37,7 @@ For the detail behind this summary, in order of usefulness: `docs/management/sli
 
 **Constituent epics**: `EPIC-VENDOR-ONBOARDING`, `EPIC-SEARCH`, `EPIC-ADVERTISING`, `EPIC-PAYMENTS`, `EPIC-REVIEWS`, `EPIC-NOTIFICATIONS`, `EPIC-ADMIN`.
 **Entry criteria**: Phase 2's walking skeleton works.
-**Exit criteria**: full MVP feature set (per `portfolio-plan.md`'s MVP line) is functionally complete.
+**Exit criteria**: full MVP feature set (per `docs/product/scope.md`'s MVP line) is functionally complete.
 **Status**: Not started as epics. The only related work is what ordering needed: a clearly named payment stub (`PAY-001` replaces it), vendor verification as seeded data (`VEN-001`/`VEN-002` replace it), and the order-action API a vendor UI would call.
 
 ## Phase 4 — Delivery Infrastructure *(In progress)*
@@ -58,8 +58,8 @@ For the detail behind this summary, in order of usefulness: `docs/management/sli
 
 **Constituent epics**: `EPIC-ARCH-DOCS`, `EPIC-OPS-ARTIFACTS`, `EPIC-GOVERNANCE`, `EPIC-PM-ARTIFACTS`, `EPIC-PRODUCT-STRATEGY`.
 **Entry criteria**: none — explicitly parallel to everything else, not blocked by build progress.
-**Exit criteria**: every artifact in `docs/project-log.md`'s by-hat tables is ✅, not 🟡/⬜.
-**Status**: In progress — `NFR-001`, `ARCH-001` (C4), `OPS-001` (SLA/SLO) done; the open-items register, the first-slice contract and the slice 1 status, plan and backlog documents are maintained as the work goes; `roadmap.md` and `okrs.md` are still stubs (🟡).
+**Exit criteria**: every artifact in the archived `docs/history/project-log-2026-10-29.md` by-hat tables is ✅ (that log is no longer maintained; this criterion needs restating against `docs/index.md`), not 🟡/⬜.
+**Status**: In progress — `NFR-001`, `ARCH-001` (C4), `OPS-001` (SLA/SLO) done; the open-items register, the first-slice contract and the slice 1 status, plan and backlog documents are maintained as the work goes; `roadmap.md` is written (now, next, later) and `okrs.md` is still a stub.
 
 ## Phase 7 — Launch
 
@@ -70,9 +70,9 @@ For the detail behind this summary, in order of usefulness: `docs/management/sli
 
 ## Related
 
-- `portfolio-plan.md` — scope and MVP-line legend this plan executes against
-- `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md` — the epic list and Suggested Build Order this plan's phases are built from
+- `docs/product/scope.md` — scope and MVP-line legend this plan executes against
+- `docs/product/backlog/epic-catalog.md` — the epic list this plan's phases are built from (the Suggested Build Order is in `docs/history/backlog-outline-2026-10-29.md`)
 - `docs/management/slice-1/` — the first slice's status, plan and critical path, and prioritized backlog with estimates
 - `docs/governance/open-items-register.md` — what is unreconciled, and which items are needed before a deployment
-- `docs/ACTIVITY-LOG.md` — history up to 2026-10-28 (paused, open item 50)
-- `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md`'s On-Deck queue — tracks the current specific next work item, at a finer grain than this phase-level plan
+- `docs/history/ACTIVITY-LOG.md` — history up to 2026-10-28 (closed 2026-10-30)
+- `docs/product/backlog/current-plan.md` — tracks the current specific next work, at a finer grain than this phase-level plan

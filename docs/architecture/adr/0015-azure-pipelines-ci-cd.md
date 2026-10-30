@@ -1,6 +1,6 @@
 # ADR-0015: CI/CD System of Record — Azure Pipelines
 
-**Status:** Accepted (2026-10-26) — amends ADR-0007 (CI secret storage) and `tech-stack.md` (CI/CD row). Migration in progress: GitHub Actions remains in place until the exit criteria below are met.
+**Status:** Accepted (2026-10-26) — amends ADR-0007 (CI secret storage) and `tech-stack.md` (CI/CD row).
 
 ## Context
 
@@ -40,3 +40,7 @@
 ## Amendment 2026-10-28: exit criterion 2 waived, placeholder removed
 
 Criterion 1 is met (green Azure run, reported by the human lead). Criterion 3 is met by this change. Criterion 2 (required checks pointing at Azure Pipelines) cannot be met: GitHub rulesets with required status checks need an enterprise plan. Decided by the human lead: the "Azure Pipelines" check (5 checks on a PR) stays a **soft manual gate**. PRs are approved by hand after reading it, and `main` is also gated by a manual pipeline run. `.github/workflows/ci.yml` (check "CI / build-and-test") is removed in this one commit. Consequence: nothing technically stops a merge with a red or missing Azure check. Revisit if the plan changes.
+
+## Amendment note (2026-10-30: migration complete)
+
+The migration described above is done: the GitHub Actions placeholder was removed on 2026-10-28 (see the amendment above), and `azure-pipelines.yml` is the only pipeline. The lead reported an Azure run green on 2026-10-29 (build `#20261029.4`); that run was not observed from this repository, and the check is a soft manual gate, not a required check. Whether the job runs on `ubuntu-26.04` is unverified.

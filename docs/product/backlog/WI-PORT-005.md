@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `docs/evidence/WI-PORT-005/findings.md`; follow-ups remain open as register items 36, 37 and 42
+
 # WI-PORT-005 --- Verify trace propagation and safe logs
 
 > **Progress note (2026-10-28):** built so far, on `feature/WI-PORT-005-trace-propagation`: `CorrelationIdMiddleware` now uses the W3C trace ID and ignores an inbound `X-Correlation-Id` (log scope has `TraceId` plus the `CorrelationId` alias); `DomainEventEnvelope` has an optional `Traceparent`, stamped by both transports on publish, and consumers start a new trace linked to it (`EventTracing`). Phase 1 also built: local viewer is the Aspire dashboard (UAT/Prod Jaeger, DEV undecided: ADR-0016 amendment), OTLP export from the BFF and catalog-service, commands in `docs/operations/local-dev.md`, evidence in `docs/evidence/WI-PORT-005/findings.md`. Also built: OpenTelemetry Collector configs and compose profiles, Next.js server span, catalog tests for trace-ID correlation and consumer spans (see the findings file). Open: log export for deployed environments, running `cloud.yaml` against Application Insights, and the remaining items in `open-items-register.md` #36 to #42; the acceptance wording "client error is safe" was covered by the BFF error tests (PORT-002). Next.js already starts a new trace per SSR request (`PORT-002`).
@@ -9,7 +11,7 @@ Type:                 Integration
 Epic:                 EPIC-PORTFOLIO-SLICE
 Shared with epic(s):  EPIC-OBSERVABILITY, EPIC-SHARED-TOOLING, EPIC-EVENTING
 Hat/Owner:            Platform Engineering (observability integrator)
-Status:               Blocked (by WI-PORT-002)
+Status:               Done
 Size:                 TBD
 ```
 

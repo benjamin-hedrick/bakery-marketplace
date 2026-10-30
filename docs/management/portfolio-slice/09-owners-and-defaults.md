@@ -1,5 +1,13 @@
 # Owners and Working Defaults
 
+> **Status:** Adopted defaults · checked 2026-10-30. Where the repository differs from this table:
+>
+> - **Node:** `engines` in both packages say Node 24 or later; there is no `.nvmrc` and the exact LTS pin is open. The proof ran on 25.9.
+> - **Workspaces:** no root `package.json` or workspace exists; `apps/web-customer` and `services/graphql-bff` are separate packages with their own lockfiles.
+> - **Local trace viewer:** the Aspire dashboard is the default viewer; Jaeger is an opt-in compose profile (ADR-0016 amendment, 2026-10-28).
+> - **Evidence artifacts:** `docs/history/ACTIVITY-LOG.md` takes no new entries; use commit messages, pull request text, `docs/evidence/` and the register.
+> - **Branches:** themed branches are allowed; see `docs/process/branching-strategy.md`.
+
 > **Adopted 2026-10-26** as the "sensible defaults" for the open items in `06-open-items-before-delegation.md`. Any default here can be changed by the human lead; record the change as a dated note below the table.
 
 ## Owners (plan 07 requires one accountable owner per shared area)
@@ -8,7 +16,7 @@ This is a solo-led project, so the human lead is the accountable integrator for 
 
 | Area | Accountable integrator | Contributors | Merge rule |
 |---|---|---|---|
-| ADR adoption, reconciliation, central docs and indexes | Human lead | Agents propose edits | One docs-touching branch at a time for `MASTER-BACKLOG-OUTLINE.md`, `tech-stack.md`, ADR index and `ACTIVITY-LOG.md` |
+| ADR adoption, reconciliation, central docs and indexes | Human lead | Agents propose edits | One docs-touching branch at a time for `epic-catalog.md`, `current-plan.md`, `tech-stack.md`, ADR index and `ACTIVITY-LOG.md` |
 | GraphQL schema + Relay compiler/codegen config | Human lead | BFF and frontend agents | Schema change = regenerate artifacts + run contract tests in the same PR |
 | Root `package.json` / lockfile | Human lead | Feature agents (as requests) | One dependency change at a time; clean install + build after each |
 | C# shared contracts (`tools/BakeryMarketplace.EventSchemas`, REST DTOs) | Human lead | Catalog/ordering agents work in separate service directories | Shared-type change needs explicit review and cross-service tests |
@@ -28,7 +36,7 @@ This is a solo-led project, so the human lead is the accountable integrator for 
 | Browser tests | Playwright (TypeScript) | Test automation evidence goal |
 | .NET | `net10.0` (changed 2026-10-28 from `net8.0`; see the note below) | ADR-0010 |
 | Branches | `feature/<WI-ID>-short-description`, per `docs/process/branching-strategy.md` | Existing convention |
-| Evidence artifacts | Entries in `docs/ACTIVITY-LOG.md`; raw outputs (trace exports, test reports) under `docs/evidence/<WI-ID>/` | One log, no second ledger |
+| Evidence artifacts | Entries in `docs/history/ACTIVITY-LOG.md`; raw outputs (trace exports, test reports) under `docs/evidence/<WI-ID>/` | One log, no second ledger |
 
 > **Change 2026-10-28:** the .NET default moved from `net8.0` to `net10.0` by the human lead (ADR-0010 amendment).
 

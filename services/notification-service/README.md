@@ -1,5 +1,5 @@
 # notification-service
 
-Consumes events; sends confirmations, allergy warnings, low-stock alerts.
+Notifications: order confirmations, allergy warnings, low-stock alerts, driven by events.
 
-_Scaffold only — implementation to follow the backlog/sprint plan._
+**Status (2026-10-30): empty scaffold.** `Program.cs` and a health endpoint only. Nothing described above is built. Its place in the architecture is ADR-0009; the work is in `docs/product/backlog/epic-catalog.md`.

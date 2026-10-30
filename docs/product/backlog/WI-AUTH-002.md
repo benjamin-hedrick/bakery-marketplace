@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Auth/ResourceOwnershipHandler.cs` and its tests
+
 ```
 WI ID:               AUTH-002
 Title:                Per-service resource-ownership check pattern + reference application
@@ -5,7 +7,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-AUTH
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 M
 ```
 

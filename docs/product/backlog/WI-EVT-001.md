@@ -1,3 +1,5 @@
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Eventing` and `tools/tests/BakeryMarketplace.Eventing.Tests`
+
 ```
 WI ID:               EVT-001
 Title:                Define IEventPublisher/IEventSubscriber interfaces + envelope + contract tests
@@ -5,34 +7,16 @@ Type:                 Interface/Contract
 Epic:                 EPIC-EVENTING
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 
-> **Reconciliation note (2026-10-26) — ADJUSTED (follow-up change).** Delivered. ADR-0016 adds a `traceparent` field to `DomainEventEnvelope` so asynchronous hops are traceable. Consumers use span links. The change is tracked in `WI-PORT-005`. See `worklog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
-
+> **As-built record (rewritten 2026-10-30).** This spec was rewritten from its 2026-09 plan to describe what exists. The original text is in git history (`git log -- docs/product/backlog/WI-EVT-001.md`). The changes are listed under "Changes from the original plan".
 
 **Context / Why**
-ADR-0003 establishes the event-driven backbone design: Azure Event Grid (cloud) / Redis Streams (local), at-least-once delivery, per-aggregate sequencing, and a standard envelope. This item defines the interface and envelope in real C# (per ADR-0010) and the contract tests every transport implementation must pass — it doesn't build either transport implementation itself (separate items, not yet detailed).
+ADR-0003 establishes the event-driven backbone design: Azure Event Grid (cloud) and Redis Streams (local), at-least-once delivery, per-aggregate sequencing and a standard envelope. This item defines the interfaces and envelope in C# (ADR-0010) and the contract tests every transport must pass. It does not build a transport; `EVT-003` builds the Redis Streams one.
 
-**Inputs / References**
-- *Decisions*: `docs/architecture/adr/0003-event-driven-backbone.md` (the full design), ADR-0010 (C#/.NET, xUnit contract-test pattern)
-- *Interfaces*: none consumed — this item defines one
-- *Environment/tooling*: `docs/architecture/tech-stack.md` (local vs. cloud transport row)
-- *Test/chaos methodology*: `project-process-framework/domains/software-systems/architecture-patterns.md` — same adapter + contract-test + chaos decorator pattern as `CACHE-001`
-- *Business context*: `docs/architecture/ddd/glossary.md` (domain event names this envelope will carry), `docs/architecture/ddd/event-storming.md` (the events that flow through this interface)
-
-**You do not need to know about**
-- The bakery domain itself — this interface is domain-agnostic, same as `CACHE-001`
-- Azure Event Grid or Redis Streams implementation details — those are separate items
-
-**Out of scope**
-- Does not implement `EventGridPublisher`/`EventGridSubscriber` or `RedisStreamsPublisher`/`RedisStreamsSubscriber` (separate items, not yet detailed)
-- Does not implement `ChaosEventTransport` (separate item, not yet detailed)
-- Does not touch Terraform/Compose config
-
-**Requirements / Acceptance Criteria**
-- Interfaces and envelope (C#, per ADR-0010):
+**What exists** (`tools/BakeryMarketplace.Eventing`)
 ```csharp
 public interface IEventPublisher
 {
@@ -48,29 +32,32 @@ public interface IEventSubscriber
 }
 
 public record DomainEventEnvelope<T>(
-    Guid EventId,
-    string EventType,
-    int SchemaVersion,
-    DateTimeOffset OccurredAt,
-    string AggregateType,
-    string AggregateId,
-    long SequenceNumber,
-    T Payload
-);
+    Guid EventId, string EventType, int SchemaVersion, DateTimeOffset OccurredAt,
+    string AggregateType, string AggregateId, long SequenceNumber, T Payload,
+    string? Traceparent = null);
 ```
-- A shared xUnit abstract test base class (`EventTransportContractTests`) with an abstract factory for publisher/subscriber pairs, covering at minimum: publish-then-consume returns the same envelope; duplicate `EventId` delivered twice is observable as a duplicate (consumer dedupe is the consumer's job, per ADR-0003 — this test proves the transport *can* deliver a dupe, not that it prevents one); a subscriber only receives events matching its subscribed `eventType`
-- Envelope field names match ADR-0003's design exactly — no renamed fields
+- An in-memory transport (`InMemoryEventTransport`) and the Redis Streams transport (`RedisStreamsEventTransport`, `EVT-003`); `EventTracing` carries the trace context across the hop.
+- A shared abstract contract-test base, `EventTransportContractTests`, which every transport's tests inherit. It covers publish-then-consume returning the same envelope; a duplicate `EventId` being observable as a duplicate (consumer dedupe is the consumer's job per ADR-0003); and a subscriber receiving only the event type it subscribed to.
+- Envelope field names match ADR-0003 exactly. The tools test project passed on 2026-10-30 (16 Eventing tests; the Redis ones use a real Redis only when one is running, otherwise they fall back, see `CLAUDE.md`).
+
+**You do not need to know about**
+- The bakery domain: the interface is domain-agnostic. Event Grid and Redis Streams internals are other items.
+
+**Out of scope**
+- `EventGridPublisher` and `EventGridSubscriber` (`EVT-002`, not built), a chaos transport, and Terraform or Compose configuration.
+
+**Acceptance criteria (as met)**
+- The interfaces and envelope above exist with the ADR-0003 field names, and the contract-test base is shared by the transports.
+
+**Changes from the original plan**
+- `DomainEventEnvelope` has a ninth field, `Traceparent` (optional), added by ADR-0016 so asynchronous hops are traceable; consumers use span links. The change was delivered under `WI-PORT-005`. The original envelope in this spec had eight fields.
+- The adapter-and-chaos-decorator test pattern the plan cited is described in `CLAUDE.md` and `docs/architecture/`; a chaos transport was not built.
 
 **Dependencies**
-- Blocks: the (not yet detailed) `EventGridPublisher`/`RedisStreamsPublisher` implementation items
-- Blocked by: none
-- Can be worked in parallel with: `DATA-001`, `AUTH-001`, `CACHE-003`, `CACHE-004`
+- Blocks (since built): `EVT-003`. Blocked by: none.
 
 **Definition of Done**
 See `docs/process/definition-of-done.md`.
-
-**AI-agent suitability**
-Yes. Fully specified by ADR-0003 plus the C# signatures above; no open judgment calls.
 
 **Open Points (working)**
 *(none currently)*

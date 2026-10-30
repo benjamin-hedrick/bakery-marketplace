@@ -1,3 +1,5 @@
+> **Status:** In review · decision: ratings to be confirmed by the lead
+
 ```
 WI ID:               MGMT-002
 Title:                Draft the risk register
@@ -5,7 +7,7 @@ Type:                 Document/Artifact
 Epic:                 EPIC-PM-ARTIFACTS
 Shared with epic(s):  none
 Hat/Owner:            Manager/Lead
-Status:               Review — content complete, 1 open decision remains (see below)
+Status:               In review
 Size:                 M
 ```
 
@@ -17,7 +19,7 @@ Real, named risks already exist scattered across `docs/governance/open-items-reg
 - *Interfaces*: none
 - *Environment/tooling*: not applicable
 - *Test/chaos methodology*: not applicable
-- *Business context*: `docs/governance/open-items-register.md` (source for most technical risk entries), `docs/product/backlog/MASTER-BACKLOG-OUTLINE.md`'s Open Item #GOV-002 (legal artifacts undecided)
+- *Business context*: `docs/governance/open-items-register.md` (source for most technical risk entries), `docs/product/backlog/epic-catalog.md`'s Open Item #GOV-002 (legal artifacts undecided)
 
 **You do not need to know about**
 - Any risk's full technical remediation detail — reference the ADR/open-item, don't re-derive the fix here
