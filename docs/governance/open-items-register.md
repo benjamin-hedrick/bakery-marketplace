@@ -509,3 +509,9 @@ The repository is private now and is meant to become a public demonstration and 
 Type: Process · Source: the lead (2026-10-30) · Hat: Manager/Lead
 Status: Deferred · trigger: a later session; editing `CLAUDE.md` needs the lead's approval
 `docs/method/rule-authoring.md` classifies eighteen rules and proposes prefixing each rule in `CLAUDE.md` with `Hard:` or `Default:` and a `Verify by:`, then doing the same in the process documents; for each hard invariant whose verification is review only or not yet automated, decide whether to add a check or accept the gap. Lesson L-19 in `docs/method/lessons.md` is Open until this is done. Related: register items 85, 90 and 93.
+
+**95. One local command for the Node gates**
+Type: Process · Source: the lead (2026-10-30) · Hat: Platform Engineering
+Status: Open
+On 2026-10-30 a new script, `scripts/ci/secret-scan.mjs`, was committed without running Prettier and the PR's web job failed on `format:check` (that check covers `scripts/` and `azure-pipelines.yml`). `CLAUDE.md` already says to run `format:check` and `lint` before pushing, but the checks are spread over two projects and a person or an assistant has to remember which one covers which path. Add one script (for example `scripts/ci/node-gates.mjs`) that runs `format:check`, `lint` and `typecheck` in `apps/web-customer` and `services/graphql-bff`, plus `scripts/docs/status.mjs --check`, and exits non-zero on any failure; mention it in `CLAUDE.md` and `docs/process/quality-gates.md`; decide whether it also becomes an optional git pre-push hook. Related: items 90 and 94 (where to enforce checks; marking rules as hard or default), and `docs/method/lessons.md` L-19.
+
