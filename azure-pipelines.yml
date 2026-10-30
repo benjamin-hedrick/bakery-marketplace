@@ -34,15 +34,14 @@ variables:
   RESULTS: $(Build.ArtifactStagingDirectory)/results
 
 jobs:
-  # Secret scan of the full git history (register item 93, WI-SEC-004). Config: .gitleaks.toml. The image is pinned by
-  # digest. Written 2026-10-30 and run locally against the repository; NOT YET RUN ON AZURE.
+  # Secret scan of the full git history (register item 93, WI-SEC-004). Config: .gitleaks.toml. The command and the
+  # digest-pinned image are in scripts/ci/secret-scan.mjs. Written 2026-10-30, run locally; NOT YET RUN ON AZURE.
   - job: secrets
     displayName: Secret scan (gitleaks, full history)
     steps:
       - checkout: self
         fetchDepth: 0
-      - script: |
-          docker run --rm --user "$(id -u):$(id -g)" -v "$(Build.SourcesDirectory):/repo:ro" zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git /repo --config /repo/.gitleaks.toml --redact --no-banner
+      - script: node scripts/ci/secret-scan.mjs
         displayName: Scan history for secrets (fails on a finding)
 
   - job: dotnet

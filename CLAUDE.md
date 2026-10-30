@@ -48,6 +48,7 @@ docker compose up -d --build                # redis-events, cosmos, mock-oidc
 docker compose --profile with-redis up -d   # plus the cache Redis
 node scripts/dev/check-env.mjs --wait 90    # exit 0 when up, 1 otherwise
 node scripts/dev/init-env.mjs               # creates local secrets in the git-ignored .env (service client secret for the mock issuer)
+node scripts/ci/secret-scan.mjs            # run before every push: gitleaks over the full committed history (Docker); exit 1 = a finding (config .gitleaks.toml)
 node scripts/ci/linux-check.mjs             # runs the .NET test steps on Linux in a container (committed tree); the pipeline is Ubuntu, development here is Windows
 docker compose down                         # resets all state
 ```
