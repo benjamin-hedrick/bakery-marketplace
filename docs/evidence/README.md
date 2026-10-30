@@ -9,6 +9,7 @@
 | [`baseline-2026-10-30.md`](baseline-2026-10-30.md) | Link and stale-phrase baseline, clean-clone build and tests, the browser flake baseline (570 executions), real-stack timings, and a mutation sample of 10 tests |
 | [`slice-1/findings.md`](slice-1/findings.md) | The slice-1 customer journey on the real stack, a trace through a checkout, a check of what is exported, and observations |
 | [`test-reliability/findings.md`](test-reliability/findings.md) | Ten test failures between 2026-10-26 and 2026-10-29, seven found only on a clean agent, with causes and fixes |
+| [`secret-scan-2026-10-30.md`](secret-scan-2026-10-30.md) | Secret scan of the full history and the working tree: no real secret; four public or dummy values allowlisted |
 | [`facts-sheet-2026-10-29.md`](facts-sheet-2026-10-29.md) | The as-built facts the documents quote (projects, endpoints, test counts, what was run and what was only read) |
 
 ## Per work item

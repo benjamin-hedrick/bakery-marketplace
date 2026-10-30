@@ -1,0 +1,14 @@
+# Scanner configuration (gitleaks). Extends the default rules; the allowlist below
+# covers the only findings from the full-history scan of 2026-10-30, each verified
+# as a public or dummy value. See docs/evidence/secret-scan-2026-10-30.md.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Published emulator key and a dummy test value"
+regexes = [
+  # The Cosmos DB emulator's documented, public, fixed account key.
+  '''C2y6yDjf5/R\+ob0N8A7Cgv30VRDJIWEHLM\+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==''',
+  # Placeholder value in SecretValidatorTests (a configuration-shape test).
+  '''sk_test_123456\w*''',
+]
