@@ -211,7 +211,7 @@ Scope: cross-cutting-artifact · Primary hat(s): Architect · Status: see [STATU
 ### EPIC-OPS-ARTIFACTS — Operations/SRE Artifacts
 Scope: cross-cutting-artifact · Primary hat(s): Operations · Status: see [STATUS.md](STATUS.md)
 - ✅ OPS-001 (Document/Artifact) — **Done**, see `docs/operations/sla.md` + `WI-OPS-001.md` — 99.0% monthly target, error budget policy, latency targets, known failure modes, all traced to `nfrs.md`/ADRs
-- ⚪ OPS-002 (Document/Artifact) — Runbook, tied to a real failure mode from the ADRs (candidates: Redis fallback per ADR-0002, Cosmos throttling per ADR-0004) — spec: `WI-OPS-002.md` (Ready, 2026-10-30)
+- ⚪ OPS-002 (Document/Artifact) — Runbook, tied to a real failure mode from the ADRs (candidates: Redis fallback per ADR-0002, Cosmos throttling per ADR-0004) — spec: `WI-OPS-002.md` (Done, 2026-10-30)
 - ✅ OPS-003 (Document/Artifact) — **Done**, see `docs/operations/monitoring-alerting.md` + `WI-OPS-003.md` — policy layer (thresholds), distinct from `EPIC-OBSERVABILITY`'s implementation layer
 - ⚪ OPS-004 (Document/Artifact) — On-call pattern doc (hypothetical)
 

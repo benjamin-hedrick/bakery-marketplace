@@ -27,7 +27,7 @@ Every threshold below is derived from an existing ceiling or target — none are
 
 ## Explicitly out of scope
 
-- **The actual runbook response** to a fired alert — that's `OPS-002`, a separate item; this document says *when* to alert, not *what to do* once alerted
+- **The actual runbook response** to a fired alert — that's `OPS-002` (`docs/operations/runbooks/`), a separate item; this document says *when* to alert, not *what to do* once alerted
 - **Dashboard construction/alert rule implementation** — `EPIC-OBSERVABILITY`'s job, using the tooling `tech-stack.md` already named
 
 ## Related

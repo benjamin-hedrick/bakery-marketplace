@@ -10,11 +10,11 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 | Status | Count |
 |---|---|
-| Done | 49 |
+| Done | 50 |
 | In progress | 2 |
 | In review | 2 |
 | Built | 1 |
-| Ready | 14 |
+| Ready | 13 |
 | Proposed | 4 |
 | Deferred | 15 |
 | Superseded | 1 |
@@ -38,7 +38,7 @@ Superseded and obsolete items are not counted.
 | EPIC-GOLIVE-SUPPORT | 0 of 1 | LAUNCH-002 |
 | EPIC-GOVERNANCE | 1 of 1 | GOV-001 |
 | EPIC-LOCAL-DEV | 3 of 4 | DEMO-001, DEV-001, DEV-002, DEV-004 |
-| EPIC-OPS-ARTIFACTS | 2 of 3 | OPS-001, OPS-002, OPS-003 |
+| EPIC-OPS-ARTIFACTS | 3 of 3 | OPS-001, OPS-002, OPS-003 |
 | EPIC-ORDERING | 7 of 8 | ORD-001, ORD-002, ORD-003, ORD-004, ORD-005, ORD-006, ORD-007, ORD-008 |
 | EPIC-PM-ARTIFACTS | 4 of 8 | MGMT-001, MGMT-002, MGMT-003, MGMT-004, MGMT-005, MGMT-006, MGMT-007, MGMT-008 |
 | EPIC-PORTFOLIO-SLICE | 6 of 7 | PORT-001, PORT-002, PORT-003, PORT-004, PORT-005, PORT-006, PORT-007 |
@@ -107,7 +107,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | EPIC-PM-ARTIFACTS | Done | evidence: `docs/process/branching-strategy.md` |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/sla.md` |
-| [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | EPIC-OPS-ARTIFACTS | Ready | ready to start; first scenario chosen from verified behavior |
+| [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/evidence/runbook-event-broker-2026-10-30.md`; the runbook is `docs/operations/runbooks/event-broker-unavailable-during-checkout.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
 | [ORD-001](WI-ORD-001.md) | Checkout (payment stubbed) | EPIC-ORDERING | Done | evidence: `services/ordering-service` and its tests; the verification below was run on 2026-10-28 |
 | [ORD-002](WI-ORD-002.md) | Order aggregate + lifecycle states | EPIC-ORDERING | Done | evidence: `services/ordering-service/src/Domain/Order.cs` and `OrderingService.Tests` (lifecycle, cancellation, events); lifecycle in `docs/architecture/order-lifecycle.md` |
@@ -177,12 +177,12 @@ Accepted: 16 · Superseded: 1 · Proposed: 1
 
 ## Open-items register
 
-95 numbered items in `docs/governance/open-items-register.md` (highest number 95).
+96 numbered items in `docs/governance/open-items-register.md` (highest number 96).
 
 | Type | Count |
 |---|---|
+| Known limitation | 7 |
 | Tracking | 7 |
-| Known limitation | 6 |
 | Not started | 6 |
 | Process | 5 |
 | Documentation drift | 5 |
@@ -242,4 +242,4 @@ Accepted: 16 · Superseded: 1 · Proposed: 1
 | Resolved | 24 |
 | Accepted | 5 |
 | Tracking | 11 |
-| Open | 38 |
+| Open | 39 |

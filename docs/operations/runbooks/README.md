@@ -1,3 +1,22 @@
 # Runbooks
 
-One file per operational scenario, e.g. `order-queue-backlog.md`, `payment-processor-outage.md`.
+> **Status:** Current · 2026-10-30. A runbook says what to do when something fails. These are for the local stack until something is deployed. Each is written from behaviour that was run, says what was only read in the code, and ends with when it was last tested. Copy [`template.md`](template.md) for a new one. Alerts that would trigger them are not built (`docs/operations/monitoring-alerting.md`).
+
+## Written
+
+| Runbook | Scenario | Last tested |
+|---|---|---|
+| [`event-broker-unavailable-during-checkout.md`](event-broker-unavailable-during-checkout.md) | Redis Streams is down while customers check out | 2026-10-30, local stack |
+
+## Planned (not written)
+
+| Scenario | Basis | Waiting for |
+|---|---|---|
+| A stuck outbox entry | register item 74 | A reproduction (an unpublishable event) |
+| Cache fallback | ADR-0002, `patterns.md` section 1 | A service that uses the cache |
+| Cosmos throttling | ADR-0004 | Something to throttle: not exercised on the emulator |
+| Cold start | the 9 s cold first call in `docs/evidence/runbook-event-broker-2026-10-30.md` and `baseline-2026-10-30.md` | A deployed environment |
+| Identity issuer down | `patterns.md` section 10 ("behaviour with the issuer down is not examined") | A run with the issuer stopped |
+| Catalog unavailable during checkout | `patterns.md` section 10 (`503 downstream_unavailable`) | A run with the catalog stopped |
+
+Disaster recovery is `BDR-003` and on-call is `OPS-004`; neither is started.

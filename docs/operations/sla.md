@@ -58,5 +58,5 @@ Each traces to a specific ADR — these are accepted, named characteristics of t
 ## Related
 
 - `docs/architecture/nfrs.md` — source of the uptime and load numbers above
-- `docs/operations/runbooks/` (`OPS-002`, only a README so far) — will reference this document's targets, not restate them
+- `docs/operations/runbooks/` (`OPS-002`: a template and one runbook so far) — will reference this document's targets, not restate them
 - `docs/operations/monitoring-alerting.md` (`OPS-003`, written as policy) — defines the thresholds; the implementation that measures them is not built
