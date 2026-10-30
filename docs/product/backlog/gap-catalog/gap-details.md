@@ -98,7 +98,7 @@ Format for all: Mermaid in Markdown (already the repo convention, renders on Git
 | G-E06 | `terraform validate` and `plan` on the Key Vault module (no apply) to turn `SEC-001` from Built to Done, or record why not | local, needs Terraform | S | Open | `WI-SEC-004` |
 | G-E07 | Link check and stale-phrase baseline of the whole docs tree (T-09) | script | S | Done | `docs/evidence/baseline-2026-10-30.md`, `scripts/docs/linkcheck.mjs` |
 | G-E08 | Accessibility smoke on the customer pages (the plan names it; the web lint has a11y rules) | axe through Playwright | M | Open | `WI-QA-001` |
-| G-E09 | Dependency audit and secret scan outputs recorded (`npm audit`, container scanner on history) | T-05, T-36 | S | Open | `WI-SEC-004` |
+| G-E09 | Dependency audit and secret scan outputs recorded (`npm audit`, container scanner on history) | T-05, T-36 | S | Partly (secret scan done: `docs/evidence/secret-scan-2026-10-30.md`; dependency audit open) | `WI-SEC-004` |
 | G-E10 | The AI-assisted testing experiment (protocol, baseline, results) | T-34 | L | Open | `WI-QA-003` |
 
 ## 7. Theories this repository can test (from the lessons log, the plans and the peer hypotheses)

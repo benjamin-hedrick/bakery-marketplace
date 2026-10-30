@@ -79,7 +79,8 @@ Not run in the pipeline: the emulator-gated Cosmos tests, the real-stack journey
 | Documentation status check | **No** | `status.mjs --check`; listed in the Definition of Done and `CLAUDE.md`, which rely on memory | **No** |
 | Link check | **No** | `linkcheck.mjs`; no threshold, 202 unresolved paths in its baseline | **No** |
 | Diagram syntax | **No** | ad hoc | **No** |
-| Secret scan, dependency audit | **No** (not built) | none | **No** |
+| Secret scan (full history) | Written 2026-10-30, **not yet run on Azure** (`secrets` job) | gitleaks container, `.gitleaks.toml`; run locally, no leaks | No |
+| Dependency audit, SBOM | **No** (not built) | `npm audit` by hand | **No** |
 
 Where to enforce the documentation checks is open: register item 90 lists the options (a pipeline step, a git hook, a Claude Code hook, a baseline mode for the link check). Until it is decided, the two checks are conventions.
 
