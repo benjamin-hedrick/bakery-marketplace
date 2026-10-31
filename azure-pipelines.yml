@@ -1,6 +1,7 @@
 # Quality and CI baseline (WI-PORT-003, ADR-0015).
 #
-# NOT YET SEEN FULLY GREEN ON AZURE: first runs started 2026-10-28 and found the problems recorded in
+# Seen green on Azure: the secrets, docs, dotnet, bff, web and skeleton jobs (reported by the lead 2026-10-31; see docs/process/quality-gates.md).
+# NOT YET RUN ON AZURE: the terraform job (written 2026-10-31). First runs started 2026-10-28 and found the problems recorded in
 # docs/evidence/WI-PORT-003/findings.md. Every command below was also run locally (Windows, Node 25.9, .NET SDK 10,
 # Docker Desktop); that file lists what passed and what was not run.
 # Commands, gaps and the results format: docs/process/quality-gates.md.
@@ -35,7 +36,7 @@ variables:
 
 jobs:
   # Secret scan of the full git history (register item 93, WI-SEC-004). Config: .gitleaks.toml. The command and the
-  # digest-pinned image are in scripts/ci/secret-scan.mjs. Written 2026-10-30, run locally; NOT YET RUN ON AZURE.
+  # digest-pinned image are in scripts/ci/secret-scan.mjs. Written 2026-10-30; seen green on Azure 2026-10-31 (14 s).
   - job: secrets
     displayName: Secret scan (gitleaks, full history)
     steps:
@@ -45,7 +46,7 @@ jobs:
         displayName: Scan history for secrets (fails on a finding)
 
   # Documentation checks (register item 90): the status check (a spec without a banner, a header that disagrees with its banner, a stale
-  # STATUS.md) and the link check (a broken relative link). Both are fast and need only Node. Written 2026-10-30; NOT YET RUN ON AZURE.
+  # STATUS.md) and the link check (a broken relative link). Both are fast and need only Node. Written 2026-10-30; seen green on Azure 2026-10-31 (4 s).
   - job: docs
     displayName: Documentation checks (status, links)
     steps:
