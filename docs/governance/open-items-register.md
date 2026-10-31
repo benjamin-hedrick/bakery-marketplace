@@ -524,8 +524,9 @@ With Redis stopped, ordering-service accepted orders and held their events for t
 
 **97. The customer web app is unstyled**
 Type: Known limitation · Source: `WI-DEMO-001` (2026-10-30) · Hat: Engineering/Build, Digital Product Manager
-Status: Open
+Status: Resolved 2026-10-30
 The screenshots taken for the demo (`docs/operations/demo/`) show browser-default markup: no layout, spacing, colour or brand. Slice 1 was built to prove the stack and the journey, and no styling work has been done. For a demonstration that is looked at, a minimal layout and typography pass would change how the repository reads; it is a product decision whether and when (not designed, not scheduled). Not an accessibility assessment: none has been run.
+Resolution: one stylesheet, `apps/web-customer/src/styles/globals.css`, imported in `_app.tsx`, on the existing markup: layout, typography, listing cards, stock badges, forms, the checkout table, messages, the order page, and a dark theme by system setting. No framework and no new dependency; the test selectors are unchanged and the mock-backed browser suite passes (57 of 57); the demo screenshots were retaken. Also fixed: `.sr-only` was used but never defined, so a hidden "Remove" column heading showed. Not done: a designed brand, responsive checks beyond one narrow-width rule, any accessibility assessment (`WI-QA-001` row `G-E08`), and screenshots of the dark theme in the docs (one was looked at, not saved).
 
 **98. The first checkout on a cold stack takes about 7 seconds and the demo warm-up does not remove it**
 Type: Known limitation · Source: `WI-DEMO-001` (2026-10-30) · Hat: Engineering/Build

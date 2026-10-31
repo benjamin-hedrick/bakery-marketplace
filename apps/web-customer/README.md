@@ -4,6 +4,8 @@ Customer-facing browse/search/order UI.
 
 **Status (2026-10-30): implements slice 1, run locally only.** Login (authorization code with PKCE; the access token is held in memory, so a reload logs out), browse with stock states, options and quantity, a browser cart, checkout with a visibly stubbed payment, and an order status page. Public listing pages are server-rendered; the authenticated pages are client-rendered. It talks only to the GraphQL BFF (`services/graphql-bff`), through the same-origin `/api/graphql` rewrite. Two kinds of browser test exist: a suite against a mock BFF (`npm run test:e2e`) and journeys against the real stack (`npm run test:skeleton`). Not built: a cookie session, an order history list, preferences, search. Evidence: `docs/evidence/slice-1/findings.md` and `docs/evidence/baseline-2026-10-30.md`; the request path is `docs/architecture/request-path.md`. Decisions: ADR-0012, ADR-0013, ADR-0014.
 
+The look is one plain stylesheet, `src/styles/globals.css` (light and dark by system setting; no framework). Pages and components keep their semantic markup, and the tests select by role, label and `data-testid`, so styling changes do not touch them.
+
 ## Run it (from `apps/web-customer`)
 
 ```
