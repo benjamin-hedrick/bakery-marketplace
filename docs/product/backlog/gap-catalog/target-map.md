@@ -47,8 +47,8 @@ Priorities (lead, 2026-10-29): **P1** polished, consistent repo that can go publ
 
 | ID | Artifact | Serves | Exists? | Source | Action | Size | State | Tracked in |
 |---|---|---|---|---|---|---|---|---|
-| T-30 | Test strategy: layers, what each proves, what is deliberately not tested, release gates as pass/fail policy | A | Pieces in `quality-gates.md`, `portfolio-slice/02` | those, test-reliability | Create | M | Open | `WI-QA-001` |
-| T-31 | Playwright framework guide: structure, fixtures and `support.ts`, test-hook gating, determinism rules, how to add a test | A | In the code only | `apps/web-customer/tests` | Create | M | Open | `WI-QA-001` |
+| T-30 | Test strategy: layers, what each proves, what is deliberately not tested, release gates as pass/fail policy | A | Pieces in `quality-gates.md`, `portfolio-slice/02` | those, test-reliability | Create | M | Done | `docs/process/test-strategy.md` |
+| T-31 | Playwright framework guide: structure, fixtures and `support.ts`, test-hook gating, determinism rules, how to add a test | A | In the code only | `apps/web-customer/tests` | Create | M | Done | `docs/process/playwright-guide.md` |
 | T-32 | Quality metrics: an aggregator over `summarize-results` JSON, a repeat-run job for flake rate, a report (pass rate, flake rate, execution time trend) | A | One JSON per run, no trend | `quality-gates.md` evidence format | Create (script + CI job + report) | L | Open | `WI-QA-002` |
 | T-33 | Traceability table: work item to tests to evidence (the XRay idea without the tool), generated from the status table | A | None | T-08 | Create | M | Open | `WI-QA-001` |
 | T-34 | The AI-assisted testing experiment from `portfolio-slice/02` and `05` Phase 4: protocol, baseline, results, rejected cases, review cost | A | Planned, never run | plans, test-reliability | Run + write | L | Open | `WI-QA-003` |

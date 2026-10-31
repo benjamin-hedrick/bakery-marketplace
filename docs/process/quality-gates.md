@@ -2,7 +2,7 @@
 
 > **Status:** Current · updated 2026-10-30 (test counts, the documentation checks and the enforcement summary were added; the rest dates from 2026-10-28 and is unchanged).
 
-`WI-PORT-003`, ADR-0015. What the pipeline (`azure-pipelines.yml`) runs, the exact commands to reproduce each step locally, and what it does **not** cover. **The pipeline has run green on Azure DevOps** (reported by the human lead 2026-10-28; most recent recorded run `#20261029.4`, 2026-10-29, which included ordering-service and the browser journey; the deliberate Cosmos-adapter warning remains; not run on `ubuntu-26.04`). Every command below was also run locally (see `docs/evidence/WI-PORT-003/findings.md`).
+The testing approach is in [`test-strategy.md`](test-strategy.md). `WI-PORT-003`, ADR-0015. What the pipeline (`azure-pipelines.yml`) runs, the exact commands to reproduce each step locally, and what it does **not** cover. **The pipeline has run green on Azure DevOps** (reported by the human lead 2026-10-28; most recent recorded run `#20261029.4`, 2026-10-29, which included ordering-service and the browser journey; the deliberate Cosmos-adapter warning remains; not run on `ubuntu-26.04`). Every command below was also run locally (see `docs/evidence/WI-PORT-003/findings.md`).
 
 ## Commands
 

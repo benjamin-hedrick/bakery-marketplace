@@ -18,6 +18,7 @@ A pickup-based bakery and coffee marketplace, built to show architecture, produc
 | How to run it on a laptop | [Local development](operations/local-dev.md) |
 | How to show it (one command, a checklist, screenshots) | [Demo](operations/demo.md) |
 | How work is specified and tracked | [Method](method/README.md), [engineering standards](process/engineering-standards.md), [definition of done](process/definition-of-done.md), [quality gates](process/quality-gates.md) |
+| How it is tested | [Test strategy](process/test-strategy.md), [Playwright guide](process/playwright-guide.md), [test-review checklist](process/test-review-checklist.md) |
 | Quality targets and operations | [NFRs](architecture/nfrs.md), [SLA](operations/sla.md), [monitoring plan](operations/monitoring-alerting.md) |
 | Product intent and scope | [Vision](product/vision.md), [personas](product/personas.md), [scope](product/scope.md), [roadmap](product/roadmap.md), [demo milestones](product/demo-milestones.md) |
 | Plans and risks | [Project plan](management/project-plan.md), [risk register](management/risk-register.md), [slice 1 plan](management/slice-1/02-plan-and-critical-path.md) |
