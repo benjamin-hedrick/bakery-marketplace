@@ -51,6 +51,10 @@ public static class AuthServiceExtensions
             .AddJwtBearer(options =>
             {
                 options.Authority = configuration["Auth:Authority"];
+                // Where to fetch the discovery document when that differs from the issuer string (the issuer is a name, not always an address
+                // this process can reach: a container network, or a tenant whose metadata lives at another host). Unset: Authority + /.well-known.
+                if (!string.IsNullOrWhiteSpace(configuration["Auth:MetadataAddress"]))
+                    options.MetadataAddress = configuration["Auth:MetadataAddress"];
                 options.Audience = configuration["Auth:Audience"];
                 options.RequireHttpsMetadata = requireHttpsMetadata;
                 options.MapInboundClaims = false;

@@ -94,7 +94,8 @@ builder.Services.AddSingleton<IPaymentProcessor, StubPaymentProcessor>(); // a s
 // The catalog: public listing reads need no credentials; stock reserve and release authenticate as this service (ADR-0018). A missing or unsafe
 // value stops the service at startup rather than at the first order.
 SecretValidator.ValidateUriSecret(builder.Configuration, "Catalog:BaseUrl");
-builder.Services.AddBakeryServiceAuth(builder.Configuration);
+// Development only may send the client secret to a plain-http issuer that is not loopback: the issuer is another container on the Compose network.
+builder.Services.AddBakeryServiceAuth(builder.Configuration, allowInsecureTokenEndpoint: builder.Environment.IsDevelopment());
 var catalogUrl = new Uri(builder.Configuration["Catalog:BaseUrl"]!);
 var catalogTimeout = TimeSpan.FromSeconds(builder.Configuration.GetValue("Catalog:TimeoutSeconds", 5));
 builder.Services.AddHttpClient(CatalogGateway.PublicClientName, c => { c.BaseAddress = catalogUrl; c.Timeout = catalogTimeout; });

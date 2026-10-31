@@ -2,6 +2,8 @@
 
 > **Progress note (2026-10-28):** phase 1 built on `feature/service-auth`: the mock issuer authenticates registered clients and issues app-only tokens (the unauthenticated `mock_user_id` shortcut is gone); `AddBakeryAuth` accepts several audiences; the `ServiceStockReserve` policy; `ClientCredentialsTokenProvider`, the bearer handler and `AddBakeryServiceAuth` with startup validation; `scripts/dev/init-env.mjs`, Compose and docs. 80 Auth tests pass, mutation checks confirmed the key tests fail when the behavior breaks, and the mock issuer was exercised in its real container (token claims, wrong secret refused, unregistered client refused, secret absent from logs). **Not done:** phase 2 (DEV), the ordering and catalog wiring (no endpoints or catalog client exist yet; `CAT-006` and `ORD-001`), the pipeline step that generates a secret (nothing consumes one yet), and a run on Azure.
 
+> **Progress note (2026-10-31):** ADR-0018 is Accepted. Added for container networks (`WI-DEP-001`), all optional and default-off: `MockOidc:Issuer` (a fixed issuer string), `Auth:MetadataAddress` (where the services fetch metadata), and `allowInsecureTokenEndpoint` (a host-code parameter, not configuration, that lets the client secret go to a plain-http non-loopback token endpoint; ordering sets it only in the Development environment). 147 Auth tests pass. Auth logic: needs the lead's review before merge. Phase 2 (DEV tenant, credential type, the privileged role assignment) is still open.
+
 ```
 WI ID:               AUTH-006
 Title:                Service-to-service authentication (OAuth2 client credentials)
