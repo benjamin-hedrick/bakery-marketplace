@@ -27,6 +27,12 @@ const steps = [
   { name: 'web: typecheck (runs relay-compiler)', ...npm('apps/web-customer', 'typecheck') },
   { name: 'docs: status check', cwd: root, cmd: process.execPath, args: ['scripts/docs/status.mjs', '--check'] },
   {
+    name: 'docs: traceability table',
+    cwd: root,
+    cmd: process.execPath,
+    args: ['scripts/docs/traceability.mjs', '--check'],
+  },
+  {
     name: 'docs: link check',
     cwd: root,
     cmd: process.execPath,
