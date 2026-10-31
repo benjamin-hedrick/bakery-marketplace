@@ -1,3 +1,4 @@
+import Head from 'next/head';
 import Link from 'next/link';
 import { graphql, useLazyLoadQuery } from 'react-relay';
 import type { ListingDetailQuery } from '../__generated__/ListingDetailQuery.graphql';
@@ -40,11 +41,17 @@ export function ListingDetail({ id }: { id: string }) {
   if (!listing)
     return (
       <main>
+        <Head>
+          <title>Listing not found</title>
+        </Head>
         <p>Listing not found.</p>
       </main>
     );
   return (
     <main>
+      <Head>
+        <title>{listing.name}</title>
+      </Head>
       <p>
         <Link href="/">← All listings</Link>
       </p>

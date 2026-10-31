@@ -18,7 +18,7 @@ flowchart TB
     RS["Real-stack journeys: 21 tests<br/>browser, Next.js, BFF, both services, Cosmos, Redis, issuer"]
   end
   subgraph L3["Browser against a mock BFF"]
-    MB["Mock-backed browser suite: 57 tests<br/>the web app alone, hooks and fixtures"]
+    MB["Mock-backed browser suite: 62 tests<br/>the web app alone, hooks and fixtures, accessibility scans"]
   end
   subgraph L2["Service and library tests"]
     SV["Service tests in process:<br/>catalog 104, ordering 337 (3 skipped)"]
@@ -38,7 +38,7 @@ flowchart TB
 | Shared libraries | `tools/tests` (7 projects) | 214 passed, 15 skipped | The adapters (cache, data, eventing, secrets, auth) against their contract tests, with a chaos decorator where resilience matters | The Cosmos adapters against Cosmos: they fall back to fakes by default (item 31); 15 emulator-gated tests are skipped | `dotnet` (Redis real, Cosmos not) |
 | Catalog service | `services/catalog-service/tests` | 104 | Listing rules, validation, stock, endpoints, hosted in process on in-memory backends | The Cosmos backend | `dotnet` |
 | Ordering service | `services/ordering-service/tests` | 337 passed, 3 skipped | The order aggregate and lifecycle, checkout and idempotency, pickup windows, outbox and relay, actions, authorization | The Cosmos store (emulator-gated, not run in CI) | `dotnet` |
-| Mock-backed browser | `apps/web-customer/tests/e2e` | 57 | The web app in a real browser: server rendering, hydration, login against a stubbed issuer, cart, checkout, order page, stock, error states, no console errors | The real BFF, services or issuer | `web` |
+| Mock-backed browser | `apps/web-customer/tests/e2e` | 62 (57 on 2026-10-30, plus 5 accessibility scans) | The web app in a real browser: server rendering, hydration, login against a stubbed issuer, cart, checkout, order page, stock, error states, no console errors; the four page types have no automatically detectable WCAG 2.0/2.1 A and AA violation, in the light theme and (listings) the dark one | The real BFF, services or issuer; keyboard use, focus order, screen-reader wording | `web` |
 | Real-stack journeys | `apps/web-customer/tests/skeleton` | 21 | The whole slice: login through the real mock issuer, browse, order, confirmation, a declined payment, stock limits, token validation by each service | A deployed environment; load; browsers other than Chromium | `skeleton` |
 
 Also run, not in the pipeline: SSR isolation (`npm run test:isolation`: 200 concurrent requests, two fixtures, no leakage), and mutation checks by hand (a sample of 10, about ninety over slice 1).
@@ -51,7 +51,7 @@ Also run, not in the pipeline: SSR isolation (`npm run test:isolation`: 200 conc
 - **Payment.** The processor is a stub; no provider is exercised.
 - **Real identity.** The issuer is a local mock; the real provider's behaviour is not tested.
 - **The Cosmos adapters against Cosmos, in CI.** Emulator-gated tests exist and are run by hand.
-- **Accessibility beyond a smoke check.** See the accessibility smoke in the mock-backed suite (`WI-QA-001`, row `G-E08`) for what is covered.
+- **Accessibility beyond axe-core.** The smoke (`tests/e2e/accessibility.spec.ts`) checks what a tool can decide; keyboard operation, focus order, zoom and screen-reader wording are not tested.
 - **Documentation tests.** Only the status check, the link check and a diagram syntax check by hand (`quality-gates.md`).
 
 ## Gates as pass or fail
