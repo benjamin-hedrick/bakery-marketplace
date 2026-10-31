@@ -1,6 +1,6 @@
 # Current plan
 
-> **Status:** Current · written 2026-10-30. The status of every work item is in `STATUS.md` (generated); this page says what is built, what is happening now and where the next work is listed. Keep it short: update it when the focus changes.
+> **Status:** Current · written 2026-10-30, order of next work updated 2026-10-31. The status of every work item is in `STATUS.md` (generated); this page says what is built, what is happening now and where the next work is listed. Keep it short: update it when the focus changes.
 
 ## What is built
 
@@ -12,11 +12,25 @@ Not built: the admin and notification services (scaffolds), the vendor and queue
 
 The public-readiness pass is done except the settings that need the repository to be public (register item 93), and a second batch of work is on the branch `feature/ops-and-okrs`, pending review: a runbook and its test run, the first OKRs, a one-command demo with screenshots, a styling pass, a test strategy with an accessibility smoke and a traceability table, documentation checks in the pipeline, and scripted quality and latency measurements. Several of these are written but not yet seen on Azure (the `secrets` and `docs` jobs); the status of each is in `STATUS.md` and the specifics are in the commit messages and the evidence records.
 
-**Priorities (set 2026-10-29):** 1. a polished, consistent repository that can be public, showing AI collaboration, architecture and software, and business and project work; 2. it builds and runs locally; 3. more evidence and coverage; 4. deploy and tear down a dev environment; 5. a public demo.
+**Priorities (set 2026-10-29, amended 2026-10-31):** 1. a polished, consistent repository that can be public, showing AI collaboration, architecture and software, and business and project work; 2. it builds and runs locally; 3. more evidence and coverage; 4. deploy and tear down a dev environment; 5. a public demo. On 2026-10-31 the lead made the deployed dev environment, and the ability to tear it down, the next main work, ahead of further product features.
 
-**Waiting on the lead:** the OKR targets and the definition of the north-star safety metric (`WI-PROD-004`, In review); the first Azure run of the new pipeline jobs; the cold-machine run and a fresh reader following the demo page (`WI-DEMO-001`, In review); the flip-day settings (item 93).
+**Waiting on the lead:** the OKR targets and the definition of the north-star safety metric (`WI-PROD-004`, In review); the first Azure run of the new pipeline jobs; the cold-machine run and a fresh reader following the demo page (`WI-DEMO-001`, In review); the flip-day settings (item 93); and, new, the approvals for the DEV identity work below (ADR-0018, `WI-AUTH-006` phase 2).
 
-**Next, in the order proposed (not agreed):** the vendor read side and queue display (`N-03`, `N-04`), which would give the event backbone a consumer; the two open theory tests (`WI-QA-002`, rows `G-H04` and `G-H05`); a dependency audit and SBOM (`WI-SEC-004`); a recording of the demo journey; a deployed dev environment (`WI-DEP-001`). Two items were deferred to a later session by the lead: `WI-REPO-003` (how deferred items, notes and delegated-work findings are tracked) and register item 94 (marking the rules in `CLAUDE.md`).
+**Next, in this order (set 2026-10-31):**
+
+1. Close out the branch: the first Azure run of the `secrets` and `docs` jobs and the cold-machine demo run.
+2. `N-02`: Entra registrations and the DEV credential decision (ADR-0018 verification list, `WI-AUTH-006` phase 2). Needs the lead's approval (IAM); start first because it gates the deploy and runs alongside 3.
+3. `N-10`: container images and the hosting decision (register items 25 and 71), with a compose profile that runs the whole stack.
+4. `WI-DEP-001` part 1: infrastructure as code, a deploy stage, and a post-deploy smoke test that reuses the Playwright smoke.
+5. `WI-DEP-001` part 2: one-command teardown, with standup time, teardown time and cost recorded, and a budget alert and auto-expiry.
+6. Process, in small steps alongside 3 to 5: evidence stamping (commit, command, date, raw output on every evidence record), a pre-push hook that runs `node-gates.mjs`, and the AI-collaboration record as structured data (catches by control, interventions) with the two open theory tests (`WI-QA-002`, `G-H04` and `G-H05`).
+7. Mobile: a decision spike (`WI-QA-003`: Maestro support, Expo or another stack, local-only or CI), then one small mobile job with Maestro flows. Independent of the deploy path.
+8. A recording of the demo journey, ideally against the deployed dev environment.
+9. The vendor read side and queue display (`N-03`, `N-04`), which give the event backbone a consumer and the deploy path something larger than slice 1.
+10. Outbox and stock hardening (`N-06`, `N-07`: register items 66, 67, 74) and a latency budget (item 100).
+11. A dependency audit and SBOM (`WI-SEC-004`).
+
+Two items were deferred to a later session by the lead: `WI-REPO-003` (how deferred items, notes and delegated-work findings are tracked) and register item 94 (marking the rules in `CLAUDE.md`).
 
 ## Where the next work is
 
