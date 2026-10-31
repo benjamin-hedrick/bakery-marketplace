@@ -27,7 +27,7 @@ Format for all: Mermaid in Markdown (already the repo convention, renders on Git
 | G-D15 | Reader paths / document map | None | | Five-minute path (README, status, one trace), engineer path (architecture, method, evidence), goal A path (test strategy, quality gates, flake record), goal B path (data-fetching guide, ADR-0012/0013/0014) | this review | T-01, T-02 | Done | `README.md` reading order and `docs/index.md` |
 | G-D16 | Roadmap chart | `roadmap.md` stub | | Phases from `project-plan.md` (relative sequence, no dates), slice 1 done, next work in the order of the target map | `project-plan.md`, `50` | T-43 | Done | `docs/product/roadmap.md` |
 | G-D17 | Status charts | None | | Counts by status (specs, ADRs, register items), generated from `STATUS.md` | T-08 | T-08 | Done | `docs/product/backlog/STATUS.md` (tables, no charts) |
-| G-D18 | Quality trend charts | None | | Pass rate, flake rate, suite duration over runs | T-32 data | T-32 | Open | `WI-QA-002` |
+| G-D18 | Quality trend charts | None | | Pass rate, flake rate, suite duration over runs | T-32 data | T-32 | Done | The run-by-run table with duration bars in `docs/evidence/quality-report-2026-10-30.md` (a table with bars, not a drawn chart) |
 | G-D19 | Deployment target (planned) | Bullets in `tech-stack.md` | | Container Apps for four runtimes, APIM in front of services, Entra, Key Vault, Application Insights, collector; every box labelled planned | ADR-0007/0008/0016 | T-60 | Done | `docs/architecture/c4/container.md` section 2 |
 
 ## 2. API and contract information
@@ -71,7 +71,7 @@ Format for all: Mermaid in Markdown (already the repo convention, renders on Git
 | G-T07 | Runbook | none yet | `operations/runbooks/` | Open | `WI-OPS-002` |
 | G-T08 | Postmortem / game-day record | test-reliability | `operations/postmortems/` | Open | `WI-LAUNCH-002` |
 | G-T09 | Permit to Build / Permit to Operate (retrospective, filled once for slice 1) | peer CI-05/06 | `method/` | Dropped | skipped by the lead on 2026-10-30; `docs/method/lessons.md` L-06 |
-| G-T10 | Test report (the `summarize-results` output with the Current result line) | `quality-gates.md` | `evidence/` | Open | `WI-QA-002` |
+| G-T10 | Test report (the `summarize-results` output with the Current result line) | `quality-gates.md` | `evidence/` | Done | `docs/evidence/quality-report-2026-10-30.md`, from `scripts/ci/quality-report.mjs` |
 
 ## 5. Standards to write down (they exist as practice)
 
@@ -110,9 +110,9 @@ Format for all: Mermaid in Markdown (already the repo convention, renders on Git
 | G-H03 | Flake rate of the browser suites is near zero after the fixes | test-reliability | G-E03 | Flake rate with N | Done | `docs/evidence/baseline-2026-10-30.md` |
 | G-H04 | Front-loaded design reduced rework | PI-002 | Count rework commits attributable to late decisions (ADR-0009, ADR-0017, D-9, the spent key) from git history | A short table | Open | `WI-QA-002` |
 | G-H05 | Bounded, categorized context lets an agent work narrowly | PI-003, playbook | Compare the seven September packets' outcomes with the interactive work (rework, drift incidents) | Two incidents (packet 05, WI-AUTH-005 drift) versus none in October | Open | `WI-QA-002` |
-| G-H06 | Status banners plus a generated table keep the repository consistent | this review | After the edit pass, change one item's status and confirm the table and checks catch every stale mention | A before/after | Open | `WI-QA-002` |
+| G-H06 | Status banners plus a generated table keep the repository consistent | this review | After the edit pass, change one item's status and confirm the table and checks catch every stale mention | A before/after | Done | Run: `docs/evidence/status-check-experiment-2026-10-30.md`. Result: the checks catch a header, count or `STATUS.md` mismatch but not prose mentions; 21 structured mentions are now checked, the rest is register item 99 |
 | G-H07 | A documented demo path works for a stranger | T-03 | Have someone else follow the README | Gaps found, fixed | Open | `WI-DEMO-001` |
-| G-H08 | The BFF and cache design meet the NFR targets | ADR-0013/0014, SLA | T-27 | Measured p95 | Open | `WI-QA-002` |
+| G-H08 | The BFF and cache design meet the NFR targets | ADR-0013/0014, SLA | T-27 | Measured p95 | Dropped | There is no latency target and no service uses the cache, so the claim cannot be tested as written; the measured numbers are in `docs/evidence/latency-2026-10-30.md` and the decision to set a budget is register item 100 |
 | G-H09 | Reading time: a visitor finds the main evidence in five minutes | holistic goal | Time a reader | Observation, adjust README | Open | `WI-DEMO-001` |
 
 ## 8. How these feed the plan
