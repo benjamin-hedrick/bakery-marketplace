@@ -57,6 +57,8 @@ jobs:
         displayName: Status check (fails when a banner, a header or STATUS.md is wrong; fix with node scripts/docs/status.mjs)
       - script: node scripts/docs/linkcheck.mjs . --fail-on-broken-links
         displayName: Link check (fails on a broken relative link; broken backtick paths are only counted)
+      - script: node scripts/docs/traceability.mjs --check
+        displayName: Traceability table is current (fix with node scripts/docs/traceability.mjs)
 
   - job: dotnet
     displayName: .NET build and tests
