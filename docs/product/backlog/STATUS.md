@@ -172,9 +172,9 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0016](../../architecture/adr/0016-opentelemetry-tracing.md) | OpenTelemetry Tracing and W3C Trace Context as the Correlation Mechanism | Accepted | Accepted (2026-10-26) — amends `tech-stack.md` (Observability row) and changes the ID source for `WI-TOOL-0... |
 | [0017](../../architecture/adr/0017-stock-and-availability-ownership.md) | Stock and Availability Ownership | Accepted | Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter. |
 | [0018](../../architecture/adr/0018-service-to-service-authentication.md) | Service-to-Service Authentication (OAuth2 Client Credentials) | Accepted | Accepted (2026-10-31) |
-| [0020](../../architecture/adr/0020-deployment-pipeline-and-environments.md) | Deployment pipeline, environments and configuration | Proposed | Proposed (2026-10-31) |
+| [0020](../../architecture/adr/0020-deployment-pipeline-and-environments.md) | Deployment pipeline, environments and configuration | Accepted | Accepted (2026-10-31) |
 
-Accepted: 17 · Superseded: 1 · Proposed: 1
+Accepted: 18 · Superseded: 1
 
 ## Open-items register
 
@@ -241,7 +241,7 @@ Accepted: 17 · Superseded: 1 · Proposed: 1
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
-| Resolved | 27 |
+| Resolved | 28 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 46 |
+| Open | 45 |

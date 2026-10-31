@@ -23,9 +23,9 @@ The testing approach is in [`test-strategy.md`](test-strategy.md). `WI-PORT-003`
 | Web build + mock e2e | `npm run test:e2e` in `apps/web-customer` (builds, starts a mock BFF, Chromium) | `npx playwright install chromium` | `web` |
 | Walking skeleton, real stack | `node scripts/ci/skeleton-smoke.mjs` (local secrets, Compose with the mock issuer, seed, catalog, ordering, BFF, Next.js, Playwright, teardown) | Docker, .NET, Node, the two `npm ci` runs | `skeleton` |
 | Result summary | `node scripts/ci/summarize-results.mjs [--json out] <trx or junit files>` | | all |
-| Documentation status | `node scripts/docs/status.mjs --check` (regenerate with no flag): every spec has a banner, headers agree with banners, epic counts match their specs, `STATUS.md` is current | Node | `docs` (written 2026-10-30, not yet run on Azure) |
-| Traceability table | `node scripts/docs/traceability.mjs --check` (regenerate with no flag): `docs/product/backlog/TRACEABILITY.md` lists, for each built or Done work item, the test files and evidence records that name it | Node, git | `docs` (written 2026-10-30, not yet run on Azure) |
-| Documentation links | `node scripts/docs/linkcheck.mjs . [out.json] --fail-on-broken-links`: relative links (fails on a broken one) and backtick paths that name repo files (counted only: some are historical or project-relative); also counts a list of stale phrases | Node, git | `docs` (written 2026-10-30, not yet run on Azure) |
+| Documentation status | `node scripts/docs/status.mjs --check` (regenerate with no flag): every spec has a banner, headers agree with banners, epic counts match their specs, `STATUS.md` is current | Node | `docs` (written 2026-10-30; seen green on Azure 2026-10-31) |
+| Traceability table | `node scripts/docs/traceability.mjs --check` (regenerate with no flag): `docs/product/backlog/TRACEABILITY.md` lists, for each built or Done work item, the test files and evidence records that name it | Node, git | `docs` (written 2026-10-30; seen green on Azure 2026-10-31) |
+| Documentation links | `node scripts/docs/linkcheck.mjs . [out.json] --fail-on-broken-links`: relative links (fails on a broken one) and backtick paths that name repo files (counted only: some are historical or project-relative); also counts a list of stale phrases | Node, git | `docs` (written 2026-10-30; seen green on Azure 2026-10-31) |
 | Docs site build | `mkdocs build` (needs `pip install mkdocs-material`; not installed in the repo's tooling). Run once on 2026-10-30: built, one link outside `docs/` found and fixed. The site is not published | Python | **none** |
 | Diagram syntax | no script in the repository. On 2026-10-30 the Mermaid blocks were parsed ad hoc with `mermaid@11.4.1` and `jsdom` | Node | **none** |
 
@@ -78,10 +78,10 @@ Not run in the pipeline: the emulator-gated Cosmos tests, the real-stack journey
 | BFF format, lint, typecheck, tests | Yes (`bff` job) | Yes | No |
 | Web format, lint, typecheck, mock browser suite | Yes (`web` job) | Yes | No |
 | Real-stack journeys | Yes (`skeleton` job) | `skeleton-smoke.mjs` | No |
-| Documentation status check | Written 2026-10-30, **not yet run on Azure** (`docs` job) | `status.mjs --check`; also in `scripts/ci/node-gates.mjs` | No (soft gate) |
-| Link check | Written 2026-10-30, **not yet run on Azure** (`docs` job): fails on a broken relative link only | `linkcheck.mjs --fail-on-broken-links` (0 broken links; 213 unresolved backtick paths are counted, not enforced); also in `node-gates.mjs` | No (soft gate) |
+| Documentation status check | Yes, seen green on Azure 2026-10-31 (`docs` job) | `status.mjs --check`; also in `scripts/ci/node-gates.mjs` | No (soft gate) |
+| Link check | Yes, seen green on Azure 2026-10-31 (`docs` job): fails on a broken relative link only | `linkcheck.mjs --fail-on-broken-links` (0 broken links; 213 unresolved backtick paths are counted, not enforced); also in `node-gates.mjs` | No (soft gate) |
 | Diagram syntax | **No** | ad hoc | **No** |
-| Secret scan (full history) | Written 2026-10-30, **not yet run on Azure** (`secrets` job) | `node scripts/ci/secret-scan.mjs` (gitleaks container, `.gitleaks.toml`); run locally, no leaks | No |
+| Secret scan (full history) | Yes, seen green on Azure 2026-10-31 (`secrets` job) | `node scripts/ci/secret-scan.mjs` (gitleaks container, `.gitleaks.toml`); run locally, no leaks | No |
 | Dependency audit, SBOM | **No** (not built) | `npm audit` by hand | **No** |
 
 The documentation checks are now a pipeline job (register item 90, option a) and part of `node scripts/ci/node-gates.mjs`; being a soft gate, a reviewer still has to read the check. A git hook or a Claude Code hook (options b and c) were not added. Not enforced: broken backtick paths (a count, no threshold) and the Mermaid diagram syntax.
@@ -106,3 +106,19 @@ GitHub rulesets with required checks are not available on this plan (they need a
 - Passed, failed, skipped and not-run are separate counts; they are never merged into one "ok".
 - `seconds` is the suite's own reported duration, so comparing records shows execution-time drift. `retries` counts tests that failed then passed on retry (Playwright `flakyTest`); the repo currently sets retries to 0, so it is always 0.
 - A flake is a suite whose `failed` differs between two runs of the same `commit`. Record runs by saving the JSON under `docs/evidence/<WI-ID>/` or as the pipeline artifact `*-results`; there is no automatic comparison yet.
+
+## Seen on Azure (2026-10-31)
+
+Reported by the human lead for the pull request that merged the second batch of work (branch `feature/ops-and-okrs`): all six jobs of `azure-pipelines.yml` passed. The run id was not recorded.
+
+| Job | Duration |
+|---|---|
+| Secret scan (gitleaks, full history) | 14 s |
+| Documentation checks (status, links, traceability table) | 4 s |
+| .NET build and tests | 2 m 44 s |
+| GraphQL BFF | 1 m 9 s |
+| web-customer (mock BFF) | 2 m 59 s |
+| Walking skeleton (real stack) | 5 m 3 s |
+
+The `terraform` job (2026-10-31) has not run on Azure. The docs job's duration is the whole job, so it does not show which of its checks ran; the traceability check was added to it before that pull request.
+

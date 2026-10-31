@@ -1,6 +1,6 @@
 # ADR-0020: Deployment pipeline, environments and configuration
 
-**Status:** Proposed (2026-10-31)
+**Status:** Accepted (2026-10-31)
 
 ADR-0019 is reserved in the planning documents for the cookie session (`N-01`) and is not written; this ADR takes the next free number.
 
@@ -61,3 +61,8 @@ The Azure DevOps settings to confirm on that day (fork builds without secrets, c
 ## Related
 
 ADR-0007, ADR-0012, ADR-0015, ADR-0018; `WI-DEP-001`; register items 101 and 102; `docs/management/budget-cost-estimate.md`.
+
+## Acceptance (2026-10-31)
+
+Accepted by the human lead, with the amendments above: the dev operations pipeline as its own file (`azure-pipelines-dev.yml`, first a rehearsal), and the empty dev resource group created by the bootstrap, with the deploy identity limited to the foundation and dev resource groups (register item 106, decided the same day). Acceptance is of the design; nothing in it has run on Azure. The gates are proved by `docs/operations/runbooks/prove-the-pipeline-gates.md`, which has not been run.
+

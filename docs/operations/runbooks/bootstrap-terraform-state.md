@@ -4,13 +4,13 @@
 
 **Purpose.** Terraform cannot create the place its own state lives, and the pipeline cannot create its own identity. A person does both once, here. Afterwards Terraform and the pipeline manage everything else. Nothing in this procedure creates or stores a secret: the state is reached with Entra identities (no storage key), and the pipeline connects with workload identity federation (no password).
 
-## Decision needed first (register item 106)
+## The access design (register item 106, approved by the lead 2026-10-31)
 
-Who may do what is not settled. This page assumes the design below; confirm or change it before step 4.
+This is the approved design. If a step shows it cannot be done as written (the role condition in particular), stop and record it; the fallback is that the lead applies the role assignments by hand.
 
 - A **plan** identity that can only read: Reader on the subscription and Storage Blob Data Reader on the state container.
 - A **deploy** identity: Contributor on the dev resource group and the foundation resource group only (not the subscription), AcrPush on the registry, Storage Blob Data Contributor on the state container.
-- The dev stack creates role assignments (for example AcrPull for the container apps' identity, Key Vault roles). Writing role assignments needs more than Contributor; give the deploy identity **Role Based Access Control Administrator** on those two resource groups only, constrained to the roles it needs (AcrPull, Key Vault Secrets User), or run the stack's role assignments yourself. This is the privileged step ADR-0018 asked you to keep out of the pipeline's reach; decide which way it goes.
+- The dev stack creates role assignments (for example AcrPull for the container apps' identity, Key Vault roles). Writing role assignments needs more than Contributor; give the deploy identity **Role Based Access Control Administrator** on those two resource groups only, constrained to the roles it needs (AcrPull, Key Vault Secrets User), or run the stack's role assignments yourself. This is the privileged step ADR-0018 asked you to keep out of the pipeline's reach; the pipeline gets only the constrained role on these two groups and no Graph permission.
 - The dev resource group is **created here** (empty) and the environment stack works inside it. Teardown then removes what is in it and leaves the empty group, so the deploy identity never needs rights over the whole subscription and a destroy can never remove the group's role assignments for the pipeline.
 
 ## Steps

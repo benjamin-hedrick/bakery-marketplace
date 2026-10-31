@@ -26,7 +26,7 @@ Targets are proposals. Nothing here is a commitment or schedule, and nothing nee
 | KR2.1 A fresh clone runs the README path green | Pass at every release candidate | 1 of 1: 21 of 21 journeys, 112 s (`docs/evidence/fresh-clone-2026-10-30.md`) | Re-run the fresh-clone procedure | Measured today |
 | KR2.2 Browser-suite failures in repeated runs | 0 failures in at least 570 executions per slice | 0 of 620 (62 tests, 10 runs by script, `docs/evidence/quality-report-2026-10-30.md`; 0 of 570 with 57 tests earlier, `docs/evidence/baseline-2026-10-30.md`) | `node scripts/ci/repeat-suite.mjs`: 10 consecutive runs, one worker, no retries | Measured today |
 | KR2.3 Sampled tests that fail when their code is broken (mutation sample, by hand) | 9 of 10 or better, on a new sample each slice | 9 of 10; one test exercised the framework, not the project's code (register 85) | Hand-made one-line changes | Measured today |
-| KR2.4 Documentation checks enforced automatically (status check, link check) | 2 of 2, confirmed on a pipeline run | 2 of 2 written in the pipeline `docs` job and in `node scripts/ci/node-gates.mjs` (2026-10-30); not yet run on Azure (register 90). Statuses written in prose are mostly unchecked (register 99) | The pipeline or a hook | Measured today |
+| KR2.4 Documentation checks enforced automatically (status check, link check) | 2 of 2, confirmed on a pipeline run | 2 of 2 in the pipeline `docs` job (seen green on Azure 2026-10-31, run id not recorded) and in `node scripts/ci/node-gates.mjs` (register 90). Statuses written in prose are mostly unchecked (register 99) | The pipeline or a hook | Measured today |
 
 ## O3. AI collaboration is controlled and its results are measured
 
