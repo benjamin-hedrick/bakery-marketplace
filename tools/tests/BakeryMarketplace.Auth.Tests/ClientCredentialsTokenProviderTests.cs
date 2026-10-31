@@ -226,6 +226,36 @@ public class ClientCredentialsTokenProviderTests
         else Assert.Throws<InvalidOperationException>(() => Provider(new FakeTokenEndpoint(), new ManualTime(), options));
     }
 
+    [Theory]
+    [InlineData("http://mock-oidc:5100/token", true)] // the Compose network: another container, plain http, only when the host opted in
+    [InlineData("https://auth.example.com/token", true)]
+    [InlineData("/relative", false)] // the opt-in relaxes TLS only; the scheme rule stays
+    [InlineData("file:///etc/token", false)]
+    [InlineData("ftp://mock-oidc/token", false)]
+    public void TheHostCanOptInToPlainHttpForNonLoopback_ButNotToOtherSchemes(string endpoint, bool allowed)
+    {
+        var options = Options();
+        options.TokenEndpoint = endpoint;
+        options.AllowInsecureTokenEndpoint = true;
+
+        if (allowed) Provider(new FakeTokenEndpoint(), new ManualTime(), options);
+        else Assert.Throws<InvalidOperationException>(() => Provider(new FakeTokenEndpoint(), new ManualTime(), options));
+    }
+
+    [Fact]
+    public void TheInsecureTokenEndpointOptInIsOffByDefault_AndCannotBeSetFromConfiguration()
+    {
+        Assert.False(new ClientCredentialsOptions().AllowInsecureTokenEndpoint);
+
+        var values = FullConfig();
+        values["ServiceAuth:TokenEndpoint"] = "http://mock-oidc:5100/token";
+        values["ServiceAuth:AllowInsecureTokenEndpoint"] = "true";
+        Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddBakeryServiceAuth(Config(values)));
+
+        // The same endpoint is accepted when the host's code passes the flag.
+        new ServiceCollection().AddBakeryServiceAuth(Config(values), allowInsecureTokenEndpoint: true);
+    }
+
     [Fact]
     public void ExactlyOneCredentialMustBeConfigured()
     {

@@ -13,9 +13,11 @@ public static class ServiceAuthExtensions
     /// Registers the token provider from configuration (section <paramref name="sectionName"/>, default <c>ServiceAuth</c>:
     /// <c>TokenEndpoint</c>, <c>ClientId</c>, <c>Scope</c>, <c>ClientSecret</c>). A missing or malformed value stops the service at
     /// startup (ADR-0007). This registers the secret credential; a federated assertion supplier is added with phase 2 of WI-AUTH-006.
+    /// <paramref name="allowInsecureTokenEndpoint"/> permits a plain-http token endpoint that is not loopback; the host passes it only for
+    /// the local Compose network (never from configuration).
     /// </summary>
     public static IServiceCollection AddBakeryServiceAuth(
-        this IServiceCollection services, IConfiguration configuration, string sectionName = "ServiceAuth")
+        this IServiceCollection services, IConfiguration configuration, string sectionName = "ServiceAuth", bool allowInsecureTokenEndpoint = false)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -31,6 +33,7 @@ public static class ServiceAuthExtensions
             options.ClientId = section["ClientId"]!;
             options.Scope = section["Scope"]!;
             options.ClientSecret = section["ClientSecret"];
+            options.AllowInsecureTokenEndpoint = allowInsecureTokenEndpoint;
         }
 
         // Check the rules (https unless loopback, http(s) only, one credential) now, so a bad value stops the service at startup

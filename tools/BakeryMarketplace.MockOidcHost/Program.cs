@@ -41,6 +41,8 @@ var redirectUris = builder.Configuration.GetSection("MockOidc:RedirectUris").Get
     ? registered
     : MockOidcIssuer.DefaultRedirectUris;
 
-app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients, redirectUris);
+// MockOidc__Issuer fixes the issuer string (the address the browser uses), so services that reach this host by its container name still see one issuer.
+var issuer = builder.Configuration["MockOidc:Issuer"];
+app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients, redirectUris, string.IsNullOrWhiteSpace(issuer) ? null : issuer);
 
 app.Run();

@@ -19,6 +19,12 @@ public sealed class ClientCredentialsOptions
 
     public string? ClientSecret { get; set; }
 
+    /// <summary>
+    /// Lets the secret go to a plain-http, non-loopback token endpoint. Off by default and not read from configuration: only the host's code sets it
+    /// (the local Compose network, where the issuer is another container). A deployed environment keeps it off and uses https.
+    /// </summary>
+    public bool AllowInsecureTokenEndpoint { get; set; }
+
     /// <summary>Returns a fresh signed client assertion (a JWT) on each call.</summary>
     public Func<CancellationToken, Task<string>>? ClientAssertion { get; set; }
 
@@ -166,8 +172,8 @@ public sealed class ClientCredentialsTokenProvider
         if (!Uri.TryCreate(o.TokenEndpoint, UriKind.Absolute, out var endpoint)
             || (endpoint.Scheme != Uri.UriSchemeHttps && endpoint.Scheme != Uri.UriSchemeHttp))
             throw new InvalidOperationException("ServiceAuth:TokenEndpoint must be an absolute http(s) URL.");
-        // A secret or assertion is only ever sent over TLS, except to a loopback address (the local mock issuer).
-        if (endpoint.Scheme != Uri.UriSchemeHttps && !endpoint.IsLoopback)
+        // A secret or assertion is only ever sent over TLS, except to a loopback address (the local mock issuer) or when the host opted in.
+        if (endpoint.Scheme != Uri.UriSchemeHttps && !endpoint.IsLoopback && !o.AllowInsecureTokenEndpoint)
             throw new InvalidOperationException("ServiceAuth:TokenEndpoint must use https unless it is a loopback address.");
         if (string.IsNullOrWhiteSpace(o.ClientId)) throw new InvalidOperationException("ServiceAuth:ClientId is required.");
         if (string.IsNullOrWhiteSpace(o.Scope)) throw new InvalidOperationException("ServiceAuth:Scope is required.");

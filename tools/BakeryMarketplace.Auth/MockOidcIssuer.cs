@@ -46,6 +46,16 @@ public static class MockOidcIssuer
         return value;
     }
 
+    private static string ValidateIssuer(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || !string.IsNullOrEmpty(uri.Fragment) || !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            throw new ArgumentException($"'{value}' is not an issuer URL (an absolute http or https address without a fragment or credentials).", nameof(value));
+        }
+        return value.TrimEnd('/');
+    }
+
     /// <summary>
     /// Maps the mock OIDC endpoints to the given route builder.
     /// </summary>
@@ -60,12 +70,20 @@ public static class MockOidcIssuer
     /// trailing-slash leniency) and never redirected to otherwise. Null accepts any address (the library default, for tests); the runnable host
     /// passes <see cref="DefaultRedirectUris"/> or its configuration, and an empty list refuses every login.
     /// </param>
+    /// <param name="issuer">
+    /// A fixed issuer URL for the <c>iss</c> claim and the discovery document's <c>issuer</c>, as a real tenant has. Null derives it from the request's
+    /// host (the default), which only works while every client reaches the issuer by the same address. The endpoint URLs in the discovery
+    /// document always follow the request, so a client that fetches metadata by another address (a container network) still gets reachable endpoints.
+    /// </param>
     public static IEndpointRouteBuilder MapMockOidcIssuer(
         this IEndpointRouteBuilder endpoints,
         string audience = "bakery-marketplace",
         IReadOnlyCollection<MockClient>? clients = null,
-        IReadOnlyCollection<string>? redirectUris = null)
+        IReadOnlyCollection<string>? redirectUris = null,
+        string? issuer = null)
     {
+        var fixedIssuer = issuer is null ? null : ValidateIssuer(issuer);
+        string IssuerFor(string requestBase) => fixedIssuer ?? requestBase;
         var registeredClients = (clients ?? Array.Empty<MockClient>()).ToDictionary(c => c.ClientId, StringComparer.Ordinal);
         foreach (var client in registeredClients.Values) client.Validate();
         var allowedRedirects = redirectUris?.Select(ValidateRedirectUri).ToHashSet(StringComparer.Ordinal);
@@ -76,7 +94,7 @@ public static class MockOidcIssuer
             var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
             return Results.Ok(new
             {
-                issuer = baseUrl,
+                issuer = IssuerFor(baseUrl),
                 jwks_uri = $"{baseUrl}/.well-known/jwks.json",
                 authorization_endpoint = $"{baseUrl}/authorize",
                 token_endpoint = $"{baseUrl}/token",
@@ -230,12 +248,12 @@ public static class MockOidcIssuer
                 AuthCodes.TryRemove(code, out _);
 
                 var user = MockUsers.All[authCodeData.UserId];
-                var tokenResponse = GenerateTokens(user, baseUrl, audience);
+                var tokenResponse = GenerateTokens(user, IssuerFor(baseUrl), audience);
                 return Results.Ok(tokenResponse);
             }
             else if (grantType == "client_credentials")
             {
-                return ClientCredentialsGrant(request, form, registeredClients, baseUrl, audience);
+                return ClientCredentialsGrant(request, form, registeredClients, IssuerFor(baseUrl), audience);
             }
 
             return Results.BadRequest(new { error = "unsupported_grant_type" });
