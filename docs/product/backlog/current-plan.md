@@ -10,11 +10,13 @@ Not built: the admin and notification services (scaffolds), the vendor and queue
 
 ## What is happening now
 
-The documentation reconciliation (`WI-PORT-006`) is finished and is going through a pull request. Everything it found is accounted for: what was fixed is in the documents, what is open is in the gap catalog (`gap-catalog/`), the register and the specs in `STATUS.md`, and how each finding was handled is in `docs/history/review-2026-10/closing-record.md`. No work is scheduled; the open items are Deferred or Proposed, each with a trigger, and the order is the lead's decision (see the candidate order in `docs/product/roadmap.md`).
+The public-readiness pass is done except the settings that need the repository to be public (register item 93), and a second batch of work is on the branch `feature/ops-and-okrs`, pending review: a runbook and its test run, the first OKRs, a one-command demo with screenshots, a styling pass, a test strategy with an accessibility smoke and a traceability table, documentation checks in the pipeline, and scripted quality and latency measurements. Several of these are written but not yet seen on Azure (the `secrets` and `docs` jobs); the status of each is in `STATUS.md` and the specifics are in the commit messages and the evidence records.
 
 **Priorities (set 2026-10-29):** 1. a polished, consistent repository that can be public, showing AI collaboration, architecture and software, and business and project work; 2. it builds and runs locally; 3. more evidence and coverage; 4. deploy and tear down a dev environment; 5. a public demo.
 
-**Next session:** `WI-REPO-003` (how deferred items, notes and delegated-work findings are tracked) and register item 94 (marking the rules in `CLAUDE.md`) are the two items deferred to a later session; the first spec to pick up is the lead's choice (`WI-OPS-002` is Done and `WI-PROD-004` is in review, 2026-10-30).
+**Waiting on the lead:** the OKR targets and the definition of the north-star safety metric (`WI-PROD-004`, In review); the first Azure run of the new pipeline jobs; the cold-machine run and a fresh reader following the demo page (`WI-DEMO-001`, In review); the flip-day settings (item 93).
+
+**Next, in the order proposed (not agreed):** the vendor read side and queue display (`N-03`, `N-04`), which would give the event backbone a consumer; the two open theory tests (`WI-QA-002`, rows `G-H04` and `G-H05`); a dependency audit and SBOM (`WI-SEC-004`); a recording of the demo journey; a deployed dev environment (`WI-DEP-001`). Two items were deferred to a later session by the lead: `WI-REPO-003` (how deferred items, notes and delegated-work findings are tracked) and register item 94 (marking the rules in `CLAUDE.md`).
 
 ## Where the next work is
 

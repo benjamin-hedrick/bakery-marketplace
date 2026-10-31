@@ -47,6 +47,10 @@ The point of this table is the right-hand column. Each error was caught by a con
 | A JWT test | It built its own validation parameters and exercised the framework, so turning issuer validation off in the project's own code left it green | The mutation sample of 2026-10-30 (register 85) |
 | Cosmos adapter tests | They pass without touching Cosmos, and fail against the real emulator | A run against the emulator (register 31) |
 | This reconciliation, October 2026 | A time for a whole browser journey was compared with the time of a single call; a squash merge was assumed to keep early commits out of `main` when older commits were already there; the surprise rule was substituted for context completeness; one approved mutation check was missing from the first batch | Writing the ADR note; reading the branch history; the lead's review; tallying against the approved list |
+| A new script (`secret-scan.mjs`), 2026-10-30 | It was committed without running Prettier, whose check in the `web` job covers `scripts/` | The Azure format check; the cure is `scripts/ci/node-gates.mjs` (register item 95) |
+| A pasted pipeline error, 2026-10-30 | A fix was pushed to a branch whose pull request the lead was still reviewing, against the rule to fix locally and push once when agreed | The lead; a permission prompt on `git push` was added as a backstop |
+| Writing a record, 2026-10-30 | A heredoc with backticks in it ran the backticked commands, including a 10-run test job, instead of writing them | The command timing out; the job was stopped and nothing in the tree had changed |
+| Writing evidence, 2026-10-30 | Text stated more than was measured: "flat, no drift" for runs that fell from 34.2 s to 31.4 s; a status listed as stale that did not state one; a cause for a 7 s timing that was not checked | Re-reading the claim against the output before committing |
 
 Seven of the ten test episodes were found by the clean Linux pipeline or container run and not on the development machine (`docs/evidence/test-reliability/findings.md`).
 
