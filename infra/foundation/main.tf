@@ -69,3 +69,21 @@ resource "azurerm_consumption_budget_resource_group" "foundation" {
     contact_emails = var.budget_contact_emails
   }
 }
+
+# One identity per environment, used by that environment's container apps to pull images and to read Key Vault references. It is persistent so
+# the AcrPull grant below (scope: the registry, in this group) is never part of an environment teardown. The environment stack grants it
+# Key Vault Secrets User on its own vault. It holds no secret; deleting it would stop image pulls.
+resource "azurerm_user_assigned_identity" "apps" {
+  for_each            = var.app_identities
+  name                = "id-${var.name_prefix}-${each.key}-apps"
+  resource_group_name = azurerm_resource_group.foundation.name
+  location            = azurerm_resource_group.foundation.location
+  tags                = merge(local.tags, { Environment = each.key })
+}
+
+resource "azurerm_role_assignment" "acr_pull_apps" {
+  for_each             = azurerm_user_assigned_identity.apps
+  scope                = azurerm_container_registry.acr.id
+  role_definition_name = "AcrPull"
+  principal_id         = each.value.principal_id
+}

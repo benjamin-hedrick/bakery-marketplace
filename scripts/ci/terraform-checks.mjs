@@ -19,7 +19,7 @@ const image = 'hashicorp/terraform@sha256:6bbb82d575aa7bd4f0a2c6e3a0838ab9590426
 
 const argv = process.argv.slice(2);
 const rootsArg = argv.includes('--roots') ? argv[argv.indexOf('--roots') + 1] : undefined;
-const roots = (rootsArg ?? 'infra/foundation').split(',').map((r) => r.trim());
+const roots = (rootsArg ?? 'infra/foundation,infra/environments/dev').split(',').map((r) => r.trim());
 
 function terraform(workdir, args) {
   const docker = ['run', '--rm', '-e', 'HOME=/tmp', '-e', 'TF_IN_AUTOMATION=1', '-e', 'TF_INPUT=0'];

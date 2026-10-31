@@ -578,3 +578,13 @@ Type: Verification gap · Source: `WI-DEP-001` (2026-10-31) · Hat: Platform Eng
 Status: Open
 `scripts/ci/destroy-guard.mjs` reads `terraform show -json` output. Its fixtures were written by hand from the documented format, so the attributes it relies on (`resource_group_name`, `scope`, `resource_group_id`, `id`, `tags` in `before`) are not confirmed against a real destroy plan of this stack. It fails closed (an unknown group is a refusal), so the risk is a false refusal, not a false pass, but it must be run on the first real destroy plan and the output compared. Also unproven: that every resource in the future environment stack carries a resource-group attribute the guard recognises.
 
+
+**108. The deploy identity needs Key Vault Secrets Officer, which is outside the approved role condition**
+Type: Open decision (IAM, needs the lead's approval) · Source: `WI-DEP-001`, register item 106 (2026-10-31) · Hat: Security, Manager/Lead
+Status: Open
+Item 106 limited the deploy identity's role-assignment rights to AcrPull and Key Vault Secrets User. The environment stack (`infra/environments/dev`) also grants the deploy identity Key Vault Secrets Officer on the environment's vault, because with an RBAC vault even a Contributor cannot create secrets, and the post-apply step has to set the Cosmos and ordering secrets. Decide: add Secrets Officer to the condition (scope is the dev vault only, destroyed with it), or have the lead set the two secrets by hand after each apply. Until decided the stack must not be applied. Also unverified: that `purge_soft_delete_on_destroy` removes the vault on destroy so a rebuilt environment can reuse its name.
+
+**109. Cosmos access uses a key through Key Vault; managed identity is a later hardening item**
+Type: Deferred hardening · Source: `WI-DEP-001`, ADR-0007, ADR-0020 (2026-10-31) · Hat: Security, Architect
+Status: Deferred · approved by the lead on 2026-10-31 to do later; trigger: after the first successful deploy
+The services read only `Cosmos:ConnectionString`. The dev stack therefore holds the account key as a Key Vault secret set after apply (never in state). The hardening is to let the services authenticate to Cosmos with their managed identity and a data-plane role (ADR-0007), which removes the secret, the post-apply step and its Secrets Officer grant (item 108). It changes service data-access code and the Terraform role assignment, so it needs the lead's approval of the change when it is started. The local emulator cannot use Entra, so the local path keeps a key.
