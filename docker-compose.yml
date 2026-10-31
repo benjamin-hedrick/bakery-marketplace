@@ -139,7 +139,7 @@ services:
       ServiceAuth__TokenEndpoint: http://mock-oidc:5100/token
       ServiceAuth__ClientId: ordering-service
       ServiceAuth__Scope: bakery-marketplace/.default
-      ServiceAuth__ClientSecret: ${ORDERING_CLIENT_SECRET:?run node scripts/dev/init-env.mjs first}
+      ServiceAuth__ClientSecret: ${ORDERING_CLIENT_SECRET:-} # from .env (node scripts/dev/init-env.mjs); empty makes ordering stop at start-up, naming the missing setting
     ports: ["127.0.0.1:${ORDERING_PORT:-5300}:5300"]
 
   graphql-bff:
