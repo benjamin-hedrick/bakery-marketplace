@@ -87,5 +87,7 @@ Nothing below is a target. All numbers are from one developer machine, Windows 1
 | Mock-backed browser suite, 10 runs of 57 tests | 0 failures; 27.6 to 30.0 s per run |
 | Real-stack journeys, 3 runs of 21 | 0 failures; 18.9 to 19.7 s per run |
 | Server-rendered isolation | 200 of 200 concurrent requests contained only their own fixture |
+| Scripted latency run (`scripts/dev/measure-latency.mjs`, warm stack, 50 rounds of reads and 20 orders, sequential) | BFF listings query p95 33 ms, home page p95 42 ms, pickup windows p95 5 ms, checkout p50 63 ms and p95 75 ms; the first checkout after a stack start 4.6 s (`docs/evidence/latency-2026-10-30.md`) |
+| Mock-backed browser suite, 10 runs of 62 tests (`scripts/ci/repeat-suite.mjs`) | 0 failures in 620 executions; failure-rate bound 0.62%; 31.4 to 34.2 s a run (`docs/evidence/quality-report-2026-10-30.md`) |
 
-**No latency budget exists.** ADR-0013 asks for one for the BFF "once measured"; the table above is one local data point, not a budget. The 99.0% availability target (section 2) has no measurement, because nothing is deployed.
+**No latency budget exists** (register item 100 proposes setting one from these data). ADR-0013 asks for one for the BFF "once measured"; the table above is one local data point, not a budget. The 99.0% availability target (section 2) has no measurement, because nothing is deployed.

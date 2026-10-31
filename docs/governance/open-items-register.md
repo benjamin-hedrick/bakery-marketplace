@@ -532,3 +532,13 @@ Resolution: one stylesheet, `apps/web-customer/src/styles/globals.css`, imported
 Type: Known limitation · Source: `WI-DEMO-001` (2026-10-30) · Hat: Engineering/Build
 Status: Open
 After `scripts/dev/demo.mjs` warms the issuer metadata, the home page and the pickup times, the first checkout still took 7.0 s (the first order in the outage run was 9.0 s cold, and warm checkouts take tens of milliseconds, `docs/evidence/baseline-2026-10-30.md`). The cost is on the first priced checkout: ordering's service token and first call to the catalog, and first-use costs in each hop. A warm-up that exercises that path without leaving an order behind would need a safe read-only route or a throwaway order and stock reset; neither exists. The demo document tells the presenter to expect it. Related: `docs/evidence/runbook-event-broker-2026-10-30.md`.
+
+**99. A work item's status is written in prose in several documents, and only one form is checked**
+Type: Process · Source: `WI-QA-002`, theory test `G-H06` (`docs/evidence/status-check-experiment-2026-10-30.md`) · Hat: Platform Engineering
+Status: Open
+`status.mjs --check` verifies the banner against the header, the epic counts and `STATUS.md`, and (since 2026-10-30) the 21 mentions in `epic-catalog.md` of the form `` `WI-X.md` (Status, date) ``. It does not verify the other 56 lines of the catalog that name a spec, or the statements of status in `demo-milestones.md` (confirmed in the experiment) and, not examined one by one, `scope.md`, `current-plan.md` and `roadmap.md`, so a changed status leaves stale prose that nobody is told about. Options, not exclusive: (a) a convention that prose never states a status and links the spec instead (the status lives only in the banner and the generated table); (b) generate the catalog's status words from the banners; (c) extend the check with a list of the known phrasings. Related: item 90.
+
+**100. No latency budget, though measured numbers now exist**
+Type: Decision · Source: `WI-QA-002` (2026-10-30) · Hat: Architect, Manager/Lead
+Status: Open
+ADR-0013 asks for a latency budget for the BFF "once measured", and `nfrs.md` says none exists. `docs/evidence/latency-2026-10-30.md` now gives a measured starting point on one machine (warm, sequential): BFF reads p95 33 to 42 ms, home page p95 42 ms, checkout p95 75 ms, first checkout after a stack start 4.6 s. A budget would state p95 targets per request kind and whether the cold first request counts, and would let the claim "the BFF and cache design meet the targets" (gap row `G-H08`) be tested; it would also need a deployed environment to mean anything beyond this machine. The numbers are not a proposal for the targets themselves. Related: items 98 and 87.

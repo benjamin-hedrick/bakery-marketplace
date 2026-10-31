@@ -11,12 +11,12 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 51 |
-| In progress | 2 |
+| In progress | 3 |
 | In review | 4 |
 | Built | 1 |
 | Ready | 12 |
 | Proposed | 4 |
-| Deferred | 13 |
+| Deferred | 12 |
 | Superseded | 1 |
 
 ## Epics (derived from the specs)
@@ -133,7 +133,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [PROD-003](WI-PROD-003.md) | Monetization model | EPIC-PRODUCT-STRATEGY | Proposed | decision: the commission percentage and ad revenue split are business assumptions the lead sets |
 | [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | EPIC-PRODUCT-STRATEGY | In review | decision: the lead sets the targets and confirms the north-star definition; first version written 2026-10-30 |
 | [QA-001](WI-QA-001.md) | Test strategy and guides | EPIC-QUALITY-EVIDENCE | Done | evidence: the Outcome note under this banner; `docs/process/test-strategy.md`, `playwright-guide.md`, `test-review-checklist.md`, `docs/product/backlog/TRACEABILITY.md`, `apps/web-customer/tests/e2e/accessibility.spec.ts` |
-| [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the baseline needs to be repeated or trended |
+| [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | EPIC-QUALITY-EVIDENCE | In progress | remaining: rows `G-H04` and `G-H05` (theory tests that need judgment), throughput, and a CI job for repeated runs |
 | [QA-003](WI-QA-003.md) | Planned experiments: AI-assisted testing and the mobile question | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead decides to run the experiments |
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | EPIC-QUEUE-DISPLAY | Ready |  |
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Ready |  |
@@ -177,16 +177,17 @@ Accepted: 16 · Superseded: 1 · Proposed: 1
 
 ## Open-items register
 
-98 numbered items in `docs/governance/open-items-register.md` (highest number 98).
+100 numbered items in `docs/governance/open-items-register.md` (highest number 100).
 
 | Type | Count |
 |---|---|
 | Known limitation | 9 |
 | Tracking | 7 |
 | Not started | 6 |
-| Process | 5 |
+| Process | 6 |
 | Documentation drift | 5 |
 | Verification gap | 4 |
+| Decision | 3 |
 | Gap | 3 |
 | Accepted risk | 2 |
 | Tech debt | 2 |
@@ -197,7 +198,6 @@ Accepted: 16 · Superseded: 1 · Proposed: 1
 | Open decision | 2 |
 | Design gap | 2 |
 | Missing capability | 2 |
-| Decision | 2 |
 | Missing API | 2 |
 | Missing rule | 2 |
 | Tech debt / future work | 1 |
@@ -242,4 +242,4 @@ Accepted: 16 · Superseded: 1 · Proposed: 1
 | Resolved | 26 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 38 |
+| Open | 40 |
