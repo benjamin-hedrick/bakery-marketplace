@@ -56,3 +56,23 @@ Reading: the rewrite adds about 1 ms over a direct call; either run-time variant
 ## Not tested
 
 Streaming or very large bodies, GET requests, behaviour under concurrent load, the Linux agent, memory use of the extra hop, whether `proxy.ts` is stable across Next.js minor versions, and the browser-visible runtime configuration endpoint (the login addresses), which is separate work.
+
+## Decision and result (2026-10-31, later the same day)
+
+The lead chose the **API route**. It is built as `src/pages/api/graphql.ts` (a thin page) over `src/lib/graphql-proxy.ts`, with the rewrite removed from `next.config.js`, the `GRAPHQL_URL` build argument removed from the web Dockerfile and Compose, and 9 new unit tests (62 in the suite). Differences from the spike code:
+
+- The fixed header list holds only real headers (`content-type`, `accept`, `authorization`, `traceparent`, `tracestate`, `baggage`). The test-only headers (`x-test-payment`, and the mock BFF's `x-fixture`, `x-delay-ms`, `x-place-order`) are named in `GRAPHQL_EXTRA_FORWARDED_HEADERS`, which only the test set-ups set. Moving the mock-backed browser suite to the new route first failed 22 of 62 tests until that setting was added; this is the same kind of difference as the `X-Test-Payment` finding above.
+- With no `GRAPHQL_URL` the route answers 502 and calls nothing. The old build used `http://localhost:4000/graphql` as a silent default; the mock-backed suite now sets the address explicitly.
+
+Checks on the final code: unit tests 62 of 62; `typecheck`, `lint` and `node-gates` pass; the mock-backed browser suite (`npm run test:e2e`) 62 of 62; the real-stack skeleton suite 21 of 21 against the four containers (`skeleton-smoke.mjs --containers`) and 21 of 21 against host processes (`skeleton-smoke.mjs`), each on a fresh stack; the final image, started with another `GRAPHQL_URL`, sent `/api/graphql` to that address.
+
+Latency of the final code, same method as above (three runs, mean of p50 / p95, through the web app's `/api/graphql`):
+
+| Path | BFF listings query | BFF pickup windows | Later checkouts |
+|---|---|---|---|
+| Direct to the BFF | 21.8 / 27.3 ms | 4.2 / 5.8 ms | 52.5 / 69.0 ms |
+| Rewrite (before) | 20.9 / 25.4 ms | 5.3 / 7.0 ms | 50.0 / 57.6 ms |
+| API route (final) | 22.3 / 25.7 ms | 6.5 / 8.4 ms | 51.9 / 57.4 ms |
+
+On this machine the change costs about 1 to 1.5 ms at p50 on the read paths and is not distinguishable from noise on checkouts. Not covered: the Linux agent, concurrent load, and the browser-visible configuration (the login addresses), which is still to do.
+

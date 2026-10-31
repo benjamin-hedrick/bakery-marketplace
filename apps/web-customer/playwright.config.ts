@@ -16,7 +16,13 @@ export default defineConfig({
       url: 'http://localhost:3000',
       reuseExistingServer: true,
       timeout: 180_000,
-      env: { ENABLE_TEST_HOOKS: '1' },
+      // GRAPHQL_URL is read at run time (the /api/graphql route and server rendering) and has no default: aim it at the mock.
+      env: {
+        ENABLE_TEST_HOOKS: '1',
+        GRAPHQL_URL: 'http://localhost:4000/graphql',
+        // The mock BFF and the declined-payment hook are steered by request headers, which the API route only forwards when told to.
+        GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-fixture,x-delay-ms,x-place-order,x-test-payment',
+      },
     },
   ],
 });

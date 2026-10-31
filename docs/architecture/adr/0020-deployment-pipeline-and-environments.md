@@ -39,6 +39,10 @@ What was established while designing it (2026-10-31):
 
 Everything. No Azure subscription, Terraform binary or `az` CLI has been used for this design; the pipeline YAML, the environment checks, the workload identity federation, the key vault purge behaviour on destroy and the Cosmos free-tier limit are from documentation and general knowledge and need a first run. An unreferenced Azure DevOps environment name is created without checks when a run first uses it, so the UAT and Prod stages must not be reachable until their environments exist.
 
+## Amendment (2026-10-31): decision 2, built in part
+
+The run-time proxy is an API route (`/api/graphql`), chosen by the lead after a spike that also built a `proxy.ts` variant (`docs/evidence/WI-DEP-001/web-runtime-config-spike-2026-10-31.md`). It forwards a fixed list of request headers; test-only headers are added through `GRAPHQL_EXTRA_FORWARDED_HEADERS`, empty in a deployed environment. The run-time configuration endpoint for the login addresses is not built yet (register item 101).
+
 ## Before the repository is made public
 
 The Azure DevOps settings to confirm on that day (fork builds without secrets, connection permissions, environment checks, run-log visibility, the mock issuer's reachability) are listed in register item 93, which holds the flip-day checklist. They are configured in the Azure interface and cannot be checked from the repository.

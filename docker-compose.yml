@@ -153,7 +153,10 @@ services:
     ports: ["127.0.0.1:${BFF_PORT:-4100}:4100"]
 
   web:
-    build: { context: ., dockerfile: apps/web-customer/Dockerfile, args: { GRAPHQL_URL: "http://graphql-bff:4100/graphql" } }
+    build: { context: ., dockerfile: apps/web-customer/Dockerfile, }
     image: bakery-web:dev
     profiles: ["apps"]
+    environment:
+      GRAPHQL_URL: http://graphql-bff:4100/graphql # read at run time (ADR-0020); the same image runs in every environment
+      GRAPHQL_EXTRA_FORWARDED_HEADERS: ${GRAPHQL_EXTRA_FORWARDED_HEADERS:-} # tests only (x-test-payment); empty elsewhere
     ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]

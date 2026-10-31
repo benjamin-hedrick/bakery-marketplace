@@ -40,8 +40,9 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
   const web = path.join(root, 'apps', 'web-customer');
   const bff = path.join(root, 'services', 'graphql-bff');
   const next = path.join('node_modules', 'next', 'dist', 'bin', 'next');
-  // GRAPHQL_URL is read at build time (rewrite) and at run time (SSR), so it is set for both.
-  const webEnv = { GRAPHQL_URL: bffUrl, NEXT_DIST_DIR: distDir };
+  // GRAPHQL_URL is read at run time (the /api/graphql route and server rendering); NEXT_DIST_DIR keeps this build out of `.next`.
+  // x-test-payment is the declined-payment hook (D-10): the API route forwards it only because it is named here, and the BFF ignores it unless ENABLE_TEST_HOOKS=1.
+  const webEnv = { GRAPHQL_URL: bffUrl, NEXT_DIST_DIR: distDir, GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment' };
 
   function run(name, cmd, args, opts = {}) {
     log(`${name}: ${cmd} ${args.join(' ')}`);
@@ -131,11 +132,11 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
 
     /**
      * The four application containers (compose profile `apps`, the images the cloud dev environment uses) in place of startServices and
-     * startWeb. The web image is built with the BFF address of the Compose network, so the browser reaches it through the same-origin rewrite.
+     * startWeb. The web container is given the BFF address of the Compose network at run time; the browser reaches the BFF through the same-origin /api/graphql route.
      */
     async startContainers({ testHooks = false } = {}) {
       run('app containers', 'docker', ['compose', '--profile', 'apps', 'up', '-d', '--build'], {
-        env: testHooks ? { ENABLE_TEST_HOOKS: '1' } : {},
+        env: testHooks ? { ENABLE_TEST_HOOKS: '1', GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment' } : {},
       });
       await waitFor('catalog', `http://localhost:${ports.catalog}/health`);
       await waitFor('ordering', `http://localhost:${ports.ordering}/health`);

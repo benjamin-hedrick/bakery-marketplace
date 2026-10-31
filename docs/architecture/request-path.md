@@ -53,7 +53,7 @@ One trace covers the web server, the BFF and the catalog. The page-render span d
 sequenceDiagram
     autonumber
     participant B as Browser (checkout page)
-    participant W as Next.js /api/graphql rewrite
+    participant W as Next.js /api/graphql route
     participant G as GraphQL BFF
     participant O as ordering-service
     participant I as Mock OIDC issuer
