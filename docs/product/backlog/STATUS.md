@@ -178,7 +178,7 @@ Accepted: 18 · Superseded: 1
 
 ## Open-items register
 
-107 numbered items in `docs/governance/open-items-register.md` (highest number 107).
+109 numbered items in `docs/governance/open-items-register.md` (highest number 109).
 
 | Type | Count |
 |---|---|
@@ -203,6 +203,7 @@ Accepted: 18 · Superseded: 1
 | Missing API | 2 |
 | Missing rule | 2 |
 | Rough edge | 2 |
+| Open decision (IAM, needs the lead's approval) | 2 |
 | Tech debt / future work | 1 |
 | Future hardening | 1 |
 | Deferred scope / risk | 1 |
@@ -236,12 +237,12 @@ Accepted: 18 · Superseded: 1
 | Inconsistency | 1 |
 | Test gap (suspected bug) | 1 |
 | Defect | 1 |
-| Open decision (IAM, needs the lead's approval) | 1 |
+| Deferred hardening | 1 |
 
 | Item status | Count |
 |---|---|
-| Deferred | 17 |
+| Deferred | 18 |
 | Resolved | 28 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 45 |
+| Open | 46 |

@@ -104,3 +104,24 @@ run "a_budget_start_that_is_not_the_first_of_a_month_is_refused" {
 
   expect_failures = [var.budget_start_date]
 }
+
+run "an_environment_identity_gets_acrpull_on_the_registry_and_stays_persistent" {
+  command = plan
+
+  variables {
+    app_identities = ["dev"]
+  }
+
+  assert {
+    condition     = azurerm_user_assigned_identity.apps["dev"].name == "id-bakery-dev-apps"
+    error_message = "Unexpected identity name."
+  }
+  assert {
+    condition     = azurerm_role_assignment.acr_pull_apps["dev"].role_definition_name == "AcrPull"
+    error_message = "The apps identity should get AcrPull and nothing more."
+  }
+  assert {
+    condition     = azurerm_user_assigned_identity.apps["dev"].tags["Lifetime"] == "persistent"
+    error_message = "The identity must carry the persistent tag so the destroy guard refuses to delete it."
+  }
+}

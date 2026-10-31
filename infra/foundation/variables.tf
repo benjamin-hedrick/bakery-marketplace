@@ -70,3 +70,14 @@ variable "tags" {
   description = "Extra tags on every resource."
   default     = {}
 }
+
+variable "app_identities" {
+  type        = set(string)
+  description = "Names of environments (for example dev) that get a user-assigned identity for their container apps. The identity lives here, not in the environment stack, so the AcrPull grant on the registry survives a teardown and the destroy guard never has to touch this resource group."
+  default     = []
+
+  validation {
+    condition     = alltrue([for n in var.app_identities : can(regex("^[a-z][a-z0-9-]{1,18}$", n))])
+    error_message = "Each environment name must be 2 to 19 characters: lower-case letters, digits and hyphens, starting with a letter."
+  }
+}
