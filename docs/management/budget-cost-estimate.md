@@ -16,10 +16,13 @@ Infrastructure cost only. Labor/time investment is a separate axis this document
 | Identity: Microsoft Entra External ID | Free tier | $0 (assumed) | **Changed:** Azure AD B2C, which this row named in September, no longer takes new tenants (ADR-0006 amendment). The free monthly-user allowance of Entra External ID was not verified |
 | Observability: Application Insights | Free ingestion allowance (5 GB/month per `tech-stack.md`) | $0 (assumed) | Not wired yet (register 37); the OpenTelemetry Collector's own hosting is a cost line **not estimated** |
 | Key Vault | Pay-per-operation | < $1/month | Negligible at this scale — charged per secret operation, not a flat fee |
+| Container registry (foundation stack, ADR-0020) | Basic | ~$5/month (from memory, **not checked against current pricing**) | The one new fixed line for the deployed dev environment: the images must outlive the disposable environment stack, so the registry sits in a stack that is not torn down |
+| Terraform state storage (ADR-0020) | Storage account, blob, locally redundant | < $1/month (assumed) | A few small state files, with versioning on |
+| Budget alert (ADR-0020) | Azure cost budget | $0 | A notification only; it deletes nothing |
 | **Cache (Redis)** | **Basic C0, if enabled** | **~$16/month per environment it's enabled in** | The one real, non-zero line item — see below |
 | Stripe | Per-transaction, no monthly fee | $0 fixed / variable per transaction | Not a fixed budget line — scales with real transaction volume; $0 in test mode |
 
-**Total fixed monthly cost: ~$0–32/month on these assumptions**, driven by how many environments enable managed Redis (ADR-0002 — dev uses the free local cache by default; staging/prod may enable managed Redis at ~$16/month each). Today no service uses a cache at all (the catalog cache-aside is not built), and the managed-Redis vendor is under reconsideration (register 22), so the one non-zero line may change.
+**Total fixed monthly cost: ~$0–32/month on these assumptions, plus about $5–6 for the registry and state storage once a dev environment is deployed (added 2026-10-31, unverified)**, driven by how many environments enable managed Redis (ADR-0002 — dev uses the free local cache by default; staging/prod may enable managed Redis at ~$16/month each). Today no service uses a cache at all (the catalog cache-aside is not built), and the managed-Redis vendor is under reconsideration (register 22), so the one non-zero line may change.
 
 ## The one real cost, precisely
 
