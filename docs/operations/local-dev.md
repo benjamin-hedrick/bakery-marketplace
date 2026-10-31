@@ -21,7 +21,7 @@ docker compose up -d --build
 node scripts/dev/check-env.mjs --wait 180        # exit 0 when all three are up
 
 # 3. Seed 7 listings and mark both vendors verified
-export COSMOS_KEY="$(node -e "console.log(require('fs').readFileSync('scripts/ci/skeleton-smoke.mjs','utf8').match(/EMULATOR_KEY =\s*'([^']+)'/)[1])")"   # the emulator's published fixed key
+export COSMOS_KEY="$(node -e "console.log(require('fs').readFileSync('scripts/lib/local-stack.mjs','utf8').match(/EMULATOR_KEY =\s*'([^']+)'/)[1])")"   # the emulator's published fixed key
 export COSMOS_CS="AccountEndpoint=http://localhost:8081/;AccountKey=${COSMOS_KEY}"
 Cosmos__ConnectionString="$COSMOS_CS" dotnet run --project tools/BakeryMarketplace.Seed
 
