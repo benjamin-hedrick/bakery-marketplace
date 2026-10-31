@@ -23,8 +23,8 @@
 | Web build + mock e2e | `npm run test:e2e` in `apps/web-customer` (builds, starts a mock BFF, Chromium) | `npx playwright install chromium` | `web` |
 | Walking skeleton, real stack | `node scripts/ci/skeleton-smoke.mjs` (local secrets, Compose with the mock issuer, seed, catalog, ordering, BFF, Next.js, Playwright, teardown) | Docker, .NET, Node, the two `npm ci` runs | `skeleton` |
 | Result summary | `node scripts/ci/summarize-results.mjs [--json out] <trx or junit files>` | | all |
-| Documentation status | `node scripts/docs/status.mjs --check` (regenerate with no flag): every spec has a banner, headers agree with banners, epic counts match their specs, `STATUS.md` is current | Node | **none: not in the pipeline** |
-| Documentation links | `node scripts/docs/linkcheck.mjs <repo root> <out.json>`: relative links and backtick paths that name repo files; also counts a list of stale phrases. Reports; has no pass or fail threshold yet | Node, git | **none** |
+| Documentation status | `node scripts/docs/status.mjs --check` (regenerate with no flag): every spec has a banner, headers agree with banners, epic counts match their specs, `STATUS.md` is current | Node | `docs` (written 2026-10-30, not yet run on Azure) |
+| Documentation links | `node scripts/docs/linkcheck.mjs . [out.json] --fail-on-broken-links`: relative links (fails on a broken one) and backtick paths that name repo files (counted only: some are historical or project-relative); also counts a list of stale phrases | Node, git | `docs` (written 2026-10-30, not yet run on Azure) |
 | Docs site build | `mkdocs build` (needs `pip install mkdocs-material`; not installed in the repo's tooling). Run once on 2026-10-30: built, one link outside `docs/` found and fixed. The site is not published | Python | **none** |
 | Diagram syntax | no script in the repository. On 2026-10-30 the Mermaid blocks were parsed ad hoc with `mermaid@11.4.1` and `jsdom` | Node | **none** |
 
@@ -77,13 +77,13 @@ Not run in the pipeline: the emulator-gated Cosmos tests, the real-stack journey
 | BFF format, lint, typecheck, tests | Yes (`bff` job) | Yes | No |
 | Web format, lint, typecheck, mock browser suite | Yes (`web` job) | Yes | No |
 | Real-stack journeys | Yes (`skeleton` job) | `skeleton-smoke.mjs` | No |
-| Documentation status check | **No** | `status.mjs --check`; listed in the Definition of Done and `CLAUDE.md`, which rely on memory | **No** |
-| Link check | **No** | `linkcheck.mjs`; no threshold, 202 unresolved paths in its baseline | **No** |
+| Documentation status check | Written 2026-10-30, **not yet run on Azure** (`docs` job) | `status.mjs --check`; also in `scripts/ci/node-gates.mjs` | No (soft gate) |
+| Link check | Written 2026-10-30, **not yet run on Azure** (`docs` job): fails on a broken relative link only | `linkcheck.mjs --fail-on-broken-links` (0 broken links; 213 unresolved backtick paths are counted, not enforced); also in `node-gates.mjs` | No (soft gate) |
 | Diagram syntax | **No** | ad hoc | **No** |
 | Secret scan (full history) | Written 2026-10-30, **not yet run on Azure** (`secrets` job) | `node scripts/ci/secret-scan.mjs` (gitleaks container, `.gitleaks.toml`); run locally, no leaks | No |
 | Dependency audit, SBOM | **No** (not built) | `npm audit` by hand | **No** |
 
-Where to enforce the documentation checks is open: register item 90 lists the options (a pipeline step, a git hook, a Claude Code hook, a baseline mode for the link check). Until it is decided, the two checks are conventions.
+The documentation checks are now a pipeline job (register item 90, option a) and part of `node scripts/ci/node-gates.mjs`; being a soft gate, a reviewer still has to read the check. A git hook or a Claude Code hook (options b and c) were not added. Not enforced: broken backtick paths (a count, no threshold) and the Mermaid diagram syntax.
 
 ## When the pipeline runs
 

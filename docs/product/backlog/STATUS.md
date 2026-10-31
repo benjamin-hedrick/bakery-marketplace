@@ -241,5 +241,5 @@ Accepted: 16 · Superseded: 1 · Proposed: 1
 | Deferred | 17 |
 | Resolved | 25 |
 | Accepted | 5 |
-| Tracking | 11 |
-| Open | 40 |
+| Tracking | 12 |
+| Open | 39 |

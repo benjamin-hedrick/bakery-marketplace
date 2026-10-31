@@ -3,7 +3,7 @@
 // Pipeline jobs `bff` and `web` (azure-pipelines.yml): format check, lint, typecheck (and the tests with --tests). Prettier in
 // apps/web-customer also covers scripts/ and azure-pipelines.yml, so a new script is checked by the `web` format step.
 //
-//   node scripts/ci/node-gates.mjs            format, lint, typecheck in both projects, plus the documentation status check
+//   node scripts/ci/node-gates.mjs            format, lint, typecheck in both projects, plus the documentation status and link checks
 //   node scripts/ci/node-gates.mjs --tests    also the BFF tests and the web unit tests
 //
 // Needs `npm ci` done in services/graphql-bff and apps/web-customer. Every step runs even if an earlier one fails, so one run lists
@@ -26,6 +26,12 @@ const steps = [
   { name: 'web: lint', ...npm('apps/web-customer', 'lint') },
   { name: 'web: typecheck (runs relay-compiler)', ...npm('apps/web-customer', 'typecheck') },
   { name: 'docs: status check', cwd: root, cmd: process.execPath, args: ['scripts/docs/status.mjs', '--check'] },
+  {
+    name: 'docs: link check',
+    cwd: root,
+    cmd: process.execPath,
+    args: ['scripts/docs/linkcheck.mjs', '.', '--fail-on-broken-links'],
+  },
 ];
 if (withTests) {
   steps.push(

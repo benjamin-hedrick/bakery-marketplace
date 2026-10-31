@@ -5,7 +5,7 @@
 # Docker Desktop); that file lists what passed and what was not run.
 # Commands, gaps and the results format: docs/process/quality-gates.md.
 #
-# Gates here: secret scan, format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
+# Gates here: secret scan, documentation checks, format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
 # Do not read a green run as "covered": the Cosmos adapter tests do not touch Cosmos.
 #
 # The GitHub placeholder workflow (.github/workflows/ci.yml) was removed on 2026-10-28 (ADR-0015 amendment); this pipeline
@@ -43,6 +43,20 @@ jobs:
         fetchDepth: 0
       - script: node scripts/ci/secret-scan.mjs
         displayName: Scan history for secrets (fails on a finding)
+
+  # Documentation checks (register item 90): the status check (a spec without a banner, a header that disagrees with its banner, a stale
+  # STATUS.md) and the link check (a broken relative link). Both are fast and need only Node. Written 2026-10-30; NOT YET RUN ON AZURE.
+  - job: docs
+    displayName: Documentation checks (status, links)
+    steps:
+      - task: UseNode@1
+        displayName: Node $(NODE_VERSION)
+        inputs:
+          version: $(NODE_VERSION)
+      - script: node scripts/docs/status.mjs --check
+        displayName: Status check (fails when a banner, a header or STATUS.md is wrong; fix with node scripts/docs/status.mjs)
+      - script: node scripts/docs/linkcheck.mjs . --fail-on-broken-links
+        displayName: Link check (fails on a broken relative link; broken backtick paths are only counted)
 
   - job: dotnet
     displayName: .NET build and tests
