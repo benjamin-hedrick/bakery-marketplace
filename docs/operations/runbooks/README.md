@@ -8,6 +8,17 @@
 |---|---|---|
 | [`event-broker-unavailable-during-checkout.md`](event-broker-unavailable-during-checkout.md) | Redis Streams is down while customers check out | 2026-10-30, local stack |
 
+## Procedures (Draft: written, not run)
+
+These are not failure scenarios but one-off or repeated operations on the deployed environment (ADR-0020). Each is Current only after it has been run and its "Last tested" says so.
+
+| Procedure | What it is for | Last tested |
+|---|---|---|
+| [`bootstrap-terraform-state.md`](bootstrap-terraform-state.md) | Create the Terraform state storage and the pipeline identities once, with a verify section | Never |
+| [`prove-the-pipeline-gates.md`](prove-the-pipeline-gates.md) | Prove the approvals, branch check, lock and typed confirmation with a pipeline that only prints | Never |
+
+Still to write, when each step first runs: create the dev environment, tear it down.
+
 ## Planned (not written)
 
 | Scenario | Basis | Waiting for |

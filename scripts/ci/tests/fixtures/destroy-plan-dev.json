@@ -1,0 +1,37 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.13.5",
+  "resource_changes": [
+    {
+      "address": "azurerm_resource_group.env",
+      "mode": "managed",
+      "type": "azurerm_resource_group",
+      "name": "env",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev",
+          "name": "rg-bakery-dev",
+          "location": "eastus",
+          "tags": { "ManagedBy": "Terraform", "Stack": "environment" }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.web",
+      "mode": "managed",
+      "type": "azurerm_container_app",
+      "name": "web",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "bakery-web-dev",
+          "resource_group_name": "rg-bakery-dev",
+          "tags": { "ManagedBy": "Terraform", "Stack": "environment" }
+        },
+        "after": null
+      }
+    }
+  ]
+}

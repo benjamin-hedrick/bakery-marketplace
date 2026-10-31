@@ -4,7 +4,7 @@
 // apps/web-customer also covers scripts/ and azure-pipelines.yml, so a new script is checked by the `web` format step.
 //
 //   node scripts/ci/node-gates.mjs            format, lint, typecheck in both projects, plus the documentation status and link checks
-//   node scripts/ci/node-gates.mjs --tests    also the BFF tests and the web unit tests
+//   node scripts/ci/node-gates.mjs --tests    also the BFF tests, the web unit tests and the script tests (scripts/ci/tests)
 //
 // Needs `npm ci` done in services/graphql-bff and apps/web-customer. Every step runs even if an earlier one fails, so one run lists
 // everything to fix. Not covered here (run them separately): .NET (`node scripts/ci/linux-check.mjs`), secrets
@@ -43,6 +43,12 @@ if (withTests) {
   steps.push(
     { name: 'bff: tests', ...npm('services/graphql-bff', 'test') },
     { name: 'web: unit tests', ...npm('apps/web-customer', 'test:unit') },
+    {
+      name: 'scripts: destroy guard and pipeline structure tests',
+      cwd: root,
+      cmd: process.execPath,
+      args: ['--test', 'scripts/ci/tests/*.test.mjs'],
+    },
   );
 }
 

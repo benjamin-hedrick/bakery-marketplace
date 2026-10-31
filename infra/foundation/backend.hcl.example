@@ -1,0 +1,8 @@
+# Copy to backend.hcl (git-ignored) or pass these as -backend-config values; the pipeline passes them from its variables.
+# The values come from the bootstrap runbook (docs/operations/runbooks/bootstrap-terraform-state.md). None of them is a secret:
+# access to the state is by Entra identity, not by a key, and no storage key is ever created or used (use_azuread_auth).
+resource_group_name  = "rg-bakery-tfstate"
+storage_account_name = "REPLACE-with-the-storage-account-the-bootstrap-created"
+container_name       = "tfstate"
+key                  = "foundation.tfstate"
+use_azuread_auth     = true

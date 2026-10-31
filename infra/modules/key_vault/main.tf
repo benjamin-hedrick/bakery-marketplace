@@ -48,6 +48,6 @@ resource "azurerm_cosmosdb_sql_role_assignment" "cosmos_rbac" {
   account_name        = data.azurerm_cosmosdb_account.cosmos[0].name
   # Built-in Cosmos DB Data Contributor role definition ID
   role_definition_id = "${data.azurerm_cosmosdb_account.cosmos[0].id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = each.value
-  scope               = data.azurerm_cosmosdb_account.cosmos[0].id
+  principal_id       = each.value
+  scope              = data.azurerm_cosmosdb_account.cosmos[0].id
 }

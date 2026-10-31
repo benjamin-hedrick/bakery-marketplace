@@ -440,3 +440,11 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+# Terraform (ADR-0020): local working files and state never belong in the repository. The provider lock file (.terraform.lock.hcl) is committed.
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan*
+crash.log
+backend.hcl
