@@ -1,4 +1,5 @@
 import type { AppProps } from 'next/app';
+import '../styles/globals.css';
 import { RelayEnvironmentProvider } from 'react-relay';
 import { SiteHeader } from '../components/SiteHeader.tsx';
 import type { RelayRecords } from '../lib/relay/environment';

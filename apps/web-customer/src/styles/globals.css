@@ -1,0 +1,371 @@
+/*
+ * The customer app's look (register item 97). Plain CSS on the existing semantic markup: no framework, no new dependency, no change to
+ * the test selectors (roles, labels and data-testid are untouched). Colours are tokens; dark mode follows the system setting.
+ * Contrast: text on surfaces is at least 4.5:1 in both themes (checked by hand for the pairs below).
+ */
+:root {
+  color-scheme: light dark;
+  --bg: #faf6f0;
+  --surface: #ffffff;
+  --text: #2b2118;
+  --muted: #6a5b4f;
+  --accent: #9a4a14;
+  --accent-text: #ffffff;
+  --border: #e2d6c6;
+  --ok-bg: #e2f2e5;
+  --ok-text: #1c5a2b;
+  --warn-bg: #fdf0d0;
+  --warn-text: #6a4800;
+  --bad-bg: #f8e0e0;
+  --bad-text: #7a1c1c;
+  --note-bg: #eef0f6;
+  --note-text: #2b3355;
+  --focus: #1b5fd1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181310;
+    --surface: #241d17;
+    --text: #f2eadf;
+    --muted: #bcad9c;
+    --accent: #eca765;
+    --accent-text: #1b1208;
+    --border: #3b3128;
+    --ok-bg: #1e3a27;
+    --ok-text: #b5e6c0;
+    --warn-bg: #3f3210;
+    --warn-text: #f2d98d;
+    --bad-bg: #4a2020;
+    --bad-text: #f5bcbc;
+    --note-bg: #232a40;
+    --note-text: #c9d2f2;
+    --focus: #8ab4ff;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    1rem/1.55 system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+/* Layout: a centred column, with the header as a full-width band. */
+main,
+header.site-header > * {
+  max-width: 46rem;
+}
+
+main {
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+header.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem max(1rem, calc((100% - 46rem) / 2 + 1rem));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+header.site-header > a {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+header.site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+h1,
+h2 {
+  line-height: 1.2;
+  margin: 0 0 0.75rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+small {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 0.15em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Controls */
+button {
+  font: inherit;
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+button[type='submit'] {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+button[type='submit']:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.08);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+select,
+input {
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.5rem;
+}
+
+input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  vertical-align: -0.15rem;
+  accent-color: var(--accent);
+}
+
+fieldset {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--surface);
+}
+
+legend {
+  padding: 0 0.4rem;
+  font-weight: 600;
+}
+
+/* The listings page: one card per listing. */
+section[aria-busy] > button {
+  margin-bottom: 1rem;
+}
+
+section[aria-busy] > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+li[data-testid='listing'] {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 1rem;
+  row-gap: 0.15rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+li[data-testid='listing'] > a {
+  font-weight: 600;
+  font-size: 1.0625rem;
+}
+
+li[data-testid='listing'] > [data-testid='price'] {
+  justify-self: end;
+  font-weight: 600;
+}
+
+li[data-testid='listing'] > [data-testid='stock'] {
+  justify-self: start;
+}
+
+li[data-testid='listing'] > small {
+  grid-column: 1 / -1;
+}
+
+/* Stock: words and colour together (ADR-0017: a status, never a quantity). */
+[data-testid='stock'] {
+  display: inline-block;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+[data-testid='stock'][data-status='LOW'] {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+[data-testid='stock'][data-status='SOLD_OUT'] {
+  background: var(--bad-bg);
+  color: var(--bad-text);
+}
+
+/* Checkout */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+th {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Messages */
+[role='alert'],
+[role='note'],
+[role='status'] {
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  margin: 0 0 1rem;
+}
+
+[role='alert'] {
+  background: var(--bad-bg);
+  color: var(--bad-text);
+}
+
+[role='alert'] small {
+  color: inherit;
+}
+
+[role='note'] {
+  background: var(--note-bg);
+  color: var(--note-text);
+}
+
+[role='status'] {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+[data-testid='login-required'],
+[data-testid='empty-order'],
+[data-testid='order-missing'] {
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+/* The order page */
+article[aria-label='Your order'] {
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+article[aria-label='Your order'] ul {
+  padding-left: 1.2rem;
+}
+
+[data-testid='order-status'] {
+  color: var(--accent);
+}
+
+[data-testid='order-status'][data-status='CONFIRMED'],
+[data-testid='order-status'][data-status='READY_FOR_FULFILLMENT'],
+[data-testid='order-status'][data-status='COMPLETED'] {
+  color: var(--ok-text);
+}
+
+[data-testid='order-status'][data-status='CANCELLED'] {
+  color: var(--bad-text);
+}
+
+@media (max-width: 30rem) {
+  header.site-header {
+    flex-wrap: wrap;
+  }
+
+  th,
+  td {
+    padding: 0.5rem;
+  }
+}

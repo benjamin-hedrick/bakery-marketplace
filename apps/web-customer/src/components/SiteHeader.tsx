@@ -12,7 +12,7 @@ export function SiteHeader() {
   const count = cartCount(useCart());
 
   return (
-    <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px' }}>
+    <header className="site-header">
       <Link href="/">Bakery Marketplace</Link>
       <nav aria-label="Account">
         {count > 0 ? (

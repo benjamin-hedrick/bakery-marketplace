@@ -58,11 +58,11 @@ The BFF forwards the caller's token unchanged and every service validates it its
 | 7. Status | Read the order page | A plain order is "Order confirmed" by itself; an order with an option or a pickup time waits for the bakery. "Test order: no payment was taken." |
 | 8. Stop | Enter or Ctrl+C | Processes stopped, containers removed |
 
-What not to expect: there are no vendor, admin or queue screens (those apps are empty), no search, no real payment, and the page is plain unstyled HTML. Reloading an order page ends the login (register item 24), so the page asks again.
+What not to expect: there are no vendor, admin or queue screens (those apps are empty), no search, no real payment, and the look is one small stylesheet (light and dark by system setting), not a designed brand. Reloading an order page ends the login (register item 24), so the page asks again.
 
 ## Screenshots
 
-Taken by `node scripts/dev/capture-journey.mjs` against the running demo.
+Taken by `node scripts/dev/capture-journey.mjs` against the running demo (after the styling pass of 2026-10-30, register item 97).
 
 | Browse | Listing |
 |---|---|
