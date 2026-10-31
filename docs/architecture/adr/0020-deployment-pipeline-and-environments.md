@@ -39,6 +39,10 @@ What was established while designing it (2026-10-31):
 
 Everything. No Azure subscription, Terraform binary or `az` CLI has been used for this design; the pipeline YAML, the environment checks, the workload identity federation, the key vault purge behaviour on destroy and the Cosmos free-tier limit are from documentation and general knowledge and need a first run. An unreferenced Azure DevOps environment name is created without checks when a run first uses it, so the UAT and Prod stages must not be reachable until their environments exist.
 
+## Before the repository is made public
+
+The Azure DevOps settings to confirm on that day (fork builds without secrets, connection permissions, environment checks, run-log visibility, the mock issuer's reachability) are listed in register item 93, which holds the flip-day checklist. They are configured in the Azure interface and cannot be checked from the repository.
+
 ## Alternatives considered
 
 1. **A build per environment.** Rejected by the lead: the artifact that was tested is not the artifact that is deployed.
