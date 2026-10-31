@@ -48,9 +48,14 @@ docker compose up -d --build                # redis-events, cosmos, mock-oidc
 docker compose --profile with-redis up -d   # plus the cache Redis
 node scripts/dev/check-env.mjs --wait 90    # exit 0 when up, 1 otherwise
 node scripts/dev/init-env.mjs               # creates local secrets in the git-ignored .env (service client secret for the mock issuer)
-node scripts/ci/node-gates.mjs            # run before every push: format, lint, typecheck in the BFF and web app, plus the docs status and link checks; --tests adds the unit tests; exit 1 = a failure
+node scripts/ci/node-gates.mjs            # run before every push: format, lint, typecheck in the BFF and web app, plus the docs status, traceability and link checks; --tests adds the unit tests; exit 1 = a failure
 node scripts/ci/secret-scan.mjs            # run before every push: gitleaks over the full committed history (Docker); exit 1 = a finding (config .gitleaks.toml)
 node scripts/ci/linux-check.mjs             # runs the .NET test steps on Linux in a container (committed tree); the pipeline is Ubuntu, development here is Windows
+node scripts/dev/demo.mjs                  # starts the whole slice-1 stack, warms it, prints a guide, waits; Enter or Ctrl+C tears down (docs/operations/demo.md)
+node scripts/dev/capture-journey.mjs        # screenshots of the journey into docs/operations/demo/, against a running demo
+node scripts/dev/measure-latency.mjs        # sequential latency of reads and checkout against a running demo (p50, p95, max)
+node scripts/ci/repeat-suite.mjs --runs 10  # the mock-backed browser suite repeated, with a quality report (scripts/ci/quality-report.mjs)
+node scripts/docs/traceability.mjs          # regenerate docs/product/backlog/TRACEABILITY.md (--check to verify)
 docker compose down                         # resets all state
 ```
 
