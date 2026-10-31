@@ -46,6 +46,8 @@ Local infrastructure (needs Docker; full guide and verification status in `docs/
 ```
 docker compose up -d --build                # redis-events, cosmos, mock-oidc
 docker compose --profile with-redis up -d   # plus the cache Redis
+docker compose --profile apps up -d --build  # plus the catalog, ordering, BFF and web containers (needs ORDERING_CLIENT_SECRET from init-env; set COMPOSE_PARALLEL_LIMIT=1)
+node scripts/ci/skeleton-smoke.mjs --containers  # the Playwright journeys against those containers, then tears down (--keep leaves them)
 node scripts/dev/check-env.mjs --wait 90    # exit 0 when up, 1 otherwise
 node scripts/dev/init-env.mjs               # creates local secrets in the git-ignored .env (service client secret for the mock issuer)
 node scripts/ci/node-gates.mjs            # run before every push: format, lint, typecheck in the BFF and web app, plus the docs status, traceability and link checks; --tests adds the unit tests; exit 1 = a failure
@@ -67,7 +69,7 @@ Formatting and linting (decided 2026-10-28, `docs/process/quality-gates.md`): `d
 
 ## Architecture (needs several files to see)
 
-**Decisions live in `docs/architecture/adr/` (0001–0018; 0018 is Proposed).** Read the ADR index first. Amendments are appended as dated notes at the bottom of the ADR, never by rewriting its decision text. Superseded ADRs stay in place with a status line (ADR-0011 is superseded by ADR-0012).
+**Decisions live in `docs/architecture/adr/` (0001–0018).** Read the ADR index first. Amendments are appended as dated notes at the bottom of the ADR, never by rewriting its decision text. Superseded ADRs stay in place with a status line (ADR-0011 is superseded by ADR-0012).
 
 **Shape (ADR-0012/0013, adopted 2026-10-26; built and run locally only, not deployed):** Next.js Pages Router apps (SSR only for public listing pages) → Node/TypeScript GraphQL BFF with a Relay client → C# REST services. In the cloud the BFF calls services through Azure API Management; locally it calls them directly. **C# services own all business rules, pricing, availability and order state; the BFF is composition and error mapping only.** Don't put domain logic in the BFF or let the GraphQL schema become a second domain model.
 

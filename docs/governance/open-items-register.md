@@ -542,3 +542,18 @@ Status: Open
 Type: Decision · Source: `WI-QA-002` (2026-10-30) · Hat: Architect, Manager/Lead
 Status: Open
 ADR-0013 asks for a latency budget for the BFF "once measured", and `nfrs.md` says none exists. `docs/evidence/latency-2026-10-30.md` now gives a measured starting point on one machine (warm, sequential): BFF reads p95 33 to 42 ms, home page p95 42 ms, checkout p95 75 ms, first checkout after a stack start 4.6 s. A budget would state p95 targets per request kind and whether the cold first request counts, and would let the claim "the BFF and cache design meet the targets" (gap row `G-H08`) be tested; it would also need a deployed environment to mean anything beyond this machine. The numbers are not a proposal for the targets themselves. Related: items 98 and 87.
+
+**101. The web image bakes in the back-end address and the login addresses, so each environment needs its own image**
+Type: Tech debt · Source: `WI-DEP-001` (2026-10-31) · Hat: Platform Engineering, Frontend
+Status: Open
+Next.js evaluates `rewrites()` at build time, so `GRAPHQL_URL` (the BFF address behind `/api/graphql`) is part of the built image, and the `NEXT_PUBLIC_AUTH_*` values the login code reads are inlined into the browser bundle. `apps/web-customer/Dockerfile` therefore takes `GRAPHQL_URL` as a build argument and the Compose image uses the Compose network name; a cloud environment would need a build per environment, and an image promoted from dev to another environment would still point at dev. Options: replace the rewrite with a route handler or proxy that reads the address at run time, and serve the login addresses from a run-time config endpoint; or accept one build per environment and say so in the promotion checklist. Decide before the deploy stage builds the web image.
+
+**102. The mock issuer cannot be deployed as it stands, and a public one would let anyone mint any role**
+Type: Open decision · Source: `WI-DEP-001`, `ADR-0018` acceptance (2026-10-31) · Hat: Security, Manager/Lead
+Status: Open
+The lead chose the mock issuer for the first deployed dev environment. The host refuses to start in the Production environment on purpose, signs tokens for anyone who asks, and its login page lets the visitor choose a user (including an Admin). Run on a public address it would mean any visitor can act as any role, including the vendor and admin actions, against a real (if disposable) data store. Outside the Compose network it also needs https for the services' metadata and token requests (`requireHttpsMetadata`, the https rule on the token endpoint), which the Container Apps ingress gives, and a fixed issuer (`MockOidc__Issuer`, built). Options, not exclusive: an ingress IP allow-list so only the lead can reach the environment; an explicit, named switch (not `Development`) that lets the host run in a deployed dev environment and is refused in any other; moving to Entra sooner. The guard has not been changed. Needs the lead's decision before any apply.
+
+**103. Parallel image builds in Compose failed once on Docker Desktop**
+Type: Verification gap · Source: `WI-DEP-001` (2026-10-31) · Hat: Platform Engineering
+Status: Open
+The first `docker compose --profile apps up --build` failed while exporting `bakery-ordering:dev` with `failed to prepare extraction snapshot ... parent snapshot ... does not exist` (the catalog and ordering images share every layer and were exported concurrently). Later runs with `COMPOSE_PARALLEL_LIMIT=1` passed. The cause was not investigated; it looks like a containerd image-store race on this machine. The pipeline's Ubuntu agent has not run the `apps` profile. If it reappears, build the images one at a time before `up`.

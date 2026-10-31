@@ -1,0 +1,24 @@
+# One image recipe for the .NET services (WI-DEP-001, N-10). Build context is the repository root.
+#   docker build -f services/Dockerfile.dotnet \
+#     --build-arg PROJECT=services/ordering-service/src/OrderingService.csproj \
+#     --build-arg ASSEMBLY=OrderingService --build-arg PORT=5300 -t bakery-ordering .
+# Configuration comes from environment variables at run time (ASP.NET Core's __ syntax); nothing is baked in, no secret is in the image.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG PROJECT
+WORKDIR /src
+COPY Directory.Build.props ./
+COPY tools/ tools/
+COPY services/ services/
+RUN dotnet publish "${PROJECT}" -c Release -o /app /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+ARG ASSEMBLY
+ARG PORT
+# No tzdata install: the aspnet base image ships /usr/share/zoneinfo, which the pickup schedule needs (America/New_York; gap T-65, checked 2026-10-31).
+WORKDIR /app
+COPY --from=build /app .
+ENV ASPNETCORE_URLS=http://+:${PORT} \
+    ASSEMBLY=${ASSEMBLY}
+EXPOSE ${PORT}
+USER app
+ENTRYPOINT ["sh", "-c", "exec dotnet ${ASSEMBLY}.dll"]

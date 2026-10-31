@@ -2,9 +2,13 @@
 **/obj/
 **/node_modules/
 **/.next/
+**/tests/
+**/test-results/
+**/__generated__/
 .git/
 .claude/
+.env
 _incoming/
 docs/
-apps/
 infra/
+artifacts/

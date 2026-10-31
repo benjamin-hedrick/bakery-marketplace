@@ -11,12 +11,12 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 51 |
-| In progress | 3 |
+| In progress | 4 |
 | In review | 4 |
 | Built | 1 |
 | Ready | 12 |
 | Proposed | 4 |
-| Deferred | 12 |
+| Deferred | 11 |
 | Superseded | 1 |
 
 ## Epics (derived from the specs)
@@ -85,7 +85,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
-| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | EPIC-CLOUD-INFRA | Deferred | trigger: deployment work (priority P4) starts; it needs the lead's approval for identity and credentials |
+| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | EPIC-CLOUD-INFRA | In progress | remaining: infrastructure as code, the deploy stage, the post-deploy smoke, teardown and cost evidence; the images and the Compose `apps` profile are built (see the progress note) |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | EPIC-LOCAL-DEV | Done | evidence: `BakeryMarketplace.slnx` and the projects it lists |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | EPIC-LOCAL-DEV | Done | evidence: merged `c945b18`; verified under Docker, `docs/operations/local-dev.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | EPIC-LOCAL-DEV | Done | evidence: the Outcome note under this banner; `tools/BakeryMarketplace.Seed` |
@@ -171,13 +171,13 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0015](../../architecture/adr/0015-azure-pipelines-ci-cd.md) | CI/CD System of Record — Azure Pipelines | Accepted | Accepted (2026-10-26) — amends ADR-0007 (CI secret storage) and `tech-stack.md` (CI/CD row). |
 | [0016](../../architecture/adr/0016-opentelemetry-tracing.md) | OpenTelemetry Tracing and W3C Trace Context as the Correlation Mechanism | Accepted | Accepted (2026-10-26) — amends `tech-stack.md` (Observability row) and changes the ID source for `WI-TOOL-0... |
 | [0017](../../architecture/adr/0017-stock-and-availability-ownership.md) | Stock and Availability Ownership | Accepted | Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter. |
-| [0018](../../architecture/adr/0018-service-to-service-authentication.md) | Service-to-Service Authentication (OAuth2 Client Credentials) | Proposed | Proposed (2026-10-28) |
+| [0018](../../architecture/adr/0018-service-to-service-authentication.md) | Service-to-Service Authentication (OAuth2 Client Credentials) | Accepted | Accepted (2026-10-31) |
 
-Accepted: 16 · Superseded: 1 · Proposed: 1
+Accepted: 17 · Superseded: 1
 
 ## Open-items register
 
-100 numbered items in `docs/governance/open-items-register.md` (highest number 100).
+103 numbered items in `docs/governance/open-items-register.md` (highest number 103).
 
 | Type | Count |
 |---|---|
@@ -185,17 +185,17 @@ Accepted: 16 · Superseded: 1 · Proposed: 1
 | Tracking | 7 |
 | Not started | 6 |
 | Process | 6 |
+| Verification gap | 5 |
 | Documentation drift | 5 |
-| Verification gap | 4 |
+| Tech debt | 3 |
+| Open decision | 3 |
 | Decision | 3 |
 | Gap | 3 |
 | Accepted risk | 2 |
-| Tech debt | 2 |
 | Deferred architecture | 2 |
 | Deferred scope (by design) | 2 |
 | Done | 2 |
 | Planned tech swap | 2 |
-| Open decision | 2 |
 | Design gap | 2 |
 | Missing capability | 2 |
 | Missing API | 2 |
@@ -242,4 +242,4 @@ Accepted: 16 · Superseded: 1 · Proposed: 1
 | Resolved | 26 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 40 |
+| Open | 43 |

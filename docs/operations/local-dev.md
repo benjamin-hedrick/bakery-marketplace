@@ -166,6 +166,43 @@ The token request authenticates the client (form fields or HTTP Basic), asks for
 
 The calling service reads `ServiceAuth__TokenEndpoint`, `ServiceAuth__ClientId`, `ServiceAuth__Scope` and `ServiceAuth__ClientSecret` (see `infra/local/service.env.example`) and stops at startup if one is missing. Nothing in the repository holds a secret; the pipeline generates its own per run when a job needs one. DEV uses a different credential (ADR-0018, phase 2).
 
+## Application containers (compose profile `apps`, WI-DEP-001)
+
+The same four application images the cloud dev environment will use can run in Compose, next to the infrastructure:
+
+```
+node scripts/dev/init-env.mjs                                  # the ordering client secret; Compose refuses to start `ordering` without it
+COMPOSE_PARALLEL_LIMIT=1 docker compose --profile apps up -d --build   # catalog :5200, ordering :5300, graphql-bff :4100, web :3000
+dotnet run --project tools/BakeryMarketplace.Seed             # then seed, as for host processes
+node scripts/ci/skeleton-smoke.mjs --containers [--keep]      # the whole stack in containers plus the Playwright journeys; tears down unless --keep
+docker compose --profile apps down                            # removes them
+```
+
+Images: `services/Dockerfile.dotnet` (catalog and ordering; one recipe, build arguments choose the project), `services/graphql-bff/Dockerfile`, `apps/web-customer/Dockerfile` (takes `GRAPHQL_URL` as a build argument; register item 101). They hold no secret: configuration is environment variables (the Cosmos key in the Compose file is the emulator's published key). All four run as a non-root user (checked with `id` in each image). The `apps` services run in the `Development` environment on purpose, because only there do the services accept the plain-http mock issuer.
+
+Two details of the container network. The issuer string in tokens must be one name, but a container reaches the mock issuer as `mock-oidc` and the browser as `localhost`: the mock issuer is given `MockOidc__Issuer=http://localhost:5100`, and the services fetch metadata from `Auth__MetadataAddress=http://mock-oidc:5100/...` while still validating tokens against `Auth__Authority=http://localhost:5100`. And ordering sends its client secret to `http://mock-oidc:5100/token`, which is plain http to a non-loopback host; the library refuses that unless the host opts in, and ordering opts in only when `ASPNETCORE_ENVIRONMENT=Development` (`allowInsecureTokenEndpoint`, never read from configuration).
+
+Verified 2026-10-31 on this machine (Windows, Docker Desktop): the Playwright skeleton suite, 21 of 21, against the four containers (`docs/evidence/WI-DEP-001/images-and-compose-2026-10-31.md`). Not verified: the pipeline (Linux agent), a cold start with no layer cache.
+
+## Moving to Entra: what changes
+
+The services contain no mock-specific code, so the move is configuration plus one credential adapter. From ADR-0018, not yet tried against a tenant (its verification list is still open):
+
+| Setting | Mock issuer (now) | Entra External ID (DEV and later) |
+|---|---|---|
+| `Auth__Authority` | `http://localhost:5100` | the tenant's v2.0 issuer string (format to be confirmed against a real token, verification item 4) |
+| `Auth__MetadataAddress` | the container-network address of the mock | unset, or the tenant's metadata URL if it differs from the issuer |
+| `Auth__Audience` | `bakery-marketplace` | the catalog API's application ID URI |
+| `ASPNETCORE_ENVIRONMENT` | `Development` (accepts plain http) | not `Development`: https metadata is then required |
+| `ServiceAuth__TokenEndpoint` | `http://mock-oidc:5100/token` | the tenant's https token endpoint; `allowInsecureTokenEndpoint` is not used |
+| `ServiceAuth__Scope` | `bakery-marketplace/.default` | `<application ID URI>/.default` |
+| `ServiceAuth__ClientSecret` | generated into `.env` | option C: no secret, a client assertion from the managed identity; option A: a Key Vault reference |
+| Roles | the mock client's configured roles | the app role `Stock.Reserve`, assigned to the ordering client (needs the privileged Graph permission, run by the lead) |
+| Web login (`NEXT_PUBLIC_AUTH_*`) | `http://localhost:5100` | the tenant's authorize and token URLs (a build-time value, register item 101) |
+| Users | the mock's fixed users | real sign-up and sign-in; the `roles` and `vendorType` claims come from the tenant's configuration (`AUTH-004`) |
+
+As each piece is built, add the row that changes to this table.
+
 ## Running ordering-service (WI-ORD-001)
 
 ```
