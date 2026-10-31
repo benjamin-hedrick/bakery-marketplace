@@ -27,7 +27,7 @@ Of 51 work items marked Done: 26 are named by a test file, 16 by an evidence rec
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |
-| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | In progress | `MockOidcFixedIssuerTests.cs` | `images-and-compose-2026-10-31.md` |
+| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | In progress | `MockOidcFixedIssuerTests.cs` | `images-and-compose-2026-10-31.md`, `web-runtime-config-spike-2026-10-31.md` |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | Done | *none* | *none* |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | Done | *none* | `findings.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | Done | `walking-skeleton.spec.ts`, `SeederTests.cs` | `findings.md`, `findings.md` |

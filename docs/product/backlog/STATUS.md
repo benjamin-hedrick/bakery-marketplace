@@ -178,7 +178,7 @@ Accepted: 17 · Superseded: 1 · Proposed: 1
 
 ## Open-items register
 
-103 numbered items in `docs/governance/open-items-register.md` (highest number 103).
+104 numbered items in `docs/governance/open-items-register.md` (highest number 104).
 
 | Type | Count |
 |---|---|
@@ -198,6 +198,7 @@ Accepted: 17 · Superseded: 1 · Proposed: 1
 | Done | 2 |
 | Planned tech swap | 2 |
 | Design gap | 2 |
+| Test isolation | 2 |
 | Missing capability | 2 |
 | Missing API | 2 |
 | Missing rule | 2 |
@@ -218,7 +219,6 @@ Accepted: 17 · Superseded: 1 · Proposed: 1
 | Data-safety follow-up | 1 |
 | Contract gap | 1 |
 | Contract inconsistency | 1 |
-| Test isolation | 1 |
 | Evidence gap | 1 |
 | Documentation reconciliation | 1 |
 | Decision to amend | 1 |
@@ -243,4 +243,4 @@ Accepted: 17 · Superseded: 1 · Proposed: 1
 | Resolved | 26 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 43 |
+| Open | 44 |
