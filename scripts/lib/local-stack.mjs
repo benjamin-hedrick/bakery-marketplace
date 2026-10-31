@@ -42,7 +42,13 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
   const next = path.join('node_modules', 'next', 'dist', 'bin', 'next');
   // GRAPHQL_URL is read at run time (the /api/graphql route and server rendering); NEXT_DIST_DIR keeps this build out of `.next`.
   // x-test-payment is the declined-payment hook (D-10): the API route forwards it only because it is named here, and the BFF ignores it unless ENABLE_TEST_HOOKS=1.
-  const webEnv = { GRAPHQL_URL: bffUrl, NEXT_DIST_DIR: distDir, GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment' };
+  const webEnv = {
+    GRAPHQL_URL: bffUrl,
+    NEXT_DIST_DIR: distDir,
+    GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment',
+    AUTH_ISSUER: issuerUrl,
+    AUTH_CLIENT_ID: 'web-customer',
+  };
 
   function run(name, cmd, args, opts = {}) {
     log(`${name}: ${cmd} ${args.join(' ')}`);

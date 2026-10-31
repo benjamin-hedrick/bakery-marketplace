@@ -76,3 +76,7 @@ Latency of the final code, same method as above (three runs, mean of p50 / p95, 
 
 On this machine the change costs about 1 to 1.5 ms at p50 on the read paths and is not distinguishable from noise on checkouts. Not covered: the Linux agent, concurrent load, and the browser-visible configuration (the login addresses), which is still to do.
 
+## Login settings (2026-10-31, after the API route)
+
+The browser bundle also held the issuer address (`NEXT_PUBLIC_AUTH_ISSUER`, inlined at build time; the built chunk contained `localhost:5100`). It now fetches `GET /api/config` before it starts or finishes a login; the server answers from `AUTH_ISSUER` and `AUTH_CLIENT_ID` on each request (`no-store`; 405 for other methods). Checks: the built bundle contains no `localhost:5100`; the same image answered `/api/config` with `https://login.example.test` / `abc-123` when started with those values; with a non-http issuer (`javascript:alert(1)`) or with nothing set in production it answered 503 "Login is not configured" and logged the setting's name, not its value; 71 unit tests, the mock-backed browser suite (62 of 62) and the real-stack suite (21 of 21, containers and host processes) pass.
+

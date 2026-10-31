@@ -39,9 +39,9 @@ What was established while designing it (2026-10-31):
 
 Everything. No Azure subscription, Terraform binary or `az` CLI has been used for this design; the pipeline YAML, the environment checks, the workload identity federation, the key vault purge behaviour on destroy and the Cosmos free-tier limit are from documentation and general knowledge and need a first run. An unreferenced Azure DevOps environment name is created without checks when a run first uses it, so the UAT and Prod stages must not be reachable until their environments exist.
 
-## Amendment (2026-10-31): decision 2, built in part
+## Amendment (2026-10-31): decision 2, built
 
-The run-time proxy is an API route (`/api/graphql`), chosen by the lead after a spike that also built a `proxy.ts` variant (`docs/evidence/WI-DEP-001/web-runtime-config-spike-2026-10-31.md`). It forwards a fixed list of request headers; test-only headers are added through `GRAPHQL_EXTRA_FORWARDED_HEADERS`, empty in a deployed environment. The run-time configuration endpoint for the login addresses is not built yet (register item 101).
+The run-time proxy is an API route (`/api/graphql`), chosen by the lead after a spike that also built a `proxy.ts` variant (`docs/evidence/WI-DEP-001/web-runtime-config-spike-2026-10-31.md`). It forwards a fixed list of request headers; test-only headers are added through `GRAPHQL_EXTRA_FORWARDED_HEADERS`, empty in a deployed environment. The run-time configuration endpoint for the login settings is built too: `GET /api/config` serves `AUTH_ISSUER` and `AUTH_CLIENT_ID`, required in production with no default (register item 101, resolved 2026-10-31).
 
 ## Before the repository is made public
 

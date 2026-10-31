@@ -20,6 +20,9 @@ export default defineConfig({
       env: {
         ENABLE_TEST_HOOKS: '1',
         GRAPHQL_URL: 'http://localhost:4000/graphql',
+        // Where the login page sends the browser (read at run time by /api/config); the tests stand in for the mock issuer at this address.
+        AUTH_ISSUER: 'http://localhost:5100',
+        AUTH_CLIENT_ID: 'web-customer',
         // The mock BFF and the declined-payment hook are steered by request headers, which the API route only forwards when told to.
         GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-fixture,x-delay-ms,x-place-order,x-test-payment',
       },

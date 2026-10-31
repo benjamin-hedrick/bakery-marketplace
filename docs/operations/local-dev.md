@@ -113,7 +113,7 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 
 **Which addresses a login may return to.** The mock issuer only redirects a browser to a registered `redirect_uri`, compared exactly (no prefix, case or trailing-slash leniency); the default is `http://localhost:3000/auth/callback`. Set `MockOidc__RedirectUris__0`, `__1`, ... on the `mock-oidc` service to register others, for example another port. Everything its login page shows is HTML-encoded.
 
-**Browser login.** The web app exchanges its authorization code at the issuer's `/token` itself, so the mock issuer answers cross-origin calls from the web app's origin: exact origins only, no wildcard, no credentials (`tools/BakeryMarketplace.Auth/MockOidcCors.cs`). The default is `http://localhost:3000`; set `MockOidc__AllowedOrigins__0`, `__1`, ... on the `mock-oidc` service to change it. The web app reads `NEXT_PUBLIC_AUTH_ISSUER` (default `http://localhost:5100`) at build time.
+**Browser login.** The web app exchanges its authorization code at the issuer's `/token` itself, so the mock issuer answers cross-origin calls from the web app's origin: exact origins only, no wildcard, no credentials (`tools/BakeryMarketplace.Auth/MockOidcCors.cs`). The default is `http://localhost:3000`; set `MockOidc__AllowedOrigins__0`, `__1`, ... on the `mock-oidc` service to change it. The web app's server reads `AUTH_ISSUER` and `AUTH_CLIENT_ID` at run time and serves them to the browser at `GET /api/config` (required in production; `next dev` defaults to `http://localhost:5100` and `web-customer`).
 
 **The authority must be exactly `http://localhost:5100`.** The mock issuer takes its issuer URL from the request's own host, so tokens carry `iss=http://localhost:5100`, and services reject any token whose issuer differs from their configured authority. A service running *inside* a container could not reach the issuer at that URL; this matters when services are containerized.
 
@@ -198,7 +198,7 @@ The services contain no mock-specific code, so the move is configuration plus on
 | `ServiceAuth__Scope` | `bakery-marketplace/.default` | `<application ID URI>/.default` |
 | `ServiceAuth__ClientSecret` | generated into `.env` | option C: no secret, a client assertion from the managed identity; option A: a Key Vault reference |
 | Roles | the mock client's configured roles | the app role `Stock.Reserve`, assigned to the ordering client (needs the privileged Graph permission, run by the lead) |
-| Web login (`NEXT_PUBLIC_AUTH_*`) | `http://localhost:5100` | the tenant's authorize and token URLs (still inlined at build time until the run-time configuration endpoint exists, register item 101) |
+| Web login (`AUTH_ISSUER`, `AUTH_CLIENT_ID`, served by `/api/config`) | `http://localhost:5100`, `web-customer` | the tenant's issuer and the web app's client id; Entra's authorize and token paths differ from `<issuer>/authorize` and `/token`, so explicit endpoint settings are needed then (register item 101, resolved) |
 | Users | the mock's fixed users | real sign-up and sign-in; the `roles` and `vendorType` claims come from the tenant's configuration (`AUTH-004`) |
 
 As each piece is built, add the row that changes to this table.

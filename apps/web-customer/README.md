@@ -33,7 +33,7 @@ Authorization Code with PKCE for a public client (ADR-0006), done entirely in th
 - **Sending it.** The browser Relay environment adds `Authorization: Bearer ...` to calls to our own origin (the `/api/graphql` route to the BFF) and nowhere else; server-side rendering never has one. If the BFF answers `UNAUTHENTICATED`, the session is ended and `UnauthenticatedError` is thrown.
 - **Gating a page.** Wrap a client-rendered page in `RequireLogin`. It only decides what to show: the services decide what a token may do.
 - **Claims.** `parseClaims` reads the token without verifying it, for display and expiry only.
-- **Configuration.** `NEXT_PUBLIC_AUTH_ISSUER` (default `http://localhost:5100`) and `NEXT_PUBLIC_AUTH_CLIENT_ID` (default `web-customer`) are read at build time; they are public values.
+- **Configuration.** `AUTH_ISSUER` and `AUTH_CLIENT_ID` are read by the server at run time and served to the browser by `GET /api/config` (they are public values, and not in the build, so one image serves every environment). In production both are required: without them `/api/config` answers 503 and the login says it is not configured. Outside production (`next dev`) they default to the local mock issuer, `http://localhost:5100` and `web-customer`.
 - **Tests.** `npm run test:unit` (Node's test runner: PKCE against the RFC 7636 vector, session, callback checks); `tests/e2e/login.spec.ts` (issuer stubbed in the browser); `tests/skeleton/login.spec.ts` (the real mock issuer).
 
 ## Ordering (`S1-03`, `S1-04`, `S1-05`)
