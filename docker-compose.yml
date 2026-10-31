@@ -159,4 +159,7 @@ services:
     environment:
       GRAPHQL_URL: http://graphql-bff:4100/graphql # read at run time (ADR-0020); the same image runs in every environment
       GRAPHQL_EXTRA_FORWARDED_HEADERS: ${GRAPHQL_EXTRA_FORWARDED_HEADERS:-} # tests only (x-test-payment); empty elsewhere
+      # Where the browser logs in, served to it by /api/config at run time. The browser's address for the mock issuer, as in MockOidc__Issuer.
+      AUTH_ISSUER: http://localhost:${MOCK_OIDC_PORT:-5100}
+      AUTH_CLIENT_ID: web-customer
     ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]
