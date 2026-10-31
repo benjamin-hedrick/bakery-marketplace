@@ -1,7 +1,7 @@
 # Quality and CI baseline (WI-PORT-003, ADR-0015).
 #
 # Seen green on Azure: the secrets, docs, dotnet, bff, web and skeleton jobs (reported by the lead 2026-10-31; see docs/process/quality-gates.md).
-# NOT YET RUN ON AZURE: the terraform job (written 2026-10-31). First runs started 2026-10-28 and found the problems recorded in
+# The terraform job (written 2026-10-31) was seen green on Azure in build 25 (16 s). First runs started 2026-10-28 and found the problems recorded in
 # docs/evidence/WI-PORT-003/findings.md. Every command below was also run locally (Windows, Node 25.9, .NET SDK 10,
 # Docker Desktop); that file lists what passed and what was not run.
 # Commands, gaps and the results format: docs/process/quality-gates.md.
@@ -64,7 +64,7 @@ jobs:
   # Terraform and script checks (ADR-0020, WI-DEP-001). No Azure account and no credential: the Terraform tests mock the provider, and the
   # script tests read fixtures. It proves the code is well formed and does what its tests say, not that Azure accepts it (that is the gated
   # plan, later). The Terraform steps run in the pinned hashicorp/terraform image (Docker is on the hosted agent). Written 2026-10-31,
-  # run locally; NOT YET RUN ON AZURE.
+  # run locally; seen green on Azure 2026-10-31 (build 25, 16 s).
   - job: terraform
     displayName: Terraform checks (fmt, validate, mocked-provider tests) and script tests
     steps:

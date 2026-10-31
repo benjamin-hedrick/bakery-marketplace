@@ -120,5 +120,5 @@ Reported by the human lead for the pull request that merged the second batch of 
 | web-customer (mock BFF) | 2 m 59 s |
 | Walking skeleton (real stack) | 5 m 3 s |
 
-The `terraform` job (2026-10-31) has not run on Azure. The docs job's duration is the whole job, so it does not show which of its checks ran; the traceability check was added to it before that pull request.
+Build 25 of the pull request for `feature/dev-environment` (2026-10-31, reported by the lead): the `terraform` job (fmt, validate, mocked-provider tests and the script tests) passed in 16 s, the first run of it on Azure; secret scan 13 s, documentation checks 7 s, GraphQL BFF 1 m 8 s, web-customer 3 m 5 s and the walking skeleton (real stack) 5 m 21 s passed. The `.NET build and tests` job took 22 s, the time of the failure in the step that starts Redis for the adapter tests, caused by a required Compose variable (fixed in `42391dd`, see `docs/method/ai-collaboration.md`); it has not been seen green with the fix. The docs job's duration is the whole job, so it does not show which of its checks ran; the traceability check was added to it before that pull request.
 
