@@ -24,15 +24,15 @@ Targets are proposals. Nothing here is a commitment or schedule, and nothing nee
 | Key result | Target | Baseline | Collected by | Mark |
 |---|---|---|---|---|
 | KR2.1 A fresh clone runs the README path green | Pass at every release candidate | 1 of 1: 21 of 21 journeys, 112 s (`docs/evidence/fresh-clone-2026-10-30.md`) | Re-run the fresh-clone procedure | Measured today |
-| KR2.2 Browser-suite failures in repeated runs | 0 failures in at least 570 executions per slice | 0 of 570 (57 tests, 10 runs; `docs/evidence/baseline-2026-10-30.md`) | 10 consecutive runs, one worker, no retries | Measured today |
+| KR2.2 Browser-suite failures in repeated runs | 0 failures in at least 570 executions per slice | 0 of 620 (62 tests, 10 runs by script, `docs/evidence/quality-report-2026-10-30.md`; 0 of 570 with 57 tests earlier, `docs/evidence/baseline-2026-10-30.md`) | `node scripts/ci/repeat-suite.mjs`: 10 consecutive runs, one worker, no retries | Measured today |
 | KR2.3 Sampled tests that fail when their code is broken (mutation sample, by hand) | 9 of 10 or better, on a new sample each slice | 9 of 10; one test exercised the framework, not the project's code (register 85) | Hand-made one-line changes | Measured today |
-| KR2.4 Documentation checks enforced automatically (status check, link check) | 2 of 2 | 0 of 2: they run when someone remembers (register 90) | The pipeline or a hook | Measured today |
+| KR2.4 Documentation checks enforced automatically (status check, link check) | 2 of 2, confirmed on a pipeline run | 2 of 2 written in the pipeline `docs` job and in `node scripts/ci/node-gates.mjs` (2026-10-30); not yet run on Azure (register 90). Statuses written in prose are mostly unchecked (register 99) | The pipeline or a hook | Measured today |
 
 ## O3. AI collaboration is controlled and its results are measured
 
 | Key result | Target | Baseline | Collected by | Mark |
 |---|---|---|---|---|
-| KR3.1 Assistant errors recorded with the control that caught them | Every error recorded, each with a control | 10 rows in the table, each naming a control (`docs/method/ai-collaboration.md`; one row covers several errors) | The table in that document, kept up to date | Measured today |
+| KR3.1 Assistant errors recorded with the control that caught them | Every error recorded, each with a control | 14 rows in the table, each naming a control (`docs/method/ai-collaboration.md`; one row covers several errors) | The table in that document, kept up to date | Measured today |
 | KR3.2 Errors caught by an automated control, not by review | Rising share; target set after a second sample | 7 of the 10 test episodes were found by the clean Linux pipeline or container run (`docs/evidence/test-reliability/findings.md`) | The reliability findings table | Measured today |
 | KR3.3 Baseline for AI-assisted testing defined and one comparison run (`WI-QA-003`) | Baseline defined, 1 run recorded | None: the experiment has not been run | The experiment record | Not yet measurable |
 | KR3.4 Time saved and rework cost | A method defined first | None: not measured (`ai-collaboration.md`, "What is measured and what is not") | To be defined | Not yet measurable |
@@ -64,6 +64,7 @@ Targets are proposals. Nothing here is a commitment or schedule, and nothing nee
 
 | Date | Change |
 |---|---|
+| 2026-10-30 (later) | Baselines updated for work done the same day: KR2.2 now 620 executions of 62 tests (scripted), KR2.4 now written in the pipeline but not yet confirmed on Azure, KR3.1 now 14 rows. No target or objective changed. |
 | 2026-10-30 | First version. Replaced the stub. Five objectives from the lead's themes, 17 key results, 13 measured today and 4 not yet measurable. Baselines from `docs/evidence/` and the repository on this date. |
 
 **Review note, 2026-10-30 (how the themes carried through).** O2, O4 and O5 carried through cleanly: each key result has a number and a baseline that exists. O1 carried through only in part: the product's own safety result (KR1.3) cannot be measured without orders, so the objective is carried by two build-state measures. O3 is the weakest: two of its four key results have no baseline because the AI-collaboration results are described in `ai-collaboration.md` but were not measured as data (time saved, rework, acceptance rate).
