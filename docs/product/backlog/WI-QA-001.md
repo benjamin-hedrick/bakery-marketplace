@@ -1,4 +1,4 @@
-> **Status:** Deferred · trigger: the lead picks up the test strategy
+> **Status:** Done · evidence: the Outcome note under this banner; `docs/process/test-strategy.md`, `playwright-guide.md`, `test-review-checklist.md`, `docs/product/backlog/TRACEABILITY.md`, `apps/web-customer/tests/e2e/accessibility.spec.ts`
 
 ```
 WI ID:               QA-001
@@ -7,11 +7,13 @@ Type:                 Document/Artifact
 Epic:                 EPIC-QUALITY-EVIDENCE
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Deferred
+Status:               Done
 Size:                 M
 ```
 
 > Created 2026-10-30 to track gaps found by the October 2026 documentation review so that the analysis is not repeated. Captured, not scheduled: no commitment, no delegation plan. The detail of each gap is in the gap catalog rows named below; this spec is the handle that shows it in `STATUS.md`.
+
+> **Outcome note (2026-10-30).** All six rows are Done. The test strategy (layers, what each proves and does not, what is deliberately not tested, gates as pass or fail), the Playwright guide, the test-review checklist, a generated traceability table with a check (`scripts/docs/traceability.mjs`, in `node-gates` and the `docs` pipeline job: as generated on 2026-10-30, of 51 Done work items 26 are named by a test file, 15 by an evidence record, 16 by neither, mostly documents) and an accessibility smoke with axe-core (5 scans; the first run found a missing document language and two missing page titles, fixed). One dev dependency was added: `@axe-core/playwright` 4.14.0 (MPL-2.0). Changes from the original plan: none to scope. The mock-backed suite is now 62 tests; the real-stack journeys (21) and all Node gates pass.
 
 **Context / Why**
 The test layers, what each proves, what is deliberately not tested and the gates as pass/fail policy exist as pieces in `quality-gates.md` and the October plans. Missing: a test strategy, a Playwright framework guide (structure, fixtures, hook gating, determinism rules), a test-review checklist, a traceability table from work item to tests to evidence, a test-layers diagram and an accessibility smoke.

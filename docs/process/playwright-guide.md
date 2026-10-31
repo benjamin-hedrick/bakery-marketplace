@@ -6,7 +6,7 @@
 
 | Suite | Folder and config | Backend | Count | Run |
 |---|---|---|---|---|
-| Mock-backed | `tests/e2e`, `playwright.config.ts` | A mock BFF on `:4000` (`mock-bff/`), fixtures in `mock-bff/fixtures.mjs` | 57 | `npm run test:e2e` (builds, starts the mock and `next start`, runs Chromium) |
+| Mock-backed | `tests/e2e`, `playwright.config.ts` | A mock BFF on `:4000` (`mock-bff/`), fixtures in `mock-bff/fixtures.mjs` | 62 | `npm run test:e2e` (builds, starts the mock and `next start`, runs Chromium) |
 | Real stack | `tests/skeleton`, `playwright.skeleton.config.ts` | The whole local stack: Compose, seed, catalog, ordering, BFF, the mock issuer | 21 | `node scripts/ci/skeleton-smoke.mjs` from the repository root, which starts and tears down everything |
 
 Both use one worker, no retries and a production build (`next start`), because hydration warnings differ in `next dev` and a retry hides a flake. Run from `apps/web-customer`. Install the browser once with `npx playwright install chromium`.
@@ -47,3 +47,7 @@ These come from the ten failures in `docs/evidence/test-reliability/findings.md`
 ## Reading a failure
 
 `trace: 'retain-on-failure'` keeps a trace under `test-results/`: `npx playwright show-trace test-results/<test>/trace.zip`. In the pipeline the traces of a failed `skeleton` job are published as the `skeleton-playwright-traces` artifact.
+
+## Accessibility scans
+
+`tests/e2e/accessibility.spec.ts` runs axe-core (`@axe-core/playwright`, a dev dependency pinned to 4.14.0) with the WCAG 2.0 and 2.1 A and AA rules on the listings, listing, checkout and order pages, and the listings page again in the dark theme. A failure names the rule and the first element. The first run found two real defects (no `lang` on the document, no `<title>` on two pages); both were fixed. A clean scan is a smoke result, not an assessment: add a scan for each new kind of page, and test keyboard use by hand.

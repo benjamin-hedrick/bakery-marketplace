@@ -10,13 +10,13 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 | Status | Count |
 |---|---|
-| Done | 50 |
+| Done | 51 |
 | In progress | 2 |
 | In review | 4 |
 | Built | 1 |
 | Ready | 12 |
 | Proposed | 4 |
-| Deferred | 14 |
+| Deferred | 13 |
 | Superseded | 1 |
 
 ## Epics (derived from the specs)
@@ -44,7 +44,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PORTFOLIO-SLICE | 6 of 7 | PORT-001, PORT-002, PORT-003, PORT-004, PORT-005, PORT-006, PORT-007 |
 | EPIC-PREFERENCES | 0 of 2 | PREF-001, PREF-002 |
 | EPIC-PRODUCT-STRATEGY | 1 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
-| EPIC-QUALITY-EVIDENCE | 0 of 3 | QA-001, QA-002, QA-003 |
+| EPIC-QUALITY-EVIDENCE | 1 of 3 | QA-001, QA-002, QA-003 |
 | EPIC-QUEUE-DISPLAY | 0 of 2 | QUE-001, QUE-002 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
 | EPIC-SEARCH | 0 of 1 | SRCH-001 |
@@ -132,7 +132,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [PROD-002](WI-PROD-002.md) | Competitive scan | EPIC-PRODUCT-STRATEGY | Proposed | decision: the lead sets the scope (which comparable products, how deep) |
 | [PROD-003](WI-PROD-003.md) | Monetization model | EPIC-PRODUCT-STRATEGY | Proposed | decision: the commission percentage and ad revenue split are business assumptions the lead sets |
 | [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | EPIC-PRODUCT-STRATEGY | In review | decision: the lead sets the targets and confirms the north-star definition; first version written 2026-10-30 |
-| [QA-001](WI-QA-001.md) | Test strategy and guides | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead picks up the test strategy |
+| [QA-001](WI-QA-001.md) | Test strategy and guides | EPIC-QUALITY-EVIDENCE | Done | evidence: the Outcome note under this banner; `docs/process/test-strategy.md`, `playwright-guide.md`, `test-review-checklist.md`, `docs/product/backlog/TRACEABILITY.md`, `apps/web-customer/tests/e2e/accessibility.spec.ts` |
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the baseline needs to be repeated or trended |
 | [QA-003](WI-QA-003.md) | Planned experiments: AI-assisted testing and the mobile question | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead decides to run the experiments |
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | EPIC-QUEUE-DISPLAY | Ready |  |

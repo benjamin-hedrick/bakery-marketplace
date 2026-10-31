@@ -291,7 +291,7 @@ Scope: cross-cutting-artifact · Primary hat(s): Engineering/Build · Status: No
 
 ### EPIC-QUALITY-EVIDENCE — Test Strategy, Metrics and Experiments
 Scope: cross-cutting-artifact · Primary hat(s): Engineering/Build, Platform Engineering · Status: see [STATUS.md](STATUS.md)
-- ⚪ QA-001 (Document/Artifact) — Test strategy and guides — added 2026-10-30; spec: `WI-QA-001.md` (Deferred, 2026-10-30)
+- ⚪ QA-001 (Document/Artifact) — Test strategy and guides — added 2026-10-30; spec: `WI-QA-001.md` (Done, 2026-10-30)
 - ⚪ QA-002 (Document/Artifact) — Quality metrics and scripted baselines — added 2026-10-30; spec: `WI-QA-002.md` (Deferred, 2026-10-30)
 - ⚪ QA-003 (Document/Artifact) — Planned experiments: AI-assisted testing and the mobile question — added 2026-10-30; spec: `WI-QA-003.md` (Deferred, 2026-10-30)
 

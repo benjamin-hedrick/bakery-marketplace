@@ -43,7 +43,7 @@ Authorization Code with PKCE for a public client (ADR-0006), done entirely in th
 - **`/checkout`** (client-rendered, behind `RequireLogin`): review the order, pick a pickup time (optional, always fetched fresh, shown in the browser's time zone), **Place test order**. The idempotency key is reused for the same order content and replaced when anything changes; the button is disabled in flight. Typed rejections (`PlaceOrderRejected`) and unexpected failures each have a message; the order is kept on any failure.
 - **`/orders/{id}`** (client-rendered, behind the login): the status in words, what was ordered, the server's total and the pickup time; read from the network every time; **Refresh status**. An order that is missing or not the customer's reads as not found.
 - **Logging out reloads the home page** so Relay's in-memory store cannot show the next person anything the previous customer fetched.
-- **Tests.** `npm run test:unit` (cart, auth); `npm run test:e2e` runs 57 browser tests against the mock BFF, which now also serves `pickupWindows`, `placeOrder` and `order`. Header `x-place-order: rejected:<CODE> | shortfall | internal | unauthenticated | slow` scripts `placeOrder` there (see `mock-bff/server.mjs`).
+- **Tests.** `npm run test:unit` (cart, auth); `npm run test:e2e` runs 62 browser tests against the mock BFF (57 journeys and states, 5 accessibility scans with axe-core), which now also serves `pickupWindows`, `placeOrder` and `order`. Header `x-place-order: rejected:<CODE> | shortfall | internal | unauthenticated | slow` scripts `placeOrder` there (see `mock-bff/server.mjs`).
 
 ## How the Relay/SSR pattern works
 
