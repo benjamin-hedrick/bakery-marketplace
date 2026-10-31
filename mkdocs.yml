@@ -35,6 +35,7 @@ nav:
       - DDD: architecture/ddd/README.md
   - Operations:
       - Local Development: operations/local-dev.md
+      - Demo: operations/demo.md
       - SLA/SLO: operations/sla.md
       - Monitoring / Alerting Plan: operations/monitoring-alerting.md
       - Runbooks: operations/runbooks/README.md

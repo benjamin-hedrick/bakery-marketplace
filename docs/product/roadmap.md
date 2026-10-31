@@ -29,7 +29,7 @@ Real payment (N-08), notifications (N-09), container images and a hosting decisi
 
 From the review's suggested order; the lead sets the priorities. Items are in the gap catalog (`backlog/gap-catalog/`) and `STATUS.md`.
 
-1. **Honest and runnable:** mostly done (README, status, run path). Open: the demo path (`WI-DEMO-001`) and the public-readiness pass (register item 93, `WI-SEC-004`).
+1. **Honest and runnable:** mostly done (README, status, run path). The demo path is built (`docs/operations/demo.md`; its cold run and stranger test are open, `WI-DEMO-001`). Open: the public-readiness pass (register item 93, `WI-SEC-004`).
 2. **Show the method:** done in `docs/method/`. Open: the remaining templates and standards (`WI-DOC-001`).
 3. **Show the architecture:** done for the container, request-path and component diagrams and the patterns page. Open: `WI-DOC-002`, `WI-API-001`, `WI-DOC-003`.
 4. **Show the quality work:** `WI-QA-001`, `WI-QA-002`, `WI-SEC-004`, then `WI-QA-003`.

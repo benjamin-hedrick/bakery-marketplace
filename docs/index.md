@@ -16,6 +16,7 @@ A pickup-based bakery and coffee marketplace, built to show architecture, produc
 | The first slice's contract and how it ended up | [First-slice contract](architecture/first-slice-contract.md), [order lifecycle](architecture/order-lifecycle.md) |
 | What was run and what happened | [Slice 1 findings](evidence/slice-1/findings.md), [test reliability](evidence/test-reliability/findings.md), [evidence baseline](evidence/baseline-2026-10-30.md) |
 | How to run it on a laptop | [Local development](operations/local-dev.md) |
+| How to show it (one command, a checklist, screenshots) | [Demo](operations/demo.md) |
 | How work is specified and tracked | [Method](method/README.md), [engineering standards](process/engineering-standards.md), [definition of done](process/definition-of-done.md), [quality gates](process/quality-gates.md) |
 | Quality targets and operations | [NFRs](architecture/nfrs.md), [SLA](operations/sla.md), [monitoring plan](operations/monitoring-alerting.md) |
 | Product intent and scope | [Vision](product/vision.md), [personas](product/personas.md), [scope](product/scope.md), [roadmap](product/roadmap.md), [demo milestones](product/demo-milestones.md) |

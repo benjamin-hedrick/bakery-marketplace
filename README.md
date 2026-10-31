@@ -18,7 +18,7 @@ The full map of the documents is [docs/index.md](docs/index.md).
 
 ## Run it
 
-You need Docker, the .NET 10 SDK, Node 24 or later and git. The steps are in [local development](docs/operations/local-dev.md#run-slice-1) ("Run slice 1", verified in a fresh clone on 2026-10-30). For a one-command run that starts everything, runs the browser journeys and tears down: `node scripts/ci/skeleton-smoke.mjs`.
+You need Docker, the .NET 10 SDK, Node 24 or later and git. The steps are in [local development](docs/operations/local-dev.md#run-slice-1) ("Run slice 1", verified in a fresh clone on 2026-10-30). To run it and look at it, with a checklist, a topology diagram and screenshots: `node scripts/dev/demo.mjs` ([Demo](docs/operations/demo.md)). For a one-command run that starts everything, runs the browser journeys and tears down: `node scripts/ci/skeleton-smoke.mjs`.
 
 Test commands (from `CLAUDE.md`): `dotnet build BakeryMarketplace.slnx`, `dotnet test tools/BakeryMarketplace.slnx`, the service test projects under `services/*/tests`, `npm test` in `services/graphql-bff`, and `npm run test:unit` in `apps/web-customer`. A green run without Docker does not prove the Redis and Cosmos adapters work: some of those tests fall back to fakes (register items 31 and 35).
 

@@ -521,3 +521,12 @@ Type: Known limitation · Source: `WI-OPS-002` (2026-10-30) · Hat: Operations, 
 Status: Open
 With Redis stopped, ordering-service accepted orders and held their events for the relay (`docs/evidence/runbook-event-broker-2026-10-30.md`). The only signals are `warn` log lines and comparing Redis stream lengths with the orders placed. `GET /health` answers `Healthy` and there is no `/metrics` endpoint or custom metric in `services/ordering-service/src`. A count and age of pending outbox entries (a gauge, and a log line or health detail when it passes a threshold) would let the runbook and `docs/operations/monitoring-alerting.md` name a real signal. Not built, not designed. Related: items 72, 74 and 75.
 
+**97. The customer web app is unstyled**
+Type: Known limitation · Source: `WI-DEMO-001` (2026-10-30) · Hat: Engineering/Build, Digital Product Manager
+Status: Open
+The screenshots taken for the demo (`docs/operations/demo/`) show browser-default markup: no layout, spacing, colour or brand. Slice 1 was built to prove the stack and the journey, and no styling work has been done. For a demonstration that is looked at, a minimal layout and typography pass would change how the repository reads; it is a product decision whether and when (not designed, not scheduled). Not an accessibility assessment: none has been run.
+
+**98. The first checkout on a cold stack takes about 7 seconds and the demo warm-up does not remove it**
+Type: Known limitation · Source: `WI-DEMO-001` (2026-10-30) · Hat: Engineering/Build
+Status: Open
+After `scripts/dev/demo.mjs` warms the issuer metadata, the home page and the pickup times, the first checkout still took 7.0 s (the first order in the outage run was 9.0 s cold, and warm checkouts take tens of milliseconds, `docs/evidence/baseline-2026-10-30.md`). The cost is on the first priced checkout: ordering's service token and first call to the catalog, and first-use costs in each hop. A warm-up that exercises that path without leaving an order behind would need a safe read-only route or a throwaway order and stock reset; neither exists. The demo document tells the presenter to expect it. Related: `docs/evidence/runbook-event-broker-2026-10-30.md`.
