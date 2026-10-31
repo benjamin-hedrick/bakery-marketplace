@@ -1,6 +1,6 @@
 # ADR-0018: Service-to-Service Authentication (OAuth2 Client Credentials)
 
-**Status:** Proposed (2026-10-28)
+**Status:** Accepted (2026-10-31)
 
 ## Context
 
@@ -92,3 +92,7 @@ ADR-0006, ADR-0007, ADR-0008, ADR-0017; `WI-AUTH-006`; `WI-CAT-006`; open items 
 ## Progress (2026-10-30)
 
 Status stays Proposed. The direction, OAuth2 client credentials, was chosen by the human lead for demonstration and is settled. Phase 1 (local) is built (`WI-AUTH-006`, `feature/service-auth`, 2026-10-28): the mock issuer's client-credentials grant, the shared client library, and local secret tooling. DEV is not started. The credential type for DEV and later is **not** settled: final selection waits on the verification list above (register item 62).
+
+## Acceptance (2026-10-31)
+
+Accepted by the human lead. The decision above stands unchanged. The DEV credential type (A, B or C) is still chosen by the verification list; the lead also approved, in principle, the privileged app-role assignment (to be run by the lead as a one-time step, not by the pipeline), the pipeline identity (workload identity federation, Contributor on one dev resource group) and any of the three credential options. The first deployed environment keeps the mock issuer; `docs/operations/local-dev.md` ("Moving to Entra") lists what changes when it is replaced. Two optional settings were added to the mock issuer and the shared library for container networks (`MockOidc:Issuer`, `Auth:MetadataAddress`), and one host-only switch for a plain-http token endpoint on the local Compose network (`allowInsecureTokenEndpoint`, development only, never read from configuration); see `WI-DEP-001`.

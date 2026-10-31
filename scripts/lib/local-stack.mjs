@@ -129,6 +129,20 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       await waitFor('bff', `http://localhost:${ports.bff}/healthz`);
     },
 
+    /**
+     * The four application containers (compose profile `apps`, the images the cloud dev environment uses) in place of startServices and
+     * startWeb. The web image is built with the BFF address of the Compose network, so the browser reaches it through the same-origin rewrite.
+     */
+    async startContainers({ testHooks = false } = {}) {
+      run('app containers', 'docker', ['compose', '--profile', 'apps', 'up', '-d', '--build'], {
+        env: testHooks ? { ENABLE_TEST_HOOKS: '1' } : {},
+      });
+      await waitFor('catalog', `http://localhost:${ports.catalog}/health`);
+      await waitFor('ordering', `http://localhost:${ports.ordering}/health`);
+      await waitFor('bff', `http://localhost:${ports.bff}/healthz`);
+      await waitFor('web', `http://localhost:${ports.web}/`);
+    },
+
     /** Builds the Next.js app against the real BFF and starts it. */
     async startWeb() {
       // The Relay artifacts (src/__generated__) are gitignored, so a clean checkout has none and `next build` fails type-checking
@@ -157,7 +171,8 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
 
     /** Stops the Compose containers and removes them (their data is lost). */
     down() {
-      spawnSync('docker', ['compose', 'down'], { cwd: root, stdio: 'inherit' });
+      // --profile apps so the application containers are removed too (a no-op when they were not started).
+      spawnSync('docker', ['compose', '--profile', 'apps', 'down'], { cwd: root, stdio: 'inherit' });
     },
   };
 }

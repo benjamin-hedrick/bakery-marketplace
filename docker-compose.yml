@@ -7,7 +7,10 @@
 #   OTEL_COLLECTOR_CONFIG=local-jaeger.yaml docker compose --profile tracing --profile collector --profile jaeger up -d
 #   node scripts/dev/check-env.mjs             # readiness check (add --with-redis when using the profile)
 #
-# Application services are NOT containers yet: run them on the host (`dotnet run`) against these ports.
+#   docker compose --profile apps up -d --build   # plus the four application containers (WI-DEP-001): catalog, ordering, BFF, web
+#
+# By default the application services are NOT containers: run them on the host (`dotnet run`) against these ports.
+# The `apps` profile runs the same images the cloud dev environment will use. Seed with `dotnet run --project tools/BakeryMarketplace.Seed`.
 # See docs/operations/local-dev.md for the environment variables each service expects.
 #
 # All ports bind to 127.0.0.1 only. The mock issuer signs tokens for anyone who asks and the Redis
@@ -50,6 +53,9 @@ services:
       # `node scripts/dev/init-env.mjs`; with no secret the client is simply not registered. The role is not a secret.
       MockOidc__Clients__ordering-service__Secret: ${ORDERING_CLIENT_SECRET:-}
       MockOidc__Clients__ordering-service__Roles__0: Stock.Reserve
+      # The issuer string is the address the browser uses. Containers reach this host by its service name, so without a fixed issuer the
+      # same issuer would appear under two names (the apps profile validates tokens against http://localhost:5100).
+      MockOidc__Issuer: http://localhost:${MOCK_OIDC_PORT:-5100}
     ports:
       - "127.0.0.1:${MOCK_OIDC_PORT:-5100}:5100"
 
@@ -101,3 +107,53 @@ services:
     ports:
       - "127.0.0.1:${JAEGER_UI_PORT:-16686}:16686"
 
+  # ---- Application containers (profile apps, WI-DEP-001). Local only, like everything in this file. -----------------------------
+  # Development environment on purpose: the services then accept the plain-HTTP mock issuer (requireHttpsMetadata is off only there).
+  # The Cosmos key below is the emulator's published fixed key, not a secret. The ordering client secret comes from the git-ignored .env.
+  # In the cloud the same settings come from the environment (Terraform and Key Vault references), and the only auth values that change
+  # are Auth__Authority / Auth__MetadataAddress / ServiceAuth__* (docs/operations/local-dev.md, "Moving to Entra").
+  catalog:
+    build: { context: ., dockerfile: services/Dockerfile.dotnet, args: { PROJECT: services/catalog-service/src/CatalogService.csproj, ASSEMBLY: CatalogService, PORT: "5200" } }
+    image: bakery-catalog:dev
+    profiles: ["apps"]
+    depends_on: { redis-events: { condition: service_healthy }, cosmos: { condition: service_started }, mock-oidc: { condition: service_started } }
+    environment: &dotnet-env
+      ASPNETCORE_ENVIRONMENT: Development
+      Auth__Authority: http://localhost:${MOCK_OIDC_PORT:-5100}
+      Auth__MetadataAddress: http://mock-oidc:5100/.well-known/openid-configuration
+      Auth__Audience: bakery-marketplace
+      Data__Backend: cosmos
+      Events__Backend: redis
+      Redis__ConnectionString: redis-events:6379
+      Cosmos__ConnectionString: AccountEndpoint=http://cosmos:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+    ports: ["127.0.0.1:${CATALOG_PORT:-5200}:5200"]
+
+  ordering:
+    build: { context: ., dockerfile: services/Dockerfile.dotnet, args: { PROJECT: services/ordering-service/src/OrderingService.csproj, ASSEMBLY: OrderingService, PORT: "5300" } }
+    image: bakery-ordering:dev
+    profiles: ["apps"]
+    depends_on: { redis-events: { condition: service_healthy }, cosmos: { condition: service_started }, mock-oidc: { condition: service_started }, catalog: { condition: service_started } }
+    environment:
+      <<: *dotnet-env
+      Catalog__BaseUrl: http://catalog:5200
+      ServiceAuth__TokenEndpoint: http://mock-oidc:5100/token
+      ServiceAuth__ClientId: ordering-service
+      ServiceAuth__Scope: bakery-marketplace/.default
+      ServiceAuth__ClientSecret: ${ORDERING_CLIENT_SECRET:?run node scripts/dev/init-env.mjs first}
+    ports: ["127.0.0.1:${ORDERING_PORT:-5300}:5300"]
+
+  graphql-bff:
+    build: { context: ., dockerfile: services/graphql-bff/Dockerfile }
+    image: bakery-bff:dev
+    profiles: ["apps"]
+    environment:
+      CATALOG_URL: http://catalog:5200
+      ORDERING_URL: http://ordering:5300
+      ENABLE_TEST_HOOKS: ${ENABLE_TEST_HOOKS:-} # tests only (the declined-payment hook); never set it elsewhere
+    ports: ["127.0.0.1:${BFF_PORT:-4100}:4100"]
+
+  web:
+    build: { context: ., dockerfile: apps/web-customer/Dockerfile, args: { GRAPHQL_URL: "http://graphql-bff:4100/graphql" } }
+    image: bakery-web:dev
+    profiles: ["apps"]
+    ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]

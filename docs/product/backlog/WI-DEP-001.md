@@ -1,4 +1,6 @@
-> **Status:** Deferred · trigger: deployment work (priority P4) starts; it needs the lead's approval for identity and credentials
+> **Status:** In progress · remaining: infrastructure as code, the deploy stage, the post-deploy smoke, teardown and cost evidence; the images and the Compose `apps` profile are built (see the progress note)
+
+> **Progress note (2026-10-31):** started by the lead's decision (the deployed dev environment and its teardown are the next main work; `current-plan.md`). Built on `feature/dev-environment`: Dockerfiles for the catalog and ordering services (one recipe, `services/Dockerfile.dotnet`), the BFF and the customer web app; a Compose profile `apps` that runs them; `skeleton-smoke.mjs --containers`, which passed 21 of 21 against the containers; a fixed issuer for the mock issuer (`MockOidc:Issuer`), a metadata address override (`Auth:MetadataAddress`) and a development-only switch for a plain-http token endpoint on the Compose network, with 14 new Auth tests; a "Moving to Entra" table in `docs/operations/local-dev.md`. Gap `T-65` (time-zone data): the base image has it. Evidence: `docs/evidence/WI-DEP-001/images-and-compose-2026-10-31.md`. **Not done:** everything in Azure (no Terraform for the environment, no `azuread` provider, no deploy stage, no teardown), the first run of the `apps` profile on the Linux pipeline, and the decisions in register items 101 (web image per environment) and 102 (the mock issuer on a public address). ADR-0018 is Accepted (2026-10-31).
 
 ```
 WI ID:               DEP-001
@@ -7,7 +9,7 @@ Type:                 Document/Artifact
 Epic:                 EPIC-CLOUD-INFRA
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Deferred
+Status:               In progress
 Size:                 L
 ```
 

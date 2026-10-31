@@ -5,7 +5,8 @@
 // (a fresh one on a clean agent, the existing one on a developer machine); the secret is never printed.
 // The same command runs locally and in Azure Pipelines.
 //
-//   node scripts/ci/skeleton-smoke.mjs [--keep]      # --keep leaves Docker running afterwards
+//   node scripts/ci/skeleton-smoke.mjs [--keep] [--containers]
+//     --keep leaves Docker running afterwards; --containers runs the four application containers (compose profile apps) instead of host processes
 //
 // Needs Docker, the .NET SDK, Node >= 24 and `npm ci` already run in apps/web-customer and services/graphql-bff.
 // Logs: artifacts/skeleton/*.log. Playwright JUnit: artifacts/skeleton/playwright-junit.xml. Exit code: the test run's.
@@ -14,6 +15,7 @@ import path from 'node:path';
 import { createStack } from '../lib/local-stack.mjs';
 
 const keep = process.argv.includes('--keep');
+const containers = process.argv.includes('--containers');
 // NEXT_DIST_DIR keeps this build (aimed at the real BFF) out of `.next`, which the mock-backed e2e uses.
 const stack = createStack({
   label: 'skeleton',
@@ -26,8 +28,12 @@ let exitCode = 1;
 try {
   stack.up();
   // ENABLE_TEST_HOOKS forwards the declined-payment hook (D-10) so the journey can test it; never set outside tests.
-  await stack.startServices({ testHooks: true });
-  await stack.startWeb();
+  if (containers) {
+    await stack.startContainers({ testHooks: true });
+  } else {
+    await stack.startServices({ testHooks: true });
+    await stack.startWeb();
+  }
 
   const pw = spawnSync(
     'node',
