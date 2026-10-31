@@ -18,7 +18,7 @@ flowchart LR
 
     subgraph WEB["apps/web-customer — Next.js Pages Router, :3000"]
         direction TB
-        SSR["Server: renders public listing pages (SSR)<br/>rewrites /api/graphql to the BFF"]
+        SSR["Server: renders public listing pages (SSR)<br/>forwards /api/graphql to the BFF"]
         CSR["Browser code: login (PKCE), cart in sessionStorage,<br/>checkout and order pages (client-rendered),<br/>access token held in memory only"]
     end
 
@@ -52,7 +52,7 @@ flowchart LR
     CSR -->|"login redirect, then token exchange"| OIDC
     CSR -->|"GraphQL via same-origin /api/graphql<br/>Authorization: Bearer"| SSR
     SSR -->|"public queries (no token), SSR"| BFF
-    SSR -->|"rewrite"| BFF
+    SSR -->|"API route"| BFF
     BFF -->|"REST: listings"| CAT
     BFF -->|"REST: checkout, orders, pickup windows<br/>token forwarded"| ORD
     ORD -->|"REST: listing read, stock reserve and release<br/>service token (client credentials)"| CAT

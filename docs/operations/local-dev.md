@@ -41,7 +41,7 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 Data__B
 (cd services/graphql-bff && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)
 #    To run the journeys later (below), start it with ENABLE_TEST_HOOKS=1 as well. That forwards the declined-payment test hook; never set it outside tests.
 
-# 7. Customer web app on :3000 (GRAPHQL_URL is read at build time and at run time, so set it for both)
+# 7. Customer web app on :3000 (GRAPHQL_URL is read at run time, on every request)
 (cd apps/web-customer && npm ci)
 (cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run build)    # also compiles the Relay artifacts, which are git-ignored
 (cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3000)
@@ -178,7 +178,7 @@ node scripts/ci/skeleton-smoke.mjs --containers [--keep]      # the whole stack 
 docker compose --profile apps down                            # removes them
 ```
 
-Images: `services/Dockerfile.dotnet` (catalog and ordering; one recipe, build arguments choose the project), `services/graphql-bff/Dockerfile`, `apps/web-customer/Dockerfile` (takes `GRAPHQL_URL` as a build argument; register item 101). They hold no secret: configuration is environment variables (the Cosmos key in the Compose file is the emulator's published key). All four run as a non-root user (checked with `id` in each image). The `apps` services run in the `Development` environment on purpose, because only there do the services accept the plain-http mock issuer.
+Images: `services/Dockerfile.dotnet` (catalog and ordering; one recipe, build arguments choose the project), `services/graphql-bff/Dockerfile`, `apps/web-customer/Dockerfile` (no build argument: `GRAPHQL_URL` is read at run time by the `/api/graphql` route). They hold no secret: configuration is environment variables (the Cosmos key in the Compose file is the emulator's published key). All four run as a non-root user (checked with `id` in each image). The `apps` services run in the `Development` environment on purpose, because only there do the services accept the plain-http mock issuer.
 
 Two details of the container network. The issuer string in tokens must be one name, but a container reaches the mock issuer as `mock-oidc` and the browser as `localhost`: the mock issuer is given `MockOidc__Issuer=http://localhost:5100`, and the services fetch metadata from `Auth__MetadataAddress=http://mock-oidc:5100/...` while still validating tokens against `Auth__Authority=http://localhost:5100`. And ordering sends its client secret to `http://mock-oidc:5100/token`, which is plain http to a non-loopback host; the library refuses that unless the host opts in, and ordering opts in only when `ASPNETCORE_ENVIRONMENT=Development` (`allowInsecureTokenEndpoint`, never read from configuration).
 
@@ -198,7 +198,7 @@ The services contain no mock-specific code, so the move is configuration plus on
 | `ServiceAuth__Scope` | `bakery-marketplace/.default` | `<application ID URI>/.default` |
 | `ServiceAuth__ClientSecret` | generated into `.env` | option C: no secret, a client assertion from the managed identity; option A: a Key Vault reference |
 | Roles | the mock client's configured roles | the app role `Stock.Reserve`, assigned to the ordering client (needs the privileged Graph permission, run by the lead) |
-| Web login (`NEXT_PUBLIC_AUTH_*`) | `http://localhost:5100` | the tenant's authorize and token URLs (a build-time value, register item 101) |
+| Web login (`NEXT_PUBLIC_AUTH_*`) | `http://localhost:5100` | the tenant's authorize and token URLs (still inlined at build time until the run-time configuration endpoint exists, register item 101) |
 | Users | the mock's fixed users | real sign-up and sign-in; the `roles` and `vendorType` claims come from the tenant's configuration (`AUTH-004`) |
 
 As each piece is built, add the row that changes to this table.
