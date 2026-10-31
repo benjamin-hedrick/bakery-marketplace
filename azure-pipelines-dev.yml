@@ -31,7 +31,7 @@ parameters:
   - name: confirmEnvironment
     displayName: To destroy, type the environment name (dev)
     type: string
-    default: ''
+    default: none # not empty: the run dialog keeps Next disabled while a text box is blank (seen 2026-10-31); any value but the environment name fails a destroy
 
 variables:
   ENVIRONMENT_NAME: dev
