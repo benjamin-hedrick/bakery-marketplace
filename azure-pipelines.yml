@@ -5,7 +5,7 @@
 # Docker Desktop); that file lists what passed and what was not run.
 # Commands, gaps and the results format: docs/process/quality-gates.md.
 #
-# Gates here: secret scan, documentation checks, format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
+# Gates here: secret scan, documentation checks, Terraform and script checks, format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
 # Do not read a green run as "covered": the Cosmos adapter tests do not touch Cosmos.
 #
 # The GitHub placeholder workflow (.github/workflows/ci.yml) was removed on 2026-10-28 (ADR-0015 amendment); this pipeline
@@ -59,6 +59,22 @@ jobs:
         displayName: Link check (fails on a broken relative link; broken backtick paths are only counted)
       - script: node scripts/docs/traceability.mjs --check
         displayName: Traceability table is current (fix with node scripts/docs/traceability.mjs)
+
+  # Terraform and script checks (ADR-0020, WI-DEP-001). No Azure account and no credential: the Terraform tests mock the provider, and the
+  # script tests read fixtures. It proves the code is well formed and does what its tests say, not that Azure accepts it (that is the gated
+  # plan, later). The Terraform steps run in the pinned hashicorp/terraform image (Docker is on the hosted agent). Written 2026-10-31,
+  # run locally; NOT YET RUN ON AZURE.
+  - job: terraform
+    displayName: Terraform checks (fmt, validate, mocked-provider tests) and script tests
+    steps:
+      - task: UseNode@1
+        displayName: Node $(NODE_VERSION)
+        inputs:
+          version: $(NODE_VERSION)
+      - script: node --test "scripts/ci/tests/*.test.mjs"
+        displayName: Script tests (destroy guard, pipeline structure)
+      - script: node scripts/ci/terraform-checks.mjs
+        displayName: Terraform fmt, init, validate and test (fails on any step)
 
   - job: dotnet
     displayName: .NET build and tests

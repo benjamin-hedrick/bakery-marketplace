@@ -568,3 +568,13 @@ Type: Rough edge · Source: `WI-DEP-001` (2026-10-31) · Hat: Frontend
 Status: Open
 `apps/web-customer/src/lib/relay/environment.ts` reads `process.env.GRAPHQL_URL ?? 'http://localhost:4000/graphql'` for server-side rendering. The `/api/graphql` route, now that the address is a run-time setting, answers 502 when it is unset. In a deployed environment where the setting were missing, pages would try `localhost:4000` and fail with a connection error while the API route said "not configured". Making rendering fail the same way (no default) would change how `npm run dev` behaves without the setting, so it was not changed here. Decide with the next change to the web app's configuration (item 101 is resolved; the login settings now have no default in production, this one still has).
 
+**106. Who may write role assignments in the deployed environment is not decided**
+Type: Open decision (IAM, needs the lead's approval) · Source: `WI-DEP-001`, `ADR-0018` acceptance, `ADR-0020` (2026-10-31) · Hat: Security, Manager/Lead
+Status: Open
+The environment stack must grant roles (AcrPull on the registry to each container app's identity, Key Vault roles). Writing a role assignment needs more than Contributor (Owner, User Access Administrator or Role Based Access Control Administrator on the scope). ADR-0018 asked that the privileged Graph app-role assignment stay out of the pipeline's reach; Azure role assignments raise the same question. Options: give the deploy identity Role Based Access Control Administrator, limited by a condition to the roles it needs, on the foundation and dev resource groups only; or have the lead run the role assignments (a separate small stack, applied by hand) and keep the pipeline at Contributor. Related proposal in `bootstrap-terraform-state.md` and the ADR-0020 amendment: the bootstrap creates the empty dev resource group so the pipeline never needs rights over the subscription. Decide before the first apply of the foundation or dev stack.
+
+**107. The destroy guard has only been tested on hand-written plans**
+Type: Verification gap · Source: `WI-DEP-001` (2026-10-31) · Hat: Platform Engineering
+Status: Open
+`scripts/ci/destroy-guard.mjs` reads `terraform show -json` output. Its fixtures were written by hand from the documented format, so the attributes it relies on (`resource_group_name`, `scope`, `resource_group_id`, `id`, `tags` in `before`) are not confirmed against a real destroy plan of this stack. It fails closed (an unknown group is a refusal), so the risk is a false refusal, not a false pass, but it must be run on the first real destroy plan and the output compared. Also unproven: that every resource in the future environment stack carries a resource-group attribute the guard recognises.
+

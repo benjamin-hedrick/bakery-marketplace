@@ -1,0 +1,156 @@
+# Manual operations on the dev environment (ADR-0020, WI-DEP-001). Register this file as its OWN pipeline ("bakery-dev-operations");
+# azure-pipelines.yml (pull-request checks) is not touched by it. This pipeline never runs by itself: no push trigger, no pull-request trigger.
+#
+# STATE OF THIS FILE: a REHEARSAL. Every step only prints what the real step will do. It has no Azure service connection, creates no resource
+# and needs no credential, so it costs nothing and cannot harm anything. Its purpose is to PROVE THE GATES before anything real sits behind them:
+# the same stages, jobs and Azure DevOps Environments the real run will use, so approvals, the branch check, the exclusive lock, the typed
+# confirmation and the skip-when-nothing-changed rule can be seen working. Real steps are added one stage at a time, each rehearsed first.
+# How to set the environments up and what to expect from each run: docs/operations/runbooks/prove-the-pipeline-gates.md.
+#
+# Environments (Pipelines > Environments, with the checks listed in that runbook; configured in the Azure interface, not here):
+#   dev-infra    approval + branch control (main only) + exclusive lock     the infrastructure apply
+#   dev-app      approval + branch control (main only) + exclusive lock     the application deploy
+#   dev-destroy  approval + branch control (main only) + exclusive lock     the teardown
+# An environment name that does not exist yet is CREATED WITH NO CHECKS the first time a run uses it: create all three, with their checks,
+# before the first run.
+trigger: none
+pr: none
+
+parameters:
+  - name: action
+    displayName: What to rehearse
+    type: string
+    default: deploy
+    values:
+      - deploy # infrastructure (only if the plan has changes), then the application
+      - destroy # the teardown
+  - name: simulateInfrastructureChanges
+    displayName: Rehearsal only. Pretend the infrastructure plan has changes (false = no changes, so the infrastructure approval is skipped)
+    type: boolean
+    default: true
+  - name: confirmEnvironment
+    displayName: To destroy, type the environment name (dev)
+    type: string
+    default: ''
+
+variables:
+  ENVIRONMENT_NAME: dev
+  RESOURCE_GROUP: rg-bakery-dev
+
+pool:
+  vmImage: ubuntu-24.04
+
+stages:
+  # ---- every run: the inputs are checked before anything else, and the run can only go on from main ------------------------------------
+  - stage: inputs
+    displayName: Check the inputs
+    jobs:
+      - job: inputs
+        steps:
+          - checkout: self
+          - script: |
+              set -eu
+              echo "Branch: $(Build.SourceBranch)   Reason: $(Build.Reason)"
+              if [ "$(Build.Reason)" != "Manual" ]; then echo "##vso[task.logissue type=error]This pipeline runs only when queued by hand."; exit 1; fi
+              if [ "${{ parameters.action }}" = "destroy" ] && [ "${{ parameters.confirmEnvironment }}" != "$(ENVIRONMENT_NAME)" ]; then
+                echo "##vso[task.logissue type=error]To destroy, the confirmation must be exactly the environment name: $(ENVIRONMENT_NAME)"
+                exit 1
+              fi
+              echo "Inputs are acceptable: action=${{ parameters.action }}"
+            displayName: Manual run, and for a destroy the typed confirmation (must equal the environment name)
+
+  # ---- deploy: infrastructure first (its apply is asked for only if the plan has changes), then the application ---------------------------
+  - ${{ if eq(parameters.action, 'deploy') }}:
+      - stage: infra_plan
+        displayName: Infrastructure plan
+        dependsOn: inputs
+        jobs:
+          - job: plan
+            steps:
+              - checkout: self
+              - script: |
+                  set -eu
+                  echo "REHEARSAL - the real step runs terraform plan -detailed-exitcode -out=tfplan   (exit 0 = no changes, 2 = changes)"
+                  if [ "${{ parameters.simulateInfrastructureChanges }}" = "True" ] || [ "${{ parameters.simulateInfrastructureChanges }}" = "true" ]; then
+                    echo "Simulated plan exit code: 2 (changes)"
+                    echo "##vso[task.setvariable variable=hasChanges;isOutput=true]true"
+                  else
+                    echo "Simulated plan exit code: 0 (no changes)"
+                    echo "##vso[task.setvariable variable=hasChanges;isOutput=true]false"
+                  fi
+                name: plan
+                displayName: Plan (rehearsal)
+
+      # Runs, and asks for approval, only when the plan has changes. With no changes this stage is skipped and nobody is asked.
+      - stage: infra_apply
+        displayName: Infrastructure apply (approval)
+        dependsOn: infra_plan
+        condition: and(succeeded(), eq(dependencies.infra_plan.outputs['plan.plan.hasChanges'], 'true'))
+        jobs:
+          - deployment: apply
+            environment: dev-infra
+            strategy:
+              runOnce:
+                deploy:
+                  steps:
+                    - script: |
+                        echo "REHEARSAL - the real step applies the saved plan (terraform apply tfplan), exactly what was approved."
+                      displayName: Apply the saved plan (rehearsal)
+
+      # Needs the plan stage to have succeeded and the apply stage to have either succeeded or been skipped (no changes).
+      - stage: app_deploy
+        displayName: Application deploy (approval)
+        dependsOn:
+          - infra_plan
+          - infra_apply
+        condition: and(succeeded('infra_plan'), in(dependencies.infra_apply.result, 'Succeeded', 'SucceededWithIssues', 'Skipped'))
+        jobs:
+          - deployment: deploy
+            environment: dev-app
+            strategy:
+              runOnce:
+                deploy:
+                  steps:
+                    - script: |
+                        echo "REHEARSAL - the real steps update each container app to the image digest (az containerapp update),"
+                        echo "then run the post-deploy smoke against the deployed address and publish its result."
+                      displayName: Update the apps to the new image and smoke (rehearsal)
+
+  # ---- destroy: a plan, the guard, then the approval, then the destroy of that saved plan --------------------------------------------------
+  - ${{ if eq(parameters.action, 'destroy') }}:
+      - stage: destroy_plan
+        displayName: Destroy plan and guard
+        dependsOn: inputs
+        jobs:
+          - job: guard
+            steps:
+              - checkout: self
+              - task: UseNode@1
+                inputs:
+                  version: '24.x'
+              - script: |
+                  echo "REHEARSAL - the real step runs terraform plan -destroy -out=tfplan, then terraform show -json tfplan > destroy-plan.json"
+                displayName: Destroy plan (rehearsal)
+              # The guard is the real one, run on a fixture plan (a real plan comes later). It must pass here, and it refuses in its tests anything
+              # that is not a pure destroy confined to the environment's resource group.
+              - script: >
+                  node scripts/ci/destroy-guard.mjs
+                  --plan scripts/ci/tests/fixtures/destroy-plan-dev.json
+                  --environment $(ENVIRONMENT_NAME)
+                  --resource-group $(RESOURCE_GROUP)
+                  --confirm "${{ parameters.confirmEnvironment }}"
+                displayName: Destroy guard (the real script, on a fixture plan)
+
+      - stage: destroy_apply
+        displayName: Destroy (approval)
+        dependsOn: destroy_plan
+        jobs:
+          - deployment: destroy
+            environment: dev-destroy
+            strategy:
+              runOnce:
+                deploy:
+                  steps:
+                    - script: |
+                        echo "REHEARSAL - the real step applies the saved destroy plan, times it, and records what was removed."
+                      displayName: Destroy the saved plan (rehearsal)
