@@ -56,6 +56,38 @@ public class VendorOrderProjectionTests
     }
 
     [Fact]
+    public async Task APlacedOrderCarriesItsLinesAndItsRequestedWindowSoTheVendorCanDecideWithoutASecondRead()
+    {
+        var start = T0.AddHours(3);
+        await _projection.OnPlacedAsync(Env(OrderEventTypes.Placed, 1, 0, new OrderPlacedPayload(
+            Order, Customer, Vendor,
+            [new LineItemPayload("listing-a", ["mod-seeds", "mod-sliced"], 2), new LineItemPayload("listing-b", [], 1)],
+            2400, "USD", FulfillmentType.Pickup,
+            new FulfillmentDetails(FulfillmentType.Pickup, new PickupFulfillmentDetails(start, start.AddMinutes(15), "Ring the side bell")))), default);
+
+        var doc = await Read();
+
+        Assert.Equal(OrderStatus.Placed, doc.Status);
+        Assert.Equal((start, start.AddMinutes(15), "Ring the side bell"), (doc.PickupStart!.Value, doc.PickupEnd!.Value, doc.PickupInstructions));
+        Assert.Equal(["listing-a", "listing-b"], doc.Lines!.Select(l => l.ListingId));
+        Assert.Equal(["mod-seeds", "mod-sliced"], doc.Lines![0].ModifierIds);
+        Assert.Equal([2, 1], doc.Lines.Select(l => l.Quantity));
+    }
+
+    [Fact]
+    public async Task AnOrderWithoutARequestedWindowHasNoneAndConfirmingDoesNotBlankOneThatWasRecorded()
+    {
+        await Placed(); // the helper requests no window
+        Assert.Null((await Read()).PickupStart);
+        await Confirmed(); // the confirmation brings the scheduled window
+        var start = (await Read()).PickupStart;
+        await _projection.OnConfirmedAsync(Env(OrderEventTypes.Confirmed, 2, 1, new OrderConfirmedPayload(Order, null, null, false, Vendor, Customer)), default);
+
+        Assert.NotNull(start);
+        Assert.Equal(start, (await Read()).PickupStart);
+    }
+
+    [Fact]
     public async Task EachLaterEventMovesTheStatusAndConfirmedBringsThePickupWindow()
     {
         await Placed();
@@ -298,6 +330,48 @@ public sealed class VendorOrderApiTests : IAsyncLifetime
         var now = (await ListAsync("?status=active")).GetProperty("items")[0];
         Assert.Equal("InPreparation", now.GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.Object, now.GetProperty("pickupWindow").ValueKind);
+    }
+
+    [Fact]
+    public async Task APlacedOrderInTheListShowsWhatWasOrderedAndTheRequestedWindowBeforeAnyDecision()
+    {
+        await PlaceOrderAsync(); // a modifier and a window: it waits for the vendor
+
+        var item = (await ListAsync()).GetProperty("items")[0];
+
+        Assert.Equal("Placed", item.GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Object, item.GetProperty("pickupWindow").ValueKind);
+        var line = Assert.Single(item.GetProperty("lines").EnumerateArray());
+        Assert.Equal("listing-sourdough-001", line.GetProperty("listingId").GetString());
+        Assert.Equal(["mod-seeds"], line.GetProperty("modifierIds").EnumerateArray().Select(m => m.GetString()!));
+        Assert.Equal(2, line.GetProperty("quantity").GetInt32());
+    }
+
+    [Fact]
+    public async Task AVendorReadsOneOfTheirOrdersAndAnotherVendorOrAnUnknownIdGetsNotFound()
+    {
+        var id = await PlaceOrderAsync();
+        using var other = _factory.ClientWithRole("vendor-other", "Vendor");
+
+        var own = await _vendor.GetAsync($"/ordering/vendor/orders/{id}");
+
+        Assert.Equal(HttpStatusCode.OK, own.StatusCode);
+        var body = await JsonOf(own);
+        Assert.Equal(id, body.GetProperty("id").GetString());
+        Assert.Equal(1, body.GetProperty("lines").GetArrayLength());
+        Assert.False(body.TryGetProperty("customerId", out _));
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/ordering/vendor/orders/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _vendor.GetAsync("/ordering/vendor/orders/order-nope")).StatusCode);
+    }
+
+    [Fact]
+    public async Task OnlyAVendorMayReadOneOrder()
+    {
+        var id = await PlaceOrderAsync();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync($"/ordering/vendor/orders/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _customer.GetAsync($"/ordering/vendor/orders/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientWithRole("admin-1", "Admin").GetAsync($"/ordering/vendor/orders/{id}")).StatusCode);
     }
 
     [Fact]

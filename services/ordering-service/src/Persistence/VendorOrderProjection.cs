@@ -23,7 +23,14 @@ public sealed class VendorOrderProjection(IRepository<VendorOrderDocument> docum
             d.Currency = e.Payload.Currency;
             d.LineCount = e.Payload.LineItems.Count;
             d.ItemCount = e.Payload.LineItems.Sum(l => l.Quantity);
+            d.Lines = e.Payload.LineItems.Select(l => new VendorOrderLineDocument
+            {
+                ListingId = l.ListingId,
+                ModifierIds = l.ModifierIds.ToList(),
+                Quantity = l.Quantity,
+            }).ToList();
             d.PlacedAt = e.OccurredAt;
+            ApplyFulfillment(d, e.Payload.FulfillmentType, e.Payload.Details);
         }, ct);
 
     public Task OnConfirmedAsync(DomainEventEnvelope<OrderConfirmedPayload> e, CancellationToken ct) =>
@@ -31,9 +38,7 @@ public sealed class VendorOrderProjection(IRepository<VendorOrderDocument> docum
         {
             // Facts are filled in, never cleared: a repeat or an older-schema event without details must not blank what an earlier one recorded.
             d.Automatic |= e.Payload.Automatic;
-            d.FulfillmentType = e.Payload.FulfillmentType ?? d.FulfillmentType;
-            d.PickupStart = e.Payload.Details?.Pickup?.WindowStart ?? d.PickupStart;
-            d.PickupEnd = e.Payload.Details?.Pickup?.WindowEnd ?? d.PickupEnd;
+            ApplyFulfillment(d, e.Payload.FulfillmentType, e.Payload.Details);
         }, ct);
 
     public Task OnPreparationStartedAsync(DomainEventEnvelope<OrderPreparationStartedPayload> e, CancellationToken ct) =>
@@ -51,6 +56,14 @@ public sealed class VendorOrderProjection(IRepository<VendorOrderDocument> docum
             d.CancelledBy = e.Payload.CancelledBy;
             d.CancelReason = e.Payload.Reason;
         }, ct);
+
+    private static void ApplyFulfillment(VendorOrderDocument d, FulfillmentType? type, FulfillmentDetails? details)
+    {
+        d.FulfillmentType = type ?? d.FulfillmentType;
+        d.PickupStart = details?.Pickup?.WindowStart ?? d.PickupStart;
+        d.PickupEnd = details?.Pickup?.WindowEnd ?? d.PickupEnd;
+        d.PickupInstructions = details?.Pickup?.Instructions ?? d.PickupInstructions;
+    }
 
     private async Task ApplyAsync<T>(
         string orderId, string? vendorId, string? customerId, DomainEventEnvelope<T> e, OrderStatus status, Action<VendorOrderDocument> facts, CancellationToken ct)

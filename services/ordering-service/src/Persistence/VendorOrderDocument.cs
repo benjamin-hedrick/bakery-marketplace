@@ -33,6 +33,11 @@ public sealed class VendorOrderDocument : IETagged
     [JsonProperty("pickupStart", NullValueHandling = NullValueHandling.Ignore)] public DateTimeOffset? PickupStart { get; set; }
     [JsonProperty("pickupEnd", NullValueHandling = NullValueHandling.Ignore)] public DateTimeOffset? PickupEnd { get; set; }
 
+    /// <summary>What was ordered, as ids: the vendor view turns them into names (register item 113). Absent on documents written before this existed.</summary>
+    [JsonProperty("lines", NullValueHandling = NullValueHandling.Ignore)] public List<VendorOrderLineDocument>? Lines { get; set; }
+
+    [JsonProperty("pickupInstructions", NullValueHandling = NullValueHandling.Ignore)] public string? PickupInstructions { get; set; }
+
     /// <summary>True when checkout confirmed the order by rule, so it never reached the vendor as a decision.</summary>
     [JsonProperty("automatic")] public bool Automatic { get; set; }
 
@@ -55,4 +60,12 @@ public sealed class VendorOrderDocument : IETagged
     [JsonProperty("lastSequence")] public long LastSequence { get; set; }
 
     [JsonProperty("_etag", NullValueHandling = NullValueHandling.Ignore)] public string? ETag { get; set; }
+}
+
+/// <summary>One line of an order in the read model: the listing, the chosen modifiers and the quantity, all as ids.</summary>
+public sealed class VendorOrderLineDocument
+{
+    [JsonProperty("listingId")] public string ListingId { get; set; } = "";
+    [JsonProperty("modifierIds")] public List<string> ModifierIds { get; set; } = new();
+    [JsonProperty("quantity")] public int Quantity { get; set; }
 }

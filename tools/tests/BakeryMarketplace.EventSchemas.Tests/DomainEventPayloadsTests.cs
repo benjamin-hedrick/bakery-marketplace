@@ -91,6 +91,22 @@ public class DomainEventPayloadsTests
     }
 
     [Fact]
+    public void OrderPlacedPayload_CarriesTheRequestedWindowAndStillReadsWithoutIt()
+    {
+        var start = new DateTimeOffset(2026, 11, 2, 9, 0, 0, TimeSpan.Zero);
+        var details = new FulfillmentDetails(FulfillmentType.Pickup, new PickupFulfillmentDetails(start, start.AddMinutes(15), "Side door"));
+        var payload = new OrderPlacedPayload("order-1", "cust-1", "vendor-1", [new LineItemPayload("l1", ["m1"], 2)], 1800, "USD", FulfillmentType.Pickup, details);
+
+        var back = JsonSerializer.Deserialize<OrderPlacedPayload>(JsonSerializer.Serialize(payload));
+        var older = JsonSerializer.Deserialize<OrderPlacedPayload>("{\"OrderId\":\"order-1\",\"CustomerId\":\"c\",\"VendorId\":\"v\",\"LineItems\":[]}");
+
+        Assert.Equal((start, "Side door"), (back!.Details!.Pickup!.WindowStart, back.Details.Pickup.Instructions));
+        Assert.Equal(FulfillmentType.Pickup, back.FulfillmentType);
+        Assert.Null(older?.Details);
+        Assert.Null(older?.FulfillmentType);
+    }
+
+    [Fact]
     public void OrderLifecyclePayloads_CarryVendorAndCustomerIdsAndStillReadWithoutThem()
     {
         var cancelled = new OrderCancelledPayload("order-7", OrderCancelActor.Vendor, OrderCancelReason.VendorDeclined, "vendor-1", "customer-1");

@@ -16,6 +16,9 @@ public record LineItemPayload(
 /// <summary>
 /// <c>TotalCents</c> and <c>Currency</c> were added 2026-10-28 (additive, optional): a receipt or vendor notification needs the
 /// amount. Older messages without them still deserialize.
+/// <c>FulfillmentType</c> and <c>Details</c> (the requested pickup window and instructions) were added 2026-11-01 (additive, optional): an
+/// order waits for the vendor exactly when it has a modifier or a requested window, so the vendor's decision needs the window at placement,
+/// not only after confirmation. They are absent when no window was requested.
 /// </summary>
 public record OrderPlacedPayload(
     string OrderId,
@@ -23,7 +26,9 @@ public record OrderPlacedPayload(
     string VendorId,
     IReadOnlyList<LineItemPayload> LineItems,
     long? TotalCents = null,
-    string? Currency = null
+    string? Currency = null,
+    FulfillmentType? FulfillmentType = null,
+    FulfillmentDetails? Details = null
 );
 
 public record OrderCustomizedPayload(
