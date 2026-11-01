@@ -32,7 +32,10 @@ public sealed class OwnListingsApiTests : IDisposable
     {
         var response = await client.PostAsJsonAsync("/catalog/listings", new
         {
-            name, category = "Bread", priceCents = 800, status,
+            name,
+            category = "Bread",
+            priceCents = 800,
+            status,
             stock = quantity is null ? null : new { availableQuantity = quantity, lowStockThreshold = 2 },
         });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -95,7 +98,9 @@ public sealed class OwnListingsApiTests : IDisposable
         var service = _factory.ServiceClientFor("ordering-service", ServiceRoles.StockReserve);
         var reserved = await service.PostAsJsonAsync("/catalog/stock/reservations", new
         {
-            orderId = "order-1", vendorId = _vendor, lines = new[] { new { listingId = listing, quantity = 1 } },
+            orderId = "order-1",
+            vendorId = _vendor,
+            lines = new[] { new { listingId = listing, quantity = 1 } },
         });
         Assert.Equal(HttpStatusCode.Created, reserved.StatusCode);
 
