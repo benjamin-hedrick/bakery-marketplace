@@ -15,31 +15,44 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly int _maxDeliveryAttempts;
     private readonly int? _maxStreamLength;
+    private readonly string? _serviceName;
+    private readonly TimeSpan _redeliverAfter;
     private readonly ConcurrentBag<CancellationTokenSource> _ctsList = new();
 
     public RedisStreamsEventTransport(
         IConnectionMultiplexer multiplexer,
         int db = -1,
         int maxDeliveryAttempts = 3,
-        int? maxStreamLength = null)
+        int? maxStreamLength = null,
+        string? serviceName = null,
+        TimeSpan? redeliverAfter = null)
     {
         if (multiplexer is null) throw new ArgumentNullException(nameof(multiplexer));
         _database = multiplexer.GetDatabase(db);
         _maxDeliveryAttempts = maxDeliveryAttempts;
         _maxStreamLength = ValidateMaxStreamLength(maxStreamLength);
+        _serviceName = serviceName;
+        _redeliverAfter = redeliverAfter ?? DefaultRedeliverAfter;
         _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
 
     public RedisStreamsEventTransport(
         IDatabase database,
         int maxDeliveryAttempts = 3,
-        int? maxStreamLength = null)
+        int? maxStreamLength = null,
+        string? serviceName = null,
+        TimeSpan? redeliverAfter = null)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _maxDeliveryAttempts = maxDeliveryAttempts;
         _maxStreamLength = ValidateMaxStreamLength(maxStreamLength);
+        _serviceName = serviceName;
+        _redeliverAfter = redeliverAfter ?? DefaultRedeliverAfter;
         _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
+
+    /// <summary>How long a delivered message may stay unacknowledged before it is handed to a consumer again.</summary>
+    public static readonly TimeSpan DefaultRedeliverAfter = TimeSpan.FromSeconds(30);
 
     private static int? ValidateMaxStreamLength(int? value) =>
         value is null or > 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), "The stream length limit must be positive, or null for no limit.");
@@ -73,7 +86,9 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         if (handler is null) throw new ArgumentNullException(nameof(handler));
 
         string streamKey = GetStreamKey(eventType);
-        string groupName = $"cg:{eventType}";
+        // One group per service and event type (register item 29): two services subscribing to the same event each receive every message,
+        // while instances of one service share the group and split the work. Without a service name the old per-event-type name is kept.
+        string groupName = string.IsNullOrWhiteSpace(_serviceName) ? $"cg:{eventType}" : $"cg:{_serviceName}:{eventType}";
         string consumerName = $"consumer:{Guid.NewGuid():N}";
 
         try
@@ -90,12 +105,36 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
 
         _ = Task.Run(async () =>
         {
-            var attempts = new ConcurrentDictionary<string, int>();
+            var lastReclaim = DateTimeOffset.MinValue;
 
             while (!cts.Token.IsCancellationRequested)
             {
                 try
                 {
+                    var worked = false;
+
+                    // Messages that were delivered and never acknowledged (the handler threw, or the consumer died) are handed out again once
+                    // they have been idle long enough, and dead-lettered after the maximum number of deliveries (register item 112).
+                    if (DateTimeOffset.UtcNow - lastReclaim >= TimeSpan.FromMilliseconds(Math.Max(50, _redeliverAfter.TotalMilliseconds / 4)))
+                    {
+                        lastReclaim = DateTimeOffset.UtcNow;
+                        var pending = (await _database.StreamPendingMessagesAsync(streamKey, groupName, 10, RedisValue.Null))
+                            .Where(p => p.IdleTimeInMilliseconds >= _redeliverAfter.TotalMilliseconds).ToArray();
+                        if (pending.Length > 0)
+                        {
+                            var claimed = await _database.StreamClaimAsync(
+                                streamKey, groupName, consumerName, (long)_redeliverAfter.TotalMilliseconds,
+                                pending.Select(p => p.MessageId).ToArray());
+                            var deliveries = pending.ToDictionary(p => (string)p.MessageId!, p => p.DeliveryCount + 1);
+                            foreach (var entry in claimed)
+                            {
+                                if (entry.IsNull) continue;
+                                worked = true;
+                                await ProcessAsync(entry, deliveries.GetValueOrDefault((string)entry.Id!, 2), streamKey, groupName, handler, cts.Token);
+                            }
+                        }
+                    }
+
                     StreamEntry[] entries = await _database.StreamReadGroupAsync(
                         streamKey,
                         groupName,
@@ -105,53 +144,13 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
 
                     if (entries == null || entries.Length == 0)
                     {
-                        await Task.Delay(50, cts.Token);
+                        if (!worked) await Task.Delay(50, cts.Token);
                         continue;
                     }
 
                     foreach (var entry in entries)
                     {
-                        var jsonValue = entry.Values.FirstOrDefault(v => v.Name == "envelope").Value;
-                        if (jsonValue.IsNull) continue;
-
-                        DomainEventEnvelope<T>? envelope = null;
-                        try
-                        {
-                            envelope = JsonSerializer.Deserialize<DomainEventEnvelope<T>>((string)jsonValue!, _jsonOptions);
-                        }
-                        catch { }
-
-                        if (envelope == null)
-                        {
-                            await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
-                            continue;
-                        }
-
-                        int currentAttempt = attempts.AddOrUpdate(entry.Id.ToString(), 1, (_, count) => count + 1);
-
-                        try
-                        {
-                            using var consumer = EventTracing.StartConsumer(envelope);
-                            await handler(envelope, cts.Token);
-                            await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
-                            attempts.TryRemove(entry.Id.ToString(), out _);
-                        }
-                        catch
-                        {
-                            if (currentAttempt >= _maxDeliveryAttempts)
-                            {
-                                string deadLetterKey = $"{streamKey}:dead-letter";
-                                await _database.StreamAddAsync(deadLetterKey, new NameValueEntry[]
-                                {
-                                    new("envelope", (string)jsonValue!),
-                                    new("failedAt", DateTimeOffset.UtcNow.ToString("O")),
-                                    new("attempts", currentAttempt.ToString())
-                                });
-
-                                await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
-                                attempts.TryRemove(entry.Id.ToString(), out _);
-                            }
-                        }
+                        await ProcessAsync(entry, 1, streamKey, groupName, handler, cts.Token);
                     }
                 }
                 catch (OperationCanceledException)
@@ -164,6 +163,61 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
                 }
             }
         }, cts.Token);
+    }
+
+    /// <summary>
+    /// Runs the handler for one delivery. A success acknowledges the message. A failure leaves it pending, to be handed out again after
+    /// <c>redeliverAfter</c>; at <paramref name="deliveryCount"/> equal to the maximum it is copied to the dead-letter stream and acknowledged.
+    /// </summary>
+    private async Task ProcessAsync<T>(
+        StreamEntry entry, long deliveryCount, string streamKey, string groupName,
+        Func<DomainEventEnvelope<T>, CancellationToken, Task> handler, CancellationToken token)
+    {
+        var jsonValue = entry.Values.FirstOrDefault(v => v.Name == "envelope").Value;
+        if (jsonValue.IsNull)
+        {
+            await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+            return;
+        }
+
+        DomainEventEnvelope<T>? envelope = null;
+        try
+        {
+            envelope = JsonSerializer.Deserialize<DomainEventEnvelope<T>>((string)jsonValue!, _jsonOptions);
+        }
+        catch { }
+
+        if (envelope == null)
+        {
+            await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+            return;
+        }
+
+        try
+        {
+            using var consumer = EventTracing.StartConsumer(envelope);
+            await handler(envelope, token);
+            await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            if (deliveryCount >= _maxDeliveryAttempts)
+            {
+                string deadLetterKey = $"{streamKey}:dead-letter";
+                await _database.StreamAddAsync(deadLetterKey, new NameValueEntry[]
+                {
+                    new("envelope", (string)jsonValue!),
+                    new("failedAt", DateTimeOffset.UtcNow.ToString("O")),
+                    new("attempts", deliveryCount.ToString())
+                });
+
+                await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+            }
+        }
     }
 
     private static string GetStreamKey(string eventType) => $"events:{eventType}";
