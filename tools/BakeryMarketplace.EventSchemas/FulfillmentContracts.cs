@@ -85,7 +85,8 @@ public record OrderReadyForFulfillmentPayload(
     string OrderId,
     string VendorId,
     FulfillmentType FulfillmentType,
-    FulfillmentDetails Details
+    FulfillmentDetails Details,
+    string? CustomerId = null
 );
 
 /// <summary>

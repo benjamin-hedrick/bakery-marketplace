@@ -53,15 +53,20 @@ if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringCompari
     {
         var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("orders", "/customerId"));
+        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("vendor-orders", "/vendorId")); // the vendor read model (N-03)
     }
 
     builder.Services.AddSingleton<IRepository<OrderDocument>>(new CosmosRepository<OrderDocument>(cosmos, database, "orders"));
+    builder.Services.AddSingleton<IRepository<VendorOrderDocument>>(new CosmosRepository<VendorOrderDocument>(cosmos, database, "vendor-orders"));
 }
 else
 {
     builder.Services.AddSingleton<IRepository<OrderDocument>>(new FakeRepository<OrderDocument>(d => d.Id));
+    builder.Services.AddSingleton<IRepository<VendorOrderDocument>>(new FakeRepository<VendorOrderDocument>(d => d.Id));
 }
 builder.Services.AddSingleton<OrderStore>();
+builder.Services.AddSingleton<VendorOrderProjection>();
+builder.Services.AddSingleton<VendorOrderReader>();
 
 // Events (ADR-0003, WI-ORD-005). The backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory" (tests and throwaway runs).
 // There is no default, because silently falling back to in-memory would drop every order event while looking healthy.
@@ -69,11 +74,16 @@ var eventsBackend = builder.Configuration["Events:Backend"];
 if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
 {
     var redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
-    builder.Services.AddSingleton<IEventPublisher>(new RedisStreamsEventTransport(redis, maxStreamLength: builder.Configuration.GetValue<int?>("Events:MaxStreamLength")));
+    var transport = new RedisStreamsEventTransport(
+        redis, maxStreamLength: builder.Configuration.GetValue<int?>("Events:MaxStreamLength"), serviceName: "ordering-service");
+    builder.Services.AddSingleton<IEventPublisher>(transport);
+    builder.Services.AddSingleton<IEventSubscriber>(transport);
 }
 else if (string.Equals(eventsBackend, "inmemory", StringComparison.OrdinalIgnoreCase))
 {
-    builder.Services.AddSingleton<IEventPublisher>(new InMemoryEventTransport());
+    var transport = new InMemoryEventTransport();
+    builder.Services.AddSingleton<IEventPublisher>(transport);
+    builder.Services.AddSingleton<IEventSubscriber>(transport);
 }
 else
 {
@@ -83,6 +93,7 @@ builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection("Outb
 builder.Services.AddSingleton<OutboxSignal>();
 builder.Services.AddSingleton<OrderEventPublisher>();
 builder.Services.AddHostedService<OutboxRelay>();
+builder.Services.AddHostedService<VendorOrderSubscriptions>(); // the vendor order read model, fed by the order events (N-03)
 
 // Checkout (WI-ORD-001).
 builder.Services.AddSingleton(TimeProvider.System);
@@ -117,6 +128,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.MapPickupWindowEndpoints();
 app.MapCheckoutEndpoints();
 app.MapOrderActionEndpoints();
+app.MapVendorOrderEndpoints();
 
 app.Run();
 
