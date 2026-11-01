@@ -8,7 +8,7 @@ using OrderingService.Persistence;
 namespace OrderingService.Outbox;
 
 /// <summary>How many of an order's pending events were published, and whether publishing stopped early.</summary>
-public sealed record PublishResult(int Published, bool Failed)
+public sealed record PublishResult(int Published, bool Failed, bool Parked = false)
 {
     public static readonly PublishResult Nothing = new(0, false);
 }
@@ -20,7 +20,7 @@ public sealed record PublishResult(int Published, bool Failed)
 /// never sees a later event of an order without the earlier ones having been sent first.
 /// </summary>
 public sealed class OrderEventPublisher(
-    IEventPublisher events, OrderStore orders, OutboxSignal signal, IOptions<OutboxOptions> options, ILogger<OrderEventPublisher> logger)
+    IEventPublisher events, OrderStore orders, OutboxSignal signal, IOptions<OutboxOptions> options, TimeProvider time, ILogger<OrderEventPublisher> logger)
 {
     private const int MaxCleanupAttempts = 5;
 
@@ -56,11 +56,14 @@ public sealed class OrderEventPublisher(
 
     public async Task<PublishResult> PublishPendingAsync(StoredOrder stored, CancellationToken ct = default)
     {
+        if (stored.Document.ParkedAt is not null) return PublishResult.Nothing; // parked: waits for an operator (register item 74)
+
         var pending = stored.Document.Outbox.OrderBy(e => e.SequenceNumber).ToList();
         if (pending.Count == 0) return PublishResult.Nothing;
 
         var published = new List<string>();
         var failed = false;
+        OutboxEntryDocument? failedEntry = null;
         foreach (var entry in pending)
         {
             try
@@ -75,12 +78,52 @@ public sealed class OrderEventPublisher(
                 logger.LogWarning(e, "Event {EventType} #{Sequence} of order {OrderId} could not be published; it stays pending",
                     entry.EventType, entry.SequenceNumber, stored.Order.Id);
                 failed = true;
+                failedEntry = entry;
                 break; // later events wait: they must not overtake this one
             }
         }
 
         if (published.Count > 0) await RemoveAsync(stored, published, ct);
-        return new PublishResult(published.Count, failed);
+        var parked = failedEntry is not null && await RecordFailureAsync(stored, failedEntry, ct);
+        return new PublishResult(published.Count, failed, parked);
+    }
+
+    /// <summary>
+    /// Counts the failed attempt in the stored order and parks the outbox at the limit. Returns whether the order is now parked. Losing a race
+    /// to another change re-reads and tries again; if that keeps failing the attempt is simply not counted (it will be on a later sweep).
+    /// </summary>
+    private async Task<bool> RecordFailureAsync(StoredOrder stored, OutboxEntryDocument entry, CancellationToken ct)
+    {
+        var current = stored;
+        for (var attempt = 0; attempt < MaxCleanupAttempts; attempt++)
+        {
+            try
+            {
+                var wasParked = current.Document.ParkedAt is not null;
+                var saved = await orders.TryRecordFailureAsync(current, entry.EventId, options.Value.MaxPublishAttempts, time.GetUtcNow(), ct);
+                if (saved is not null)
+                {
+                    var parked = saved.Document.ParkedAt is not null;
+                    if (parked && !wasParked)
+                    {
+                        logger.LogError(
+                            "Order {OrderId}: event {EventType} #{Sequence} failed {Attempts} times; the order's outbox is parked and will not be retried until it is unparked",
+                            stored.Order.Id, entry.EventType, entry.SequenceNumber, options.Value.MaxPublishAttempts);
+                    }
+                    return parked;
+                }
+
+                var fresh = await orders.GetAsync(stored.Order.Id, stored.Order.CustomerId, ct);
+                if (fresh is null) return false;
+                current = fresh;
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                logger.LogWarning(e, "Order {OrderId}: the failed attempt could not be counted", stored.Order.Id);
+                return false;
+            }
+        }
+        return false;
     }
 
     /// <summary>Removes the published entries. If the order changed meanwhile, re-reads it and tries again; failing to clean up is safe (a repeat is deduped).</summary>

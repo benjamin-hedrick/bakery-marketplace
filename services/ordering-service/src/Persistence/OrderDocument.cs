@@ -62,13 +62,20 @@ public sealed class OrderDocument : IETagged
     /// </summary>
     [JsonProperty("pendingSince", NullValueHandling = NullValueHandling.Ignore)] public long? PendingSince { get; set; }
 
+    /// <summary>
+    /// When the order's outbox was parked, in UTC milliseconds; absent otherwise (register item 74). An entry that kept failing stops the relay
+    /// retrying the whole order, so later events still never overtake it. While parked, <see cref="PendingSince"/> is absent, which takes the
+    /// order out of the relay's query. It is cleared only by <see cref="OrderStore.TryUnparkAsync"/>.
+    /// </summary>
+    [JsonProperty("parkedAt", NullValueHandling = NullValueHandling.Ignore)] public long? ParkedAt { get; set; }
+
     [JsonProperty("_etag", NullValueHandling = NullValueHandling.Ignore)] public string? ETag { get; set; }
 
     /// <summary>Replaces the outbox and keeps <see cref="PendingSince"/> in step with it.</summary>
     public void SetOutbox(IEnumerable<OutboxEntryDocument> entries)
     {
         Outbox = entries.OrderBy(e => e.SequenceNumber).ToList();
-        PendingSince = Outbox.Count == 0 ? null : Outbox.Min(e => e.OccurredAt).ToUnixTimeMilliseconds();
+        PendingSince = Outbox.Count == 0 || ParkedAt is not null ? null : Outbox.Min(e => e.OccurredAt).ToUnixTimeMilliseconds();
     }
 
     public static OrderDocument From(Order order, string? idempotencyKey = null, string? requestFingerprint = null)
