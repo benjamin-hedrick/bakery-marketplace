@@ -56,7 +56,7 @@ node scripts/ci/node-gates.mjs            # run before every push: format, lint,
 node scripts/ci/terraform-checks.mjs         # Terraform format, init, validate and mocked-provider tests for infra/ (Docker; no Azure account); the pipeline's `terraform` job runs it
 node --test "scripts/ci/tests/*.test.mjs"   # the destroy guard and the pipeline files (also in node-gates --tests)
 node scripts/ci/secret-scan.mjs            # run before every push: gitleaks over the full committed history (Docker); exit 1 = a finding (config .gitleaks.toml)
-node scripts/ci/linux-check.mjs             # runs the .NET test steps on Linux in a container (committed tree); the pipeline is Ubuntu, development here is Windows
+node scripts/ci/linux-check.mjs             # runs the .NET test steps on Linux in a container limited to 2 CPUs like the agent, with a 3 minute hang timeout (committed tree); the pipeline is Ubuntu, development here is Windows. Tests must not block on tasks (register item 117)
 node scripts/dev/demo.mjs                  # starts the whole slice-1 stack, warms it, prints a guide, waits; Enter or Ctrl+C tears down (docs/operations/demo.md)
 node scripts/dev/capture-journey.mjs        # screenshots of the journey into docs/operations/demo/, against a running demo
 node scripts/dev/measure-latency.mjs        # sequential latency of reads and checkout against a running demo (p50, p95, max)
