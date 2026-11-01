@@ -134,6 +134,7 @@ public sealed class StockReservationService
                 State = ReservationStates.Active,
                 Lines = lines,
                 CreatedAt = now,
+                CreatedAtMs = now.ToUnixTimeMilliseconds(),
             };
             batch.Create(reservation);
 
@@ -177,6 +178,34 @@ public sealed class StockReservationService
             if (await batch.ExecuteAsync(ct)) return new ReservationResult(ReservationOutcome.Released, reservation);
         }
         return new ReservationResult(ReservationOutcome.Conflict);
+    }
+
+    /// <summary>
+    /// Active reservations made between <paramref name="notOlderThan"/> and <paramref name="olderThan"/> ago, ordered by id, for the ordering
+    /// service's orphan sweep (register item 62). Looks across every vendor's partition, so it is for that background job only. The window
+    /// has a far end because a reservation stays Active for the life of its order: without it every order ever placed would be listed.
+    /// </summary>
+    public async Task<IReadOnlyList<StockReservationDocument>> ListActiveAsync(
+        TimeSpan olderThan, TimeSpan notOlderThan, int limit, string? after, CancellationToken ct = default)
+    {
+        var now = _time.GetUtcNow();
+        var newest = now.Subtract(olderThan).ToUnixTimeMilliseconds();
+        var oldest = now.Subtract(notOlderThan).ToUnixTimeMilliseconds();
+        // The window is filtered by the store; the order and the cursor are applied here, like the public browse, because a string
+        // comparison is not something to rely on a store query to translate.
+        var inWindow = new List<StockReservationDocument>();
+        await foreach (var doc in _reservations.QueryAsync("", q => q.Where(d =>
+                           d.DocType == "stockReservation" && d.State == ReservationStates.Active
+                           && d.CreatedAtMs <= newest && d.CreatedAtMs >= oldest), ct))
+        {
+            inWindow.Add(doc);
+        }
+
+        return inWindow
+            .OrderBy(d => d.Id, StringComparer.Ordinal)
+            .Where(d => string.IsNullOrEmpty(after) || string.CompareOrdinal(d.Id, after) > 0)
+            .Take(limit)
+            .ToList();
     }
 
     private static bool SameLines(StockReservationDocument existing, Dictionary<string, long> wanted) =>

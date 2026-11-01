@@ -37,6 +37,16 @@ public sealed class OrderStore(IRepository<OrderDocument> documents)
         return null;
     }
 
+    /// <summary>
+    /// Whether an order with this id exists, for any customer. Looks across every customer's partition (the id alone does not say whose it is),
+    /// so it is for background maintenance, such as the orphan reservation sweep, never a request path.
+    /// </summary>
+    public async Task<bool> ExistsAsync(string orderId, CancellationToken ct = default)
+    {
+        await foreach (var _ in documents.QueryAsync("", q => q.Where(d => d.Id == orderId).Take(1), ct)) return true;
+        return false;
+    }
+
     /// <summary>Stores a new order and its raised events together. Returns null when an order with that id already exists (a concurrent or repeated create).</summary>
     public async Task<StoredOrder?> TryCreateAsync(
         Order order, string idempotencyKey, string requestFingerprint, CancellationToken ct = default)

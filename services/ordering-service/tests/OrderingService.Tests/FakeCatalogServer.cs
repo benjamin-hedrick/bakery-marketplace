@@ -30,6 +30,8 @@ internal sealed class FakeCatalogServer : IAsyncDisposable
     /// <summary>When set, the reserve endpoint answers 409 with these rejections instead of reserving.</summary>
     public volatile List<object>? RejectReserveWith;
 
+    public volatile object? ListBody;
+
     public volatile int ListingStatus; // 0 = normal, otherwise this HTTP status for every listing read
     public volatile int ReserveStatus; // 0 = normal, otherwise this HTTP status for reserve
     public volatile int TokenStatus; // 0 = normal, otherwise this HTTP status from the token endpoint
@@ -83,6 +85,12 @@ internal sealed class FakeCatalogServer : IAsyncDisposable
             if (RejectReserveWith is { } rejections)
                 return Results.Json(new { code = "reservation_rejected", message = "no", lines = rejections }, statusCode: 409);
             return Reservations.TryAdd(orderId, body.RootElement.Clone()) ? Results.StatusCode(201) : Results.StatusCode(200);
+        });
+
+        // The orphan sweep's read: answers with whatever ListBody is scripted. The request, including its token, is recorded by the middleware above.
+        _app.MapGet("/catalog/stock/reservations", () =>
+        {
+            return Results.Json(ListBody ?? new { items = Array.Empty<object>(), nextCursor = (string?)null }, JsonOptions);
         });
 
         _app.MapDelete("/catalog/stock/reservations/{orderId}", (string orderId, HttpContext ctx) =>

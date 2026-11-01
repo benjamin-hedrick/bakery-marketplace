@@ -34,6 +34,12 @@ public sealed class StockReservationDocument : IETagged
     [JsonProperty("state")] public string State { get; set; } = ReservationStates.Active;
     [JsonProperty("lines")] public List<ReservationLineDocument> Lines { get; set; } = new();
     [JsonProperty("createdAt")] public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>
+    /// <see cref="CreatedAt"/> in UTC milliseconds, for the orphan sweep's age window (register item 62): a number, so the store compares it
+    /// without any date handling. Records made before this property existed read as 0 and are outside every window.
+    /// </summary>
+    [JsonProperty("createdAtMs")] public long CreatedAtMs { get; set; }
     [JsonProperty("releasedAt", NullValueHandling = NullValueHandling.Ignore)] public DateTimeOffset? ReleasedAt { get; set; }
 
     /// <summary>

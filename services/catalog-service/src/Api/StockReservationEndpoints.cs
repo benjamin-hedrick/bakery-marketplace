@@ -18,6 +18,11 @@ public sealed record ReservationDto(string OrderId, string VendorId, string Stat
         d.OrderId, d.VendorId, d.State, d.Lines.Select(l => new ReservationLineDto(l.ListingId, l.Quantity, l.Limited)).ToList());
 }
 
+/// <summary>What the orphan sweep needs to know about an Active reservation: whose order, which vendor, and when it was made.</summary>
+public sealed record ReservationSummaryDto(string OrderId, string VendorId, DateTimeOffset CreatedAt);
+
+public sealed record ReservationPageDto(IReadOnlyList<ReservationSummaryDto> Items, string? NextCursor);
+
 public sealed record LineRejectionDto(string ListingId, string Reason, int? Available);
 
 public sealed record ReservationRejectedBody(string Code, string Message, IReadOnlyList<LineRejectionDto> Lines);
@@ -99,6 +104,29 @@ public static class StockReservationEndpoints
                 ReservationOutcome.ReservationReleased => Conflict("reservation_released", "This order's reservation was released and cannot be reused."),
                 _ => Conflict("conflict", "The stock changed while reserving. Try again."),
             };
+        });
+
+        // The orphan sweep (register item 62): Active reservations made between olderThanMinutes and newerThanHours ago, paged by order id.
+        // Read-only, and the same role as reserve and release: the caller is the one service that places and releases reservations.
+        group.MapGet("/", async (
+            string? state, int? olderThanMinutes, int? newerThanHours, int? limit, string? after, StockReservationService svc, CancellationToken ct) =>
+        {
+            var errors = new Dictionary<string, string[]>();
+            if (state is not null && state != ReservationStates.Active) errors["state"] = ["Only Active reservations can be listed."];
+            if (olderThanMinutes is < 1 or > 1440) errors["olderThanMinutes"] = ["Between 1 and 1440."];
+            if (newerThanHours is < 1 or > 168) errors["newerThanHours"] = ["Between 1 and 168."];
+            if (limit is < 1 or > 100) errors["limit"] = ["Between 1 and 100."];
+            if (after is { Length: > 200 }) errors["after"] = ["At most 200 characters."];
+            if (errors.Count > 0) return Invalid(errors);
+
+            var pageSize = limit ?? 50;
+            var older = TimeSpan.FromMinutes(olderThanMinutes ?? 15);
+            var newer = TimeSpan.FromHours(newerThanHours ?? 24);
+            if (older >= newer) return Invalid(new() { ["olderThanMinutes"] = ["Must be shorter than newerThanHours."] });
+
+            var page = await svc.ListActiveAsync(older, newer, pageSize + 1, after, ct);
+            var items = page.Take(pageSize).Select(d => new ReservationSummaryDto(d.OrderId, d.VendorId, d.CreatedAt)).ToList();
+            return Results.Ok(new ReservationPageDto(items, page.Count > pageSize ? page[pageSize - 1].Id : null));
         });
 
         // The vendor id is required because a reservation lives in the vendor's partition (an order id alone does not say which).

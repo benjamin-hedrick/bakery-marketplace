@@ -90,6 +90,26 @@ internal sealed class FakeCatalog : ICatalogGateway
         return new StockReservationOutcome(true);
     }
 
+    /// <summary>Active reservations the fake lists to the orphan sweep, in order id order.</summary>
+    public List<ActiveReservation> ActiveReservations { get; } = [];
+    public bool ListFails { get; set; }
+    public List<(TimeSpan OlderThan, TimeSpan NotOlderThan)> ListCalls { get; } = [];
+
+    public async Task<ActiveReservationPage> ListActiveReservationsAsync(
+        TimeSpan olderThan, TimeSpan notOlderThan, int limit, string? after, CancellationToken ct = default)
+    {
+        await Task.Yield();
+        lock (_gate) ListCalls.Add((olderThan, notOlderThan));
+        if (ListFails) throw new DownstreamUnavailableException("scripted outage");
+        var rest = ActiveReservations
+            .Where(r => ReservedOrders.Contains(r.OrderId) || !ReleaseCalls.Contains(r.OrderId))
+            .OrderBy(r => r.OrderId, StringComparer.Ordinal)
+            .Where(r => after is null || string.CompareOrdinal(r.OrderId, after) > 0)
+            .Take(limit + 1)
+            .ToList();
+        return new ActiveReservationPage(rest.Take(limit).ToList(), rest.Count > limit ? rest[limit - 1].OrderId : null);
+    }
+
     public async Task ReleaseAsync(string orderId, string vendorId, CancellationToken ct = default)
     {
         await Task.Yield();
