@@ -80,6 +80,8 @@ public sealed class CosmosVendorOrderTests : IAsyncLifetime
         Assert.Equal(["order-3", "order-2"], first.Items.Select(i => i.Id));
         Assert.Equal(["order-1"], second.Items.Select(i => i.Id));
         Assert.Empty(otherVendor.Items);
+        var line = Assert.Single(all.Items[2].Lines!); // the lines round-trip through Cosmos' own serializer
+        Assert.Equal(("l1", 2), (line.ListingId, line.Quantity));
     }
 
     [EmulatorFact]

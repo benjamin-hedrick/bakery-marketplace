@@ -98,7 +98,7 @@ public sealed class Order
         Raise(OrderEventTypes.Placed, new OrderPlacedPayload(
             Id, CustomerId, VendorId,
             _lines.Select(l => new LineItemPayload(l.ListingId, l.ModifierIds, l.Quantity)).ToList(),
-            TotalCents, Currency), now);
+            TotalCents, Currency, FulfillmentType, Fulfillment), now);
     }
 
     /// <summary>

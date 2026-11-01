@@ -35,6 +35,22 @@ public class OrderEventTests
     }
 
     [Fact]
+    public void OrderPlacedCarriesTheRequestedPickupWindowOnlyWhenOneWasRequested()
+    {
+        var withWindow = Pending();
+        var without = Pending(withWindow: false);
+
+        withWindow.Place(At(3));
+        without.Place(At(3));
+
+        var requested = Assert.IsType<OrderPlacedPayload>(Assert.Single(withWindow.DequeueEvents()).Payload);
+        var none = Assert.IsType<OrderPlacedPayload>(Assert.Single(without.DequeueEvents()).Payload);
+        Assert.Equal((At(60), At(75), "Front counter"), (requested.Details!.Pickup!.WindowStart, requested.Details.Pickup.WindowEnd, requested.Details.Pickup.Instructions));
+        Assert.Equal(FulfillmentType.Pickup, requested.FulfillmentType);
+        Assert.Null(none.Details);
+    }
+
+    [Fact]
     public void OrderPlacedCarriesTheTotalInCents()
     {
         var order = Pending(); // one line: 2 x 900
