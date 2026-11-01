@@ -14,27 +14,35 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
     private readonly IDatabase _database;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly int _maxDeliveryAttempts;
+    private readonly int? _maxStreamLength;
     private readonly ConcurrentBag<CancellationTokenSource> _ctsList = new();
 
     public RedisStreamsEventTransport(
         IConnectionMultiplexer multiplexer,
         int db = -1,
-        int maxDeliveryAttempts = 3)
+        int maxDeliveryAttempts = 3,
+        int? maxStreamLength = null)
     {
         if (multiplexer is null) throw new ArgumentNullException(nameof(multiplexer));
         _database = multiplexer.GetDatabase(db);
         _maxDeliveryAttempts = maxDeliveryAttempts;
+        _maxStreamLength = ValidateMaxStreamLength(maxStreamLength);
         _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
 
     public RedisStreamsEventTransport(
         IDatabase database,
-        int maxDeliveryAttempts = 3)
+        int maxDeliveryAttempts = 3,
+        int? maxStreamLength = null)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _maxDeliveryAttempts = maxDeliveryAttempts;
+        _maxStreamLength = ValidateMaxStreamLength(maxStreamLength);
         _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
+
+    private static int? ValidateMaxStreamLength(int? value) =>
+        value is null or > 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), "The stream length limit must be positive, or null for no limit.");
 
     public async Task PublishAsync<T>(DomainEventEnvelope<T> envelope, CancellationToken ct = default)
     {
@@ -51,7 +59,9 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
             new("eventType", envelope.EventType)
         };
 
-        await _database.StreamAddAsync(streamKey, entries);
+        // With a limit, Redis trims the oldest entries (approximately: whole internal blocks, so it is cheap). Trimming removes entries
+        // even if a consumer group has not read them yet, so the limit must be far above the backlog a consumer could fall behind by.
+        await _database.StreamAddAsync(streamKey, entries, maxLength: _maxStreamLength, useApproximateMaxLength: _maxStreamLength is not null);
     }
 
     public async Task SubscribeAsync<T>(
