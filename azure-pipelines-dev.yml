@@ -28,6 +28,10 @@ parameters:
     displayName: Rehearsal only. Pretend the infrastructure plan has changes (false = no changes, so the infrastructure approval is skipped)
     type: boolean
     default: true
+  - name: holdSeconds
+    displayName: Rehearsal only. Seconds the infrastructure apply step waits, to hold the stage open for the lock test (G6). Leave 0 otherwise
+    type: number
+    default: 0
   - name: confirmEnvironment
     displayName: To destroy, type the environment name (dev)
     type: string
@@ -94,7 +98,11 @@ stages:
                 deploy:
                   steps:
                     - script: |
+                        set -eu
                         echo "REHEARSAL - the real step applies the saved plan (terraform apply tfplan), exactly what was approved."
+                        echo "Started $(date -u +%H:%M:%S)Z; holding for ${{ parameters.holdSeconds }} seconds (lock test)."
+                        sleep ${{ parameters.holdSeconds }}
+                        echo "Finished $(date -u +%H:%M:%S)Z"
                       displayName: Apply the saved plan (rehearsal)
 
       # Needs the plan stage to have succeeded and the apply stage to have either succeeded or been skipped (no changes).

@@ -178,7 +178,7 @@ Accepted: 18 · Superseded: 1
 
 ## Open-items register
 
-109 numbered items in `docs/governance/open-items-register.md` (highest number 109).
+110 numbered items in `docs/governance/open-items-register.md` (highest number 110).
 
 | Type | Count |
 |---|---|
@@ -190,6 +190,7 @@ Accepted: 18 · Superseded: 1
 | Documentation drift | 5 |
 | Tech debt | 3 |
 | Open decision | 3 |
+| Design gap | 3 |
 | Decision | 3 |
 | Gap | 3 |
 | Accepted risk | 2 |
@@ -197,7 +198,6 @@ Accepted: 18 · Superseded: 1
 | Deferred scope (by design) | 2 |
 | Done | 2 |
 | Planned tech swap | 2 |
-| Design gap | 2 |
 | Test isolation | 2 |
 | Missing capability | 2 |
 | Missing API | 2 |
@@ -245,4 +245,4 @@ Accepted: 18 · Superseded: 1
 | Resolved | 28 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 46 |
+| Open | 47 |
