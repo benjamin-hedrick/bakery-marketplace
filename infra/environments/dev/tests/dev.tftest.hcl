@@ -12,16 +12,13 @@ mock_provider "azurerm" {
 mock_provider "time" {}
 
 variables {
-  tenant_id                   = "00000000-0000-0000-0000-000000000001"
-  registry_login_server       = "bakerytest01.azurecr.io"
-  app_identity_id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-foundation/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-bakery-dev-apps"
-  app_identity_principal_id   = "00000000-0000-0000-0000-000000000002"
-  deploy_principal_id         = "00000000-0000-0000-0000-000000000003"
-  key_vault_name              = "kv-bakery-dev-test1"
-  cosmos_account_name         = "cosmos-bakery-dev-test1"
-  auth_authority              = "https://issuer.example.test"
-  service_auth_token_endpoint = "https://issuer.example.test/token"
-  web_auth_issuer             = "https://issuer.example.test"
+  tenant_id                 = "00000000-0000-0000-0000-000000000001"
+  registry_login_server     = "bakerytest01.azurecr.io"
+  app_identity_id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-foundation/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-bakery-dev-apps"
+  app_identity_principal_id = "00000000-0000-0000-0000-000000000002"
+  deploy_principal_id       = "00000000-0000-0000-0000-000000000003"
+  key_vault_name            = "kv-bakery-dev-test1"
+  cosmos_account_name       = "cosmos-bakery-dev-test1"
 }
 
 run "only_the_web_app_is_reachable_from_outside" {

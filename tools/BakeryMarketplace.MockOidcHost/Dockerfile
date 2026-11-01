@@ -1,4 +1,4 @@
-# Local development only. Build context is the repository root (see docker-compose.yml).
+# Local development, and the disposable cloud dev environment (WI-DEP-001; the host enforces its own rules, see MockOidcDeployment). Build context is the repository root (see docker-compose.yml).
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY tools/BakeryMarketplace.Secrets/ tools/BakeryMarketplace.Secrets/

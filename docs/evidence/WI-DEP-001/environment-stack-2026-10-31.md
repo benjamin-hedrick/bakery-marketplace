@@ -27,4 +27,23 @@
 - That `http://catalog` (port 80) resolves to an app whose ingress target port is 5200, and that `redis-events:6379` resolves from the other apps.
 - That a placeholder image with a different listening port leaves the apps unhealthy until the application deploy stage replaces it (expected, not observed).
 - That the destroy guard accepts a real destroy plan of this stack (register item 107).
-- The apps with a real issuer: `auth_authority`, `service_auth_token_endpoint` and `web_auth_issuer` have no default; they depend on register item 102 and `N-02`.
+- Entra mode: `auth_authority`, `service_auth_token_endpoint` and `web_auth_issuer` are only used when `issuer_mode = "entra"` (N-02, not started).
+
+## Addendum (2026-10-31): the mock issuer in the stack
+
+Decision (lead, 2026-10-31): Path M, public and Customer-only by default (register item 102).
+
+| Piece | Where |
+|---|---|
+| Start-up rule for a deployed mock issuer | `tools/BakeryMarketplace.Auth/MockOidcDeployment.cs`, used by `tools/BakeryMarketplace.MockOidcHost/Program.cs` |
+| Role filter on the login page and at submit | `MapMockOidcIssuer(..., allowedRoles)` in `MockOidcIssuer.cs`; null keeps the local behaviour |
+| Tests | `tools/tests/BakeryMarketplace.Auth.Tests/MockOidcDeploymentTests.cs` (the rule, the page, a posted Admin or Vendor id refused, an allowed user still logs in, no list = unchanged); Auth tests 163 of 163 passed |
+| Terraform | `infra/environments/dev`: the `mock-oidc` container app, `issuer_mode`, `issuer_roles`, `allowed_ips`; derived issuer addresses; `tests/mock_issuer.tftest.hcl` (4 runs); 7 of 7 checks passed |
+
+**What a public visitor can do:** sign in as the Customer user and place orders in the disposable store. They cannot obtain an Admin or Vendor token while `issuer_roles` is Customer only; widening it needs `allowed_ips`.
+
+**Cost exposure (from memory of Azure pricing, not checked):** each app is capped at one replica and scales to zero, Cosmos free tier throttles instead of billing, the Log Analytics workspace has a 0.5 GB daily cap, the Redis app is a fixed few dollars a month. A request flood could add request charges; the budget alert only notifies and teardown is manual. No rate limiting exists (item 27).
+
+**Not verified:** everything in the register item 102 note above: the host in a container behind the ingress, service-to-issuer reachability when `allowed_ips` is set, the ordering secret reaching both apps.
+
+**Run against the built image (local Docker, 2026-10-31, host port 5199, no ingress in front):** Production with no switch: refused at start-up with the message. Production with the switch, an https issuer and a registered redirect: the login page listed only "Alice Customer (Customer)"; a posted `user-admin-1` returned 400; a posted `user-customer-1` returned 302; the start-up log said logins were limited to Customer. Production with the switch and `AllowedRoles__0=Admin` and no restriction flag: refused at start-up. This is not a run behind the Container Apps ingress.

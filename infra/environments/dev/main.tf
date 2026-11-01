@@ -24,10 +24,20 @@ locals {
   placeholder_secrets = toset(["cosmos-connection-string", "ordering-client-secret"])
   placeholder_value   = "set-after-apply"
 
+  # Addresses are known before anything is created: an app's public name is <app>.<environment default domain>. In mock mode the issuer
+  # addresses are derived from the mock issuer app, so there is nothing to type and no chicken-and-egg with the first apply.
+  domain         = azurerm_container_app_environment.env.default_domain
+  mock_url       = "https://mock-oidc.${local.domain}"
+  web_url        = "https://web.${local.domain}"
+  use_mock       = var.issuer_mode == "mock"
+  authority      = local.use_mock ? local.mock_url : var.auth_authority
+  token_endpoint = local.use_mock ? "${local.mock_url}/token" : var.service_auth_token_endpoint
+  web_issuer     = local.use_mock ? local.mock_url : var.web_auth_issuer
+
   # Inside the Container Apps environment an app with ingress answers on its name (http://catalog) on port 80.
   dotnet_env = {
     ASPNETCORE_ENVIRONMENT  = "Production"
-    Auth__Authority         = var.auth_authority
+    Auth__Authority         = local.authority
     Auth__Audience          = var.auth_audience
     Auth__MetadataAddress   = var.auth_metadata_address
     Data__Backend           = "cosmos"
@@ -52,7 +62,7 @@ locals {
       external = false
       env = merge(local.dotnet_env, {
         Catalog__BaseUrl           = "http://catalog"
-        ServiceAuth__TokenEndpoint = var.service_auth_token_endpoint
+        ServiceAuth__TokenEndpoint = local.token_endpoint
         ServiceAuth__ClientId      = var.service_auth_client_id
         ServiceAuth__Scope         = var.service_auth_scope
       })
@@ -77,7 +87,7 @@ locals {
       external = true
       env = {
         GRAPHQL_URL    = "http://graphql-bff/graphql"
-        AUTH_ISSUER    = var.web_auth_issuer
+        AUTH_ISSUER    = local.web_issuer
         AUTH_CLIENT_ID = var.web_auth_client_id
       }
       secrets = {}
@@ -261,6 +271,15 @@ resource "azurerm_container_app" "apps" {
     target_port      = each.value.port
     transport        = "http"
 
+    dynamic "ip_security_restriction" {
+      for_each = each.value.external ? var.allowed_ips : []
+      content {
+        name             = "allow-${replace(replace(ip_security_restriction.value, ".", "-"), "/", "-")}"
+        action           = "Allow"
+        ip_address_range = ip_security_restriction.value
+      }
+    }
+
     traffic_weight {
       latest_revision = true
       percentage      = 100
@@ -300,5 +319,100 @@ resource "azurerm_container_app" "apps" {
     ignore_changes = [template[0].container[0].image]
   }
 
-  depends_on = [azurerm_container_app.redis]
+  depends_on = [azurerm_container_app.redis, azurerm_container_app.mock]
+}
+
+# ---- The mock issuer (register item 102; the lead chose it for the first deployed dev environment on 2026-10-31) -------------------------
+# Public https ingress, because the browser logs in here. It signs tokens for whoever asks, so it is held to MockOidcDeployment: it starts in
+# Production only with AllowDeployedDev, an https issuer, and the role list below (Customer only unless allowed_ips is set). Its ordering client
+# secret is the same Key Vault secret ordering presents; the post-apply step generates and stores it.
+resource "azurerm_container_app" "mock" {
+  count                        = local.use_mock ? 1 : 0
+  name                         = "mock-oidc"
+  resource_group_name          = local.rg
+  container_app_environment_id = azurerm_container_app_environment.env.id
+  revision_mode                = "Single"
+  tags                         = local.tags
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.app_identity_id]
+  }
+
+  registry {
+    server   = var.registry_login_server
+    identity = var.app_identity_id
+  }
+
+  secret {
+    name                = "ordering-client-secret"
+    identity            = var.app_identity_id
+    key_vault_secret_id = azurerm_key_vault_secret.placeholder["ordering-client-secret"].versionless_id
+  }
+
+  ingress {
+    external_enabled = true
+    target_port      = 5100
+    transport        = "http"
+
+    dynamic "ip_security_restriction" {
+      for_each = var.allowed_ips
+      content {
+        name             = "allow-${replace(replace(ip_security_restriction.value, ".", "-"), "/", "-")}"
+        action           = "Allow"
+        ip_address_range = ip_security_restriction.value
+      }
+    }
+
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
+  }
+
+  template {
+    min_replicas = 0
+    max_replicas = 1
+
+    container {
+      name   = "mock-oidc"
+      image  = var.image_placeholder
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      dynamic "env" {
+        for_each = merge(
+          {
+            ASPNETCORE_ENVIRONMENT                                       = "Production"
+            Auth__Audience                                               = var.auth_audience
+            MockOidc__AllowDeployedDev                                   = "true"
+            MockOidc__Issuer                                             = local.mock_url
+            MockOidc__IngressRestricted                                  = length(var.allowed_ips) > 0 ? "true" : "false"
+            MockOidc__RedirectUris__0                                    = "${local.web_url}/auth/callback"
+            MockOidc__AllowedOrigins__0                                  = local.web_url
+            "MockOidc__Clients__${var.service_auth_client_id}__Roles__0" = "Stock.Reserve"
+          },
+          { for i, r in var.issuer_roles : "MockOidc__AllowedRoles__${i}" => r },
+        )
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
+      env {
+        name        = "MockOidc__Clients__${var.service_auth_client_id}__Secret"
+        secret_name = "ordering-client-secret"
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [template[0].container[0].image]
+
+    precondition {
+      condition     = alltrue([for r in var.issuer_roles : r == "Customer"]) || length(var.allowed_ips) > 0
+      error_message = "Roles other than Customer may log in to the mock issuer only when allowed_ips restricts the environment to known addresses."
+    }
+  }
 }

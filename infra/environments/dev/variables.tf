@@ -71,9 +71,45 @@ variable "cosmos_free_tier" {
   default     = true
 }
 
+variable "issuer_mode" {
+  type        = string
+  description = "mock: deploy the mock issuer as a container app and derive every issuer address from it (register item 102, lead's decision 2026-10-31). entra: use the three settings below, which are then required (N-02)."
+  default     = "mock"
+
+  validation {
+    condition     = contains(["mock", "entra"], var.issuer_mode)
+    error_message = "issuer_mode must be mock or entra."
+  }
+}
+
+variable "issuer_roles" {
+  type        = list(string)
+  description = "Mock issuer only: the roles whose users may log in. Customer only by default, so the public can sign in as a customer and nobody can obtain an Admin or Vendor token. Any other role requires allowed_ips (a precondition on the mock app)."
+  default     = ["Customer"]
+}
+
+variable "allowed_ips" {
+  type        = list(string)
+  description = "CIDR ranges allowed to reach the web app and the mock issuer. Empty (the default) means open to everyone, which is only acceptable while issuer_roles is Customer only."
+  default     = []
+}
+
 variable "auth_authority" {
   type        = string
-  description = "Token issuer the services validate (Auth__Authority). Decided by register item 102 and N-02; no default."
+  description = "Entra mode only: the token issuer the services validate (Auth__Authority)."
+  default     = ""
+}
+
+variable "service_auth_token_endpoint" {
+  type        = string
+  description = "Entra mode only: the token endpoint ordering uses to call catalog (ServiceAuth__TokenEndpoint)."
+  default     = ""
+}
+
+variable "web_auth_issuer" {
+  type        = string
+  description = "Entra mode only: where the browser logs in (AUTH_ISSUER, served by /api/config)."
+  default     = ""
 }
 
 variable "auth_audience" {
@@ -87,11 +123,6 @@ variable "auth_metadata_address" {
   default     = ""
 }
 
-variable "service_auth_token_endpoint" {
-  type        = string
-  description = "Token endpoint ordering uses to call catalog (ServiceAuth__TokenEndpoint)."
-}
-
 variable "service_auth_client_id" {
   type    = string
   default = "ordering-service"
@@ -100,11 +131,6 @@ variable "service_auth_client_id" {
 variable "service_auth_scope" {
   type    = string
   default = "bakery-marketplace/.default"
-}
-
-variable "web_auth_issuer" {
-  type        = string
-  description = "Where the browser logs in (AUTH_ISSUER, served by /api/config)."
 }
 
 variable "web_auth_client_id" {
