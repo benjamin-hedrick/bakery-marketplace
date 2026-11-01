@@ -1,0 +1,14 @@
+# Copy to dev.tfvars (git-ignored) or pass as pipeline variables. None of these is a secret.
+tenant_id                 = "00000000-0000-0000-0000-000000000000"
+registry_login_server     = "bakerymkt123.azurecr.io"
+app_identity_id           = "/subscriptions/.../resourceGroups/rg-bakery-foundation/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-bakery-dev-apps"
+app_identity_principal_id = "00000000-0000-0000-0000-000000000000"
+deploy_principal_id       = "00000000-0000-0000-0000-000000000000"
+key_vault_name            = "kv-bakery-dev-abc12"
+cosmos_account_name       = "cosmos-bakery-dev-abc12"
+
+# Mock issuer (the default): the issuer addresses are derived from the mock app; nothing to set. Customer logins only, open to everyone.
+# To restrict the environment to your address:
+# allowed_ips = ["203.0.113.7/32"]
+# To also allow Admin or Vendor logins (requires allowed_ips): issuer_roles = ["Customer", "Admin"]
+# Entra mode: issuer_mode = "entra", and set auth_authority, service_auth_token_endpoint and web_auth_issuer.

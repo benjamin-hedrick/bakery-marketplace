@@ -1,16 +1,15 @@
 using BakeryMarketplace.Auth;
 
 // Runnable host for the local mock OIDC issuer (WI-AUTH-005 delivered the endpoints as a library extension only).
-// It signs tokens for anyone who asks, so it must never run outside a developer machine or test environment.
+// It signs tokens for anyone who asks, so it runs outside a developer machine only as MockOidcDeployment allows (a disposable dev environment).
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
+// Refuses Production unless the deployed-dev switch is set on safe terms (https issuer, Customer-only logins unless the ingress is
+// IP-restricted); see MockOidcDeployment and register item 102. Null = every mock user (local use, unchanged).
+var allowedRoles = MockOidcDeployment.Resolve(builder.Configuration, app.Environment.IsProduction());
 if (app.Environment.IsProduction())
-{
-    throw new InvalidOperationException(
-        "The mock OIDC issuer refuses to start in the Production environment. " +
-        "Set ASPNETCORE_ENVIRONMENT=Development for local use; never deploy this host.");
-}
+    app.Logger.LogWarning("Mock OIDC issuer running in a DEPLOYED environment; logins limited to roles: {Roles}.", string.Join(", ", allowedRoles ?? []));
 
 app.MapGet("/healthz", () => Results.Ok(new { status = "Healthy" }));
 // Service clients for the client credentials grant (ADR-0018). Secrets come from configuration (MockOidc__Clients__<id>__Secret,
@@ -43,6 +42,6 @@ var redirectUris = builder.Configuration.GetSection("MockOidc:RedirectUris").Get
 
 // MockOidc__Issuer fixes the issuer string (the address the browser uses), so services that reach this host by its container name still see one issuer.
 var issuer = builder.Configuration["MockOidc:Issuer"];
-app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients, redirectUris, string.IsNullOrWhiteSpace(issuer) ? null : issuer);
+app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients, redirectUris, string.IsNullOrWhiteSpace(issuer) ? null : issuer, allowedRoles);
 
 app.Run();

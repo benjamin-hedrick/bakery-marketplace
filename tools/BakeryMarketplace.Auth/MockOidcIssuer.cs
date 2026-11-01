@@ -75,13 +75,21 @@ public static class MockOidcIssuer
     /// host (the default), which only works while every client reaches the issuer by the same address. The endpoint URLs in the discovery
     /// document always follow the request, so a client that fetches metadata by another address (a container network) still gets reachable endpoints.
     /// </param>
+    /// <param name="allowedRoles">
+    /// Roles whose mock users may log in. Null (the default) allows all of them. The deployed dev environment passes only Customer.
+    /// </param>
     public static IEndpointRouteBuilder MapMockOidcIssuer(
         this IEndpointRouteBuilder endpoints,
         string audience = "bakery-marketplace",
         IReadOnlyCollection<MockClient>? clients = null,
         IReadOnlyCollection<string>? redirectUris = null,
-        string? issuer = null)
+        string? issuer = null,
+        IReadOnlyCollection<string>? allowedRoles = null)
     {
+        // Null offers every mock user (local use). A list offers only users whose role is in it, on the login page AND at submit, so a user
+        // outside the list cannot be asked for by posting its id (deployed dev environment, MockOidcDeployment).
+        var roleFilter = allowedRoles?.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        bool UserAllowed(MockUser u) => roleFilter is null || roleFilter.Contains(u.Role);
         var fixedIssuer = issuer is null ? null : ValidateIssuer(issuer);
         string IssuerFor(string requestBase) => fixedIssuer ?? requestBase;
         var registeredClients = (clients ?? Array.Empty<MockClient>()).ToDictionary(c => c.ClientId, StringComparer.Ordinal);
@@ -151,7 +159,7 @@ public static class MockOidcIssuer
     <h1>Mock OIDC Login</h1>
     <p>Select a user to login:</p>
     <ul>
-        {string.Join("\n", MockUsers.All.Values.Distinct().Select(u => $@"
+        {string.Join("\n", MockUsers.All.Values.Distinct().Where(UserAllowed).Select(u => $@"
             <li>
                 <form method='POST' action='{Html(request.PathBase.Value)}/authorize/submit'>
                     <input type='hidden' name='userId' value='{Html(u.Id)}' />
@@ -178,7 +186,7 @@ public static class MockOidcIssuer
             var codeChallenge = form["code_challenge"].ToString();
             var codeChallengeMethod = form["code_challenge_method"].ToString();
 
-            if (!MockUsers.All.TryGetValue(userId, out var user))
+            if (!MockUsers.All.TryGetValue(userId, out var user) || !UserAllowed(user))
             {
                 return Results.BadRequest("Invalid user.");
             }

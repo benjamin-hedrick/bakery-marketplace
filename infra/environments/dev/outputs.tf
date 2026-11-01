@@ -15,3 +15,8 @@ output "secret_names" {
   description = "Key Vault secrets Terraform creates with a placeholder; the post-apply step sets the real values (cosmos-connection-string from the account's key; ordering-client-secret from the issuer)."
   value       = [for s in azurerm_key_vault_secret.placeholder : s.name]
 }
+
+output "issuer_url" {
+  description = "The token issuer in use (the mock issuer's public address in mock mode)."
+  value       = local.authority
+}
