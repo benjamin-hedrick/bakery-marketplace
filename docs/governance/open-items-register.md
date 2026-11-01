@@ -349,8 +349,9 @@ OAuth2 client credentials was chosen. `WI-AUTH-006` phase 1 (mock issuer, shared
 
 **63. Vendors cannot read their own listings**
 Type: Missing API · Source: `WI-CAT-005` (2026-10-28) · Hat: Engineering/Build
-Status: Open
-Only public reads exist (Published, verified vendors, no exact stock). A vendor sees the exact quantity only in the responses to their own create, edit and adjust calls, and cannot list their drafts or current stock. A vendor-facing read (list and get own listings, with the owner view) is needed before any vendor UI; mind the id-only lookup cost noted in `ListingService`.
+Status: Resolved 2026-11-01 (catalog service; the BFF schema and a vendor UI are not part of it)
+Resolution: `GET /catalog/listings/mine` (optional `status`, `limit`, `after`) and `GET /catalog/listings/mine/{id}`, Vendor role only, the vendor id taken from the token and the read confined to that vendor's partition (another vendor's listing looks missing). The owner view shows drafts, the exact quantity and the low-stock threshold. `GetOwnAsync` now treats a document with no valid status as missing, because the partition also holds the vendor's stock reservation records; this also closes a way for a vendor to fetch a reservation record by id through the edit endpoint. 137 catalog tests pass (6 new); the BFF schema does not expose these reads yet.
+Original text: Only public reads exist (Published, verified vendors, no exact stock). A vendor sees the exact quantity only in the responses to their own create, edit and adjust calls, and cannot list their drafts or current stock. A vendor-facing read (list and get own listings, with the owner view) is needed before any vendor UI; mind the id-only lookup cost noted in `ListingService`.
 
 **64. Stock status and `maxPerOrder` are not in the GraphQL schema**
 Type: Contract follow-up · Source: `WI-CAT-005` (2026-10-28) · Hat: Architect, Engineering/Build

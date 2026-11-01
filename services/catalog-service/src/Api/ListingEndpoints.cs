@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BakeryMarketplace.Auth;
+using CatalogService.Domain;
 using CatalogService.Services;
 using Microsoft.AspNetCore.Authorization;
 
@@ -27,6 +28,28 @@ public static class ListingEndpoints
             var listing = await svc.GetPublicAsync(id, ct);
             return listing is null ? NotFound() : Results.Ok(ListingDto.From(listing));
         }).AllowAnonymous();
+
+        // The vendor's own listings, drafts included, with the exact quantity (register item 63). The vendor id comes from the token, and the
+        // read is confined to that vendor's partition, so another vendor's listing is indistinguishable from a missing one.
+        group.MapGet("/mine", async (string? status, int? limit, string? after, ClaimsPrincipal user, ListingService svc, CancellationToken ct) =>
+        {
+            var vendorId = SubjectOf(user);
+            if (vendorId is null) return Results.Unauthorized();
+            if (status is not null && !ListingStatuses.IsValid(status))
+                return ToError(new ListingResult(ListingOutcome.Invalid, Errors: new Dictionary<string, string[]> { ["status"] = ["Draft or Published."] }));
+
+            var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
+            var (items, next) = await svc.ListOwnAsync(vendorId, status, size, after, ct);
+            return Results.Ok(new ListingPage(items.Select(ListingDto.ForOwner).ToList(), next));
+        }).RequireAuthorization("VendorRole");
+
+        group.MapGet("/mine/{id}", async (string id, ClaimsPrincipal user, ListingService svc, CancellationToken ct) =>
+        {
+            var vendorId = SubjectOf(user);
+            if (vendorId is null) return Results.Unauthorized();
+            var listing = await svc.GetOwnAsync(id, vendorId, ct);
+            return listing is null ? NotFound() : Results.Ok(ListingDto.ForOwner(listing));
+        }).RequireAuthorization("VendorRole");
 
         // Vendor writes: Vendor role (coarse) + resource ownership (ADR-0006). The vendor id always comes from the token.
         group.MapPost("/", async (ListingRequest request, ClaimsPrincipal user, ListingService svc, CancellationToken ct) =>

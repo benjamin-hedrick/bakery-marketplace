@@ -92,9 +92,37 @@ public sealed class ListingService
 
     // ---- vendor writes ------------------------------------------------------------------------
 
-    /// <summary>The caller's own listing, or null. Looks only in the caller's partition.</summary>
-    public Task<ListingDocument?> GetOwnAsync(string id, string vendorId, CancellationToken ct = default) =>
-        _listings.GetAsync(id, vendorId, ct);
+    /// <summary>
+    /// The caller's own listing, or null. Looks only in the caller's partition. The partition also holds the vendor's stock reservation
+    /// records, so a document that is not a listing (it has no valid status) is treated as missing.
+    /// </summary>
+    public async Task<ListingDocument?> GetOwnAsync(string id, string vendorId, CancellationToken ct = default)
+    {
+        var doc = await _listings.GetAsync(id, vendorId, ct);
+        return doc is not null && ListingStatuses.IsValid(doc.Status) ? doc : null;
+    }
+
+    /// <summary>
+    /// The caller's own listings, drafts included, ordered by id; <paramref name="after"/> is the id of the last item of the previous page.
+    /// One partition, so it costs in proportion to the vendor's own listings (register item 63). <paramref name="status"/> narrows to one status.
+    /// </summary>
+    public async Task<(IReadOnlyList<ListingDocument> Items, string? NextCursor)> ListOwnAsync(
+        string vendorId, string? status, int limit, string? after, CancellationToken ct = default)
+    {
+        var all = new List<ListingDocument>();
+        await foreach (var l in _listings.QueryAsync(
+                           vendorId, q => q.Where(x => x.Status == ListingStatuses.Draft || x.Status == ListingStatuses.Published), ct))
+        {
+            if (status is null || l.Status == status) all.Add(l);
+        }
+
+        var ordered = all.OrderBy(l => l.Id, StringComparer.Ordinal)
+            .Where(l => after is null || string.CompareOrdinal(l.Id, after) > 0)
+            .Take(limit + 1)
+            .ToList();
+        var page = ordered.Take(limit).ToList();
+        return (page, ordered.Count > limit ? page[^1].Id : null);
+    }
 
     public async Task<ListingResult> CreateAsync(string vendorId, ListingRequest request, CancellationToken ct = default)
     {
