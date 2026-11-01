@@ -82,6 +82,11 @@ run "the_cosmos_containers_match_what_the_services_expect" {
   }
 
   assert {
+    condition     = azurerm_cosmosdb_sql_container.vendor_orders.name == "vendor-orders" && azurerm_cosmosdb_sql_container.vendor_orders.partition_key_paths[0] == "/vendorId"
+    error_message = "The vendor order read model container must be vendor-orders, partitioned by /vendorId (N-03)."
+  }
+
+  assert {
     condition     = azurerm_cosmosdb_sql_container.catalog.default_ttl == -1 && azurerm_cosmosdb_sql_container.orders.default_ttl == null
     error_message = "The catalog container needs default_ttl = -1 so released stock reservations expire (register item 66); orders must never expire."
   }
