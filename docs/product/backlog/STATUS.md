@@ -150,7 +150,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 
 ## Architecture decisions
 
-19 records.
+20 records.
 
 | ADR | Title | Status | Status line |
 |---|---|---|---|
@@ -173,8 +173,9 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0017](../../architecture/adr/0017-stock-and-availability-ownership.md) | Stock and Availability Ownership | Accepted | Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter. |
 | [0018](../../architecture/adr/0018-service-to-service-authentication.md) | Service-to-Service Authentication (OAuth2 Client Credentials) | Accepted | Accepted (2026-10-31) |
 | [0020](../../architecture/adr/0020-deployment-pipeline-and-environments.md) | Deployment pipeline, environments and configuration | Accepted | Accepted (2026-10-31) |
+| [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Proposed | Proposed (2026-11-02). If accepted it amends ADR-0012 (the queue display is no longer polling only) and bui... |
 
-Accepted: 18 · Superseded: 1
+Accepted: 18 · Superseded: 1 · Proposed: 1
 
 ## Open-items register
 
