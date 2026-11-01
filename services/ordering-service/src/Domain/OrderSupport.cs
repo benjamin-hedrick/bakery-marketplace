@@ -20,6 +20,16 @@ public sealed class OrderRuleException(string message) : InvalidOperationExcepti
 /// Event type names the Order aggregate raises. Strategy-specific events (<c>PickupWindowScheduled</c>, <c>OrderReadyForPickup</c>)
 /// are raised by the fulfillment strategy, not by the Order (ADR-0001, docs/architecture/order-lifecycle.md).
 /// </summary>
+/// <summary>
+/// A short reference for an order, to be read out across a counter or matched on a kitchen screen (<c>QUE-001</c>'s open point: orders carry no
+/// customer name). The last six characters of the id, upper-case. It is not unique, only distinct enough among one vendor's open orders, and
+/// it is derived, never stored, so every view agrees on it.
+/// </summary>
+public static class OrderReference
+{
+    public static string For(string orderId) => (orderId.Length <= 6 ? orderId : orderId[^6..]).ToUpperInvariant();
+}
+
 public static class OrderEventTypes
 {
     public const string Placed = "OrderPlaced";

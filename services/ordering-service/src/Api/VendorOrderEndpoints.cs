@@ -1,6 +1,7 @@
 using BakeryMarketplace.Data;
 using BakeryMarketplace.EventSchemas;
 using OrderingService.Checkout;
+using OrderingService.Domain;
 using OrderingService.Persistence;
 
 namespace OrderingService.Api;
@@ -19,6 +20,7 @@ public sealed record VendorOrderLineDto(string ListingId, string? ListingName, I
 /// </summary>
 public sealed record VendorOrderDto(
     string Id,
+    string Reference,
     string Status,
     long? TotalCents,
     string? Currency,
@@ -35,7 +37,7 @@ public sealed record VendorOrderDto(
     string? PickupInstructions)
 {
     public static VendorOrderDto From(VendorOrderDocument d, IReadOnlyDictionary<string, ListingNames> names) => new(
-        d.Id, d.Status.ToString(), d.TotalCents, d.Currency, d.LineCount, d.ItemCount, d.FulfillmentType?.ToString(),
+        d.Id, OrderReference.For(d.Id), d.Status.ToString(), d.TotalCents, d.Currency, d.LineCount, d.ItemCount, d.FulfillmentType?.ToString(),
         d.PickupStart is { } start && d.PickupEnd is { } end ? new PickupWindowDto(start, end) : null,
         d.Automatic, d.CancelledBy?.ToString(), d.CancelReason?.ToString(), d.PlacedAt, d.UpdatedAt,
         (d.Lines ?? []).Select(l =>

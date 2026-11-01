@@ -1,4 +1,13 @@
-> **Status:** Ready
+> **Status:** Done · evidence: the Outcome note under this banner; `services/ordering-service` (`Persistence/VendorOrder*.cs`), `services/graphql-bff`
+
+> **Outcome note (2026-11-02):** built as part of `N-03` and `N-04` on `feature/stock-outbox-hardening` and `feature/vendor-order-detail`, under the name **vendor order read model**. The container is `vendor-orders`, partitioned by `/vendorId` (not `order-status-readmodel`); it is fed by the six Order events through `VendorOrderSubscriptions` and `VendorOrderProjection`, and read through `GET /ordering/vendor/orders` (the list) and `GET /ordering/vendor/orders/{id}` (one order), with the BFF's `vendorOrders` and `vendorOrder` queries on top. The service never reads `orders` for the list or the single read. Tests: `VendorOrderProjectionTests` (including repeated and out-of-order events), `VendorOrderApiTests`, `CosmosVendorOrderTests` (the real Cosmos emulator), and the BFF's `vendor-orders.test.ts`. Evidence of the emulator and Redis runs is in register items 76, 112 and 113.
+>
+> **Changes from the original plan:**
+> - **No event-id dedupe store.** A repeated or late event is harmless without one: the status only moves to an event with a higher `sequenceNumber`, and the facts only one event carries (totals, window, reason) are filled in and never cleared, so applying an event twice, or out of order, ends in the same state. The 48-hour dedupe store (`ICacheProvider`) was therefore not built.
+> - **The endpoint is `GET /ordering/vendor/orders`, not `GET /ordering/orders?vendorId=`.** The vendor id always comes from the token (never from a query value a caller could change), so ownership (ADR-0006) holds by construction. It lists newest change first, optionally by status (`active` or one status), paged by a cursor.
+> - **The customer is not named.** `customerName` stays out (the open point below): the view carries a short **reference** derived from the order id (`OrderReference`) to read out or match on a screen. Item 114 records that a customer also cannot send free text.
+> - **Lines are ids in the store and names at read.** `OrderPlaced` now also carries the requested pickup window and instructions, and the lines are kept as ids; the names come from `ListingNameCache` (register item 113), because the catalog owns them.
+> - **Added:** `VendorId` and `CustomerId` on the order lifecycle events, so a consumer that keys by vendor needs no call back to ordering.
 
 ```
 WI ID:               QUE-001
@@ -7,7 +16,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-QUEUE-DISPLAY
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               Done
 Size:                 M
 ```
 

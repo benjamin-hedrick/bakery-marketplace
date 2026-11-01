@@ -19,6 +19,10 @@ type Query {
   pickupWindows(vendorId: ID!): [PickupWindow!]!
   "The caller's own order. Null when it does not exist or is someone else's. Needs a bearer token (UNAUTHENTICATED without one)."
   order(id: ID!): Order
+  "A vendor's own orders, the most recently changed first, optionally narrowed by status. Needs a vendor's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another role)."
+  vendorOrders(status: VendorOrderFilter, first: Int = 20, after: String): VendorOrderConnection!
+  "One of the calling vendor's own orders. Null when it does not exist, is another vendor's, or has not reached the vendor's view yet."
+  vendorOrder(id: ID!): VendorOrder
 }
 
 type Listing implements Node {
@@ -96,6 +100,64 @@ type OrderLineItem {
   quantity: Int!
   "The line total in cents (unit price times quantity, options included), as ordering-service computed it."
   price: Money!
+}
+
+"Which of a vendor's orders to list: the ones still in progress, or one status."
+enum VendorOrderFilter {
+  ACTIVE
+  PLACED
+  CONFIRMED
+  IN_PREPARATION
+  READY_FOR_FULFILLMENT
+  COMPLETED
+  CANCELLED
+}
+
+"""
+An order as its vendor sees it (the vendor order read model of ordering-service). The customer is not named. Ids come from the order's events;
+names come from ordering-service's cache of listing names and are null when the catalog could not say.
+"""
+type VendorOrder implements Node {
+  id: ID!
+  "A short code to read out or match on a screen, derived from the order id. Not unique."
+  reference: String!
+  status: OrderStatus!
+  "Null only for an order whose events pre-date the totals."
+  total: Money
+  lineCount: Int
+  itemCount: Int
+  lines: [VendorOrderLine!]!
+  "The window the customer asked for, or the scheduled one once confirmed. Null when none was requested."
+  pickupWindow: PickupWindow
+  pickupInstructions: String
+  "True when checkout confirmed the order by rule, so it never needed the vendor's decision."
+  automatic: Boolean!
+  placedAt: DateTime
+  "When the order last changed; the list is ordered by it."
+  updatedAt: DateTime!
+}
+
+type VendorOrderLine {
+  "A Listing global id."
+  listingId: ID!
+  listingName: String
+  modifiers: [VendorOrderModifier!]!
+  quantity: Int!
+}
+
+type VendorOrderModifier {
+  id: ID!
+  name: String
+}
+
+type VendorOrderEdge {
+  cursor: String!
+  node: VendorOrder!
+}
+
+type VendorOrderConnection {
+  edges: [VendorOrderEdge!]!
+  pageInfo: PageInfo!
 }
 
 "One value per ordering-service OrderStatus; no states are introduced here."

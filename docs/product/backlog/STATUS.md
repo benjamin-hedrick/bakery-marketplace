@@ -10,11 +10,11 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 | Status | Count |
 |---|---|
-| Done | 51 |
+| Done | 52 |
 | In progress | 4 |
 | In review | 4 |
 | Built | 1 |
-| Ready | 12 |
+| Ready | 11 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 1 |
@@ -45,7 +45,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PREFERENCES | 0 of 2 | PREF-001, PREF-002 |
 | EPIC-PRODUCT-STRATEGY | 1 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
 | EPIC-QUALITY-EVIDENCE | 1 of 3 | QA-001, QA-002, QA-003 |
-| EPIC-QUEUE-DISPLAY | 0 of 2 | QUE-001, QUE-002 |
+| EPIC-QUEUE-DISPLAY | 1 of 2 | QUE-001, QUE-002 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
 | EPIC-SEARCH | 0 of 1 | SRCH-001 |
 | EPIC-SECRETS | 1 of 2 | SEC-001, SEC-003 |
@@ -135,7 +135,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QA-001](WI-QA-001.md) | Test strategy and guides | EPIC-QUALITY-EVIDENCE | Done | evidence: the Outcome note under this banner; `docs/process/test-strategy.md`, `playwright-guide.md`, `test-review-checklist.md`, `docs/product/backlog/TRACEABILITY.md`, `apps/web-customer/tests/e2e/accessibility.spec.ts` |
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | EPIC-QUALITY-EVIDENCE | In progress | remaining: rows `G-H04` and `G-H05` (theory tests that need judgment), throughput, and a CI job for repeated runs |
 | [QA-003](WI-QA-003.md) | Planned experiments: AI-assisted testing and the mobile question | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead decides to run the experiments |
-| [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | EPIC-QUEUE-DISPLAY | Ready |  |
+| [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `services/ordering-service` (`Persistence/VendorOrder*.cs`), `services/graphql-bff` |
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Ready |  |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |

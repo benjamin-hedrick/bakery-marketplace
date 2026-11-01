@@ -12,7 +12,7 @@ using static OrderingService.Tests.OrderingFactory;
 
 namespace OrderingService.Tests;
 
-/// <summary><c>N-03</c> (register item 76): the vendor order read model, fed by the order events. The projection, the list and the lookup.</summary>
+/// <summary><c>N-03</c> and WI-QUE-001 (register item 76): the vendor order read model, fed by the order events. The projection, the list and the lookup.</summary>
 public class VendorOrderProjectionTests
 {
     private const string Order = "order-1";
@@ -244,6 +244,14 @@ public class VendorOrderProjectionTests
     }
 
     [Theory]
+    [InlineData("order-0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d", "3B4C5D")]
+    [InlineData("order-ffffff000000", "000000")]
+    [InlineData("abc", "ABC")]
+    [InlineData("", "")]
+    public void TheShortReferenceIsTheLastSixCharactersOfTheIdInUpperCase(string orderId, string expected) =>
+        Assert.Equal(expected, OrderReference.For(orderId));
+
+    [Theory]
     [InlineData(null, true)]
     [InlineData("active", true)]
     [InlineData("Completed", true)]
@@ -399,6 +407,7 @@ public sealed class VendorOrderApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, own.StatusCode);
         var body = await JsonOf(own);
         Assert.Equal(id, body.GetProperty("id").GetString());
+        Assert.Equal(OrderReference.For(id), body.GetProperty("reference").GetString());
         Assert.Equal(1, body.GetProperty("lines").GetArrayLength());
         Assert.False(body.TryGetProperty("customerId", out _));
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/ordering/vendor/orders/{id}")).StatusCode);
