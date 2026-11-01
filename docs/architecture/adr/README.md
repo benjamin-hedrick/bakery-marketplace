@@ -16,7 +16,7 @@ For the order in which the decisions were made and changed, see [the decision ti
 | Caching | 0002, 0014 | 0002 (the server cache), then 0014 (three layers) |
 | Events | 0003, 0021 | 0003 (the backbone), then 0021 (pushing changes to the vendor queue screen) |
 | Data | 0004, 0017 | 0004, then 0017 (the stock counter and reservation records) |
-| Identity and authorization | 0006, 0018, 0019 | 0006 (users; read "Entra External ID" for "Azure AD B2C"), then 0018 (service callers), then 0019 (proposed: browser sessions) |
+| Identity and authorization | 0006, 0018, 0019 | 0006 (users; read "Entra External ID" for "Azure AD B2C"), then 0018 (service callers), then 0019 (browser sessions) |
 | Secrets, CI and delivery | 0007, 0015, 0020 | 0007, then 0015 (Azure Pipelines amends the CI secret storage), then 0020 (deployment pipeline, environments and configuration) |
 | Observability | 0016 | |
 | Payments | 0005 | |
@@ -44,7 +44,7 @@ For the order in which the decisions were made and changed, see [the decision ti
 | [0016](0016-opentelemetry-tracing.md) | OpenTelemetry with W3C `traceparent` as the only propagated correlation mechanism | Accepted (2026-10-26) |
 | [0017](0017-stock-and-availability-ownership.md) | The catalog owns the stock counter; reserve at place, release on cancel | Accepted (2026-10-28) |
 | [0018](0018-service-to-service-authentication.md) | OAuth2 client credentials for service callers; DEV credential type pending | Accepted (2026-10-31) |
-| [0019](0019-browser-sessions.md) | A server-side session behind an HttpOnly cookie: renewal on the server, tokens out of the page, one implementation for both web apps | Proposed (2026-11-02) |
+| [0019](0019-browser-sessions.md) | A server-side session behind an HttpOnly cookie: renewal on the server, tokens out of the page, one implementation for both web apps | Accepted (2026-11-02) |
 | [0020](0020-deployment-pipeline-and-environments.md) | Build once, promote by digest, configure at deploy time; two stacks; gated infrastructure and application stages; a second, never-run UAT/Prod pipeline | Accepted (2026-10-31) |
 | [0021](0021-live-updates-to-the-vendor-queue.md) | Push as a nudge over a stream (GraphQL subscription over SSE, Redis Pub/Sub fan-out) layered on polling, which stays | Accepted (2026-11-02) |
 

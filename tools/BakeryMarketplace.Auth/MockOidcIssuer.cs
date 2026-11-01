@@ -26,7 +26,34 @@ public static class MockOidcIssuer
     // In-memory store for authorization codes
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, AuthCodeData> AuthCodes = new();
 
-    private record AuthCodeData(string UserId, string RedirectUri, string? CodeChallenge, string? CodeChallengeMethod, DateTimeOffset ExpiresAt);
+    private record AuthCodeData(
+        string UserId, string RedirectUri, string? CodeChallenge, string? CodeChallengeMethod, DateTimeOffset ExpiresAt, string? ClientId = null, string Scope = "");
+
+    // Refresh tokens (ADR-0019). Opaque, single use, rotated on every use, and grouped in a family per login: presenting a token that was already
+    // used revokes the whole family, because a second use means two parties hold it (the real issuers do the same). In memory, like the codes.
+    private sealed class RefreshTokenData(string userId, string familyId, string? clientId, string scope, DateTimeOffset expiresAt)
+    {
+        public string UserId { get; } = userId;
+        public string FamilyId { get; } = familyId;
+        public string? ClientId { get; } = clientId;
+        public string Scope { get; } = scope;
+        public DateTimeOffset ExpiresAt { get; } = expiresAt;
+        public bool Used { get; set; }
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, RefreshTokenData> RefreshTokens = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> RevokedFamilies = new();
+
+    /// <summary>How long a refresh token lives when the host does not say (it is renewed each time it is used).</summary>
+    public static readonly TimeSpan DefaultRefreshTokenLifetime = TimeSpan.FromHours(8);
+
+    /// <summary>The scope that asks for a refresh token.</summary>
+    public const string OfflineAccessScope = "offline_access";
+
+    private static bool HasScope(string scope, string wanted) =>
+        scope.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(wanted, StringComparer.Ordinal);
+
+    private static string NewRefreshToken() => Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>Encodes a value for HTML text and quoted attributes, so nothing the page is sent can become markup.</summary>
     private static string Html(string? value) => System.Net.WebUtility.HtmlEncode(value ?? "");
@@ -78,14 +105,24 @@ public static class MockOidcIssuer
     /// <param name="allowedRoles">
     /// Roles whose mock users may log in. Null (the default) allows all of them. The deployed dev environment passes only Customer.
     /// </param>
+    /// <param name="refreshTokenLifetime">
+    /// How long a refresh token lives (ADR-0019); each use renews it. A refresh token is issued only to a login that asked for the
+    /// <c>offline_access</c> scope. Defaults to <see cref="DefaultRefreshTokenLifetime"/>.
+    /// </param>
+    /// <param name="timeProvider">The clock for refresh token expiry; tests pass a fake one.</param>
     public static IEndpointRouteBuilder MapMockOidcIssuer(
         this IEndpointRouteBuilder endpoints,
         string audience = "bakery-marketplace",
         IReadOnlyCollection<MockClient>? clients = null,
         IReadOnlyCollection<string>? redirectUris = null,
         string? issuer = null,
-        IReadOnlyCollection<string>? allowedRoles = null)
+        IReadOnlyCollection<string>? allowedRoles = null,
+        TimeSpan? refreshTokenLifetime = null,
+        TimeProvider? timeProvider = null)
     {
+        var refreshLifetime = refreshTokenLifetime ?? DefaultRefreshTokenLifetime;
+        if (refreshLifetime <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(refreshTokenLifetime), "A refresh token must live for a positive time.");
+        var clock = timeProvider ?? TimeProvider.System;
         // Null offers every mock user (local use). A list offers only users whose role is in it, on the login page AND at submit, so a user
         // outside the list cannot be asked for by posting its id (deployed dev environment, MockOidcDeployment).
         var roleFilter = allowedRoles?.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -110,7 +147,8 @@ public static class MockOidcIssuer
                 subject_types_supported = new[] { "public" },
                 id_token_signing_alg_values_supported = new[] { "RS256" },
                 code_challenge_methods_supported = new[] { "plain", "S256" },
-                grant_types_supported = new[] { "authorization_code", "client_credentials" },
+                grant_types_supported = new[] { "authorization_code", "client_credentials", "refresh_token" },
+                scopes_supported = new[] { "openid", OfflineAccessScope },
                 token_endpoint_auth_methods_supported = new[] { "none", "client_secret_basic", "client_secret_post" }
             });
         });
@@ -135,7 +173,7 @@ public static class MockOidcIssuer
             });
         });
 
-        endpoints.MapGet("/authorize", (HttpRequest request, string? client_id, string? redirect_uri, string? response_type, string? state, string? code_challenge, string? code_challenge_method) =>
+        endpoints.MapGet("/authorize", (HttpRequest request, string? client_id, string? redirect_uri, string? response_type, string? state, string? code_challenge, string? code_challenge_method, string? scope) =>
         {
             // The refusal text is fixed: nothing the caller sent is echoed back, and an unregistered address is never redirected to.
             if (string.IsNullOrEmpty(redirect_uri) || response_type != "code" || !RedirectAllowed(redirect_uri))
@@ -167,6 +205,8 @@ public static class MockOidcIssuer
                     <input type='hidden' name='state' value='{Html(state)}' />
                     <input type='hidden' name='code_challenge' value='{Html(code_challenge)}' />
                     <input type='hidden' name='code_challenge_method' value='{Html(code_challenge_method)}' />
+                    <input type='hidden' name='client_id' value='{Html(client_id)}' />
+                    <input type='hidden' name='scope' value='{Html(scope)}' />
                     <button type='submit'>Login as {Html(u.Name)} ({Html(u.Role)})</button>
                 </form>
             </li>
@@ -185,6 +225,8 @@ public static class MockOidcIssuer
             var state = form["state"].ToString();
             var codeChallenge = form["code_challenge"].ToString();
             var codeChallengeMethod = form["code_challenge_method"].ToString();
+            var loginClientId = form["client_id"].ToString();
+            var loginScope = form["scope"].ToString();
 
             if (!MockUsers.All.TryGetValue(userId, out var user) || !UserAllowed(user))
             {
@@ -198,7 +240,9 @@ public static class MockOidcIssuer
             }
 
             var code = Guid.NewGuid().ToString("N");
-            AuthCodes[code] = new AuthCodeData(userId, redirectUri, codeChallenge, codeChallengeMethod, DateTimeOffset.UtcNow.AddMinutes(5));
+            AuthCodes[code] = new AuthCodeData(
+                userId, redirectUri, codeChallenge, codeChallengeMethod, DateTimeOffset.UtcNow.AddMinutes(5),
+                string.IsNullOrEmpty(loginClientId) ? null : loginClientId, loginScope);
 
             // Built with proper query-string encoding: a state like "a&code=x" or one with a line break is data, never syntax.
             var redirectUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(redirectUri, "code", code);
@@ -256,8 +300,19 @@ public static class MockOidcIssuer
                 AuthCodes.TryRemove(code, out _);
 
                 var user = MockUsers.All[authCodeData.UserId];
-                var tokenResponse = GenerateTokens(user, IssuerFor(baseUrl), audience);
-                return Results.Ok(tokenResponse);
+                string? refreshToken = null;
+                if (HasScope(authCodeData.Scope, OfflineAccessScope))
+                {
+                    refreshToken = NewRefreshToken();
+                    RefreshTokens[refreshToken] = new RefreshTokenData(
+                        user.Id, Guid.NewGuid().ToString("N"), authCodeData.ClientId, authCodeData.Scope, clock.GetUtcNow().Add(refreshLifetime));
+                }
+                var tokenResponse = GenerateTokens(user, IssuerFor(baseUrl), audience, refreshToken, authCodeData.Scope);
+                return Results.Json(tokenResponse);
+            }
+            else if (grantType == "refresh_token")
+            {
+                return RefreshTokenGrant(form, IssuerFor(baseUrl), audience, UserAllowed, clock, refreshLifetime);
             }
             else if (grantType == "client_credentials")
             {
@@ -268,6 +323,58 @@ public static class MockOidcIssuer
         });
 
         return endpoints;
+    }
+
+    // ---- refresh tokens (ADR-0019) ---------------------------------------------------------------------------------------
+
+    private static IResult InvalidGrant(string description) =>
+        Results.Json(new { error = "invalid_grant", error_description = description }, statusCode: StatusCodes.Status400BadRequest);
+
+    private static IResult RefreshTokenGrant(
+        IFormCollection form, string issuer, string audience, Func<MockUser, bool> userAllowed, TimeProvider clock, TimeSpan lifetime)
+    {
+        var presented = form["refresh_token"].ToString();
+        var clientId = form["client_id"].ToString();
+        if (string.IsNullOrEmpty(presented) || !RefreshTokens.TryGetValue(presented, out var data))
+        {
+            return InvalidGrant("Unknown refresh token.");
+        }
+
+        lock (data)
+        {
+            if (RevokedFamilies.ContainsKey(data.FamilyId))
+            {
+                return InvalidGrant("The refresh token has been revoked.");
+            }
+
+            if (data.Used)
+            {
+                // A second use of a rotated token: two parties hold it, so nothing from this login can be trusted any more.
+                RevokedFamilies[data.FamilyId] = 0;
+                return InvalidGrant("The refresh token was already used; the login has been revoked.");
+            }
+
+            if (clock.GetUtcNow() >= data.ExpiresAt)
+            {
+                return InvalidGrant("The refresh token has expired.");
+            }
+
+            if (!string.IsNullOrEmpty(clientId) && data.ClientId is not null && !string.Equals(clientId, data.ClientId, StringComparison.Ordinal))
+            {
+                return InvalidGrant("The refresh token was issued to another client.");
+            }
+
+            // The user and their roles come from the registry now, never from the request: a refresh cannot widen the original login.
+            if (!MockUsers.All.TryGetValue(data.UserId, out var user) || !userAllowed(user))
+            {
+                return InvalidGrant("The user may no longer log in.");
+            }
+
+            data.Used = true;
+            var next = NewRefreshToken();
+            RefreshTokens[next] = new RefreshTokenData(data.UserId, data.FamilyId, data.ClientId, data.Scope, clock.GetUtcNow().Add(lifetime));
+            return Results.Json(GenerateTokens(user, issuer, audience, next, data.Scope));
+        }
     }
 
     // ---- client credentials (ADR-0018) ------------------------------------------------------------------------------------
@@ -369,11 +476,12 @@ public static class MockOidcIssuer
         return Results.Json(new { error = "invalid_client" }, statusCode: StatusCodes.Status400BadRequest);
     }
 
-    private static object GenerateTokens(MockUser user, string issuer, string audience)
+    private static Dictionary<string, object> GenerateTokens(MockUser user, string issuer, string audience, string? refreshToken = null, string? scope = null)
     {
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")), // a unique id per token, as real issuers give: two tokens never match
             new Claim(JwtRegisteredClaimNames.Name, user.Name),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim("roles", user.Role)
@@ -397,12 +505,15 @@ public static class MockOidcIssuer
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-        return new
+        var response = new Dictionary<string, object>
         {
-            access_token = accessToken,
-            id_token = accessToken, // Simplification for mock
-            token_type = "Bearer",
-            expires_in = 3600
+            ["access_token"] = accessToken,
+            ["id_token"] = accessToken, // Simplification for mock
+            ["token_type"] = "Bearer",
+            ["expires_in"] = 3600,
         };
+        if (refreshToken is not null) response["refresh_token"] = refreshToken;
+        if (!string.IsNullOrWhiteSpace(scope)) response["scope"] = scope;
+        return response;
     }
 }

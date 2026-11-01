@@ -1,4 +1,6 @@
-> **Status:** Proposed · remaining: the lead's approval of ADR-0019 (auth logic) and the open points in it; nothing is built
+> **Status:** In progress · remaining: phases 2 to 4 (phase 1, the mock issuer's refresh grant, is built; see the progress note under this banner)
+
+> **Progress note (2026-11-02):** ADR-0019 is Accepted and the lead approved the auth work. **Phase 1 built:** the mock issuer's `refresh_token` grant (`tools/BakeryMarketplace.Auth/MockOidcIssuer.cs`): a refresh token is issued to a login that asked for `offline_access`; it is opaque, single use and rotated on every use; a token used twice revokes the whole login; each token expires (default 8 hours, `MockOidc__RefreshTokenMinutes`) and each use renews it; a token is refused to another client; the user and roles are read from the registry on every refresh, never from the request. Access tokens now carry a unique `jti`. 12 new tests in `RefreshTokenGrantTests.cs`; the Auth project has 175 passing. Not yet used by any app.
 
 ```
 WI ID:               AUTH-007
@@ -7,7 +9,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-AUTH
 Shared with epic(s):  EPIC-WEB-CUSTOMER, EPIC-QUEUE-DISPLAY
 Hat/Owner:            Engineering/Build, Security
-Status:               Proposed
+Status:               In progress
 Size:                 L
 ```
 
@@ -37,6 +39,7 @@ The browser apps keep the access token in page memory with no refresh token, so 
 - Extraction first: the code the two apps share moves into the package with the existing unit tests, and both apps' suites pass before and after.
 - A session store interface with a Redis implementation and an in-memory one, and one contract-test base both pass: create, read, touch (idle), delete, delete by subject, absolute expiry, and a lock for single-flight renewal.
 - Tokens at rest are AES-GCM encrypted with a key from configuration (a missing or short key stops startup, ADR-0007); a record read with the wrong key is a miss, not an error that echoes anything.
+- The pending login (PKCE verifier and state) is a ten-minute record in the same store under a random id carried in a short-lived HttpOnly cookie; nothing is signed.
 - Cookie: `__Host-` name with `HttpOnly; Secure; SameSite=Lax; Path=/` and no `Domain`; the unprefixed form only when explicitly configured for local HTTP; production without HTTPS refuses to start.
 - Handlers: `login` (PKCE, state, the verifier server-side), `callback` (state and verifier checked, server-side exchange, new session id, return-to checked as today), `logout`, `me`.
 - Renewal: refresh 60 seconds before expiry, once per session at a time across instances; a rotated refresh token is stored; a refused or reused refresh ends the session; the user is sent to log in.
@@ -64,4 +67,4 @@ See `docs/process/definition-of-done.md`. Item-specific addition: a security rev
 Parts. The mock issuer and the package are well specified; the cookie, CSRF and renewal logic are security-sensitive and need the lead's review of each phase.
 
 **Open Points (working)**
-- [ ] The four in ADR-0019: lifetimes, the cloud client type, which Redis, and approval.
+*(none: the four open points of ADR-0019 were decided on 2026-11-02)*
