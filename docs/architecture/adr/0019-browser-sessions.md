@@ -1,6 +1,6 @@
 # ADR-0019: Browser Sessions: a Server-Side Session Behind an HttpOnly Cookie
 
-**Status:** Proposed (2026-11-02). If accepted it amends ADR-0006 (token storage: "header-only, no cookies" no longer applies between the browser and its web app) and ADR-0012 (the Next.js server now holds tokens), and resolves register items 24 and 116, enables 26, and removes the duplication in 115. Auth logic: needs the lead's approval before anything is built. This is the decision the backlog reserved the number 0019 and the item `N-01` for.
+**Status:** Accepted (2026-11-02) by the lead, who also approved changing the mock issuer and the auth flow, and decided the open points below. It amends ADR-0006 (token storage: "header-only, no cookies" no longer applies between the browser and its web app) and ADR-0012 (the Next.js server now holds tokens), and resolves register items 24 and 116, enables 26, and removes the duplication in 115. This is the decision the backlog reserved the number 0019 and the item `N-01` for.
 
 ## Context
 
@@ -16,17 +16,20 @@ Constraints: every service still validates the bearer token itself (ADR-0006, AD
 
 ## Decision (proposed)
 
-1. **The web app's server owns the login and holds the tokens** (the "backend for frontend" pattern for browser apps). `/api/auth/login` starts Authorization Code with PKCE (the verifier is kept server-side, bound to the browser by a short-lived signed cookie); `/api/auth/callback` checks the state, exchanges the code **from the server**, and creates the session. A new session id is created at every login (no session fixation).
+1. **The web app's server owns the login and holds the tokens** (the "backend for frontend" pattern for browser apps). `/api/auth/login` starts Authorization Code with PKCE (the verifier and state are kept in a **pending-login record** in the session store, ten minutes at most, under a random id that the browser carries in a short-lived HttpOnly cookie; nothing is signed, so no second key exists); `/api/auth/callback` checks the state, exchanges the code **from the server**, and creates the session. A new session id is created at every login (no session fixation).
 
 2. **The browser holds only an opaque session id,** in a cookie: `__Host-bakery-session`, `HttpOnly; Secure; SameSite=Lax; Path=/` and no `Domain`. The `__Host-` prefix needs HTTPS, so plain-HTTP local development uses a configured unprefixed, non-`Secure` name; the setting is explicit and the app **refuses to start in production without HTTPS**. The id is 256 random bits and means nothing by itself.
 
-3. **Tokens are stored server-side, encrypted.** A session store behind an interface (the repository's adapter pattern): a Redis implementation, an in-memory one for tests, one contract-test base. Each session holds the access token, the refresh token and the identity claims, encrypted (AES-GCM, key from configuration under ADR-0007, with a key id so it can be rotated). The record expires at the session's absolute lifetime. An index per subject allows "end every session of this person" (a vendor suspended, a leaked device).
+3. **Tokens are stored server-side, encrypted.** A session store behind an interface (the repository's adapter pattern): a Redis implementation, an in-memory one for tests, one contract-test base. Each session holds the access token, the refresh token and the identity claims, encrypted. The record expires at the session's absolute lifetime. An index per subject allows "end every session of this person" (a vendor suspended, a leaked device).
+   - **The key.** The encryption key is a random 256-bit secret known only to the web server process. It encrypts each record with AES-256-GCM, with the session id as associated data, so a record that is altered, or copied to another session, fails to decrypt and counts as a miss. It exists so that Redis alone (an administrator, a backup, a memory dump, a mis-scoped network rule) does not yield usable refresh tokens; it does not defend against a compromised web server, which holds both.
+   - **Distribution (ADR-0007).** Locally `scripts/dev/init-env.mjs` generates it into the git-ignored `.env`. In DEV and the cloud it is a Key Vault secret per environment: Terraform creates the placeholder and never the value, the value is set out of band, and a Container Apps Key Vault reference delivers it as an environment variable. The app validates it at startup (present, 32 bytes) and refuses to start otherwise. One key per web app and environment; it never reaches the browser, the BFF or a service.
+   - **Rotation.** Each stored record names the key that wrote it; configuration holds a current key and, while sessions written under the old one may still exist, a previous key. Sessions last at most seven days, and a restart is needed to change keys (ADR-0007). Replacing the key with no previous one simply ends every session.
 
 4. **Renewal is invisible and happens on the server.** Before the access token expires (60 seconds of margin) the server refreshes it with the refresh-token grant, **once per session at a time** (single-flight, across instances by a short lock), and stores the rotated refresh token. A refused refresh, or a refresh token used twice, **ends the session** (reuse is treated as theft). The issuer's refresh lifetime is a ceiling on the session.
 
 5. **Requests carry the cookie only.** The browser calls `/api/graphql` (and, for ADR-0021, the stream route) with its cookie; the route loads the session, renews if needed, and attaches `Authorization: Bearer` to the call to the BFF. The BFF and the services are unchanged. For ADR-0021 this removes the token-in-a-header problem: the cookie is sent automatically, a stream can be re-opened after the token's expiry without the user noticing, and the maximum age of a stream follows the token's life.
 
-6. **CSRF.** The cookie is `SameSite=Lax`, so a cross-site form post does not carry it. Additionally every request that is not a `GET` to the app's API routes must carry an `Origin` equal to the app's own origin and `Content-Type: application/json` (a type a cross-site form cannot send); anything else is refused with 403. A `GET` never changes state.
+6. **CSRF.** The cookie is `SameSite=Lax` (not `Strict`, which would also withhold it when the issuer redirects back and break the login hand-off), so a cross-site form post does not carry it. Additionally every request that is not a `GET` to the app's API routes must carry an `Origin` equal to the app's own origin and `Content-Type: application/json` (a type a cross-site form cannot send without a CORS preflight, which is never allowed); anything else is refused with 403. A `GET` never changes state. The stream route of ADR-0021 is checked for `Origin` too, although it is read-only, so a cross-site page cannot open streams. **The browser sets no authentication header at all** (no `Authorization`): it sends the cookie, and the page's requests keep the `Content-Type: application/json` they already had. An extra fixed header was considered and not adopted, because the JSON content type and the `Origin` check already force the same preflight and add nothing a fixed header would.
 
 7. **Lifetimes (defaults, configurable):** an idle timeout of 12 hours and an absolute lifetime of 7 days, both bounded by the issuer's refresh lifetime. A kitchen screen therefore needs a human login about once a week, not several times a day.
 
@@ -53,9 +56,9 @@ Constraints: every service still validates the bearer token itself (ADR-0006, AD
 - **Not changed:** the services, the BFF, the bearer header between the web app and the BFF, and the rule that every service validates the token itself.
 - **Operational:** if the session store is lost (a Redis restart) everyone logs in again; acceptable at this scale and recorded.
 
-## Open points for the lead
+## Decisions taken (2026-11-02)
 
-1. **Lifetimes:** idle 12 hours and absolute 7 days, bounded by the issuer.
-2. **The cloud client type:** a server-side client for Entra External ID can be a public client with PKCE (no secret to keep, ADR-0007's preference, but shorter refresh lifetimes) or a confidential client with a certificate or secret. To be decided with `AUTH-004`.
-3. **Which Redis:** the session store should not share the events Redis (no persistence, trimmed streams). The cache Redis of the `with-redis` profile is the candidate.
-4. **Approval of the auth work itself:** the mock issuer's refresh grant, the server-side exchange, and the amendments to ADR-0006 and ADR-0012.
+1. **Lifetimes:** idle 12 hours and absolute 7 days, bounded by the issuer's refresh lifetime.
+2. **The cloud client:** a **public client with PKCE** (no secret to keep, ADR-0007's preference), with the shorter refresh lifetimes that implies. The code stays correct for a confidential client if that is ever chosen (`AUTH-004`).
+3. **The session store is the cache Redis** (the `with-redis` profile), not the events Redis.
+4. **Approved:** the mock issuer's refresh grant, the server-side exchange and the amendments to ADR-0006 and ADR-0012 (appended when the apps move over, phase 3).

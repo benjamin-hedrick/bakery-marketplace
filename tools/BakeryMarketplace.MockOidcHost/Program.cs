@@ -42,6 +42,10 @@ var redirectUris = builder.Configuration.GetSection("MockOidc:RedirectUris").Get
 
 // MockOidc__Issuer fixes the issuer string (the address the browser uses), so services that reach this host by its container name still see one issuer.
 var issuer = builder.Configuration["MockOidc:Issuer"];
-app.MapMockOidcIssuer(builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients, redirectUris, string.IsNullOrWhiteSpace(issuer) ? null : issuer, allowedRoles);
+// MockOidc__RefreshTokenMinutes sets how long a refresh token lives (each use renews it); the default is 8 hours (ADR-0019).
+var refreshMinutes = builder.Configuration.GetValue<int?>("MockOidc:RefreshTokenMinutes");
+app.MapMockOidcIssuer(
+    builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients, redirectUris, string.IsNullOrWhiteSpace(issuer) ? null : issuer, allowedRoles,
+    refreshMinutes is > 0 ? TimeSpan.FromMinutes(refreshMinutes.Value) : null);
 
 app.Run();
