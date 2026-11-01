@@ -48,17 +48,25 @@ public sealed class ListingOutboxTests
         public ListingService Service { get; }
         public StockReservationService Reservation { get; }
 
-        public Rig()
+        private readonly FakeRepository<VendorStatusDocument> _status = new(d => d.Id);
+
+        private Rig()
         {
             Listings = new FakeRepository<ListingDocument>(d => d.Id, Database);
             Reservations = new FakeRepository<StockReservationDocument>(d => d.Id, Database);
-            var status = new FakeRepository<VendorStatusDocument>(d => d.Id);
-            status.SaveAsync(new VendorStatusDocument { Id = Vendor, Verified = true, LastSequence = 1 }, VendorStatusStore.Partition).GetAwaiter().GetResult();
-            var vendors = new VendorStatusStore(status);
+            var vendors = new VendorStatusStore(_status);
             Publisher = new ListingEventPublisher(Events, Listings, Microsoft.Extensions.Options.Options.Create(Options), Time, NullLogger<ListingEventPublisher>.Instance);
             Relay = new ListingOutboxRelay(Listings, Publisher, Microsoft.Extensions.Options.Options.Create(Options), Time, NullLogger<ListingOutboxRelay>.Instance);
             Service = new ListingService(Listings, vendors, Publisher, Time, NullLogger<ListingService>.Instance);
             Reservation = new StockReservationService(Listings, Reservations, new FakeBatchFactory(Database), vendors, Publisher, Time);
+        }
+
+        // Built asynchronously: blocking a test worker thread on a call that yields can deadlock the run on a machine with few cores.
+        public static async Task<Rig> CreateAsync()
+        {
+            var rig = new Rig();
+            await rig._status.SaveAsync(new VendorStatusDocument { Id = Vendor, Verified = true, LastSequence = 1 }, VendorStatusStore.Partition);
+            return rig;
         }
 
         public static ListingRequest Request(string status = "Published", StockRequest? stock = null) =>
@@ -70,7 +78,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task APublishedListingWhoseEventCouldNotBePublishedStillHasTheEventStoredWithIt()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
 
         var result = await rig.Service.CreateAsync(Vendor, Rig.Request());
@@ -87,7 +95,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task ADraftRaisesNoEvent()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
 
         var result = await rig.Service.CreateAsync(Vendor, Rig.Request("Draft"));
 
@@ -98,7 +106,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task APublishThatSucceedsInlineEmptiesTheOutboxAndTheSparseMarker()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
 
         var result = await rig.Service.CreateAsync(Vendor, Rig.Request());
 
@@ -115,7 +123,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task TheRelayPublishesWhatTheInlinePathMissedOnceTheGracePeriodHasPassedAndTheIdIsStable()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
         var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!;
         var expectedId = Guid.Parse(ListingOutboxEntry.IdFor(created.Id, created.Version, ListingEventTypes.Published));
@@ -136,7 +144,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task ARepeatedPublishAfterALostCleanupCarriesTheSameEventId()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
         var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!;
         rig.Events.Fail = false;
@@ -153,7 +161,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task ALowStockEventFromAnAdjustmentIsStoredInTheSameWriteAsTheNewQuantity()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
         var created = (await rig.Service.CreateAsync(Vendor, Rig.Request("Draft", new StockRequest(10, null, 3)))).Listing!;
         rig.Events.Fail = true;
 
@@ -167,7 +175,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task ALowStockEventFromAReservationIsStoredInTheSameBatchAsTheDecrement()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
         var created = (await rig.Service.CreateAsync(Vendor, Rig.Request("Published", new StockRequest(10, null, 3)))).Listing!;
         rig.Events.Fail = true;
 
@@ -187,7 +195,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task APublishFailureLeavesThatEventAndLaterOnesPendingSoNothingOvertakesIt()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
         var created = (await rig.Service.CreateAsync(Vendor, Rig.Request("Published", new StockRequest(10, null, 3)))).Listing!;
         await rig.Service.AdjustStockAsync(await rig.StoredAsync(created.Id), -8); // Published at version 1, LowStockDetected at version 2
@@ -204,7 +212,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task AnEventThatKeepsFailingParksTheListingAtTheLimitAndTheRelayStopsRetryingIt()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
         var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!;
         rig.Time.Now = rig.Time.Now.AddSeconds(30);
@@ -224,7 +232,7 @@ public sealed class ListingOutboxTests
     [Fact]
     public async Task UnparkingClearsTheMarkerAndTheCountsAndTheRelayPublishesAgain()
     {
-        var rig = new Rig();
+        var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
         var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!;
         rig.Time.Now = rig.Time.Now.AddSeconds(30);

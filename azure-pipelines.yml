@@ -99,11 +99,11 @@ jobs:
           dotnet format whitespace BakeryMarketplace.slnx --verify-no-changes
           dotnet format style BakeryMarketplace.slnx --verify-no-changes
         displayName: Format and style check (fix locally with dotnet format)
-      - script: dotnet test tools/BakeryMarketplace.slnx --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
+      - script: dotnet test tools/BakeryMarketplace.slnx --configuration Release --blame-hang-timeout 5m --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test shared libraries
-      - script: dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
+      - script: dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release --blame-hang-timeout 5m --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test catalog-service
-      - script: dotnet test services/ordering-service/tests/OrderingService.Tests --configuration Release --logger "trx" --results-directory $(RESULTS)/trx
+      - script: dotnet test services/ordering-service/tests/OrderingService.Tests --configuration Release --blame-hang-timeout 5m --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test ordering-service
       - script: |
           set -o pipefail  # a failed script must fail the step, not tee's exit code

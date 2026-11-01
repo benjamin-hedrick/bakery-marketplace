@@ -10,11 +10,12 @@ using Newtonsoft.Json.Linq;
 namespace CatalogService.Tests;
 
 /// <summary>Register item 66: a released reservation carries a time to live so it does not accumulate; an active one never does.</summary>
-public sealed class ReservationRetentionTests
+public sealed class ReservationRetentionTests : IAsyncLifetime
 {
     private const string Vendor = "vendor-1";
 
     private readonly FakeDatabase _database = new();
+    private readonly FakeRepository<VendorStatusDocument> _status = new(d => d.Id);
     private readonly FakeRepository<ListingDocument> _listings;
     private readonly FakeRepository<StockReservationDocument> _reservations;
     private readonly ListingService _service;
@@ -24,14 +25,18 @@ public sealed class ReservationRetentionTests
     {
         _listings = new FakeRepository<ListingDocument>(d => d.Id, _database);
         _reservations = new FakeRepository<StockReservationDocument>(d => d.Id, _database);
-        var status = new FakeRepository<VendorStatusDocument>(d => d.Id);
-        status.SaveAsync(new VendorStatusDocument { Id = Vendor, Verified = true, LastSequence = 1 }, VendorStatusStore.Partition).GetAwaiter().GetResult();
-        var vendors = new VendorStatusStore(status);
+        var vendors = new VendorStatusStore(_status);
         var publisher = new ListingEventPublisher(
             new InMemoryEventTransport(), _listings, Options.Create(new CatalogOutboxOptions()), TimeProvider.System, NullLogger<ListingEventPublisher>.Instance);
         _service = new ListingService(_listings, vendors, publisher, TimeProvider.System, NullLogger<ListingService>.Instance);
         _reservation = new StockReservationService(_listings, _reservations, new FakeBatchFactory(_database), vendors, publisher, TimeProvider.System);
     }
+
+    // Not in the constructor: blocking a test worker thread on a call that yields can deadlock the run on a machine with few cores.
+    public Task InitializeAsync() =>
+        _status.SaveAsync(new VendorStatusDocument { Id = Vendor, Verified = true, LastSequence = 1 }, VendorStatusStore.Partition);
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private async Task<string> ListingWithStockAsync() =>
         (await _service.CreateAsync(Vendor, new ListingRequest("Loaf", null, "bread", 800, null, null, "Published", new StockRequest(10, null, null)))).Listing!.Id;

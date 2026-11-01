@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CatalogService.Tests;
 
 /// <summary>WI-CAT-006 / ADR-0017: atomic stock reserve and release for the ordering service.</summary>
-public sealed class StockReservationTests : IDisposable
+public sealed class StockReservationTests : IDisposable, IAsyncLifetime
 {
     private readonly CatalogFactory _factory = new();
     private readonly HttpClient _anon;
@@ -23,9 +23,13 @@ public sealed class StockReservationTests : IDisposable
     {
         _anon = _factory.CreateClient();
         _ordering = _factory.ServiceClientFor("ordering-service", ServiceRoles.StockReserve);
-        _factory.VerifyVendorAsync(_vendor).GetAwaiter().GetResult();
         _vendorClient = _factory.ClientFor(_vendor, "Vendor");
     }
+
+    // Not in the constructor: blocking a test worker thread on a call that yields can deadlock the run on a machine with few cores.
+    public Task InitializeAsync() => _factory.VerifyVendorAsync(_vendor);
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     public void Dispose() => _factory.Dispose();
 

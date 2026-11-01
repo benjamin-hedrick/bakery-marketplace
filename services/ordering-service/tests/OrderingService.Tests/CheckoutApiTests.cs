@@ -158,7 +158,8 @@ public sealed class CheckoutApiTests : IAsyncLifetime
 
         Assert.Equal(1, responses.Count(r => r.StatusCode == HttpStatusCode.Created));
         Assert.Equal(9, responses.Count(r => r.StatusCode == HttpStatusCode.OK));
-        Assert.Single(responses.Select(r => JsonOf(r).Result.GetProperty("id").GetString()).Distinct());
+        var ids = await Task.WhenAll(responses.Select(async r => (await JsonOf(r)).GetProperty("id").GetString()));
+        Assert.Single(ids.Distinct());
         Assert.Single(_catalog.Reservations);
         Assert.Empty(_catalog.To("DELETE", "/catalog/stock")); // nobody released the winner's stock
     }
