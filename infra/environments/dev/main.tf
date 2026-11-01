@@ -193,6 +193,9 @@ resource "azurerm_cosmosdb_sql_container" "catalog" {
   database_name         = azurerm_cosmosdb_sql_database.bakery.name
   partition_key_paths   = ["/vendorId"]
   partition_key_version = 2
+  # -1 turns time to live on without expiring anything by default: only a document that carries its own ttl expires, and only released
+  # stock reservations do (register item 66). Listings and vendor status documents never expire.
+  default_ttl = -1
 }
 
 resource "azurerm_cosmosdb_sql_container" "orders" {
