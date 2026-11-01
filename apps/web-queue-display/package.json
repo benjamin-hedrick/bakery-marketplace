@@ -1,0 +1,42 @@
+{
+  "name": "@bakery/web-queue-display",
+  "version": "0.0.0",
+  "private": true,
+  "description": "WI-QUE-002: the live order queue display for a vendor's counter or kitchen screen",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "relay": "node scripts/ensure-artifact-dir.mjs && relay-compiler",
+    "mock": "node mock-bff/server.mjs",
+    "dev": "next dev -p 3100",
+    "build": "npm run relay && next build",
+    "start": "next start -p 3100",
+    "typecheck": "npm run relay && tsc --noEmit",
+    "test:unit": "node --test \"tests/unit/**/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "format": "prettier --write . --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-relay": "21.0.1",
+    "relay-runtime": "21.0.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.0",
+    "@types/node": "25.9.9",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.13.0",
+    "eslint-config-next": "16.4.3",
+    "graphql": "16.14.2",
+    "prettier": "3.9.10",
+    "relay-compiler": "21.0.1",
+    "typescript": "5.9.3"
+  }
+}

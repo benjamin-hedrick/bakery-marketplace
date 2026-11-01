@@ -225,6 +225,61 @@ jobs:
           targetPath: apps/web-customer/test-results
           artifact: web-playwright-traces
 
+  - job: queue
+    displayName: web-queue-display (mock BFF)
+    steps:
+      - script: mkdir -p $(RESULTS)
+        displayName: Create results directory
+      - task: UseNode@1
+        inputs:
+          version: $(NODE_VERSION)
+      - script: npm ci
+        workingDirectory: apps/web-queue-display
+        displayName: Install
+      - script: npm run format:check
+        workingDirectory: apps/web-queue-display
+        displayName: Format check (Prettier)
+      - script: npm run lint
+        workingDirectory: apps/web-queue-display
+        displayName: Lint (ESLint, Next.js rules)
+      - script: npm run typecheck
+        workingDirectory: apps/web-queue-display
+        displayName: Typecheck (runs relay-compiler first)
+      - script: npm run test:unit
+        workingDirectory: apps/web-queue-display
+        displayName: Unit tests (login library and queue logic, Node test runner)
+      - script: npx playwright install --with-deps chromium
+        workingDirectory: apps/web-queue-display
+        displayName: Install Chromium
+      - script: npm run test:e2e -- --reporter=list,junit
+        workingDirectory: apps/web-queue-display
+        displayName: Build and e2e against the mock GraphQL server (WI-QUE-002 suite)
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: $(RESULTS)/queue-mock-junit.xml
+      - script: node scripts/ci/summarize-results.mjs --json $(RESULTS)/queue-summary.json $(RESULTS)/queue-mock-junit.xml
+        displayName: Summarize results
+        condition: succeededOrFailed()
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFormat: JUnit
+          testResultsFiles: '$(RESULTS)/queue-mock-junit.xml'
+          testRunTitle: web-queue-display-mock
+      - task: PublishPipelineArtifact@1
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: $(RESULTS)
+          artifact: queue-results
+      - script: mkdir -p apps/web-queue-display/test-results
+        displayName: Ensure the Playwright output folder exists
+        condition: failed()
+      - task: PublishPipelineArtifact@1
+        displayName: Publish Playwright traces and screenshots (failures only)
+        condition: failed()
+        inputs:
+          targetPath: apps/web-queue-display/test-results
+          artifact: queue-playwright-traces
+
   - job: skeleton
     displayName: Walking skeleton (real stack)
     steps:

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. `catalog-service` has real listing endpoints (`WI-CAT-001`; in-memory backends by default, Cosmos and Redis verified against the local Compose stack). `ordering-service` has the `Order` aggregate and persistence, checkout with idempotency, pickup windows, vendor and customer order actions, automatic confirmation, and an outbox with a relay that publishes order events (payment is a stub); `admin-service` and `notification-service` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` runs the local infrastructure (Redis Streams, Cosmos vNext emulator, mock OIDC issuer; `docs/operations/local-dev.md`) but no application containers. `apps/web-customer` implements slice 1 (login, browse with stock, cart, checkout, order status) on Next.js + Relay, and the GraphQL BFF in `services/graphql-bff` sits in front of the services; `web-admin` and `web-queue-display` are empty. All of it runs locally only; nothing is deployed. Don't describe anything as working unless you've run it.
+A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. `catalog-service` has real listing endpoints (`WI-CAT-001`; in-memory backends by default, Cosmos and Redis verified against the local Compose stack). `ordering-service` has the `Order` aggregate and persistence, checkout with idempotency, pickup windows, vendor and customer order actions, automatic confirmation, and an outbox with a relay that publishes order events (payment is a stub); `admin-service` and `notification-service` are empty scaffolds (`Program.cs` only) and `docker-compose.yml` runs the local infrastructure (Redis Streams, Cosmos vNext emulator, mock OIDC issuer; `docs/operations/local-dev.md`) but no application containers. `apps/web-customer` implements slice 1 (login, browse with stock, cart, checkout, order status) on Next.js + Relay, and the GraphQL BFF in `services/graphql-bff` sits in front of the services; `web-admin` is empty. `apps/web-queue-display` (`WI-QUE-002`) is the vendor's live order-queue screen: it polls the BFF every 7 seconds and its browser suite passes against a mock BFF and a stubbed issuer; it has not been run against the real stack or the real issuer. All of it runs locally only; nothing is deployed. Don't describe anything as working unless you've run it.
 
 ## Commands
 
@@ -37,7 +37,9 @@ npm run test:e2e         # Playwright (Chromium); `npx playwright install chromi
 npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/operations/local-dev.md)
 ```
 
-GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (75 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `ENABLE_TEST_HOOKS=1` forwards the declined-payment test hook and must never be set outside tests). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
+GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (86 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `ENABLE_TEST_HOOKS=1` forwards the declined-payment test hook and must never be set outside tests). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
+
+Queue display (`apps/web-queue-display`, port 3100): `npm ci`, `npm run typecheck`, `npm run test:unit` (51 tests), `npm run test:e2e` (11 Playwright tests against `npm run mock` on :4101; the issuer is stubbed in the browser). Its login code is a copy of web-customer's (register item 115).
 
 Generated Relay artifacts (`src/__generated__/`) are gitignored; `npm run relay` recreates them. `ENABLE_TEST_HOOKS` must never be set outside tests. Details: `apps/web-customer/README.md`.
 
@@ -50,7 +52,7 @@ docker compose --profile apps up -d --build  # plus the catalog, ordering, BFF a
 node scripts/ci/skeleton-smoke.mjs --containers  # the Playwright journeys against those containers, then tears down (--keep leaves them)
 node scripts/dev/check-env.mjs --wait 90    # exit 0 when up, 1 otherwise
 node scripts/dev/init-env.mjs               # creates local secrets in the git-ignored .env (service client secret for the mock issuer)
-node scripts/ci/node-gates.mjs            # run before every push: format, lint, typecheck in the BFF and web app, plus the docs status, traceability and link checks; --tests adds the unit tests; exit 1 = a failure
+node scripts/ci/node-gates.mjs            # run before every push: format, lint, typecheck in the BFF, web app and queue display, plus the docs status, traceability and link checks; --tests adds the unit tests; exit 1 = a failure
 node scripts/ci/terraform-checks.mjs         # Terraform format, init, validate and mocked-provider tests for infra/ (Docker; no Azure account); the pipeline's `terraform` job runs it
 node --test "scripts/ci/tests/*.test.mjs"   # the destroy guard and the pipeline files (also in node-gates --tests)
 node scripts/ci/secret-scan.mjs            # run before every push: gitleaks over the full committed history (Docker); exit 1 = a finding (config .gitleaks.toml)

@@ -1,0 +1,7 @@
+.next/
+.next-*/
+src/__generated__/
+next-env.d.ts
+test-results/
+playwright-report/
+*.tsbuildinfo
