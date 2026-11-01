@@ -178,7 +178,7 @@ Accepted: 18 · Superseded: 1
 
 ## Open-items register
 
-111 numbered items in `docs/governance/open-items-register.md` (highest number 111).
+112 numbered items in `docs/governance/open-items-register.md` (highest number 112).
 
 | Type | Count |
 |---|---|
@@ -239,6 +239,7 @@ Accepted: 18 · Superseded: 1
 | Defect | 1 |
 | Deferred hardening | 1 |
 | Quality gate | 1 |
+| Latent defect | 1 |
 
 | Item status | Count |
 |---|---|
@@ -246,5 +247,5 @@ Accepted: 18 · Superseded: 1
 | Resolved | 30 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 45 |
+| Open | 46 |
 | Decided | 1 |
