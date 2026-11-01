@@ -1,6 +1,6 @@
 # ADR-0021: Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept)
 
-**Status:** Proposed (2026-11-02). If accepted it amends ADR-0012 (the queue display is no longer polling only) and builds on ADR-0003, ADR-0006, ADR-0008 and ADR-0013.
+**Status:** Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age shortened. It amends ADR-0012 (the queue display is no longer polling only) and builds on ADR-0003, ADR-0006, ADR-0008 and ADR-0013. How the stream is authenticated depends on the renewal design of ADR-0019 (proposed); see decision 5.
 
 ## Context
 
@@ -26,7 +26,8 @@ What exists, and constrains the design:
 
 5. **Authentication and expiry.**
    - The token is sent in the `Authorization` header of a streamed `fetch`, never in a URL or an `EventSource`.
-   - Ordering **closes the stream when the token expires** (a final `expired` event, then the connection ends). A stream is never longer-lived than the credential that opened it, and also has a maximum age (configurable, default 8 hours) in case a longer-lived credential is later chosen (item 116).
+   - Ordering **closes the stream when the token expires** (a final `expired` event, then the connection ends). A stream is never longer-lived than the credential that opened it, and also has a maximum age (configurable, **default 1 hour**, shortened from 8 on 2026-11-02 because the renewal design makes a reconnect invisible) in case a longer-lived credential is later chosen (item 116).
+   - **If ADR-0019 is accepted** the browser holds no token at all: the stream request carries the session cookie, the web app's route renews the token if needed and attaches the bearer header to the call to the BFF, and a stream that ends at token expiry is re-opened by the client without the user noticing. Everything from the BFF down is unchanged. Until then (and as the fallback) the streamed `fetch` carries the bearer header as described.
    - There is no revocation before expiry, as for every request today (stateless tokens, no introspection); that is accepted and bounded by the token's life.
    - Until item 116 gives a screen a way to renew its login, expiry means the screen shows "log in again", exactly as polling does today.
 
@@ -58,9 +59,9 @@ What exists, and constrains the design:
 
 A new work item (`WI-QUE-003`), in this order, each step tested before the next: the broadcast adapter with its contract tests; ordering's stream endpoint (auth, expiry, limits, heartbeat) tested with the in-memory broadcast; the Redis broadcast and a two-instance test; the BFF subscription and its pass-through; the web app's streaming path; the screen's live and polling modes; a run on the real stack that records the measured delay. ADR-0012 gets a dated note, and `WI-QUE-002` records that polling is now the fallback.
 
-## Open points for the lead
+## Decisions taken (2026-11-02)
 
-1. **GraphQL subscription over SSE, or a plain SSE route?** Recommended: the subscription (one API style, Relay support), with the plain route as the fallback. It adds the `graphql-sse` library to the BFF and the web app (a new dependency to choose and pin).
-2. **Expiry without renewal.** Accept that a screen needs a login again when its token ends (as polling does) until item 116 is decided?
-3. **Maximum streams per vendor** (5) and **maximum stream age** (8 hours): acceptable defaults?
+1. **GraphQL subscription over SSE** (the plain SSE route stays the fallback). It adds the `graphql-sse` library to the BFF and the web app: a dependency to choose, pin and review when `WI-QUE-003` starts.
+2. **Expiry without renewal is accepted** until ADR-0019 is decided; with it, a screen renews its login on the server.
+3. **Five streams per vendor; a maximum stream age of 1 hour.**
 4. **API Management** and streaming in the cloud: to be checked when a cloud path is built, not assumed.

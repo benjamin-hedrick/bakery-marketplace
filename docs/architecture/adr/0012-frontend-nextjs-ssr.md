@@ -62,3 +62,7 @@ Not yet verified: a Node LTS runtime, Firefox/WebKit, `next dev` StrictMode beha
 ## Amendment note (2026-10-30: slice 1)
 
 The validation outcome above covered the proof of concept (`WI-PORT-001`). Since then `apps/web-customer` has implemented slice 1 on this stack (login, browse, cart, checkout, order status; `docs/evidence/slice-1/findings.md`). On 2026-10-30 its 53 unit tests passed, 57 mock-backed browser tests passed in each of 10 runs, and 21 real-stack journeys passed in each of 3 runs (`docs/evidence/baseline-2026-10-30.md`). Nothing is deployed.
+
+## Note, 2026-11-02: the queue display
+
+ADR-0021 (Accepted 2026-11-02) amends the queue display's line above: it still polls the BFF (built as `WI-QUE-002`, polling every 7 seconds, client-rendered, no server-side Relay), and it will gain a pushed stream in front of the polling, which stays as the fallback and the resynchronization. ADR-0019 (Proposed) would change where the access token lives for the browser apps (a server-side session, not page memory); the "authenticated pages are client-rendered" rule here is not changed by either.
