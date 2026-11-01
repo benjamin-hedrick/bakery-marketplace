@@ -23,6 +23,11 @@ public sealed record StockLineRejection(string ListingId, string Reason, int? Av
 /// <summary>Whether the catalog reserved the stock. When it did not, <see cref="Code"/> and <see cref="Rejections"/> say why; nothing was reserved.</summary>
 public sealed record StockReservationOutcome(bool Reserved, string? Code = null, IReadOnlyList<StockLineRejection>? Rejections = null);
 
+/// <summary>An Active stock reservation as the orphan sweep sees it (register item 62).</summary>
+public sealed record ActiveReservation(string OrderId, string VendorId, DateTimeOffset CreatedAt);
+
+public sealed record ActiveReservationPage(IReadOnlyList<ActiveReservation> Items, string? NextCursor);
+
 /// <summary>The catalog could not be reached, timed out, or answered in a way that is not an answer to the question (5xx, or a refused service token).</summary>
 public sealed class DownstreamUnavailableException(string message, Exception? inner = null) : Exception(message, inner);
 
@@ -37,6 +42,13 @@ public interface ICatalogGateway
 
     /// <summary>Returns an order's reserved stock. Idempotent; an unknown reservation is fine.</summary>
     Task ReleaseAsync(string orderId, string vendorId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Active reservations made between <paramref name="notOlderThan"/> and <paramref name="olderThan"/> ago, one page after the cursor
+    /// <paramref name="after"/>. For the orphan sweep (register item 62) only.
+    /// </summary>
+    Task<ActiveReservationPage> ListActiveReservationsAsync(
+        TimeSpan olderThan, TimeSpan notOlderThan, int limit, string? after, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -91,6 +103,18 @@ public sealed class CatalogGateway(IHttpClientFactory clients, ILogger<CatalogGa
         throw Unavailable("stock release", response.StatusCode);
     }
 
+    public async Task<ActiveReservationPage> ListActiveReservationsAsync(
+        TimeSpan olderThan, TimeSpan notOlderThan, int limit, string? after, CancellationToken ct = default)
+    {
+        var path = $"/catalog/stock/reservations?state=Active&olderThanMinutes={(int)olderThan.TotalMinutes}"
+                   + $"&newerThanHours={(int)Math.Ceiling(notOlderThan.TotalHours)}&limit={limit}"
+                   + (string.IsNullOrEmpty(after) ? "" : $"&after={Uri.EscapeDataString(after)}");
+        using var response = await SendAsync(ServiceClientName, HttpMethod.Get, path, null, ct);
+        if (!response.IsSuccessStatusCode) throw Unavailable("reservation list", response.StatusCode);
+        var page = await Read<ListBody>(response, ct);
+        return new ActiveReservationPage(page.Items?.Select(i => new ActiveReservation(i.OrderId, i.VendorId, i.CreatedAt)).ToList() ?? [], page.NextCursor);
+    }
+
     private async Task<HttpResponseMessage> SendAsync(string client, HttpMethod method, string path, HttpContent? content, CancellationToken ct)
     {
         try
@@ -122,6 +146,10 @@ public sealed class CatalogGateway(IHttpClientFactory clients, ILogger<CatalogGa
             throw new DownstreamUnavailableException("The catalog returned a body that could not be read.", e);
         }
     }
+
+    private sealed record ListBody(List<ListItem>? Items, string? NextCursor);
+
+    private sealed record ListItem(string OrderId, string VendorId, DateTimeOffset CreatedAt);
 
     private sealed record RejectedBody(string? Code, List<RejectedLine>? Lines);
 

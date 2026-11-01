@@ -101,6 +101,8 @@ var catalogTimeout = TimeSpan.FromSeconds(builder.Configuration.GetValue("Catalo
 builder.Services.AddHttpClient(CatalogGateway.PublicClientName, c => { c.BaseAddress = catalogUrl; c.Timeout = catalogTimeout; });
 builder.Services.AddHttpClient(CatalogGateway.ServiceClientName, c => { c.BaseAddress = catalogUrl; c.Timeout = catalogTimeout; }).AddServiceAuthHandler();
 builder.Services.AddSingleton<ICatalogGateway, CatalogGateway>();
+builder.Services.Configure<OrphanReservationOptions>(builder.Configuration.GetSection("OrphanReservations"));
+builder.Services.AddHostedService<OrphanReservationSweeper>(); // register item 62
 builder.Services.AddSingleton<CheckoutService>();
 builder.Services.AddSingleton<OrderActionService>(); // WI-ORD-007
 
