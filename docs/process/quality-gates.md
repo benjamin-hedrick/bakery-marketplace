@@ -77,6 +77,7 @@ Not run in the pipeline: the emulator-gated Cosmos tests, the real-stack journey
 | .NET format and style, build, shared-library, catalog and ordering tests | Yes (`dotnet` job) | Commands above | No (soft gate: the lead reads the check) |
 | BFF format, lint, typecheck, tests | Yes (`bff` job) | Yes | No |
 | Web format, lint, typecheck, mock browser suite | Yes (`web` job) | Yes | No |
+| .NET tests with a hang timeout | Yes (`--blame-hang-timeout 5m` on the three `dotnet test` steps; added 2026-11-02, not yet run on Azure) | Yes (`linux-check.mjs`, 2 CPUs, 3 minutes) | No |
 | Queue display format, lint, typecheck, unit tests, mock browser suite | Yes (`queue` job; written 2026-11-02, **not yet run on Azure**) | Yes (format, lint, typecheck, unit tests in `node-gates.mjs`) | No |
 | Real-stack journeys | Yes (`skeleton` job) | `skeleton-smoke.mjs` | No |
 | Documentation status check | Yes, seen green on Azure 2026-10-31 (`docs` job) | `status.mjs --check`; also in `scripts/ci/node-gates.mjs` | No (soft gate) |

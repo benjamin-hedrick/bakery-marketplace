@@ -178,7 +178,7 @@ Accepted: 18 · Superseded: 1
 
 ## Open-items register
 
-116 numbered items in `docs/governance/open-items-register.md` (highest number 116).
+117 numbered items in `docs/governance/open-items-register.md` (highest number 117).
 
 | Type | Count |
 |---|---|
@@ -243,11 +243,12 @@ Accepted: 18 · Superseded: 1
 | Decision and requirement | 1 |
 | Product gap | 1 |
 | Design gap, auth decision (human approval required) | 1 |
+| Test defect, found by a pipeline run | 1 |
 
 | Item status | Count |
 |---|---|
 | Deferred | 18 |
-| Resolved | 35 |
+| Resolved | 36 |
 | Accepted | 5 |
 | Tracking | 12 |
 | Open | 45 |
