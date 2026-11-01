@@ -80,4 +80,9 @@ run "the_cosmos_containers_match_what_the_services_expect" {
     condition     = azurerm_cosmosdb_sql_container.catalog.partition_key_paths[0] == "/vendorId" && azurerm_cosmosdb_sql_container.orders.partition_key_paths[0] == "/customerId"
     error_message = "Partition keys must match the service code (catalog /vendorId, orders /customerId)."
   }
+
+  assert {
+    condition     = azurerm_cosmosdb_sql_container.catalog.default_ttl == -1 && azurerm_cosmosdb_sql_container.orders.default_ttl == null
+    error_message = "The catalog container needs default_ttl = -1 so released stock reservations expire (register item 66); orders must never expire."
+  }
 }
