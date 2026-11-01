@@ -39,7 +39,7 @@ internal static class SeedProgram
         var database = config["Cosmos:Database"] ?? "bakery";
         var cosmos = new CosmosClient(cosmosConnection, new CosmosClientOptions { ConnectionMode = ConnectionMode.Gateway, LimitToEndpoint = true });
         var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
-        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId"));
+        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId") { DefaultTimeToLive = -1 });
 
         var redis = await ConnectionMultiplexer.ConnectAsync(config["Redis:ConnectionString"] ?? "localhost:6379");
         var seeder = new Seeder(

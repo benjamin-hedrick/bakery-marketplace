@@ -56,7 +56,8 @@ if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringCompari
     if (builder.Configuration.GetValue<bool>("Cosmos:EnsureCreated"))
     {
         var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
-        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId"));
+        // DefaultTimeToLive -1: nothing expires unless it carries its own ttl, which only released stock reservations do (register item 66).
+        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId") { DefaultTimeToLive = -1 });
     }
 
     builder.Services.AddSingleton<IRepository<ListingDocument>>(new CosmosRepository<ListingDocument>(cosmos, database, "catalog"));
