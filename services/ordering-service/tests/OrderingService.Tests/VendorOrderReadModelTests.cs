@@ -343,8 +343,49 @@ public sealed class VendorOrderApiTests : IAsyncLifetime
         Assert.Equal(JsonValueKind.Object, item.GetProperty("pickupWindow").ValueKind);
         var line = Assert.Single(item.GetProperty("lines").EnumerateArray());
         Assert.Equal("listing-sourdough-001", line.GetProperty("listingId").GetString());
-        Assert.Equal(["mod-seeds"], line.GetProperty("modifierIds").EnumerateArray().Select(m => m.GetString()!));
         Assert.Equal(2, line.GetProperty("quantity").GetInt32());
+        // The ids from the event, with the names the ordering service holds (read from the catalog once, through the real gateway).
+        Assert.Equal("Country Sourdough", line.GetProperty("listingName").GetString());
+        var modifier = Assert.Single(line.GetProperty("modifiers").EnumerateArray());
+        Assert.Equal(("mod-seeds", "Seed crust"), (modifier.GetProperty("id").GetString(), modifier.GetProperty("name").GetString()));
+    }
+
+    private int ListingReadsSoFar() => _catalog.Requests.Count(r => r.Method == "GET" && r.Path.StartsWith("/catalog/listings/"));
+
+    [Fact]
+    public async Task ThreeOrdersOfTheSameListingCostOneNameReadAndLaterListsCostNone()
+    {
+        await PlaceOrderAsync();
+        await PlaceOrderAsync();
+        await PlaceOrderAsync();
+        var afterCheckouts = ListingReadsSoFar(); // checkout reads the listing for its own price check
+
+        var first = await ListAsync();
+        var afterFirstList = ListingReadsSoFar();
+        await ListAsync();
+        await _vendor.GetAsync($"/ordering/vendor/orders/{first.GetProperty("items")[0].GetProperty("id").GetString()}");
+        var afterMore = ListingReadsSoFar();
+
+        Assert.Equal(3, first.GetProperty("items").GetArrayLength());
+        Assert.Equal(afterCheckouts + 1, afterFirstList); // one read for the one listing, not one per order
+        Assert.Equal(afterFirstList, afterMore);
+        Assert.All(first.GetProperty("items").EnumerateArray(), i => Assert.Equal("Country Sourdough", i.GetProperty("lines")[0].GetProperty("listingName").GetString()));
+    }
+
+    [Fact]
+    public async Task TheListStillWorksWithIdsWhenTheCatalogCannotBeAskedForNames()
+    {
+        await PlaceOrderAsync();
+        _catalog.ListingStatus = 500; // the catalog is failing from now on
+
+        var response = await _vendor.GetAsync("/ordering/vendor/orders");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var line = (await JsonOf(response)).GetProperty("items")[0].GetProperty("lines")[0];
+        Assert.Equal("listing-sourdough-001", line.GetProperty("listingId").GetString());
+        Assert.Equal(JsonValueKind.Null, line.GetProperty("listingName").ValueKind);
+        Assert.Null(line.GetProperty("modifiers")[0].GetProperty("name").GetString());
+        Assert.Equal("mod-seeds", line.GetProperty("modifiers")[0].GetProperty("id").GetString());
     }
 
     [Fact]

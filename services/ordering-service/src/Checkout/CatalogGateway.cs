@@ -14,7 +14,7 @@ public sealed record CatalogListing(
     IReadOnlyList<CatalogModifier> Modifiers,
     CatalogStock? Stock);
 
-public sealed record CatalogModifier(string Id, int PriceDeltaCents);
+public sealed record CatalogModifier(string Id, int PriceDeltaCents, string? Name = null);
 
 public sealed record CatalogStock(string Status, int? MaxPerOrder);
 
