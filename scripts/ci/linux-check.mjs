@@ -22,14 +22,21 @@ const network = 'bakery-linux-check';
 const redisName = 'bakery-linux-check-redis';
 const minRedisCommands = 50; // same threshold as the pipeline's redis-touch assert
 
-const filter = String.raw`grep -E "error|Build succeeded|Passed!|Failed!|^  Failed |Skipped!|WHITESPACE|IDE[0-9]+|CHARSET|FINALNEWLINE"`;
+// The Azure agent for a private project has 2 cores, and xUnit runs tests on one worker thread per core, so a test that blocks a worker (a
+// constructor calling .GetAwaiter().GetResult() on a call that yields) can deadlock there and nowhere with more cores: on 2026-11-01 the catalog
+// tests ran for 38 minutes on the agent and for 4 seconds here. The container is therefore limited to the agent's 2 CPUs, and a test run that
+// shows no progress for 3 minutes is stopped and reported as a hang (with a dump) instead of running to the job timeout.
+const cpus = '2';
+const hang = '--blame-hang-timeout 3m';
+
+const filter = String.raw`grep -E "error|Build succeeded|Passed!|Failed!|^  Failed |Skipped!|WHITESPACE|IDE[0-9]+|CHARSET|FINALNEWLINE|inactivity time|Test Run Aborted"`;
 const steps = {
   build: 'dotnet build BakeryMarketplace.slnx --configuration Release',
   format:
     'dotnet format whitespace BakeryMarketplace.slnx --verify-no-changes && dotnet format style BakeryMarketplace.slnx --verify-no-changes',
-  tools: 'dotnet test tools/BakeryMarketplace.slnx --configuration Release',
-  catalog: 'dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release',
-  ordering: 'dotnet test services/ordering-service/tests/OrderingService.Tests --configuration Release',
+  tools: `dotnet test tools/BakeryMarketplace.slnx --configuration Release ${hang}`,
+  catalog: `dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release ${hang}`,
+  ordering: `dotnet test services/ordering-service/tests/OrderingService.Tests --configuration Release ${hang}`,
 };
 
 const wanted = process.argv.slice(2);
@@ -84,6 +91,7 @@ try {
       [
         'run',
         '--rm',
+        `--cpus=${cpus}`,
         '--network',
         network,
         '-v',

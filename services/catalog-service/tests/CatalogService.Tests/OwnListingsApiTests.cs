@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CatalogService.Tests;
 
 /// <summary>Register item 63: a vendor reads their own listings, drafts and exact stock included, and nobody else's.</summary>
-public sealed class OwnListingsApiTests : IDisposable
+public sealed class OwnListingsApiTests : IDisposable, IAsyncLifetime
 {
     private readonly CatalogFactory _factory = new();
     private readonly string _vendor = $"vendor-{Guid.NewGuid():N}";
@@ -18,11 +18,18 @@ public sealed class OwnListingsApiTests : IDisposable
 
     public OwnListingsApiTests()
     {
-        _factory.VerifyVendorAsync(_vendor).GetAwaiter().GetResult();
-        _factory.VerifyVendorAsync(_other).GetAwaiter().GetResult();
         _mine = _factory.ClientFor(_vendor, "Vendor");
         _theirs = _factory.ClientFor(_other, "Vendor");
     }
+
+    // Not in the constructor: blocking a test worker thread on a call that yields can deadlock the run on a machine with few cores.
+    public async Task InitializeAsync()
+    {
+        await _factory.VerifyVendorAsync(_vendor);
+        await _factory.VerifyVendorAsync(_other);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     public void Dispose() => _factory.Dispose();
 
