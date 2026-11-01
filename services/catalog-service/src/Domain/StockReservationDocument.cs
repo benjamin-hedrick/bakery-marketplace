@@ -36,5 +36,15 @@ public sealed class StockReservationDocument : IETagged
     [JsonProperty("createdAt")] public DateTimeOffset CreatedAt { get; set; }
     [JsonProperty("releasedAt", NullValueHandling = NullValueHandling.Ignore)] public DateTimeOffset? ReleasedAt { get; set; }
 
+    /// <summary>
+    /// Seconds after the last write that Cosmos deletes this record (register item 66). Set when the reservation is released and absent while it
+    /// is active, so an active reservation is never expired. It only takes effect when the container has a default time to live enabled
+    /// (<c>-1</c>: items expire only if they carry their own <c>ttl</c>; listings and vendor status documents never do).
+    /// </summary>
+    [JsonProperty("ttl", NullValueHandling = NullValueHandling.Ignore)] public int? TimeToLiveSeconds { get; set; }
+
+    /// <summary>How long a released reservation is kept before it expires: long enough to reconcile a disputed order, short enough not to accumulate.</summary>
+    public static readonly TimeSpan ReleasedRetention = TimeSpan.FromDays(30);
+
     [JsonProperty("_etag", NullValueHandling = NullValueHandling.Ignore)] public string? ETag { get; set; }
 }

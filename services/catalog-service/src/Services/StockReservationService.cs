@@ -171,6 +171,7 @@ public sealed class StockReservationService
             }
             reservation.State = ReservationStates.Released;
             reservation.ReleasedAt = now;
+            reservation.TimeToLiveSeconds = (int)StockReservationDocument.ReleasedRetention.TotalSeconds;
             batch.ReplaceIfUnchanged(reservation);
 
             if (await batch.ExecuteAsync(ct)) return new ReservationResult(ReservationOutcome.Released, reservation);
