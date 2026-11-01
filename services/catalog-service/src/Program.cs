@@ -81,7 +81,7 @@ var eventsBackend = builder.Configuration["Events:Backend"];
 if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
 {
     var redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
-    var transport = new RedisStreamsEventTransport(redis);
+    var transport = new RedisStreamsEventTransport(redis, maxStreamLength: builder.Configuration.GetValue<int?>("Events:MaxStreamLength"));
     builder.Services.AddSingleton<IEventPublisher>(transport);
     builder.Services.AddSingleton<IEventSubscriber>(transport);
 }

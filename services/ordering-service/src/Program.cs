@@ -69,7 +69,7 @@ var eventsBackend = builder.Configuration["Events:Backend"];
 if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
 {
     var redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
-    builder.Services.AddSingleton<IEventPublisher>(new RedisStreamsEventTransport(redis));
+    builder.Services.AddSingleton<IEventPublisher>(new RedisStreamsEventTransport(redis, maxStreamLength: builder.Configuration.GetValue<int?>("Events:MaxStreamLength")));
 }
 else if (string.Equals(eventsBackend, "inmemory", StringComparison.OrdinalIgnoreCase))
 {
