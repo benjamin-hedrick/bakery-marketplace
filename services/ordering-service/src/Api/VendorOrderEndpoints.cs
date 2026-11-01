@@ -1,0 +1,68 @@
+using BakeryMarketplace.EventSchemas;
+using OrderingService.Persistence;
+
+namespace OrderingService.Api;
+
+/// <summary>One order in the vendor's list. The customer is not named: the vendor needs the order, not who placed it.</summary>
+public sealed record VendorOrderDto(
+    string Id,
+    string Status,
+    long? TotalCents,
+    string? Currency,
+    int? LineCount,
+    int? ItemCount,
+    string? FulfillmentType,
+    PickupWindowDto? PickupWindow,
+    bool Automatic,
+    string? CancelledBy,
+    string? CancelReason,
+    DateTimeOffset? PlacedAt,
+    DateTimeOffset UpdatedAt)
+{
+    public static VendorOrderDto From(VendorOrderDocument d) => new(
+        d.Id, d.Status.ToString(), d.TotalCents, d.Currency, d.LineCount, d.ItemCount, d.FulfillmentType?.ToString(),
+        d.PickupStart is { } start && d.PickupEnd is { } end ? new PickupWindowDto(start, end) : null,
+        d.Automatic, d.CancelledBy?.ToString(), d.CancelReason?.ToString(), d.PlacedAt, d.UpdatedAt);
+}
+
+public sealed record VendorOrderPage(IReadOnlyList<VendorOrderDto> Items, string? NextCursor);
+
+/// <summary>
+/// The vendor's "my orders" list (register item 76), read from the vendor order read model: one partition, newest change first. The vendor id
+/// always comes from the token. The read model is fed by events, so an order appears a moment after it is placed or changes.
+/// </summary>
+public static class VendorOrderEndpoints
+{
+    public const int DefaultPageSize = 20;
+    public const int MaxPageSize = 100;
+
+    public static IEndpointRouteBuilder MapVendorOrderEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet("/ordering/vendor/orders", async (string? status, int? limit, string? after, HttpContext http, VendorOrderReader reader, CancellationToken ct) =>
+        {
+            var vendorId = CheckoutEndpoints.SubjectOf(http.User);
+            if (vendorId is null) return Results.Unauthorized();
+
+            var filter = VendorOrderReader.ParseStatus(status);
+            if (filter is null)
+            {
+                return Results.Json(
+                    new ApiError("validation_failed", "The request is invalid.",
+                        new Dictionary<string, string[]> { ["status"] = [$"active, or one of: {string.Join(", ", Enum.GetNames<OrderStatus>().Where(n => n != nameof(OrderStatus.Pending)))}."] }),
+                    statusCode: StatusCodes.Status422UnprocessableEntity);
+            }
+            if (!VendorOrderReader.IsValidCursor(after))
+            {
+                return Results.Json(
+                    new ApiError("validation_failed", "The request is invalid.", new Dictionary<string, string[]> { ["after"] = ["Not a cursor from a previous page."] }),
+                    statusCode: StatusCodes.Status422UnprocessableEntity);
+            }
+
+            var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
+            var (items, next) = await reader.ListAsync(vendorId, filter, size, after, ct);
+            return Results.Ok(new VendorOrderPage(items.Select(VendorOrderDto.From).ToList(), next));
+        }).RequireAuthorization("VendorRole");
+
+        return app;
+    }
+}

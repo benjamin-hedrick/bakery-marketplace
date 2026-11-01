@@ -94,12 +94,12 @@ public sealed class ListingService
 
     /// <summary>
     /// The caller's own listing, or null. Looks only in the caller's partition. The partition also holds the vendor's stock reservation
-    /// records, so a document that is not a listing (it has no valid status) is treated as missing.
+    /// records, so a document that is not a listing (it has a docType, or no valid status) is treated as missing.
     /// </summary>
     public async Task<ListingDocument?> GetOwnAsync(string id, string vendorId, CancellationToken ct = default)
     {
         var doc = await _listings.GetAsync(id, vendorId, ct);
-        return doc is not null && ListingStatuses.IsValid(doc.Status) ? doc : null;
+        return doc is not null && doc.DocType is null && ListingStatuses.IsValid(doc.Status) ? doc : null;
     }
 
     /// <summary>

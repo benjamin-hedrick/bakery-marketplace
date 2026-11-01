@@ -78,7 +78,7 @@ public class OrderCancellationTests
         Assert.Equal(before + 1, cancelled.SequenceNumber);
         Assert.Equal(At(20), cancelled.OccurredAt);
         Assert.Equal(
-            new OrderCancelledPayload("order-1", OrderCancelActor.Vendor, OrderCancelReason.VendorCancelled),
+            new OrderCancelledPayload("order-1", OrderCancelActor.Vendor, OrderCancelReason.VendorCancelled, order.VendorId, order.CustomerId),
             cancelled.Payload);
     }
 }

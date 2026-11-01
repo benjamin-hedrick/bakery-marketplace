@@ -61,23 +61,31 @@ public enum OrderCancelReason
 /// (<c>Automatic</c>, WI-ORD-008). <c>FulfillmentType</c> and <c>Details</c> let the fulfillment strategy (for pickup,
 /// <c>PickupFulfillment</c>) schedule what was requested without calling back into Ordering (ADR-0001). Optional, so a
 /// message without them still deserializes (and one without <c>Automatic</c> was a vendor's acceptance).
+/// <c>VendorId</c> and <c>CustomerId</c> were added 2026-11-01 (additive, optional) on this and the other order lifecycle events, so a
+/// consumer that keys by vendor (the vendor order read model, <c>N-03</c>) does not have to call back into Ordering to find them.
 /// </summary>
 public record OrderConfirmedPayload(
     string OrderId,
     FulfillmentType? FulfillmentType = null,
     FulfillmentDetails? Details = null,
-    bool Automatic = false
+    bool Automatic = false,
+    string? VendorId = null,
+    string? CustomerId = null
 );
 
 /// <summary>The vendor started preparing the order.</summary>
 public record OrderPreparationStartedPayload(
-    string OrderId
+    string OrderId,
+    string? VendorId = null,
+    string? CustomerId = null
 );
 
 public record OrderCancelledPayload(
     string OrderId,
     OrderCancelActor CancelledBy,
-    OrderCancelReason Reason
+    OrderCancelReason Reason,
+    string? VendorId = null,
+    string? CustomerId = null
 );
 
 public record OrderReadyForPickupPayload(
@@ -86,7 +94,9 @@ public record OrderReadyForPickupPayload(
 
 public record OrderCompletedPayload(
     string OrderId,
-    DateTimeOffset CompletedAt
+    DateTimeOffset CompletedAt,
+    string? VendorId = null,
+    string? CustomerId = null
 );
 
 public record VendorVerifiedPayload(

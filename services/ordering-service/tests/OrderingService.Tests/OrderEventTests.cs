@@ -141,8 +141,8 @@ public class OrderEventTests
             events.Select(e => e.EventType));
         Assert.Equal(Enumerable.Range(1, 5).Select(i => (long)i), events.Select(e => e.SequenceNumber));
         Assert.Equal(5, order.SequenceNumber);
-        Assert.Equal(new OrderPreparationStartedPayload("order-1"), events[2].Payload);
-        Assert.Equal(new OrderCompletedPayload("order-1", At(7)), events[4].Payload);
+        Assert.Equal(new OrderPreparationStartedPayload("order-1", order.VendorId, order.CustomerId), events[2].Payload);
+        Assert.Equal(new OrderCompletedPayload("order-1", At(7), order.VendorId, order.CustomerId), events[4].Payload);
     }
 
     [Fact]

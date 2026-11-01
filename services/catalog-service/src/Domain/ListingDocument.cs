@@ -35,6 +35,13 @@ public sealed class ListingDocument : IETagged
     [JsonProperty("sponsored")] public bool Sponsored { get; set; }
 
     [JsonProperty("status")] public string Status { get; set; } = ListingStatuses.Draft;
+
+    /// <summary>
+    /// Never set on a listing (and not written). It exists to be read: the <c>catalog</c> container also holds stock reservation records, which
+    /// carry a <c>docType</c>, and the store hands any document back as whatever type it was asked for. A record with a <c>docType</c> is not a listing,
+    /// whatever its other properties look like (a missing <c>status</c> reads as the default, <c>Draft</c>).
+    /// </summary>
+    [JsonProperty("docType", NullValueHandling = NullValueHandling.Ignore)] public string? DocType { get; set; }
     [JsonProperty("createdAt")] public DateTimeOffset CreatedAt { get; set; }
     [JsonProperty("updatedAt")] public DateTimeOffset UpdatedAt { get; set; }
 

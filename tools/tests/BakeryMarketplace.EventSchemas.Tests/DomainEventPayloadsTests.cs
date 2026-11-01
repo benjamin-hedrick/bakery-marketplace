@@ -91,6 +91,20 @@ public class DomainEventPayloadsTests
     }
 
     [Fact]
+    public void OrderLifecyclePayloads_CarryVendorAndCustomerIdsAndStillReadWithoutThem()
+    {
+        var cancelled = new OrderCancelledPayload("order-7", OrderCancelActor.Vendor, OrderCancelReason.VendorDeclined, "vendor-1", "customer-1");
+        var older = JsonSerializer.Deserialize<OrderPreparationStartedPayload>("{\"OrderId\":\"order-7\"}");
+
+        Assert.Equal(cancelled, JsonSerializer.Deserialize<OrderCancelledPayload>(JsonSerializer.Serialize(cancelled)));
+        Assert.Equal(("vendor-1", "customer-1"), (
+            JsonSerializer.Deserialize<OrderCompletedPayload>(JsonSerializer.Serialize(new OrderCompletedPayload("order-7", DateTimeOffset.UnixEpoch, "vendor-1", "customer-1")))?.VendorId,
+            JsonSerializer.Deserialize<OrderConfirmedPayload>(JsonSerializer.Serialize(new OrderConfirmedPayload("order-7", CustomerId: "customer-1")))?.CustomerId));
+        Assert.Null(older?.VendorId); // a message from before the fields existed
+        Assert.Null(older?.CustomerId);
+    }
+
+    [Fact]
     public void OrderConfirmedAndPreparationStartedPayloads_RoundTrip()
     {
         var confirmed = JsonSerializer.Deserialize<OrderConfirmedPayload>(JsonSerializer.Serialize(new OrderConfirmedPayload("order-8")));

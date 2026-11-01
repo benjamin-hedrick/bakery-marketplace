@@ -15,7 +15,7 @@ public sealed record StoredOrder(Order Order, OrderDocument Document);
 /// order and its pending events cannot disagree. Callers publish them afterwards and then call <see cref="TryMarkPublishedAsync"/>.
 /// </para>
 /// </summary>
-public sealed class OrderStore(IRepository<OrderDocument> documents)
+public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository<VendorOrderDocument>? vendorOrders = null)
 {
     /// <summary>The caller's own order, or null. An order id alone does not say whose it is: the customer id is the partition.</summary>
     public async Task<StoredOrder?> GetAsync(string orderId, string customerId, CancellationToken ct = default)
@@ -25,11 +25,23 @@ public sealed class OrderStore(IRepository<OrderDocument> documents)
     }
 
     /// <summary>
-    /// A vendor's own order by id, or null. The vendor does not know the customer, so this cannot use the partition key and fans out across
-    /// partitions (open item 76); the vendor id in the filter is what makes it the vendor's own order.
+    /// A vendor's own order by id, or null. The vendor does not know the customer, so the order's partition is not known. When the vendor read
+    /// model has the order, it names the customer and two point reads find the order. When it does not (the order is too new for its events to
+    /// have been applied, or the read model is not configured) this falls back to a query across every customer's partition (open item 76).
+    /// Either way the vendor id is what makes it the vendor's own order.
     /// </summary>
     public async Task<StoredOrder?> GetForVendorAsync(string orderId, string vendorId, CancellationToken ct = default)
     {
+        if (vendorOrders is not null)
+        {
+            var summary = await vendorOrders.GetAsync(orderId, vendorId, ct);
+            if (summary?.CustomerId is { } customerId)
+            {
+                var direct = await documents.GetAsync(orderId, customerId, ct);
+                if (direct is not null && direct.VendorId == vendorId) return new StoredOrder(direct.ToOrder(), direct);
+            }
+        }
+
         await foreach (var document in documents.QueryAsync("", q => q.Where(d => d.Id == orderId && d.VendorId == vendorId).Take(1), ct))
         {
             return new StoredOrder(document.ToOrder(), document);

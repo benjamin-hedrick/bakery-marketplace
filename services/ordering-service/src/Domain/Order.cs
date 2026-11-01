@@ -110,7 +110,7 @@ public sealed class Order
         Require(OrderStatus.Placed, "confirm");
 
         Status = OrderStatus.Confirmed;
-        Raise(OrderEventTypes.Confirmed, new OrderConfirmedPayload(Id, FulfillmentType, Fulfillment, automatic), now);
+        Raise(OrderEventTypes.Confirmed, new OrderConfirmedPayload(Id, FulfillmentType, Fulfillment, automatic, VendorId, CustomerId), now);
     }
 
     public void StartPreparation(DateTimeOffset now)
@@ -118,7 +118,7 @@ public sealed class Order
         Require(OrderStatus.Confirmed, "start preparing");
 
         Status = OrderStatus.InPreparation;
-        Raise(OrderEventTypes.PreparationStarted, new OrderPreparationStartedPayload(Id), now);
+        Raise(OrderEventTypes.PreparationStarted, new OrderPreparationStartedPayload(Id, VendorId, CustomerId), now);
     }
 
     public void MarkReady(DateTimeOffset now)
@@ -127,7 +127,7 @@ public sealed class Order
 
         Status = OrderStatus.ReadyForFulfillment;
         Raise(OrderEventTypes.ReadyForFulfillment, new OrderReadyForFulfillmentPayload(
-            Id, VendorId, FulfillmentType, Fulfillment ?? new FulfillmentDetails(FulfillmentType)), now);
+            Id, VendorId, FulfillmentType, Fulfillment ?? new FulfillmentDetails(FulfillmentType), CustomerId), now);
     }
 
     /// <summary>Called when the strategy reports the fulfillment done (<c>OrderFulfillmentCompleted</c>); raises <c>OrderCompleted</c>.</summary>
@@ -136,7 +136,7 @@ public sealed class Order
         Require(OrderStatus.ReadyForFulfillment, "complete");
 
         Status = OrderStatus.Completed;
-        Raise(OrderEventTypes.Completed, new OrderCompletedPayload(Id, now), now);
+        Raise(OrderEventTypes.Completed, new OrderCompletedPayload(Id, now, VendorId, CustomerId), now);
     }
 
     /// <summary>
@@ -156,7 +156,7 @@ public sealed class Order
         Status = OrderStatus.Cancelled;
         CancelledBy = actor;
         CancelReason = reason;
-        Raise(OrderEventTypes.Cancelled, new OrderCancelledPayload(Id, actor, reason), now);
+        Raise(OrderEventTypes.Cancelled, new OrderCancelledPayload(Id, actor, reason, VendorId, CustomerId), now);
     }
 
     // ---- persistence (WI-ORD-006) --------------------------------------------------------------------------------------
