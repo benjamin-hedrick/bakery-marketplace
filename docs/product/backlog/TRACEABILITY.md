@@ -2,7 +2,7 @@
 
 > **Status:** Generated · do not edit; `node scripts/docs/traceability.mjs` regenerates it and `--check` verifies it. Files are matched by naming the work item id as a whole word, so a missing entry means the link is not written down, not that nothing tests it, and a work item that is a document has no test by nature. Tests are the files under `tests/` and `test/` folders; evidence is `docs/evidence/`.
 
-Of 51 work items marked Done: 26 are named by a test file, 16 by an evidence record, 16 by neither.
+Of 52 work items marked Done: 27 are named by a test file, 16 by an evidence record, 16 by neither.
 
 | Item | Title | Status | Test files naming it | Evidence records naming it |
 |---|---|---|---|---|
@@ -62,6 +62,7 @@ Of 51 work items marked Done: 26 are named by a test file, 16 by an evidence rec
 | [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | In review | *none* | *none* |
 | [QA-001](WI-QA-001.md) | Test strategy and guides | Done | `accessibility.spec.ts` | `status-check-experiment-2026-10-30.md` |
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | In progress | *none* | `latency-2026-10-30.md`, `quality-report-2026-10-30.md` |
+| [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | Done | `VendorOrderReadModelTests.cs` | *none* |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | Built | *none* | `baseline-2026-10-30.md` |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | Done | *none* | *none* |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | Done | `DomainEventPayloadsTests.cs` | *none* |

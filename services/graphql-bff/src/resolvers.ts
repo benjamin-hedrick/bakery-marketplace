@@ -1,7 +1,7 @@
 import type { CatalogClient, CatalogListing } from './catalog-client.ts';
 import { DownstreamError, forbidden, unauthenticated } from './errors.ts';
 import { fromGlobalId, serviceIdFor, toGlobalId } from './global-id.ts';
-import type { OrderingClient, OrderingOrder } from './ordering-client.ts';
+import type { OrderingClient, OrderingOrder, OrderingVendorOrder } from './ordering-client.ts';
 import type { TraceContext } from './trace.ts';
 
 export interface Context {
@@ -74,6 +74,50 @@ const toOrder = (o: OrderingOrder) => ({
   createdAt: o.createdAt,
 });
 
+const toVendorOrder = (o: OrderingVendorOrder) => ({
+  __typename: 'VendorOrder',
+  id: toGlobalId('VendorOrder', o.id),
+  reference: o.reference,
+  status: () => enumValue('order status', ORDER_STATUS, o.status),
+  total: o.totalCents === null ? null : money(o.totalCents, o.currency ?? 'USD'),
+  lineCount: o.lineCount,
+  itemCount: o.itemCount,
+  lines: o.lines.map((l) => ({
+    listingId: toGlobalId('Listing', l.listingId),
+    listingName: l.listingName,
+    modifiers: l.modifiers.map((m) => ({ id: m.id, name: m.name })),
+    quantity: l.quantity,
+  })),
+  pickupWindow: o.pickupWindow ? { start: o.pickupWindow.start, end: o.pickupWindow.end } : null,
+  pickupInstructions: o.pickupInstructions,
+  automatic: o.automatic,
+  placedAt: o.placedAt,
+  updatedAt: o.updatedAt,
+});
+
+/** The ordering status names a vendor may filter by, in the schema's words. */
+const VENDOR_ORDER_FILTER: Record<string, string> = {
+  ACTIVE: 'active',
+  PLACED: 'Placed',
+  CONFIRMED: 'Confirmed',
+  IN_PREPARATION: 'InPreparation',
+  READY_FOR_FULFILLMENT: 'ReadyForFulfillment',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+};
+
+/** A vendor's orders. A 401 from ordering means the token was not accepted; a 403 means its role is not a vendor's. */
+async function vendorCall<T>(ctx: Context, call: (authorization: string) => Promise<T>): Promise<T> {
+  if (!ctx.authorization) throw unauthenticated();
+  try {
+    return await call(ctx.authorization);
+  } catch (e) {
+    if (e instanceof DownstreamError && e.status === 401) throw unauthenticated();
+    if (e instanceof DownstreamError && e.status === 403) throw forbidden();
+    throw e;
+  }
+}
+
 /** The caller's own order. A 401 from ordering means the token was not accepted; a 403 means its role may not read orders. */
 async function readOrder(serviceId: string, ctx: Context) {
   if (!ctx.authorization) throw unauthenticated();
@@ -85,6 +129,11 @@ async function readOrder(serviceId: string, ctx: Context) {
     if (e instanceof DownstreamError && e.status === 403) throw forbidden();
     throw e;
   }
+}
+
+async function readVendorOrder(serviceId: string, ctx: Context) {
+  const o = await vendorCall(ctx, (authorization) => ctx.ordering.getVendorOrder(serviceId, authorization, ctx.trace));
+  return o ? toVendorOrder(o) : null;
 }
 
 // ---- placeOrder -------------------------------------------------------------------------------------------------------------
@@ -203,6 +252,23 @@ export const rootValue = {
     if (serviceId === null) return null;
     return readOrder(serviceId, ctx);
   },
+  async vendorOrders(args: { status?: string | null; first?: number; after?: string | null }, ctx: Context) {
+    const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
+    const status = args.status ? VENDOR_ORDER_FILTER[args.status] : undefined;
+    const page = await vendorCall(ctx, (authorization) =>
+      ctx.ordering.listVendorOrders({ status, limit: first, after: args.after ?? undefined }, authorization, ctx.trace),
+    );
+    const edges = page.items.map((o) => ({ cursor: o.id, node: toVendorOrder(o) }));
+    return {
+      edges,
+      pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null },
+    };
+  },
+  async vendorOrder(args: { id: string }, ctx: Context) {
+    const serviceId = serviceIdFor('VendorOrder', args.id);
+    if (serviceId === null) return null;
+    return readVendorOrder(serviceId, ctx);
+  },
   // Listing and Order implement Node. An id of another type, or one that does not decode, is null.
   async node(args: { id: string }, ctx: Context) {
     const decoded = fromGlobalId(args.id);
@@ -211,6 +277,7 @@ export const rootValue = {
       return l ? toListing(l) : null;
     }
     if (decoded?.type === 'Order') return readOrder(decoded.serviceId, ctx);
+    if (decoded?.type === 'VendorOrder') return readVendorOrder(decoded.serviceId, ctx);
     return null;
   },
 };

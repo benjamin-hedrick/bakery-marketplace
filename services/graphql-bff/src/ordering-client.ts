@@ -28,6 +28,35 @@ export interface OrderingOrder {
   updatedAt: string;
 }
 
+/** REST shape of the vendor order read model of ordering-service (VendorOrderDto). */
+export interface OrderingVendorOrder {
+  id: string;
+  reference: string;
+  status: string;
+  totalCents: number | null;
+  currency: string | null;
+  lineCount: number | null;
+  itemCount: number | null;
+  fulfillmentType: string | null;
+  pickupWindow: OrderingWindow | null;
+  automatic: boolean;
+  cancelledBy: string | null;
+  cancelReason: string | null;
+  placedAt: string | null;
+  updatedAt: string;
+  lines: {
+    listingId: string;
+    listingName: string | null;
+    modifiers: { id: string; name: string | null }[];
+    quantity: number;
+  }[];
+  pickupInstructions: string | null;
+}
+export interface OrderingVendorOrderPage {
+  items: OrderingVendorOrder[];
+  nextCursor: string | null;
+}
+
 /** The checkout request body of ordering-service, with service ids (the BFF has already decoded the global ids). */
 export interface CheckoutBody {
   vendorId: string;
@@ -66,6 +95,17 @@ export interface OrderingClient {
    * forwarded unchanged: ordering-service validates it itself (ADR-0006, ADR-0008). A 401 or 403 is a {@link DownstreamError} with that status.
    */
   getOrder(id: string, authorization: string, trace: TraceContext): Promise<OrderingOrder | null>;
+  /**
+   * The calling vendor's orders, newest change first. `status` is `active` or an ordering status name, or absent for all. The vendor's token is
+   * forwarded unchanged; ordering takes the vendor id from it. A 401 or 403 is a {@link DownstreamError} with that status.
+   */
+  listVendorOrders(
+    query: { status?: string | undefined; limit: number; after?: string | undefined },
+    authorization: string,
+    trace: TraceContext,
+  ): Promise<OrderingVendorOrderPage>;
+  /** One of the calling vendor's orders, or null (404: it does not exist, is not theirs, or is not in their view yet). */
+  getVendorOrder(id: string, authorization: string, trace: TraceContext): Promise<OrderingVendorOrder | null>;
 }
 
 export function createOrderingClient(
@@ -130,6 +170,20 @@ export function createOrderingClient(
       if (res.status === 404) return null;
       if (!res.ok) throw new DownstreamError(`ordering get order returned ${res.status}`, res.status);
       return parse<OrderingOrder>(res);
+    },
+    async listVendorOrders(query, authorization, trace) {
+      const params = new URLSearchParams({ limit: String(query.limit) });
+      if (query.status) params.set('status', query.status);
+      if (query.after) params.set('after', query.after);
+      const res = await request(`/ordering/vendor/orders?${params}`, trace, authorization);
+      if (!res.ok) throw new DownstreamError(`ordering vendor orders returned ${res.status}`, res.status);
+      return parse<OrderingVendorOrderPage>(res);
+    },
+    async getVendorOrder(id, authorization, trace) {
+      const res = await request(`/ordering/vendor/orders/${encodeURIComponent(id)}`, trace, authorization);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new DownstreamError(`ordering vendor order returned ${res.status}`, res.status);
+      return parse<OrderingVendorOrder>(res);
     },
   };
 }
