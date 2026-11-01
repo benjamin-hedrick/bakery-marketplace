@@ -37,7 +37,7 @@ variable "app_identity_principal_id" {
 
 variable "deploy_principal_id" {
   type        = string
-  description = "Object id of the pipeline's apply identity. It is granted Key Vault Secrets Officer on this environment's vault, to create the placeholder secrets and to set the real values after apply. NEEDS THE LEAD'S APPROVAL: the role is not yet in the condition of the deploy identity's role-assignment rights (register item 108)."
+  description = "Object id of the pipeline's apply identity. It is granted Key Vault Secrets Officer on this environment's vault, to create the placeholder secrets and to set the real values after apply. Approved by the lead 2026-10-31 as part of the role-assignment condition (register item 108)."
 }
 
 variable "location" {
