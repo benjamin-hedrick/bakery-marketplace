@@ -1,4 +1,8 @@
-> **Status:** Ready
+> **Status:** Done · evidence: the Outcome note under this banner; `apps/web-queue-display`
+
+> **Outcome note (2026-11-02):** built on `feature/vendor-order-detail`. `apps/web-queue-display` is a Next.js Pages Router app (port 3100), client-rendered, with a Relay environment and the same browser-side login as `web-customer`. It shows the vendor's orders that are still in progress in three columns (New, Preparing, Ready), the oldest first, each with its short reference, quantities, listing and option names (ids where a name is not known), the requested pickup window and any instructions. It asks the BFF's `vendorOrders` query every 7 seconds with the vendor's token; an order that appears after the first answer is marked **New** for a minute and announced to screen readers; a failed poll keeps the last good queue with a notice and recovers by itself; a login the service refuses, or one that is not a vendor's, says so. It changes nothing. Tests: 51 unit tests (login library copy, queue grouping and new-order logic) and 11 Playwright tests against a mock BFF and a stubbed issuer (columns, ordering, new-order mark and announcement, status moves, polling with the token, a failing poll, an ended login, a non-vendor login, display-only, axe accessibility, token not stored). **Not run:** against the real BFF, services and mock issuer (the issuer needs `MockOidc__RedirectUris__1=http://localhost:3100/auth/callback` and `MockOidc__AllowedOrigins__1=http://localhost:3100`, a change the lead has not made), nor on Azure.
+>
+> **Changes from the original plan:** polling uses Relay's `fetchQuery` with `network-only` on a timer, not a refetch container (the page needs no other query); the screen is client-rendered with no server-side Relay at all; the endpoint is the BFF's `vendorOrders(status: ACTIVE)` (the `GET /ordering/orders?vendorId=` of the spec was not built, see `WI-QUE-001`); the login and Relay code are a copy of `web-customer`'s (register item 115) because the spec's "shared scaffold" had no shared package to use. Known limits: the token is held in memory, so a reload logs a wall screen out and nobody is there to log it in again (register items 24 and 116).
 
 ```
 WI ID:               QUE-002
@@ -7,7 +11,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-QUEUE-DISPLAY
 Shared with epic(s):  EPIC-WEB-CUSTOMER (shares WI-WEB-001's scaffold/auth pattern)
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               Done
 Size:                 S
 ```
 

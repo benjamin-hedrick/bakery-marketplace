@@ -1,0 +1,9 @@
+{
+  "src": "./src",
+  "schema": "../../services/graphql-bff/schema/schema.graphql",
+  "language": "typescript",
+  "artifactDirectory": "./src/__generated__",
+  "customScalarTypes": {
+    "DateTime": "string"
+  }
+}

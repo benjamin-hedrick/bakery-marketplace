@@ -1,0 +1,198 @@
+/*
+ * The queue display's look. Plain CSS on semantic markup, no framework. Built to be read from across a counter: large type, three columns,
+ * high contrast in both themes (text on surfaces is at least 4.5:1; the "new" badge is dark text on a bright fill, 7:1 or better).
+ * Dark mode follows the system setting, which suits a kitchen screen.
+ */
+:root {
+  color-scheme: light dark;
+  --bg: #faf6f0;
+  --surface: #ffffff;
+  --text: #2b2118;
+  --muted: #5e4f43;
+  --accent: #9a4a14;
+  --border: #d9cab8;
+  --new-bg: #ffd54a;
+  --new-text: #2b2118;
+  --new-ring: #b07a00;
+  --warn-bg: #fdf0d0;
+  --warn-text: #6a4800;
+  --focus: #1b5fd1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14100d;
+    --surface: #221b15;
+    --text: #f6efe6;
+    --muted: #c9b9a8;
+    --accent: #eca765;
+    --border: #3d3228;
+    --new-bg: #ffd54a;
+    --new-text: #1b1208;
+    --new-ring: #ffd54a;
+    --warn-bg: #3f3210;
+    --warn-text: #f2d98d;
+    --focus: #8ab4ff;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+button {
+  font: inherit;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.queue {
+  padding: 1rem 1.25rem 2rem;
+}
+
+.queue-status {
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.queue-status [role='alert'] {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.4rem;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.queue-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 52rem) {
+  .queue-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.queue-columns h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.count {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.queue-columns ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.order {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.order.new {
+  border-color: var(--new-ring);
+  box-shadow: 0 0 0 3px var(--new-ring);
+}
+
+.order-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  align-items: baseline;
+  margin-bottom: 0.35rem;
+}
+
+.order-head strong {
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+}
+
+.badge {
+  background: var(--new-bg);
+  color: var(--new-text);
+  font-weight: 700;
+  padding: 0.05rem 0.6rem;
+  border-radius: 999px;
+}
+
+.lines {
+  margin: 0;
+}
+
+.lines li {
+  margin: 0.15rem 0;
+}
+
+.options {
+  color: var(--muted);
+}
+
+.instructions {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+section[role='alert'] {
+  margin: 1.25rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 0.5rem;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}

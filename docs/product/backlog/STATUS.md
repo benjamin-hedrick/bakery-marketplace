@@ -10,11 +10,11 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 | Status | Count |
 |---|---|
-| Done | 52 |
+| Done | 53 |
 | In progress | 4 |
 | In review | 4 |
 | Built | 1 |
-| Ready | 11 |
+| Ready | 10 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 1 |
@@ -45,7 +45,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PREFERENCES | 0 of 2 | PREF-001, PREF-002 |
 | EPIC-PRODUCT-STRATEGY | 1 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
 | EPIC-QUALITY-EVIDENCE | 1 of 3 | QA-001, QA-002, QA-003 |
-| EPIC-QUEUE-DISPLAY | 1 of 2 | QUE-001, QUE-002 |
+| EPIC-QUEUE-DISPLAY | 2 of 2 | QUE-001, QUE-002 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
 | EPIC-SEARCH | 0 of 1 | SRCH-001 |
 | EPIC-SECRETS | 1 of 2 | SEC-001, SEC-003 |
@@ -136,7 +136,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | EPIC-QUALITY-EVIDENCE | In progress | remaining: rows `G-H04` and `G-H05` (theory tests that need judgment), throughput, and a CI job for repeated runs |
 | [QA-003](WI-QA-003.md) | Planned experiments: AI-assisted testing and the mobile question | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead decides to run the experiments |
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `services/ordering-service` (`Persistence/VendorOrder*.cs`), `services/graphql-bff` |
-| [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Ready |  |
+| [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `apps/web-queue-display` |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
@@ -178,7 +178,7 @@ Accepted: 18 · Superseded: 1
 
 ## Open-items register
 
-114 numbered items in `docs/governance/open-items-register.md` (highest number 114).
+116 numbered items in `docs/governance/open-items-register.md` (highest number 116).
 
 | Type | Count |
 |---|---|
@@ -188,7 +188,7 @@ Accepted: 18 · Superseded: 1
 | Verification gap | 6 |
 | Process | 6 |
 | Documentation drift | 5 |
-| Tech debt | 3 |
+| Tech debt | 4 |
 | Open decision | 3 |
 | Design gap | 3 |
 | Decision | 3 |
@@ -242,6 +242,7 @@ Accepted: 18 · Superseded: 1
 | Latent defect | 1 |
 | Decision and requirement | 1 |
 | Product gap | 1 |
+| Design gap, auth decision (human approval required) | 1 |
 
 | Item status | Count |
 |---|---|
@@ -249,5 +250,5 @@ Accepted: 18 · Superseded: 1
 | Resolved | 35 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 43 |
+| Open | 45 |
 | Decided | 1 |
