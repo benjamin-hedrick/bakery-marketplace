@@ -1,6 +1,6 @@
 # Procedure: prove the pipeline gates
 
-> **Status:** Draft · written 2026-10-31, **not yet run**. Nothing here has been seen on Azure DevOps. The names of Azure DevOps settings are as I understand them from its documentation and may differ in your interface; correct this page when you do it. Decision: ADR-0020. Pipeline: [`azure-pipelines-dev.yml`](../../../azure-pipelines-dev.yml).
+> **Status:** Current · written 2026-10-31, run on Azure DevOps by the human lead 2026-10-31 to 2026-11-01: G1 to G8 all passed (G6 showed `sequential`). Result: [`gate-rehearsal-2026-11-01.md`](../../evidence/WI-DEP-001/gate-rehearsal-2026-11-01.md); it is the lead's report, without run numbers. The names of Azure DevOps settings were not compared line by line with this page, so correct it if your interface differs. Decision: ADR-0020. Pipeline: [`azure-pipelines-dev.yml`](../../../azure-pipelines-dev.yml).
 
 **Purpose.** The dev pipeline will, in time, plan, apply, deploy and destroy real things behind manual approvals. Before any real step is added, this procedure proves that the gates do what the design says, using a pipeline that only prints. It creates no resource, uses no service connection and costs nothing. A gate is proved when a run that should stop, stops, and a run that should wait, waits.
 
@@ -54,4 +54,4 @@ A scenario cannot be made to pass, or an environment ran with no check. Stop add
 
 ## Last tested
 
-Never. Written 2026-10-31. The files it relies on were checked locally: the pipeline's structure and the shell logic of its steps (`scripts/ci/tests/pipeline-structure.test.mjs`) and the destroy guard (`scripts/ci/tests/destroy-guard.test.mjs`), recorded in `docs/evidence/WI-DEP-001/terraform-foundation-and-gate-rehearsal-2026-10-31.md`. That is not a run on Azure.
+2026-10-31 to 2026-11-01, by the human lead on Azure DevOps (G1 to G8 passed; see the evidence file above). Before that, the files it relies on were checked locally: the pipeline's structure and the shell logic of its steps (`scripts/ci/tests/pipeline-structure.test.mjs`) and the destroy guard (`scripts/ci/tests/destroy-guard.test.mjs`), recorded in `docs/evidence/WI-DEP-001/terraform-foundation-and-gate-rehearsal-2026-10-31.md`. That is not a run on Azure.
