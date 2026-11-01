@@ -20,6 +20,12 @@ public sealed class OutboxOptions
     /// <summary>How long checkout waits for its own inline publish before leaving the events to the relay. The order is already stored.</summary>
     public int InlinePublishTimeoutSeconds { get; set; } = 2;
 
+    /// <summary>
+    /// After this many failed attempts at one event, the order's outbox is parked: no more retries until an operator fixes the cause and
+    /// unparks it. Later events of the order wait, so nothing overtakes the failed one (register item 74).
+    /// </summary>
+    public int MaxPublishAttempts { get; set; } = 5;
+
     public bool RelayEnabled { get; set; } = true;
 }
 

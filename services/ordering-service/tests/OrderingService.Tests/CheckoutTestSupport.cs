@@ -173,7 +173,7 @@ internal sealed class CheckoutFixture
     public CheckoutFixture()
     {
         Store = new OrderStore(Repository);
-        Publisher = new OrderEventPublisher(Events, Store, Signal, Options.Create(Outbox), NullLogger<OrderEventPublisher>.Instance);
+        Publisher = new OrderEventPublisher(Events, Store, Signal, Options.Create(Outbox), Time, NullLogger<OrderEventPublisher>.Instance);
         Relay = new OutboxRelay(Store, Publisher, Signal, Options.Create(Outbox), Time, NullLogger<OutboxRelay>.Instance);
         Service = new CheckoutService(
             Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher,

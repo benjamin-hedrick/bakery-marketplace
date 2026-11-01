@@ -120,7 +120,7 @@ public class OutboxTests
     {
         var store = NewStore();
         var events = new RecordingEvents();
-        return (store, events, new OrderEventPublisher(events, store, new OutboxSignal(), Options.Create(new OutboxOptions()), NullLogger<OrderEventPublisher>.Instance));
+        return (store, events, new OrderEventPublisher(events, store, new OutboxSignal(), Options.Create(new OutboxOptions()), TimeProvider.System, NullLogger<OrderEventPublisher>.Instance));
     }
 
     [Fact]
@@ -260,6 +260,137 @@ public class OutboxTests
         await publisher.PublishPendingAsync((await store.TryUpdateAsync(cancelled, toCancel))!);
         Assert.Equal(OrderEventTypes.Cancelled, events.Published[^1].EventType);
         Assert.IsType<OrderCancelledPayload>(events.Published[^1].Payload);
+    }
+
+    // ---- a poison entry is counted, then the order is parked (register item 74) ---------------------
+
+    private static async Task<StoredOrder> FailOnce(OrderStore store, OrderEventPublisher publisher, string customer = "customer-1", string id = "order-1")
+    {
+        var stored = (await store.GetAsync(id, customer))!;
+        await publisher.PublishPendingAsync(stored);
+        return (await store.GetAsync(id, customer))!;
+    }
+
+    [Fact]
+    public async Task EachFailedAttemptIsCountedOnTheEntryThatFailedAndNotOnTheOnesBehindIt()
+    {
+        var (store, events, publisher) = NewPublisher();
+        var created = (await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1"))!;
+        var order = created.Order;
+        order.Confirm(At(4));
+        await store.TryUpdateAsync(created, order);
+        events.FailOnlyType = OrderEventTypes.Confirmed;
+
+        await FailOnce(store, publisher); // Placed goes out, Confirmed fails
+        var after = await FailOnce(store, publisher);
+
+        var entry = Assert.Single(after.Document.Outbox);
+        Assert.Equal(OrderEventTypes.Confirmed, entry.EventType);
+        Assert.Equal(2, entry.Attempts);
+        Assert.Null(after.Document.ParkedAt);
+        Assert.NotNull(after.Document.PendingSince);
+    }
+
+    [Fact]
+    public async Task TheOrderIsParkedAtTheAttemptLimitAndTheResultSaysSo()
+    {
+        var (store, events, publisher) = NewPublisher();
+        var created = (await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1"))!;
+        events.Fail = true;
+        var last = new PublishResult(0, false);
+
+        for (var i = 0; i < new OutboxOptions().MaxPublishAttempts; i++)
+        {
+            last = await publisher.PublishPendingAsync((await store.GetAsync("order-1", "customer-1"))!);
+        }
+
+        Assert.Equal(new PublishResult(0, true, true), last);
+        var parked = (await store.GetAsync("order-1", "customer-1"))!;
+        Assert.NotNull(parked.Document.ParkedAt);
+        Assert.Null(parked.Document.PendingSince); // out of the relay's query
+        Assert.Single(parked.Document.Outbox); // the entry is kept, not dropped
+    }
+
+    [Fact]
+    public async Task AParkedOrderIsNotRetriedNotEvenByTheInlinePathAndIsNotFoundByTheRelayQuery()
+    {
+        var (store, events, publisher) = NewPublisher();
+        await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1");
+        events.Fail = true;
+        for (var i = 0; i < new OutboxOptions().MaxPublishAttempts; i++) await FailOnce(store, publisher);
+        events.Fail = false;
+
+        var result = await publisher.PublishPendingAsync((await store.GetAsync("order-1", "customer-1"))!);
+
+        Assert.Equal(PublishResult.Nothing, result);
+        Assert.Empty(events.Published);
+        Assert.Empty(await store.FindPendingAsync(At(1000), 10));
+        Assert.Equal("order-1", Assert.Single(await store.FindParkedAsync(10)).Order.Id);
+    }
+
+    [Fact]
+    public async Task NewEventsAddedToAParkedOrderWaitBehindTheFailedOneAndDoNotUnparkIt()
+    {
+        var (store, events, publisher) = NewPublisher();
+        await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1");
+        events.Fail = true;
+        for (var i = 0; i < new OutboxOptions().MaxPublishAttempts; i++) await FailOnce(store, publisher);
+        var parked = (await store.GetAsync("order-1", "customer-1"))!;
+        var order = parked.Order;
+        order.Confirm(At(4));
+
+        var updated = (await store.TryUpdateAsync(parked, order))!;
+
+        Assert.Equal(2, updated.Document.Outbox.Count);
+        Assert.NotNull(updated.Document.ParkedAt);
+        Assert.Null(updated.Document.PendingSince);
+    }
+
+    [Fact]
+    public async Task UnparkingClearsTheMarkerAndTheCountsAndTheOrderPublishesInOrderAgain()
+    {
+        var (store, events, publisher) = NewPublisher();
+        var created = (await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1"))!;
+        var order = created.Order;
+        order.Confirm(At(4));
+        await store.TryUpdateAsync(created, order);
+        events.Fail = true;
+        for (var i = 0; i < new OutboxOptions().MaxPublishAttempts; i++) await FailOnce(store, publisher);
+        events.Fail = false;
+
+        var unparked = (await store.TryUnparkAsync((await store.GetAsync("order-1", "customer-1"))!))!;
+
+        Assert.Null(unparked.Document.ParkedAt);
+        Assert.All(unparked.Document.Outbox, e => Assert.Equal(0, e.Attempts));
+        Assert.NotNull(unparked.Document.PendingSince);
+        Assert.Equal(2, (await publisher.PublishPendingAsync(unparked)).Published);
+        Assert.Equal([OrderEventTypes.Placed, OrderEventTypes.Confirmed], events.Published.Select(p => p.EventType));
+    }
+
+    [Fact]
+    public async Task AFailureRecordedAgainstAStaleReadIsRefusedAndCountsNothing()
+    {
+        var (store, _, _) = NewPublisher();
+        var created = (await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1"))!;
+        var order = created.Order;
+        order.Confirm(At(4));
+        await store.TryUpdateAsync(created, order); // `created` is now stale
+
+        var result = await store.TryRecordFailureAsync(created, created.Document.Outbox[0].EventId, 5, At(10));
+
+        Assert.Null(result);
+        Assert.All((await store.GetAsync("order-1", "customer-1"))!.Document.Outbox, e => Assert.Equal(0, e.Attempts));
+    }
+
+    [Fact]
+    public async Task AnOutboxEntryStoredBeforeTheCounterExistedReadsAsZeroAttempts()
+    {
+        var entry = Newtonsoft.Json.JsonConvert.DeserializeObject<OutboxEntryDocument>(
+            """{"eventId":"e","eventType":"t","sequenceNumber":1,"occurredAt":"2026-01-01T00:00:00+00:00","payload":"{}"}""")!;
+
+        Assert.Equal(0, entry.Attempts);
+        Assert.Null(JObject.Parse(Newtonsoft.Json.JsonConvert.SerializeObject(entry))["attempts"]); // not written while zero
+        await Task.CompletedTask;
     }
 
     // ---- the relay ----------------------------------------------------------------------------------

@@ -25,6 +25,9 @@ public sealed class OutboxEntryDocument
     /// <summary>The W3C trace context of the request that caused the event, so the consumer's span links back to it (ADR-0016).</summary>
     [JsonProperty("traceparent", NullValueHandling = NullValueHandling.Ignore)] public string? Traceparent { get; set; }
 
+    /// <summary>How many times publishing this entry has failed (register item 74). Absent while zero, so existing documents read as zero.</summary>
+    [JsonProperty("attempts", DefaultValueHandling = DefaultValueHandling.Ignore)] public int Attempts { get; set; }
+
     /// <summary>
     /// The same order and sequence number always give the same id, so an event published twice (a crash after publishing but before cleanup)
     /// carries one id and consumers dedupe on it (ADR-0003).

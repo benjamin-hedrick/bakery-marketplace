@@ -55,6 +55,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents)
     {
         var document = OrderDocument.From(updated, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
         document.ETag = current.Document.ETag;
+        document.ParkedAt = current.Document.ParkedAt;
         document.SetOutbox(current.Document.Outbox.Concat(NewEntries(updated)));
         var saved = await documents.SaveIfUnchangedAsync(document, updated.CustomerId, ct);
         return saved is null ? null : new StoredOrder(updated, saved);
@@ -68,10 +69,68 @@ public sealed class OrderStore(IRepository<OrderDocument> documents)
     {
         var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
         document.ETag = current.Document.ETag;
+        document.ParkedAt = current.Document.ParkedAt;
         document.SetOutbox(current.Document.Outbox.Where(e => !publishedEventIds.Contains(e.EventId)));
         var saved = await documents.SaveIfUnchangedAsync(document, current.Order.CustomerId, ct);
         return saved is null ? null : new StoredOrder(current.Order, saved);
     }
+
+    /// <summary>
+    /// Counts one more failed attempt on the entry <paramref name="eventId"/> and, when it reaches <paramref name="maxAttempts"/>, parks the
+    /// order's outbox at <paramref name="now"/> (register item 74). Returns null when the order changed since it was read (the caller re-reads).
+    /// An entry that is no longer in the outbox is not an error: the order is returned unchanged.
+    /// </summary>
+    public async Task<StoredOrder?> TryRecordFailureAsync(
+        StoredOrder current, string eventId, int maxAttempts, DateTimeOffset now, CancellationToken ct = default)
+    {
+        if (current.Document.Outbox.All(e => e.EventId != eventId)) return current;
+
+        var entries = current.Document.Outbox.Select(e => Clone(e, e.EventId == eventId ? e.Attempts + 1 : e.Attempts)).ToList();
+        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
+        document.ETag = current.Document.ETag;
+        document.ParkedAt = current.Document.ParkedAt
+            ?? (entries.Any(e => e.Attempts >= maxAttempts) ? now.ToUnixTimeMilliseconds() : null);
+        document.SetOutbox(entries);
+        var saved = await documents.SaveIfUnchangedAsync(document, current.Order.CustomerId, ct);
+        return saved is null ? null : new StoredOrder(current.Order, saved);
+    }
+
+    /// <summary>
+    /// Puts a parked order back to work after the cause is fixed: clears the park marker and the attempt counts so the relay picks it up on
+    /// its next sweep. Returns null when the order changed since it was read. An order that is not parked is returned unchanged.
+    /// </summary>
+    public async Task<StoredOrder?> TryUnparkAsync(StoredOrder current, CancellationToken ct = default)
+    {
+        if (current.Document.ParkedAt is null) return current;
+
+        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
+        document.ETag = current.Document.ETag;
+        document.SetOutbox(current.Document.Outbox.Select(e => Clone(e, 0)));
+        var saved = await documents.SaveIfUnchangedAsync(document, current.Order.CustomerId, ct);
+        return saved is null ? null : new StoredOrder(current.Order, saved);
+    }
+
+    /// <summary>Orders whose outbox is parked, for an operator or an alert. Looks across every customer's partition: not for request paths.</summary>
+    public async Task<IReadOnlyList<StoredOrder>> FindParkedAsync(int take, CancellationToken ct = default)
+    {
+        var found = new List<StoredOrder>();
+        await foreach (var document in documents.QueryAsync("", q => q.Where(d => d.ParkedAt > 0).Take(take), ct))
+        {
+            found.Add(new StoredOrder(document.ToOrder(), document));
+        }
+        return found;
+    }
+
+    private static OutboxEntryDocument Clone(OutboxEntryDocument e, int attempts) => new()
+    {
+        EventId = e.EventId,
+        EventType = e.EventType,
+        SequenceNumber = e.SequenceNumber,
+        OccurredAt = e.OccurredAt,
+        PayloadJson = e.PayloadJson,
+        Traceparent = e.Traceparent,
+        Attempts = attempts,
+    };
 
     /// <summary>
     /// Orders whose oldest pending event is at or before <paramref name="pendingBefore"/>. Looks across every
