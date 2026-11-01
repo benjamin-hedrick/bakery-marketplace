@@ -53,6 +53,46 @@ public sealed class ListingDocument : IETagged
     /// <summary>At or below this quantity the item is "low"; absent means <see cref="StockPolicy.DefaultLowStockThreshold"/>.</summary>
     [JsonProperty("lowStockThreshold", NullValueHandling = NullValueHandling.Ignore)] public int? LowStockThreshold { get; set; }
 
+    /// <summary>Events raised by changes to this listing and not yet confirmed published (register item 30). Omitted from the stored JSON when empty.</summary>
+    [JsonProperty("outbox")] public List<ListingOutboxEntry> Outbox { get; set; } = new();
+
+    public bool ShouldSerializeOutbox() => Outbox.Count > 0;
+
+    /// <summary>
+    /// When the oldest pending event happened, in UTC milliseconds; **absent when nothing is pending or the outbox is parked**, so the
+    /// relay's "anything pending?" query touches only listings that have something (the same sparse-index idea as the ordering outbox).
+    /// </summary>
+    [JsonProperty("pendingSince", NullValueHandling = NullValueHandling.Ignore)] public long? PendingSince { get; set; }
+
+    /// <summary>When the outbox was parked after an event kept failing (UTC milliseconds); absent otherwise. See <c>ListingEventPublisher</c>.</summary>
+    [JsonProperty("parkedAt", NullValueHandling = NullValueHandling.Ignore)] public long? ParkedAt { get; set; }
+
+    /// <summary>Replaces the outbox and keeps <see cref="PendingSince"/> in step with it.</summary>
+    public void SetOutbox(IEnumerable<ListingOutboxEntry> entries)
+    {
+        Outbox = entries.OrderBy(e => e.SequenceNumber).ThenBy(e => e.EventType, StringComparer.Ordinal).ToList();
+        PendingSince = Outbox.Count == 0 || ParkedAt is not null ? null : Outbox.Min(e => e.OccurredAt).ToUnixTimeMilliseconds();
+    }
+
+    /// <summary>
+    /// Adds an event for the current <see cref="Version"/>. Call it after the version has been incremented and before the document is saved,
+    /// so the change and the event are one write. Raising the same event for the same version twice adds it once.
+    /// </summary>
+    public void RaiseEvent(string eventType, object payload, DateTimeOffset now, string? traceparent)
+    {
+        var id = ListingOutboxEntry.IdFor(Id, Version, eventType);
+        if (Outbox.Any(e => e.EventId == id)) return;
+        SetOutbox(Outbox.Append(new ListingOutboxEntry
+        {
+            EventId = id,
+            EventType = eventType,
+            SequenceNumber = Version,
+            OccurredAt = now,
+            PayloadJson = System.Text.Json.JsonSerializer.Serialize(payload, payload.GetType(), ListingOutboxEntry.Json),
+            Traceparent = traceparent,
+        }));
+    }
+
     /// <summary>The store's version token (Cosmos <c>_etag</c>), for optimistic concurrency (<see cref="IRepository{T}.SaveIfUnchangedAsync"/>).</summary>
     [JsonProperty("_etag", NullValueHandling = NullValueHandling.Ignore)] public string? ETag { get; set; }
 }

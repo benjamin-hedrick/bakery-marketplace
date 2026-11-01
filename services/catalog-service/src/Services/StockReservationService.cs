@@ -42,7 +42,7 @@ public sealed class StockReservationService
     private readonly IRepository<StockReservationDocument> _reservations;
     private readonly IBatchFactory _batches;
     private readonly VendorStatusStore _vendors;
-    private readonly StockEventPublisher _stockEvents;
+    private readonly ListingEventPublisher _events;
     private readonly TimeProvider _time;
 
     public StockReservationService(
@@ -50,14 +50,14 @@ public sealed class StockReservationService
         IRepository<StockReservationDocument> reservations,
         IBatchFactory batches,
         VendorStatusStore vendors,
-        StockEventPublisher stockEvents,
+        ListingEventPublisher events,
         TimeProvider time)
     {
         _listings = listings;
         _reservations = reservations;
         _batches = batches;
         _vendors = vendors;
-        _stockEvents = stockEvents;
+        _events = events;
         _time = time;
     }
 
@@ -116,8 +116,12 @@ public sealed class StockReservationService
                     doc.AvailableQuantity -= (int)quantity;
                     doc.UpdatedAt = now;
                     doc.Version++;
+                    if (!wasLowOrOut && StockPolicy.IsLowOrOut(doc))
+                    {
+                        _events.Raise(doc, ListingEventTypes.LowStockDetected); // stored in the same batch as the decrement (register item 30)
+                        crossedIntoLow.Add(doc);
+                    }
                     batch.ReplaceIfUnchanged(doc);
-                    if (!wasLowOrOut && StockPolicy.IsLowOrOut(doc)) crossedIntoLow.Add(doc);
                 }
                 lines.Add(new ReservationLineDocument { ListingId = listingId, Quantity = (int)quantity, Limited = limited });
             }
@@ -135,7 +139,7 @@ public sealed class StockReservationService
 
             if (await batch.ExecuteAsync(ct))
             {
-                foreach (var doc in crossedIntoLow) await _stockEvents.LowStockAsync(doc, ct);
+                foreach (var doc in crossedIntoLow) await _events.PublishInlineAsync(doc);
                 return new ReservationResult(ReservationOutcome.Reserved, reservation);
             }
             // A listing changed, or a concurrent request created this reservation: start again from fresh reads.

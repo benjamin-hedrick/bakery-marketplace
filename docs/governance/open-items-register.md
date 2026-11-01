@@ -162,7 +162,7 @@ Status: Open
 **30. No outbox for publish-after-save**
 Type: Known limitation · Source: `WI-CAT-001` · Hat: Architect
 Status: Open
-Progress: Optimistic concurrency resolved 2026-10-28; outbox resolved for ordering 2026-10-28 (`WI-ORD-005`, item 68); the catalog's gap remains.
+Progress: Optimistic concurrency resolved 2026-10-28; outbox resolved for ordering 2026-10-28 (`WI-ORD-005`, item 68); the catalog outbox built 2026-11-01 on `feature/stock-outbox-hardening` (`ListingEventPublisher`, `ListingOutboxRelay`): `ListingPublished` and `LowStockDetected` are stored in the listing document in the same write as the change (including the reservation batch), published inline, swept by a relay, with a stable event id per listing, version and type, and the attempt count and park rule of item 74. Tested with the in-memory repository only (116 catalog tests pass); the Cosmos `pendingSince` and `parkedAt` queries are not yet run on the emulator. The relay has no wake-up signal (it polls at 5 seconds, backing off to 60), `ListingEventPublisher.UnparkAsync` has no endpoint, and the vendor-status document (`VendorStatusDocument`) is still last-write-wins.
 Resolved: `IRepository<T>` now has `SaveIfUnchangedAsync` for entities that implement `IETagged` (Cosmos If-Match, verified on the emulator); listings use it (`WI-CAT-005`). Still open: catalog saves then publishes `ListingPublished` and `LowStockDetected`, and a failed publish is logged and never re-sent (no outbox). Other documents are still last-write-wins: `VendorStatusDocument` is a read-modify-write when concurrent events arrive for one vendor, and orders (`ORD-006`) should adopt `IETagged`.
 
 **31. Existing Cosmos adapter tests may not exercise the real serializer path**
