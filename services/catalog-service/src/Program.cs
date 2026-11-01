@@ -98,7 +98,9 @@ else
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<VendorStatusStore>();
-builder.Services.AddSingleton<StockEventPublisher>();
+builder.Services.Configure<CatalogOutboxOptions>(builder.Configuration.GetSection("Outbox"));
+builder.Services.AddSingleton<ListingEventPublisher>();
+builder.Services.AddHostedService<ListingOutboxRelay>();
 builder.Services.AddSingleton<ListingService>();
 builder.Services.AddSingleton<StockReservationService>();
 builder.Services.AddHostedService<VendorEventSubscriptions>();

@@ -4,6 +4,7 @@ using BakeryMarketplace.Seed;
 using CatalogService.Domain;
 using CatalogService.Services;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace CatalogService.Tests;
 
@@ -22,8 +23,8 @@ public sealed class SeederTests : IAsyncLifetime
         var store = new VendorStatusStore(_status);
         _subscriptions = new VendorEventSubscriptions(_transport, store, NullLogger<VendorEventSubscriptions>.Instance);
         _service = new ListingService(
-            _listings, store, _transport,
-            new StockEventPublisher(_transport, TimeProvider.System, NullLogger<StockEventPublisher>.Instance),
+            _listings, store,
+            new ListingEventPublisher(_transport, _listings, Options.Create(new CatalogOutboxOptions()), TimeProvider.System, NullLogger<ListingEventPublisher>.Instance),
             TimeProvider.System, NullLogger<ListingService>.Instance);
         _seeder = new Seeder(_listings, _transport);
     }

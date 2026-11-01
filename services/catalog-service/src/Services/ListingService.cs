@@ -25,8 +25,7 @@ public sealed class ListingService
 {
     private readonly IRepository<ListingDocument> _listings;
     private readonly VendorStatusStore _vendors;
-    private readonly IEventPublisher _events;
-    private readonly StockEventPublisher _stockEvents;
+    private readonly ListingEventPublisher _events;
     private readonly TimeProvider _time;
     private readonly ILogger<ListingService> _logger;
 
@@ -36,15 +35,13 @@ public sealed class ListingService
     public ListingService(
         IRepository<ListingDocument> listings,
         VendorStatusStore vendors,
-        IEventPublisher events,
-        StockEventPublisher stockEvents,
+        ListingEventPublisher events,
         TimeProvider time,
         ILogger<ListingService> logger)
     {
         _listings = listings;
         _vendors = vendors;
         _events = events;
-        _stockEvents = stockEvents;
         _time = time;
         _logger = logger;
     }
@@ -117,9 +114,10 @@ public sealed class ListingService
             Status = status,
         };
         Apply(doc, request, now);
+        if (doc.Status == ListingStatuses.Published) _events.Raise(doc, ListingEventTypes.Published); // stored with the listing (register item 30)
         doc = await _listings.SaveAsync(doc, vendorId, ct);
 
-        if (doc.Status == ListingStatuses.Published) await PublishedEventAsync(doc, ct);
+        await _events.PublishInlineAsync(doc);
         return new ListingResult(ListingOutcome.Created, doc);
     }
 
@@ -143,11 +141,12 @@ public sealed class ListingService
 
             existing.Status = newStatus;
             Apply(existing, request, _time.GetUtcNow());
+            if (!wasPublished && existing.Status == ListingStatuses.Published) _events.Raise(existing, ListingEventTypes.Published);
+            if (!wasLowOrOut && StockPolicy.IsLowOrOut(existing)) _events.Raise(existing, ListingEventTypes.LowStockDetected);
             var saved = await _listings.SaveIfUnchangedAsync(existing, existing.VendorId, ct);
             if (saved is not null)
             {
-                if (!wasPublished && saved.Status == ListingStatuses.Published) await PublishedEventAsync(saved, ct);
-                if (!wasLowOrOut && StockPolicy.IsLowOrOut(saved)) await _stockEvents.LowStockAsync(saved, ct);
+                await _events.PublishInlineAsync(saved);
                 return new ListingResult(ListingOutcome.Ok, saved);
             }
 
@@ -182,10 +181,11 @@ public sealed class ListingService
             existing.AvailableQuantity = (int)next;
             existing.UpdatedAt = _time.GetUtcNow();
             existing.Version++;
+            if (!wasLowOrOut && StockPolicy.IsLowOrOut(existing)) _events.Raise(existing, ListingEventTypes.LowStockDetected);
             var saved = await _listings.SaveIfUnchangedAsync(existing, existing.VendorId, ct);
             if (saved is not null)
             {
-                if (!wasLowOrOut && StockPolicy.IsLowOrOut(saved)) await _stockEvents.LowStockAsync(saved, ct);
+                await _events.PublishInlineAsync(saved);
                 return new ListingResult(ListingOutcome.Ok, saved);
             }
 
@@ -220,24 +220,5 @@ public sealed class ListingService
         }
         doc.UpdatedAt = now;
         doc.Version++;
-    }
-
-    /// <summary>
-    /// The listing is already persisted when this runs, and persisted state is authoritative. There is no outbox yet,
-    /// so a publish failure is logged rather than failing the request: a retry would see an already-published listing
-    /// and never re-emit. Closing that dual-write gap is future work.
-    /// </summary>
-    private async Task PublishedEventAsync(ListingDocument doc, CancellationToken ct)
-    {
-        try
-        {
-            await _events.PublishAsync(new DomainEventEnvelope<ListingPublishedPayload>(
-                Guid.NewGuid(), "ListingPublished", 1, _time.GetUtcNow(), "Listing", doc.Id, doc.Version,
-                new ListingPublishedPayload(doc.Id, doc.VendorId)), ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "ListingPublished event could not be published for a persisted listing ({ListingId})", doc.Id);
-        }
     }
 }
