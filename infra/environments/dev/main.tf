@@ -207,6 +207,17 @@ resource "azurerm_cosmosdb_sql_container" "orders" {
   partition_key_version = 2
 }
 
+# The vendor order read model (N-03): one summary per order, kept up to date from the order events. Rebuildable from the orders, so it
+# holds nothing that is not also in `orders`. Partitioned by vendor so a vendor's list is one partition.
+resource "azurerm_cosmosdb_sql_container" "vendor_orders" {
+  name                  = "vendor-orders"
+  resource_group_name   = local.rg
+  account_name          = azurerm_cosmosdb_account.cosmos.name
+  database_name         = azurerm_cosmosdb_sql_database.bakery.name
+  partition_key_paths   = ["/vendorId"]
+  partition_key_version = 2
+}
+
 # ---- The apps ---------------------------------------------------------------------------------------------------------------------------
 # Redis for the event backbone: internal only, no persistence, torn down with the environment (chosen by the lead on 2026-10-31).
 resource "azurerm_container_app" "redis" {
