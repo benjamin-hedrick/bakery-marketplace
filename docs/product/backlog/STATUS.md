@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-88 specs.
+89 specs.
 
 | Status | Count |
 |---|---|
@@ -15,7 +15,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In review | 4 |
 | Built | 1 |
 | Ready | 10 |
-| Proposed | 4 |
+| Proposed | 5 |
 | Deferred | 11 |
 | Superseded | 1 |
 
@@ -26,7 +26,7 @@ Superseded and obsolete items are not counted.
 | Epic | Done | Items |
 |---|---|---|
 | EPIC-ARCH-DOCS | 5 of 7 | API-001, ARCH-001, ARCH-002, ARCH-003, ARCH-004, DOC-002, NFR-001 |
-| EPIC-AUTH | 3 of 4 | AUTH-001, AUTH-002, AUTH-005, AUTH-006 |
+| EPIC-AUTH | 3 of 5 | AUTH-001, AUTH-002, AUTH-005, AUTH-006, AUTH-007 |
 | EPIC-BACKLOG-PLANNING | 0 of 2 | PLAN-001, PLAN-002 |
 | EPIC-CACHING | 4 of 4 | CACHE-001, CACHE-002, CACHE-003, CACHE-004 |
 | EPIC-CATALOG | 3 of 4 | CAT-001, CAT-003, CAT-005, CAT-006 |
@@ -68,6 +68,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [AUTH-002](WI-AUTH-002.md) | Per-service resource-ownership check pattern + reference application | EPIC-AUTH | Done | evidence: `tools/BakeryMarketplace.Auth/ResourceOwnershipHandler.cs` and its tests |
 | [AUTH-005](WI-AUTH-005.md) | Local mock OIDC issuer — token minting + PKCE authorization-code flow | EPIC-AUTH | Done | evidence: `tools/BakeryMarketplace.MockOidcHost` and the `MockOidc*` tests in `tools/tests/BakeryMarketplace.Auth.Tests` |
 | [AUTH-006](WI-AUTH-006.md) | Service-to-service authentication (OAuth2 client credentials) | EPIC-AUTH | In progress | remaining: phase 1 built (see the progress note under this banner); phase 2 needs the DEV tenant and the ADR-0018 verification list, and auth logic needs human approval |
+| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | EPIC-AUTH | Proposed | remaining: the lead's approval of ADR-0019 (auth logic) and the open points in it; nothing is built |
 | [CACHE-001](WI-CACHE-001.md) | Define CacheProvider interface + shared contract test suite | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` and its tests |
 | [CACHE-002](WI-CACHE-002.md) | RedisCacheProvider implementation | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (Redis provider) and its tests |
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (local and resilient providers) and its tests |
@@ -150,7 +151,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 
 ## Architecture decisions
 
-20 records.
+21 records.
 
 | ADR | Title | Status | Status line |
 |---|---|---|---|
@@ -172,10 +173,11 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0016](../../architecture/adr/0016-opentelemetry-tracing.md) | OpenTelemetry Tracing and W3C Trace Context as the Correlation Mechanism | Accepted | Accepted (2026-10-26) — amends `tech-stack.md` (Observability row) and changes the ID source for `WI-TOOL-0... |
 | [0017](../../architecture/adr/0017-stock-and-availability-ownership.md) | Stock and Availability Ownership | Accepted | Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter. |
 | [0018](../../architecture/adr/0018-service-to-service-authentication.md) | Service-to-Service Authentication (OAuth2 Client Credentials) | Accepted | Accepted (2026-10-31) |
+| [0019](../../architecture/adr/0019-browser-sessions.md) | Browser Sessions: a Server-Side Session Behind an HttpOnly Cookie | Proposed | Proposed (2026-11-02). If accepted it amends ADR-0006 (token storage: "header-only, no cookies" no longer a... |
 | [0020](../../architecture/adr/0020-deployment-pipeline-and-environments.md) | Deployment pipeline, environments and configuration | Accepted | Accepted (2026-10-31) |
-| [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Proposed | Proposed (2026-11-02). If accepted it amends ADR-0012 (the queue display is no longer polling only) and bui... |
+| [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Accepted | Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age... |
 
-Accepted: 18 · Superseded: 1 · Proposed: 1
+Accepted: 19 · Superseded: 1 · Proposed: 1
 
 ## Open-items register
 
