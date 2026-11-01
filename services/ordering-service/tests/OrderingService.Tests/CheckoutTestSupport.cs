@@ -24,7 +24,7 @@ internal static class Seed
 
     public static CatalogListing Sourdough(int? maxPerOrder = 4, string status = "Published", string vendor = Vendor) =>
         new("listing-sourdough-001", vendor, "Country Sourdough", 800, status,
-            [new("mod-seeds", 100), new("mod-sliced", 0)], new CatalogStock("inStock", maxPerOrder));
+            [new("mod-seeds", 100, "Seed crust"), new("mod-sliced", 0, "Sliced")], new CatalogStock("inStock", maxPerOrder));
 
     public static CatalogListing Croissant() =>
         new("listing-croissant-001", Vendor, "Almond Croissant", 450, "Published", [new("mod-extra-almond", 75)], new CatalogStock("low", null));
@@ -71,10 +71,14 @@ internal sealed class FakeCatalog : ICatalogGateway
         return catalog;
     }
 
+    /// <summary>When set, listing reads wait for this to complete (to hold many callers on one fetch).</summary>
+    public TaskCompletionSource? Gate { get; set; }
+
     public async Task<CatalogListing?> GetListingAsync(string listingId, CancellationToken ct = default)
     {
         await Task.Yield();
         Interlocked.Increment(ref ListingReads);
+        if (Gate is not null) await Gate.Task;
         if (ListingReadsFail) throw new DownstreamUnavailableException("scripted outage");
         return Listings.GetValueOrDefault(listingId);
     }

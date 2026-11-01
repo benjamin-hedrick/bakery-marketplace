@@ -55,6 +55,7 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
             ["ServiceAuth:Scope"] = "bakery-marketplace/.default",
             ["ServiceAuth:ClientSecret"] = _clientSecret,
             ["Events:Backend"] = "inmemory",
+            ["ListingNames:RefreshEnabled"] = "false", // tests drive the refresh themselves
             ["OrphanReservations:Enabled"] = "false", // the sweep is driven directly in its own tests
             ["Outbox:RelayEnabled"] = "false", // tests drive sweeps themselves; a background loop would make them timing-dependent
         })
