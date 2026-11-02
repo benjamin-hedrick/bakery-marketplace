@@ -38,14 +38,18 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
 
     public OrderingFactory(
         FakeCatalogServer catalog, string clientSecret, string environment = "Development",
-        IReadOnlyDictionary<string, string>? extraSettings = null, Microsoft.Extensions.Logging.ILoggerProvider? logs = null)
+        IReadOnlyDictionary<string, string>? extraSettings = null, Microsoft.Extensions.Logging.ILoggerProvider? logs = null,
+        Action<IServiceCollection>? configureServices = null)
     {
         _catalog = catalog;
         _clientSecret = clientSecret;
         _environment = environment;
         _extraSettings = extraSettings ?? new Dictionary<string, string>();
         _logs = logs;
+        _configureServices = configureServices;
     }
+
+    private readonly Action<IServiceCollection>? _configureServices;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -75,6 +79,7 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             if (_logs is not null) services.AddSingleton(_logs);
+            _configureServices?.Invoke(services);
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
