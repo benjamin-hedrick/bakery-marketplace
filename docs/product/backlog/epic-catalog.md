@@ -51,6 +51,7 @@ Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build ·
 Scope: Ordering & Fulfillment (read-side) · Primary hat(s): Architect, Engineering/Build · Status: see [STATUS.md](STATUS.md)
 - ✅ QUE-001 (Service Implementation) — **Detailed, Ready for agents**, see `WI-QUE-001.md` — Read-model built from order events, not a direct query against the `orders` container (per ADR-0004's CQRS decision)
 - ✅ QUE-002 (Service Implementation) — **Detailed, Ready**, see `WI-QUE-002.md` — polling-based live UI (5–10s interval), real-time push (WebSockets/SignalR) explicitly named as a v2 candidate; shares `WEB-001`'s scaffold/auth pattern rather than a second bespoke frontend. **ADJUSTED 2026-10-26**: Next.js (client-rendered) via BFF, builds on `PORT-002`'s scaffold
+- 🟡 QUE-003 (Service Implementation) — **In progress**, see `WI-QUE-003.md` — live updates to the vendor queue by push over a stream, polling kept as the fallback (ADR-0021); step 1, the broadcast adapter in `tools/BakeryMarketplace.Eventing`, is built
 
 ### EPIC-WEB-CUSTOMER — Customer-Facing Web App
 Scope: Catalog & Customization, Preferences & Dietary Safety, Ordering & Fulfillment (customer-facing UI only — backend logic lives in catalog-service/ordering-service) · Primary hat(s): Engineering/Build, Architect · Status: see [STATUS.md](STATUS.md)

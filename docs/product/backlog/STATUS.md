@@ -6,12 +6,12 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-89 specs.
+90 specs.
 
 | Status | Count |
 |---|---|
 | Done | 53 |
-| In progress | 5 |
+| In progress | 6 |
 | In review | 4 |
 | Built | 1 |
 | Ready | 10 |
@@ -45,7 +45,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PREFERENCES | 0 of 2 | PREF-001, PREF-002 |
 | EPIC-PRODUCT-STRATEGY | 1 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
 | EPIC-QUALITY-EVIDENCE | 1 of 3 | QA-001, QA-002, QA-003 |
-| EPIC-QUEUE-DISPLAY | 2 of 2 | QUE-001, QUE-002 |
+| EPIC-QUEUE-DISPLAY | 2 of 3 | QUE-001, QUE-002, QUE-003 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
 | EPIC-SEARCH | 0 of 1 | SRCH-001 |
 | EPIC-SECRETS | 1 of 2 | SEC-001, SEC-003 |
@@ -138,6 +138,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QA-003](WI-QA-003.md) | Planned experiments: AI-assisted testing and the mobile question | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead decides to run the experiments |
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `services/ordering-service` (`Persistence/VendorOrder*.cs`), `services/graphql-bff` |
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `apps/web-queue-display` |
+| [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | EPIC-QUEUE-DISPLAY | In progress | remaining: steps 2 to 7 (the ordering stream endpoint, the Redis fan-out between instances in the service, the BFF subscription, the web app's streaming path, the screen's live mode, the measured delay); step 1 (the broadcast adapter) is built |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
