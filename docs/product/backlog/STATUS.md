@@ -181,7 +181,7 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-119 numbered items in `docs/governance/open-items-register.md` (highest number 119).
+122 numbered items in `docs/governance/open-items-register.md` (highest number 122).
 
 | Type | Count |
 |---|---|
@@ -196,6 +196,7 @@ Accepted: 20 · Superseded: 1
 | Design gap | 3 |
 | Decision | 3 |
 | Gap | 3 |
+| Hardening | 3 |
 | Accepted risk | 2 |
 | Deferred architecture | 2 |
 | Deferred scope (by design) | 2 |
@@ -255,6 +256,6 @@ Accepted: 20 · Superseded: 1
 | Resolved | 38 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 45 |
+| Open | 48 |
 | Decided | 1 |
 | Partly | 1 |
