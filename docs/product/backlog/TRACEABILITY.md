@@ -2,7 +2,7 @@
 
 > **Status:** Generated · do not edit; `node scripts/docs/traceability.mjs` regenerates it and `--check` verifies it. Files are matched by naming the work item id as a whole word, so a missing entry means the link is not written down, not that nothing tests it, and a work item that is a document has no test by nature. Tests are the files under `tests/` and `test/` folders; evidence is `docs/evidence/`.
 
-Of 53 work items marked Done: 28 are named by a test file, 16 by an evidence record, 16 by neither.
+Of 53 work items marked Done: 28 are named by a test file, 17 by an evidence record, 16 by neither.
 
 | Item | Title | Status | Test files naming it | Evidence records naming it |
 |---|---|---|---|---|
@@ -14,7 +14,7 @@ Of 53 work items marked Done: 28 are named by a test file, 16 by an evidence rec
 | [AUTH-002](WI-AUTH-002.md) | Per-service resource-ownership check pattern + reference application | Done | `ResourceOwnershipHandlerTests.cs` | `findings.md` |
 | [AUTH-005](WI-AUTH-005.md) | Local mock OIDC issuer — token minting + PKCE authorization-code flow | Done | `MockOidcMiddlewareIntegrationTests.cs` | *none* |
 | [AUTH-006](WI-AUTH-006.md) | Service-to-service authentication (OAuth2 client credentials) | In progress | `ClientCredentialsIssuerTests.cs` | *none* |
-| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | In progress | `RefreshTokenGrantTests.cs` | `findings.md` |
+| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | In progress | `RefreshTokenGrantTests.cs` | `findings.md`, `ai-usage-2026-11-01.md` |
 | [CACHE-001](WI-CACHE-001.md) | Define CacheProvider interface + shared contract test suite | Done | `CacheProviderContractTests.cs` | *none* |
 | [CACHE-002](WI-CACHE-002.md) | RedisCacheProvider implementation | Done | `RedisCacheProviderTests.cs` | *none* |
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | Done | `LocalCacheProviderTests.cs`, `ResilientCacheProviderTests.cs` | *none* |
@@ -64,7 +64,7 @@ Of 53 work items marked Done: 28 are named by a test file, 16 by an evidence rec
 | [QA-001](WI-QA-001.md) | Test strategy and guides | Done | `accessibility.spec.ts` | `status-check-experiment-2026-10-30.md` |
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | In progress | *none* | `latency-2026-10-30.md`, `quality-report-2026-10-30.md` |
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | Done | `vendor-orders.test.ts`, `VendorOrderReadModelTests.cs` | *none* |
-| [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | Done | `queue.spec.ts` | *none* |
+| [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | Done | `queue.spec.ts` | `ai-usage-2026-11-01.md` |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | Built | *none* | `baseline-2026-10-30.md` |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | Done | *none* | *none* |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | Done | `DomainEventPayloadsTests.cs` | *none* |
