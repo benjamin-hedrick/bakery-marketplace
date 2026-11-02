@@ -26,6 +26,9 @@
 | L-18 | Name the axis: environment target or fallback chain | Adopted in part |
 | L-19 | Mark each rule as a hard invariant or a guided default, with how it is verified | Open |
 | L-20 | Read everything before judging; keep a manifest and a facts sheet | Adopted |
+| L-21 | Tie each work item to the ADRs and NFRs it affects | Hypothesis (proposed 2026-11-02) |
+| L-22 | Review the security-sensitive part before building it, not only after | Hypothesis (proposed 2026-11-02) |
+| L-23 | Chain commands with `&&` so a failed edit cannot be followed by a long run | Observation |
 
 ## L-01 A surprise is a trigger to ask what should change
 
@@ -106,3 +109,15 @@
 ## L-20 Read everything before judging; keep a manifest and a facts sheet
 
 **Situation.** The first passes of the October review sampled documents (headers, searches, counts). Their findings stood, but "no finding" only meant "not checked", and the full read overturned several (a document wrongly flagged, one at the repository root missed and then wrongly called missing). **Lesson.** For a review, read every file and keep a manifest of what was read, so completeness is checkable; build a facts sheet from commands that were run (test counts, endpoints) so documents quote it and not memory. **Evidence.** `docs/history/review-2026-10/00-manifest.md`; `docs/evidence/facts-sheet-2026-10-29.md`. **Status.** Adopted.
+
+## L-21 Tie each work item to the ADRs and NFRs it affects
+
+**Situation.** NFR 3.3 said CSRF was "not applicable" on a condition (no cookie token storage) that `WI-AUTH-007` ended; the section stayed wrong until 2026-11-02. **Lesson.** The Definition of Done said "docs affected are updated", but no item listed the NFRs, so nothing prompted the edit. **Evidence.** `nfrs.md` section 3.3 history; register item 130. **Change.** Proposed: an "ADRs and NFRs affected" line in the work item template and the Definition of Done. **Status.** Hypothesis until the lead adopts it and a later item shows it worked.
+
+## L-22 Review the security-sensitive part before building it, not only after
+
+**Situation.** The agent's own security reads of `WI-QUE-003` found real flaws late: the BFF counted a stream before reading its body (found after five steps), the web route had the same flaw and no per-session limit, and a client that stops reading held a stream open. **Lesson.** An adversarial pass on the design, with abuse cases as acceptance criteria, is cheaper than the same finding after the code. **Evidence.** Register items 126 and 130; the review rounds recorded in `WI-QUE-003`. **Not shown.** That the earlier pass would have caught them; the author agent still did both reads. **Status.** Hypothesis.
+
+## L-23 Chain commands with `&&` so a failed edit cannot be followed by a long run
+
+**Situation.** During `WI-QUE-003` a failed edit was followed by a long test run on the unchanged code, three times. **Lesson.** Join an edit and the run that depends on it with `&&` (or run them as one script), and don't keep Docker state between evidence runs (`--keep`). **Evidence.** Register item 130, finding 6; no measurement of the time lost. **Status.** Observation.

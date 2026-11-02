@@ -2,6 +2,8 @@
 
 > **Status:** Current · written 2026-10-30 from the test projects, the pipeline and the evidence records (`WI-QA-001`). It says what each layer proves, what it does not, and what is deliberately not tested. The commands are in [`quality-gates.md`](quality-gates.md); the measured baseline is [`docs/evidence/baseline-2026-10-30.md`](../evidence/baseline-2026-10-30.md); how to write and review a test is in the [Playwright guide](playwright-guide.md) and the [test-review checklist](test-review-checklist.md).
 
+> **Proposed 2026-11-02 (register item 130):** [`verification-policy.md`](verification-policy.md) says which checks each change carries and which run as scheduled checkpoints. The counts in the table below were typed by hand on 2026-10-30 and are stale (for example the BFF has 107 tests, ordering 432, the queue display 22 unit and 32 browser tests); `CLAUDE.md` has the later figures, and a script should print them (`WI-QA-002`).
+
 ## Principles
 
 1. **A test is evidence only if it can fail.** A passing test proves nothing until breaking the code it names makes it fail. The mutation sample of 2026-10-30 killed 9 of 10 and found one that tested the framework, not the project (register item 85).
@@ -45,9 +47,9 @@ Also run, not in the pipeline: SSR isolation (`npm run test:isolation`: 200 conc
 
 ## Deliberately not tested
 
-- **Load and capacity.** One measured baseline exists ([`nfrs.md`](../architecture/nfrs.md) section 8); there is no load test and no target has been proved at scale (`WI-QA-002`).
+- **Load, soak, fuzz and dynamic scanning.** Planned as checkpoints (register items 128 and 129, `verification-policy.md`); none has run. One measured baseline exists ([`nfrs.md`](../architecture/nfrs.md) section 8); there is no load test and no target has been proved at scale (`WI-QA-002`).
 - **Anything deployed.** Nothing is deployed, so there are no post-deploy checks.
-- **Other browsers and real devices.** Chromium only; the mobile question is an experiment (`WI-QA-003`).
+- **Other browsers and real devices.** Chromium only; the cross-browser matrix is a scheduled checkpoint (`verification-policy.md` section 4) and the mobile question is an experiment (`WI-QA-003`).
 - **Payment.** The processor is a stub; no provider is exercised.
 - **Real identity.** The issuer is a local mock; the real provider's behaviour is not tested.
 - **The Cosmos adapters against Cosmos, in CI.** Emulator-gated tests exist and are run by hand.

@@ -14,5 +14,7 @@ The Definition of Ready is the context-completeness check for delegated work (`d
 - [ ] AI-agent suitability is stated, with a reason if Partial or No, and any decision an agent must flag instead of choosing is named
 - [ ] Open points are listed with who decides; none of them blocks the first step
 - [ ] If the work touches security, auth logic, IAM/RBAC, or expands the scope of another item, the human approval it needs is named (`CLAUDE.md`, "Human approval required")
+- [ ] *(proposed, register item 130)* The "Verification class" (V0 to V3, J) and the "ADRs and NFRs affected" line are filled in
+- [ ] *(proposed)* For anything that holds a connection or a resource, or parses outside input (class V3), the abuse cases are acceptance criteria: a slow client, many clients, a large input, a client that never reads, cleanup when the client leaves, many requests from one caller
 
 An item that is missing any of the above is not Ready yet. Send it back for another pass rather than starting work against gaps that will surface mid-task instead.

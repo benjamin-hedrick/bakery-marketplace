@@ -1,6 +1,6 @@
 # Non-Functional Requirements
 
-> **Status:** Current · updated 2026-11-02 (section 3.3 corrected; register item 130 lists what else to revisit). Requirements are targets and decisions; section 8 says what has been measured. Nothing here has been load-tested or deployed.
+> **Status:** Current · updated 2026-11-02 (section 3.3 corrected; sections 3.8, 3.9, 5.1 and 5.2 are proposed additions for the lead's review, register item 130). Requirements are targets and decisions; section 8 says what has been measured. Nothing here has been load-tested or deployed.
 
 Per `WI-NFR-001`: every requirement below traces to a specific ADR or vision principle — no NFR here should read as invented without that trace. The target numbers (load, availability) were set by the lead as planning assumptions, not derived from measured traffic.
 
@@ -42,6 +42,12 @@ Status legend matches the rest of the project: **[MVP]** binding for v1 · **[MV
 ### 3.7 Sensitive data (dietary/allergy information)
 **[MVP]** Treated as quasi-health data: surfaced only at relevant touchpoints (browse, customization, cart — not buried, not over-exposed), access scoped to the owning customer and vendors fulfilling that customer's order, not broadly queryable. Source: vision principle 1, glossary's Preference Profile/Snapshot entries. **[Deferred]** A dedicated data-privacy/retention doc (`PRIV-001`) is planned for deeper treatment (retention windows, deletion policy) — this section states the baseline expectation now so it doesn't stay unstated in the interim.
 
+### 3.8 Abuse resistance and per-caller limits *(proposed 2026-11-02, register items 128 and 130; the numbers are the lead's to set)*
+**[MVP, proposed]** What one caller may hold is limited and tested: streams per vendor 5, per login 5, per process and per BFF 500, request body 64 KB, a write timeout and a silence limit (`WI-QUE-003`; built and tested). **Not built:** how fast a caller may open connections, log in or send requests. Proposed: a per-address token bucket on the login, GraphQL and stream routes of the web apps and on the BFF, refusing with 429 and `Retry-After`, with numbers set when item 128 is planned (API Management cannot limit per user, ADR-0008). Source: register items 27, 126, 128.
+
+### 3.9 Security verification *(proposed)*
+**[MVP, proposed]** Security-sensitive work (auth, sessions, anything holding a connection or parsing outside input) is verified at the level in [`verification-policy.md`](../process/verification-policy.md): abuse cases as acceptance criteria, tests shown to fail without the property, a dependency review, an adversarial pass before building and before review. Every security review so far was a read by the agent that wrote the code plus the lead's review; no independent review, penetration test or dynamic scan has been done. A statement of what has and has not been reviewed is due before the repository is public (register items 93 and 129).
+
 ## 4. Compliance
 
 - **[MVP] PCI scope**: SAQ A — card data is tokenized client-side via Stripe.js/Elements and never reaches this system's servers. Source: ADR-0005.
@@ -57,6 +63,14 @@ Status legend matches the rest of the project: **[MVP]** binding for v1 · **[MV
 - **[MVP]** A repeated checkout never creates a second order or takes stock twice (idempotency by a derived order id; stock reservation keyed by the order id; ADR-0017).
 - **[MVP]** Stock reservation is atomic per vendor and a released reservation is final (ADR-0017).
 - **[MVP]** Behaviour when each dependency fails, and how each case was established, is listed in [patterns](patterns.md) section 10; the review of that behaviour is register item 89.
+
+### 5.1 Long-lived connections and real-time delivery *(proposed)*
+- **[MVP, proposed]** A vendor's screen reflects an order change within a stated time. Measured, not yet a target: 68 ms p50 and 99 ms p95 on a local stack with one screen and a light load (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`). Proposed target for the lead to set: p95 under 1 second, with polling every 7 seconds as the fallback bound.
+- **[MVP]** A stream is bounded in count, time and silence (section 3.8); a client that is slow, stops reading or leaves does not hold a stream or a lock (`WI-QUE-003`).
+- **[MVP, proposed]** Behaviour under load is stated and tested: the limits are reached and the refusal is clean; many screens reconnecting together after a restart do not overload the services. Neither has been tried (register item 129).
+
+### 5.2 Observability *(proposed)*
+- **[MVP-lite, proposed]** The stream's metrics exist (counts of streams, refusals, closes). Nothing requires them to be exported or read; the requirement to be set is which metrics a long-lived-connection feature must emit and which alert reads them (`docs/operations/monitoring-alerting.md`).
 
 ## 6. Extensibility
 

@@ -44,6 +44,7 @@ nav:
       - Engineering Standards: process/engineering-standards.md
       - Quality Gates: process/quality-gates.md
       - Test Strategy: process/test-strategy.md
+      - Verification Policy: process/verification-policy.md
       - Playwright Guide: process/playwright-guide.md
       - Test Review Checklist: process/test-review-checklist.md
       - Definition of Ready: process/definition-of-ready.md
