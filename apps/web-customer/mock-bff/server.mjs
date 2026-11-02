@@ -168,6 +168,8 @@ function rootFor(fixture) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const seenAuthorizations = [];
+
 const server = http.createServer(async (req, res) => {
   const send = (code, body) => {
     res.writeHead(code, { 'content-type': 'application/json' });
@@ -181,12 +183,19 @@ const server = http.createServer(async (req, res) => {
     revision = Number(JSON.parse(raw || '{}').revision ?? 0);
     return send(200, { revision });
   }
+  // What the BFF was sent as Authorization, in order, so a test can see what the web app's server put on the call (ADR-0019).
+  if (req.url === '/__seen' && req.method === 'GET') return send(200, { authorizations: seenAuthorizations });
+  if (req.url === '/__seen' && req.method === 'DELETE') {
+    seenAuthorizations.length = 0;
+    return send(200, { ok: true });
+  }
   if (req.url === '/healthz') return send(200, { ok: true });
   if (req.url !== '/graphql' || req.method !== 'POST') return send(404, { error: 'not found' });
 
   const delay = Number(req.headers['x-delay-ms'] ?? 0);
   if (delay > 0) await sleep(Math.min(delay, 2000));
   const { query, variables } = JSON.parse(raw);
+  seenAuthorizations.push(req.headers.authorization ?? null);
   const fixture = String(req.headers['x-fixture'] ?? 'A').toUpperCase();
   const decline = String(req.headers['x-test-payment'] ?? '').toLowerCase() === 'decline';
   const result = await graphql({

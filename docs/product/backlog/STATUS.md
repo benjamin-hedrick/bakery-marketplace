@@ -68,7 +68,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [AUTH-002](WI-AUTH-002.md) | Per-service resource-ownership check pattern + reference application | EPIC-AUTH | Done | evidence: `tools/BakeryMarketplace.Auth/ResourceOwnershipHandler.cs` and its tests |
 | [AUTH-005](WI-AUTH-005.md) | Local mock OIDC issuer — token minting + PKCE authorization-code flow | EPIC-AUTH | Done | evidence: `tools/BakeryMarketplace.MockOidcHost` and the `MockOidc*` tests in `tools/tests/BakeryMarketplace.Auth.Tests` |
 | [AUTH-006](WI-AUTH-006.md) | Service-to-service authentication (OAuth2 client credentials) | EPIC-AUTH | In progress | remaining: phase 1 built (see the progress note under this banner); phase 2 needs the DEV tenant and the ADR-0018 verification list, and auth logic needs human approval |
-| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | EPIC-AUTH | In progress | remaining: phases 3 and 4 (phases 1 and 2 are built; see the progress notes under this banner) |
+| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | EPIC-AUTH | In progress | remaining: phase 4 (the evidence run and the amendments; phases 1 to 3 are built, see the progress notes under this banner) |
 | [CACHE-001](WI-CACHE-001.md) | Define CacheProvider interface + shared contract test suite | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` and its tests |
 | [CACHE-002](WI-CACHE-002.md) | RedisCacheProvider implementation | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (Redis provider) and its tests |
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (local and resilient providers) and its tests |
@@ -181,11 +181,11 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-117 numbered items in `docs/governance/open-items-register.md` (highest number 117).
+119 numbered items in `docs/governance/open-items-register.md` (highest number 119).
 
 | Type | Count |
 |---|---|
-| Known limitation | 9 |
+| Known limitation | 10 |
 | Tracking | 7 |
 | Not started | 6 |
 | Verification gap | 6 |
@@ -247,12 +247,14 @@ Accepted: 20 · Superseded: 1
 | Product gap | 1 |
 | Design gap, auth decision (human approval required) | 1 |
 | Test defect, found by a pipeline run | 1 |
+| Deployment follow-up | 1 |
 
 | Item status | Count |
 |---|---|
-| Deferred | 18 |
-| Resolved | 36 |
+| Deferred | 17 |
+| Resolved | 38 |
 | Accepted | 5 |
 | Tracking | 12 |
 | Open | 45 |
 | Decided | 1 |
+| Partly | 1 |

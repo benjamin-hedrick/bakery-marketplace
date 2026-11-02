@@ -362,6 +362,7 @@ describe('the GraphQL handler', () => {
     await r.graphql(req('POST', post(cookie), { body }), out.api);
 
     assert.match(out.out.headers['set-cookie'] as string, /^bakery-session-web-queue-display=; .*Max-Age=0/);
+    assert.equal(out.out.headers['x-session-ended'], '1'); // so the page shows the login again even though a public query succeeded
     assert.equal(r.bff[0]!.headers['authorization'], undefined);
   });
 

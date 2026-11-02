@@ -1,6 +1,6 @@
 import { Environment, Network, RecordSource, Store } from 'relay-runtime';
 import type { FetchFunction } from 'relay-runtime';
-import { session } from '../auth/session.ts';
+import { markLoggedOut } from '../session';
 import { exportClientSpan } from './otlp';
 
 // Relay has no public name for its serialized record map, so derive it from the constructor.
@@ -44,17 +44,12 @@ export class GraphQLRequestError extends Error {
   }
 }
 
-/** The bearer token of the current login, as request headers. Evaluated per request, because the login can change at any time. */
-function sessionHeaders(): Record<string, string> {
-  const token = session.getAccessToken();
-  return token ? { authorization: `Bearer ${token}` } : {};
-}
-
 function makeFetch(
   url: string,
   headers: Record<string, string> = {},
   tracing?: Tracing,
-  dynamicHeaders?: () => Record<string, string>,
+  /** True for the browser: it sends its session cookie (the page holds no token, ADR-0019), and an UNAUTHENTICATED answer means the login is over. */
+  browser = false,
 ): FetchFunction {
   return async (params, variables) => {
     const startedAtMs = Date.now();
@@ -77,13 +72,15 @@ function makeFetch(
     try {
       res = await fetch(url, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...headers, ...dynamicHeaders?.(), ...traceHeaders },
+        ...(browser ? { credentials: 'same-origin' as const } : {}),
+        headers: { 'content-type': 'application/json', ...headers, ...traceHeaders },
         body: JSON.stringify({ query: params.text, variables }),
       });
     } catch (e) {
       done(undefined, true);
       throw e;
     }
+    if (browser && res.headers.get('x-session-ended') === '1') markLoggedOut(); // the server ended the session (renewal refused): the page offers the login
     if (!res.ok) {
       done(res.status, true);
       throw new Error(`GraphQL request failed: ${res.status}`);
@@ -92,10 +89,10 @@ function makeFetch(
     done(res.status, !!json.errors?.length);
     if (json.errors?.length) {
       if (
-        dynamicHeaders &&
+        browser &&
         json.errors.some((e: { extensions?: { code?: string } }) => e.extensions?.code === 'UNAUTHENTICATED')
       ) {
-        session.clear(); // the token was missing, expired or refused: the login is over
+        markLoggedOut(); // the login was missing, expired or refused: the page offers it again
         throw new UnauthenticatedError();
       }
       throw new GraphQLRequestError(json.errors);
@@ -136,8 +133,8 @@ let browserEnvironment: Environment | undefined;
 export function getBrowserEnvironment(): Environment {
   if (typeof window === 'undefined') throw new Error('getBrowserEnvironment() called on the server');
   browserEnvironment ??= new Environment({
-    // The token goes only to our own origin (the Next.js rewrite to the BFF), and only from the browser (ADR-0012, item 26).
-    network: Network.create(makeFetch(BROWSER_GRAPHQL_URL, {}, undefined, sessionHeaders)),
+    // The browser holds no token: the cookie goes to our own origin and the server adds the bearer header (ADR-0019).
+    network: Network.create(makeFetch(BROWSER_GRAPHQL_URL, {}, undefined, true)),
     store: new Store(new RecordSource()),
   });
   return browserEnvironment;

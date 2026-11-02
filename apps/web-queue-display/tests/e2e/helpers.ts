@@ -57,7 +57,7 @@ const post = async (url: string, body: unknown) => {
 export const setMock = (state: { orders?: ReturnType<typeof order>[]; mode?: string }) =>
   post(`${MOCK}/__state`, state);
 
-/** Sets who logs in at the fake issuer, how long a token lives, and how the issuer misbehaves (ok | down | revoked | bad-exchange). */
+/** Sets who logs in at the fake issuer, how long a token lives, and how the issuer misbehaves (ok | down | revoked | bad-exchange | denied | forged-state). */
 export const setIssuer = (state: {
   user?: 'vendor' | 'customer';
   accessSeconds?: number;

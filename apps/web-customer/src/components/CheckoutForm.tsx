@@ -16,7 +16,7 @@ import {
   type Cart,
 } from '../lib/cart/cart.ts';
 import { cartStore, useCart } from '../lib/cart/useCart.ts';
-import { randomUrlSafe } from '../lib/auth/pkce.ts';
+import { randomUrlSafe } from '../lib/random';
 import { formatMoney } from '../lib/money';
 import { GraphQLRequestError, UnauthenticatedError } from '../lib/relay/environment';
 

@@ -1,76 +1,79 @@
-import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import type { ConsoleMessage, Page } from '@playwright/test';
-import { APP, authorizationOfNextGraphQL, fakeToken, ISSUER, logOut, stubIssuer } from './helpers';
+import {
+  APP,
+  bffAuthorizations,
+  forgetBffAuthorizations,
+  issuerSeen,
+  logIn,
+  logOut,
+  setIssuer,
+  stubIssuer,
+} from './helpers';
 
-// S1-02: login in the browser. The issuer is stubbed inside the browser (page.route), so the whole Authorization Code + PKCE flow is checked
-// deterministically here; the skeleton suite does the same against the real mock issuer.
+// S1-02 with the server-side session of ADR-0019. The login is real: the page goes to /api/auth/login, the app's server talks to the fake issuer
+// and sets an HttpOnly cookie. The skeleton suite does the same against the real mock issuer.
 
-const challengeOf = (verifier: string) => createHash('sha256').update(verifier).digest('base64url');
+const refresh = (page: Page) => page.getByRole('button', { name: 'Refresh' }).click();
 
-const refresh = (page: Page) => () => page.getByRole('button', { name: 'Refresh' }).click();
-
-test('the header offers Log in in the server HTML, before any JavaScript runs', async ({ browser }) => {
-  const context = await browser.newContext({ javaScriptEnabled: false });
-  const page = await context.newPage();
-  await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
-  await expect(page.getByTestId('user-name')).toHaveCount(0);
-  await context.close();
-});
-
-test('logging in sends a PKCE request, exchanges the code with the verifier, and shows who is logged in', async ({
+test('logging in sends a PKCE request from the server, exchanges the code with the verifier and no secret, and shows who is logged in', async ({
   page,
 }) => {
-  const issuer = await stubIssuer(page);
+  await stubIssuer(page);
   await page.goto('/');
 
   await page.getByRole('button', { name: 'Log in' }).click();
   await expect(page.getByTestId('user-name')).toHaveText('Alice Customer');
   await expect(page).toHaveURL(`${APP}/`);
 
-  const authorize = issuer.authorizeUrls[0]!;
-  expect(authorize.searchParams.get('response_type')).toBe('code');
-  expect(authorize.searchParams.get('client_id')).toBe('web-customer');
-  expect(authorize.searchParams.get('redirect_uri')).toBe(`${APP}/auth/callback`);
-  expect(authorize.searchParams.get('code_challenge_method')).toBe('S256');
-  expect(authorize.searchParams.get('state')).toMatch(/^[A-Za-z0-9_-]{16,}$/);
-
-  const exchange = issuer.tokenBodies[0]!;
-  expect(exchange.get('grant_type')).toBe('authorization_code');
-  expect(exchange.get('code')).toBe('code-1');
-  expect(exchange.get('redirect_uri')).toBe(`${APP}/auth/callback`);
-  const verifier = exchange.get('code_verifier')!;
-  expect(verifier).toMatch(/^[A-Za-z0-9_-]{43,128}$/);
-  expect(authorize.searchParams.get('code_challenge')).toBe(challengeOf(verifier)); // the exchange proves it is the app that started the login
-  expect(authorize.toString()).not.toContain(verifier); // and the verifier never travelled in the URL
+  const seen = await issuerSeen();
+  const authorize = seen.authorize[0]!;
+  expect(authorize['response_type']).toBe('code');
+  expect(authorize['client_id']).toBe('web-customer');
+  expect(authorize['redirect_uri']).toBe(`${APP}/api/auth/callback`);
+  expect(authorize['code_challenge_method']).toBe('S256');
+  expect(authorize['scope']).toBe('openid offline_access');
+  expect(authorize['state']).toMatch(/^[A-Za-z0-9_-]{16,}$/);
+  expect(seen.tokens).toHaveLength(1); // the exchange was done by the server, once
+  expect(seen.tokens[0]).toMatchObject({
+    grant: 'authorization_code',
+    clientId: 'web-customer',
+    hasSecret: false,
+    hasVerifier: true,
+  });
 });
 
-test('the token is held in memory only: not in any storage or cookie, and a reload ends the login', async ({
+test('the browser holds no token: only an HttpOnly cookie with an opaque id, and a reload keeps the login', async ({
   page,
   context,
 }) => {
-  const token = fakeToken();
-  await stubIssuer(page, { token });
+  await stubIssuer(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Log in' }).click();
   await expect(page.getByTestId('user-name')).toBeVisible();
 
-  const stored = await page.evaluate(() =>
-    JSON.stringify([{ ...localStorage }, { ...sessionStorage }, document.cookie]),
+  const cookies = await context.cookies();
+  const session = cookies.find((c) => c.name === 'bakery-session-web-customer');
+  expect(session).toBeTruthy();
+  expect(session!.httpOnly).toBe(true);
+  expect(session!.sameSite).toBe('Lax');
+  expect(session!.path).toBe('/');
+  expect(session!.value).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  expect(cookies.some((c) => c.name.includes('login'))).toBe(false); // the pending-login cookie was cleared
+  const seenByScripts = await page.evaluate(() =>
+    JSON.stringify([document.cookie, { ...localStorage }, { ...sessionStorage }, document.documentElement.outerHTML]),
   );
-  expect(stored).not.toContain(token.split('.')[2]);
-  expect(stored).not.toContain('access_token');
-  expect(JSON.stringify(await context.cookies())).not.toContain(token.split('.')[2]);
-  expect(await page.evaluate(() => sessionStorage.getItem('bakery.auth.pending'))).toBeNull(); // the pending login was spent
+  expect(seenByScripts).not.toContain(session!.value);
+  expect(seenByScripts).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}/); // no JWT anywhere the page can see
+  expect(seenByScripts).not.toMatch(/refresh_token/i);
 
-  await page.reload(); // open item 24: no refresh token, so a reload is a logout
-  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+  await page.reload();
+
+  await expect(page.getByTestId('user-name')).toHaveText('Alice Customer');
+  expect((await issuerSeen()).tokens.filter((t) => t.grant === 'authorization_code')).toHaveLength(1); // no second login
 });
 
-test('login returns to the page it was started from, and an unsafe destination falls back to the home page', async ({
-  page,
-}) => {
+test('login returns to the page it was started from', async ({ page }) => {
   await stubIssuer(page);
   await page.goto('/');
   await page.getByTestId('listing').first().getByRole('link').first().click();
@@ -78,27 +81,59 @@ test('login returns to the page it was started from, and an unsafe destination f
   const detailPath = new URL(page.url()).pathname;
 
   await page.getByRole('button', { name: 'Log in' }).click();
-  await expect(page).toHaveURL(`${APP}${detailPath}`); // back where it started, once the callback has finished navigating
+
+  await expect(page).toHaveURL(`${APP}${detailPath}`);
   await expect(page.getByTestId('user-name')).toBeVisible();
 });
 
-test('the token is sent to the BFF while logged in, and not before or after', async ({ page }) => {
-  const token = fakeToken();
-  await stubIssuer(page, { token });
+test('a login link cannot be used to send the user to another site afterwards', async ({ page }) => {
+  for (const returnTo of ['https://evil.example/steal', '//evil.example/steal', '/\\evil.example', '/auth/callback']) {
+    await stubIssuer(page);
+    await page.context().clearCookies();
+
+    await page.goto(`/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
+
+    await expect(page).toHaveURL(`${APP}/`); // the home page of this app, never the address in the link
+    await expect(page.getByTestId('user-name')).toBeVisible();
+  }
+});
+
+test('the bearer token is built on the server while logged in, and is absent before and after', async ({ page }) => {
+  await stubIssuer(page);
   await page.goto('/');
-  expect(await authorizationOfNextGraphQL(page, refresh(page))).toBeUndefined();
+  await forgetBffAuthorizations();
+  await refresh(page);
+  await expect.poll(async () => (await bffAuthorizations()).length).toBeGreaterThan(0);
+  expect((await bffAuthorizations()).every((a) => a === null)).toBe(true); // anonymous: no header
 
   await page.getByRole('button', { name: 'Log in' }).click();
   await expect(page.getByTestId('user-name')).toBeVisible();
-  expect(await authorizationOfNextGraphQL(page, refresh(page))).toBe(`Bearer ${token}`);
+  await forgetBffAuthorizations();
+  await refresh(page);
+  await expect.poll(async () => (await bffAuthorizations()).length).toBeGreaterThan(0);
+  expect((await bffAuthorizations()).every((a) => /^Bearer eyJ/.test(a ?? ''))).toBe(true);
 
   await logOut(page);
-  expect(await authorizationOfNextGraphQL(page, refresh(page))).toBeUndefined();
+  await forgetBffAuthorizations();
+  await refresh(page);
+  await expect.poll(async () => (await bffAuthorizations()).length).toBeGreaterThan(0);
+  expect((await bffAuthorizations()).every((a) => a === null)).toBe(true);
 });
 
-test('when the BFF says the login is no longer accepted, the session ends and the page offers to log in', async ({
-  page,
-}) => {
+test('logging out ends the session on the server: the old cookie opens nothing', async ({ page, context }) => {
+  await stubIssuer(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await expect(page.getByTestId('user-name')).toBeVisible();
+  const before = (await context.cookies()).find((c) => c.name === 'bakery-session-web-customer')!;
+
+  await logOut(page);
+
+  const replay = await page.request.get('/api/auth/me', { headers: { cookie: `${before.name}=${before.value}` } });
+  expect(await replay.json()).toEqual({ authenticated: false });
+});
+
+test('when the BFF says the login is no longer accepted, the page offers to log in', async ({ page }) => {
   await stubIssuer(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Log in' }).click();
@@ -120,62 +155,99 @@ test('when the BFF says the login is no longer accepted, the session ends and th
   await expect(page.getByTestId('user-name')).toHaveCount(0);
 });
 
-test.describe('a login that cannot be completed leaves the user logged out, with a message and no token request', () => {
+test('an access token about to expire is renewed on the server, and a refused renewal ends the session', async ({
+  page,
+}) => {
+  await stubIssuer(page, { accessSeconds: 30 }); // inside the 60 second margin: every call renews
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await expect(page.getByTestId('user-name')).toBeVisible();
+
+  await refresh(page);
+  await expect
+    .poll(async () => (await issuerSeen()).tokens.filter((t) => t.grant === 'refresh_token').length)
+    .toBeGreaterThanOrEqual(1);
+  await expect(page.getByTestId('user-name')).toBeVisible(); // the user did not notice
+
+  await setIssuer({ mode: 'revoked' });
+  await refresh(page);
+  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+});
+
+test.describe('a login that cannot be completed leaves the user logged out, with a message and no session', () => {
   test('a callback with nothing pending (a bookmarked or replayed callback URL)', async ({ page }) => {
-    const issuer = await stubIssuer(page);
-    await page.goto('/auth/callback?code=code-1&state=anything');
+    await stubIssuer(page);
+    await page.goto('/api/auth/callback?code=code-1&state=anything');
+    await expect(page).toHaveURL(/\/auth\/error\?code=no_pending$/);
     await expect(page.getByTestId('login-error')).toContainText('no login in progress');
-    await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
-    expect(issuer.tokenBodies).toHaveLength(0);
+    await expect((await issuerSeen()).tokens).toHaveLength(0);
   });
 
   test('a callback whose state is not the one we sent', async ({ page }) => {
-    const issuer = await stubIssuer(page, { callbackQuery: () => 'code=code-1&state=forged' });
+    await stubIssuer(page, { mode: 'forged-state' });
     await page.goto('/');
     await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/auth\/error\?code=state_mismatch$/);
     await expect(page.getByTestId('login-error')).toContainText('did not match');
-    expect(issuer.tokenBodies).toHaveLength(0);
+    expect((await issuerSeen()).tokens).toHaveLength(0); // the code was never exchanged
+    await page.goto('/');
     await expect(page.getByTestId('user-name')).toHaveCount(0);
   });
 
   test('the issuer reporting an error', async ({ page }) => {
-    const issuer = await stubIssuer(page, { callbackQuery: (state) => `error=access_denied&state=${state}` });
+    await stubIssuer(page, { mode: 'denied' });
     await page.goto('/');
     await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/auth\/error\?code=issuer_error$/);
     await expect(page.getByTestId('login-error')).toContainText('not completed');
-    expect(issuer.tokenBodies).toHaveLength(0);
+    expect((await issuerSeen()).tokens).toHaveLength(0);
   });
 
-  test('a refused code exchange, and a token that is already expired', async ({ page }) => {
-    await stubIssuer(page, { tokenStatus: 400 });
+  test('a refused code exchange', async ({ page }) => {
+    await stubIssuer(page, { mode: 'bad-exchange' });
     await page.goto('/');
     await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/auth\/error\?code=exchange_failed$/);
     await expect(page.getByTestId('login-error')).toContainText('could not complete');
-    await page.unroute(`${ISSUER}/token`);
-    await stubIssuer(page, { token: fakeToken({ exp: 1 }) });
+    await expect(page.getByTestId('login-error')).not.toContainText('invalid_grant');
     await page.goto('/');
-    await page.getByRole('button', { name: 'Log in' }).click();
-    await expect(page.getByTestId('login-error')).toContainText('could not complete');
     await expect(page.getByTestId('user-name')).toHaveCount(0);
   });
+});
 
-  test('a login link cannot be used to send the user to another site afterwards', async ({ page }) => {
-    await stubIssuer(page);
-    await page.goto('/');
-    await page.evaluate(() => {
-      // What a crafted link could try to leave behind for the callback: a pending login whose destination is another site.
-      const pending = {
-        state: 's-1',
-        verifier: 'v'.repeat(43),
-        returnTo: '//evil.example/steal',
-        createdAt: Date.now(),
-      };
-      sessionStorage.setItem('bakery.auth.pending', JSON.stringify(pending));
-    });
-    await page.goto('/auth/callback?code=code-1&state=s-1');
-    await expect(page).toHaveURL(`${APP}/`); // the home page of this app, not evil.example
-    await expect(page.getByTestId('user-name')).toBeVisible();
+test('a forged cross-origin post to the GraphQL route, and a browser Authorization header, never reach the BFF as the user', async ({
+  page,
+}) => {
+  await stubIssuer(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await expect(page.getByTestId('user-name')).toBeVisible();
+  await forgetBffAuthorizations();
+  const body = JSON.stringify({ query: '{ __typename }' });
+
+  const wrongOrigin = await page.request.post('/api/graphql', {
+    headers: { origin: 'http://evil.example', 'content-type': 'application/json' },
+    data: body,
   });
+  const noOrigin = await page.request.post('/api/graphql', {
+    headers: { 'content-type': 'application/json' },
+    data: body,
+  });
+  const formPost = await page.request.post('/api/graphql', {
+    headers: { origin: APP, 'content-type': 'application/x-www-form-urlencoded' },
+    data: 'a=b',
+  });
+  expect([wrongOrigin.status(), noOrigin.status(), formPost.status()]).toEqual([403, 403, 403]);
+  expect(await bffAuthorizations()).toEqual([]); // none of them reached the BFF
+
+  await page.request.post('/api/graphql', {
+    headers: { origin: APP, 'content-type': 'application/json', authorization: 'Bearer forged-by-the-browser' },
+    data: body,
+  });
+  const seen = await bffAuthorizations();
+  expect(seen).toHaveLength(1);
+  expect(seen[0]).toMatch(/^Bearer eyJ/);
+  expect(seen[0]).not.toContain('forged');
 });
 
 test('logging in and out produces no console warnings or errors', async ({ page }) => {
@@ -186,8 +258,7 @@ test('logging in and out produces no console warnings or errors', async ({ page 
   page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
   await stubIssuer(page);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Log in' }).click();
-  await expect(page.getByTestId('user-name')).toBeVisible();
+  await logIn(page);
   await logOut(page);
   expect(problems, problems.join('\n')).toEqual([]);
 });

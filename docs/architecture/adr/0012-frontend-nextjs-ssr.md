@@ -66,3 +66,7 @@ The validation outcome above covered the proof of concept (`WI-PORT-001`). Since
 ## Note, 2026-11-02: the queue display
 
 ADR-0021 (Accepted 2026-11-02) amends the queue display's line above: it still polls the BFF (built as `WI-QUE-002`, polling every 7 seconds, client-rendered, no server-side Relay), and it will gain a pushed stream in front of the polling, which stays as the fallback and the resynchronization. ADR-0019 (Proposed) would change where the access token lives for the browser apps (a server-side session, not page memory); the "authenticated pages are client-rendered" rule here is not changed by either.
+
+## Note, 2026-11-02: the Next.js server now holds tokens (ADR-0019)
+
+"The Next.js server never holds user tokens" (register item 26) no longer holds for the browser apps: ADR-0019 (Accepted 2026-11-02) puts the login on the web app's server, which keeps the access and refresh tokens, encrypted, in Redis and attaches the bearer header to the BFF call. Authenticated pages are still client-rendered; what changed is that rendering them on the server is now *possible* (the session is there). Both apps moved on 2026-11-02 (WI-AUTH-007 phase 3). Server-side API routes `/api/auth/*` and `/api/graphql` replace the browser's `/auth/callback` page and its token exchange.

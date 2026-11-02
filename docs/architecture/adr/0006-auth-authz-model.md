@@ -90,3 +90,7 @@ Service-to-service calls use the OAuth2 client credentials grant (ADR-0018). The
 ## Current reading (2026-10-30)
 
 The decision is unchanged. Where the text above says Azure AD B2C, read Microsoft Entra External ID (see the amendment note above). The mock issuer (`WI-AUTH-005`) and the validation middleware (`tools/BakeryMarketplace.Auth`, written here as `/tools/auth-middleware`) are built and used by the services; Entra is not configured anywhere. `web-admin`, listed above as a client, does not exist. The "open item" section on secrets management was resolved by ADR-0007.
+
+## Note, 2026-11-02: browser sessions (ADR-0019)
+
+ADR-0019 (Accepted 2026-11-02) changes where a browser app keeps its token. The "header-only, no cookies" rule above now applies **between the web app's server and the BFF and services**, which still receive `Authorization: Bearer` and validate it themselves. Between the browser and its own web app there is an opaque HttpOnly session cookie and no token in the page; the CSRF analysis above is answered by `SameSite=Lax` plus an `Origin` and `Content-Type: application/json` check on every state-changing request. Built in `packages/web-session` (WI-AUTH-007, phases 1 to 3, 2026-11-02): both web apps use it; the in-memory token, the browser-side PKCE and the missing refresh token (register item 24) are gone.

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { logIn, logOut, stubIssuer } from './helpers';
+import { APP, logIn, logOut, stubIssuer } from './helpers';
 
 // S1-04: the order and its status. Against the mock BFF, which keeps the orders it is given and, like the real one, needs a bearer token.
 
@@ -54,11 +54,19 @@ test('an order with an option and a pickup time shows as waiting for the bakery,
   await expect(page.getByTestId('order-pickup')).toHaveText('Pickup Tue, Jan 15, 9:15 AM – 9:30 AM');
 });
 
-test('the order page is behind the login: after logging in again the same order is shown', async ({ page }) => {
+test('the order page is behind the login: once the session has ended, logging in again shows the same order', async ({
+  page,
+}) => {
   await placeOrder(page);
   const url = page.url();
+  await page.reload(); // a reload no longer ends the login: the session is on the server (ADR-0019)
+  await expect(page.getByTestId('order-status')).toHaveText('Order confirmed');
 
-  await page.reload(); // a reload ends the login (open item 24)
+  await page.request.post('/api/auth/logout', {
+    headers: { origin: APP, 'content-type': 'application/json' },
+    data: '{}',
+  }); // the session ends
+  await page.reload();
   await expect(page.getByTestId('login-required')).toBeVisible();
   await expect(page.getByTestId('order-status')).toHaveCount(0);
 

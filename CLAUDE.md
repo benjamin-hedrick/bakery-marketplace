@@ -28,7 +28,7 @@ Frontend proof (`apps/web-customer`, Node 25.9.0 was used; exact LTS pin is stil
 ```
 npm ci
 npm run typecheck        # relay-compiler, then tsc
-npm run test:unit        # login and cart libraries, Node test runner (53 tests)
+npm run test:unit        # the cart library, Node test runner (the login code is in packages/web-session)
 npm run build            # relay-compiler + next build
 npm run mock             # mock GraphQL on :4000
 ENABLE_TEST_HOOKS=1 npx next start -p 3000
@@ -39,9 +39,9 @@ npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/
 
 GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (86 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `ENABLE_TEST_HOOKS=1` forwards the declined-payment test hook and must never be set outside tests). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
 
-Session package (`packages/web-session`, `WI-AUTH-007` phase 2, not yet used by the apps): `npm ci`, `npm run typecheck`, `npm test` (98 tests; the 13 Redis store tests run only with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and Redis up, and are skipped otherwise).
+Session package (`packages/web-session`, `WI-AUTH-007`, used by both web apps since 2026-11-02; run `npm ci` here before in an app): `npm ci`, `npm run typecheck`, `npm test` (104 tests; the 13 Redis store tests run only with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and Redis up, and are skipped otherwise). The apps' browser tests use its fake issuer (`npm run mock-issuer`) and need no Redis; the real-stack login needs the cache Redis (`docker compose --profile with-redis up -d`).
 
-Queue display (`apps/web-queue-display`, port 3100): `npm ci`, `npm run typecheck`, `npm run test:unit` (51 tests), `npm run test:e2e` (11 Playwright tests against `npm run mock` on :4101; the issuer is stubbed in the browser). Its login code is a copy of web-customer's (register item 115).
+Queue display (`apps/web-queue-display`, port 3100): `npm ci`, `npm run typecheck`, `npm run test:unit` (8 tests), `npm run test:e2e` (19 Playwright tests against `npm run mock` on :4101 and the fake issuer on :5101).
 
 Generated Relay artifacts (`src/__generated__/`) are gitignored; `npm run relay` recreates them. `ENABLE_TEST_HOOKS` must never be set outside tests. Details: `apps/web-customer/README.md`.
 

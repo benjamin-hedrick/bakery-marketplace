@@ -10,7 +10,7 @@ const ISSUER = process.env.ISSUER_URL ?? 'http://localhost:5100';
 export async function userToken(userId: string): Promise<string> {
   const verifier = randomBytes(32).toString('base64url');
   const challenge = createHash('sha256').update(verifier).digest('base64url');
-  const redirectUri = 'http://localhost:3000/auth/callback';
+  const redirectUri = 'http://localhost:3000/api/auth/callback';
   const submit = await fetch(`${ISSUER}/authorize/submit`, {
     method: 'POST',
     redirect: 'manual',

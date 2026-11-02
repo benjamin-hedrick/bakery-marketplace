@@ -84,7 +84,11 @@ test('a plain order: browse, choose, log in, order, and it is confirmed by itsel
   await expect(visitor.getByTestId('order-total')).toHaveCount(0);
   await visitor.context().close();
 
-  await page.reload(); // a reload ends the login (open item 24): the same link asks again, then shows the same order
+  await page.reload(); // a reload keeps the login: the session is on the server behind a cookie (ADR-0019)
+  await expect(page.getByTestId('order-status')).toHaveText('Order confirmed');
+
+  await page.getByRole('button', { name: 'Log out' }).click(); // once the session is ended, the same link asks again, then shows the same order
+  await page.goto(orderUrl);
   await expect(page.getByTestId('login-required')).toBeVisible();
   await page.getByTestId('login-required').getByRole('button', { name: 'Log in' }).click();
   await logInAsAlice(page);

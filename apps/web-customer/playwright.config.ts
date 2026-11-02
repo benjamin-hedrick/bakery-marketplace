@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { defineConfig } from '@playwright/test';
 
 // Expects `npm run mock` and a production `next start` (with ENABLE_TEST_HOOKS=1) to be running, or
@@ -11,6 +12,13 @@ export default defineConfig({
   use: { baseURL: 'http://localhost:3000', trace: 'retain-on-failure' },
   webServer: [
     { command: 'npm run mock', url: 'http://localhost:4000/healthz', reuseExistingServer: true, timeout: 30_000 },
+    // The login happens on the app's server (ADR-0019), so the issuer is a real HTTP stand-in, not something the tests can stub in the page.
+    {
+      command: 'npm run mock-issuer',
+      url: 'http://localhost:5101/healthz',
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
     {
       command: 'npm run build && npx next start -p 3000',
       url: 'http://localhost:3000',
@@ -20,9 +28,14 @@ export default defineConfig({
       env: {
         ENABLE_TEST_HOOKS: '1',
         GRAPHQL_URL: 'http://localhost:4000/graphql',
-        // Where the login page sends the browser (read at run time by /api/config); the tests stand in for the mock issuer at this address.
-        AUTH_ISSUER: 'http://localhost:5100',
+        // The login (read at run time by the API routes): the issuer stand-in, this app's origin, and sessions kept in the app's own memory, which
+        // only the explicit allowance below permits. The encryption key is a throw-away generated at each start of the tests.
+        AUTH_ISSUER: 'http://localhost:5101',
         AUTH_CLIENT_ID: 'web-customer',
+        APP_ORIGIN: 'http://localhost:3000',
+        SESSION_REDIS_URL: 'memory',
+        SESSION_ALLOW_MEMORY_STORE: '1',
+        SESSION_ENCRYPTION_KEY: randomBytes(32).toString('base64url'),
         // The mock BFF and the declined-payment hook are steered by request headers, which the API route only forwards when told to.
         GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-fixture,x-delay-ms,x-place-order,x-test-payment',
       },
