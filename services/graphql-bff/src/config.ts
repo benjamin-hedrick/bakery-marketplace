@@ -16,6 +16,13 @@ export interface Config {
    * `ENABLE_TEST_HOOKS=1`, which must never be set outside tests. Ordering-service also ignores the header in Production.
    */
   testHooks: boolean;
+  /**
+   * Live updates (ADR-0021): how long the stream from ordering-service may be silent before the BFF treats it as dead. Ordering sends a
+   * heartbeat every 15 seconds, so the default of 45 seconds is three missed beats.
+   */
+  streamIdleMs?: number | undefined;
+  /** Live updates: the most subscriptions this instance holds open at once. Beyond it a new one is refused with 503 (the screen polls instead). */
+  maxStreams?: number | undefined;
   /** OTLP/HTTP base URL (`OTEL_EXPORTER_OTLP_ENDPOINT`). Unset means traces are not exported. */
   otlpEndpoint?: string | undefined;
 }
@@ -29,6 +36,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     timeoutMs,
     checkoutTimeoutMs: Number(env.CHECKOUT_TIMEOUT_MS ?? Math.max(15000, timeoutMs)),
     testHooks: env.ENABLE_TEST_HOOKS === '1',
+    streamIdleMs: Number(env.STREAM_IDLE_MS ?? 45000),
+    maxStreams: Number(env.MAX_STREAMS ?? 500),
     otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
   };
 }

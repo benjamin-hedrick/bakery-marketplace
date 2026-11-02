@@ -12,6 +12,11 @@ export interface Context {
   authorization?: string | undefined;
   /** The D-10 test hook, set only when the BFF has test hooks enabled and the caller asked for exactly `decline`. */
   testPayment?: 'decline' | undefined;
+  /**
+   * Aborted when the caller's connection closes. A subscription ties its connection to ordering-service to it, because returning an async
+   * generator that is waiting for the next event is queued behind that wait and would not close the stream until the next event or silence limit.
+   */
+  signal?: AbortSignal | undefined;
 }
 
 const MAX_PAGE = 50;
@@ -93,6 +98,7 @@ const toVendorOrder = (o: OrderingVendorOrder) => ({
   automatic: o.automatic,
   placedAt: o.placedAt,
   updatedAt: o.updatedAt,
+  sequence: o.lastSequence,
 });
 
 /** The ordering status names a vendor may filter by, in the schema's words. */
@@ -135,6 +141,22 @@ async function readVendorOrder(serviceId: string, ctx: Context) {
   const o = await vendorCall(ctx, (authorization) => ctx.ordering.getVendorOrder(serviceId, authorization, ctx.trace));
   return o ? toVendorOrder(o) : null;
 }
+
+/**
+ * The root of a subscription operation (ADR-0021). The resolver opens the vendor's stream with ordering, so a refusal is an error of the
+ * operation before any event; each event is then the changed order, shaped by the same mapping as the vendor queries. Returning the iterator
+ * (or the client leaving) closes the connection to ordering.
+ */
+export const subscriptionRoot = {
+  async vendorOrderChanged(_args: unknown, ctx: Context) {
+    const events = await vendorCall(ctx, (authorization) =>
+      ctx.ordering.openVendorOrderStream(authorization, ctx.trace, ctx.signal),
+    );
+    return (async function* () {
+      for await (const order of events) yield { vendorOrderChanged: toVendorOrder(order) };
+    })();
+  },
+};
 
 // ---- placeOrder -------------------------------------------------------------------------------------------------------------
 
