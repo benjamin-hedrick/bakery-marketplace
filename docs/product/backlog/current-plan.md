@@ -1,12 +1,14 @@
 # Current plan
 
-> **Status:** Current · written 2026-10-30, order of next work updated 2026-11-01. The status of every work item is in `STATUS.md` (generated); this page says what is built, what is happening now and where the next work is listed. Keep it short: update it when the focus changes.
+> **Status:** Current · written 2026-10-30, order of next work updated 2026-11-02. The status of every work item is in `STATUS.md` (generated); this page says what is built, what is happening now and where the next work is listed. Keep it short: update it when the focus changes.
 
 ## What is built
 
 Slice 1 is complete and merged: a customer logs in, browses listings with stock, builds a cart, places a test order (the payment is a stub), and watches the order's status. It runs on a developer machine: the Compose infrastructure (Redis Streams, the Cosmos emulator, the mock identity issuer), the catalog and ordering services, the GraphQL BFF and the Next.js customer app. Nothing is deployed. The measured state (test counts, what was run and what was not) is in `docs/evidence/facts-sheet-2026-10-29.md` and `docs/evidence/baseline-2026-10-30.md`; the slice record is `docs/architecture/first-slice-contract.md` and `docs/evidence/slice-1/findings.md`.
 
-Not built: the admin and notification services (scaffolds), the vendor and queue web apps, a real payment, cloud environments.
+Since slice 1 (merged 2026-11-01, local only): the vendor's order read side in the ordering service and BFF (`WI-QUE-001`) and the queue display app, which polls every 7 seconds (`WI-QUE-002`, both Done); and browser sessions (`WI-AUTH-007`, ADR-0019): a server-side session behind an HttpOnly cookie in `packages/web-session`, used by both web apps, with the mock issuer's refresh grant. The real-stack evidence is in `docs/evidence/WI-AUTH-007/findings.md`. `WI-AUTH-007` stays In progress until the lead reviews its security-sensitive phases (the AI pass on 2026-11-02 was a code read; register items 118 to 122 are open from it).
+
+Not built: the admin and notification services (scaffolds), the admin web app, push to the vendor queue (`WI-QUE-003`, ADR-0021, next), the vendor's order actions in the queue UI, a real payment, cloud environments.
 
 ## What is happening now
 
@@ -26,7 +28,7 @@ The public-readiness pass is done except the settings that need the repository t
 6. Process, in small steps alongside 3 to 5: evidence stamping (commit, command, date, raw output on every evidence record), a pre-push hook that runs `node-gates.mjs`, and the AI-collaboration record as structured data (catches by control, interventions) with the two open theory tests (`WI-QA-002`, `G-H04` and `G-H05`).
 7. Mobile: a decision spike (`WI-QA-003`: Maestro support, Expo or another stack, local-only or CI), then one small mobile job with Maestro flows. Independent of the deploy path.
 8. A recording of the demo journey, ideally against the deployed dev environment.
-9. The vendor read side and queue display (`N-03`, `N-04`), which give the event backbone a consumer and the deploy path something larger than slice 1.
+9. The vendor read side and queue display (`N-03`, `N-04`): **built (2026-11-01)**. Now: live updates by push (`WI-QUE-003`, ADR-0021, branch `feature/vendor-live-queue`), then the vendor's actions in the queue UI.
 10. Outbox and stock hardening (`N-06`, `N-07`: register items 66, 67, 74) and a latency budget (item 100).
 11. A dependency audit and SBOM (`WI-SEC-004`).
 
