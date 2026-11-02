@@ -18,21 +18,30 @@ Three columns, **New** (placed, waiting for the vendor), **Preparing** (confirme
 ```
 npm ci
 npm run typecheck          # runs relay-compiler, then tsc
-npm run test:unit          # login library and queue logic, Node test runner (51 tests)
+npm run test:unit          # the queue logic, Node test runner (8 tests; the login code lives in packages/web-session)
 npm run mock               # mock GraphQL on :4101 (answers vendorOrders from a list the tests set)
+npm run mock-issuer        # a fake OpenID issuer on :5101 for the login (packages/web-session/test-support)
 npm run build && npm start # production build on :3100 (GRAPHQL_URL is read at run time)
-npm run test:e2e           # Playwright (starts the mock and the app itself if they are not running); 11 tests
+npm run test:e2e           # Playwright (starts the mocks and the app itself if they are not running); 19 tests
 ```
 
-On first use run `npx playwright install chromium`. The browser tests stub the issuer inside the browser (`page.route`) and use Playwright's clock, so a poll is a step, not a wait.
+On first use run `npx playwright install chromium`. The login runs for real against the fake issuer, with sessions kept in the app's memory (tests only), and the tests use Playwright's clock, so a poll is a step, not a wait.
 
 ## Against the real stack
 
-Start the stack as in `docs/operations/local-dev.md`, then `GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3100`. The mock issuer must allow this app: set `MockOidc__RedirectUris__1=http://localhost:3100/auth/callback` and `MockOidc__AllowedOrigins__1=http://localhost:3100` on the `mock-oidc` service (its defaults allow only port 3000; register item 116). Log in as the vendor `vendor-shop-001`.
+Start the stack as in `docs/operations/local-dev.md` (add `--profile with-redis`: sessions live in the cache Redis, port 6380), then:
+
+```
+APP_ORIGIN=http://localhost:3100 AUTH_ISSUER=http://localhost:5100 AUTH_CLIENT_ID=web-queue-display \
+SESSION_REDIS_URL=redis://127.0.0.1:6380 SESSION_ENCRYPTION_KEY=<from .env> \
+GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3100
+```
+
+The mock issuer registers `http://localhost:3100/api/auth/callback` by default. Log in as the vendor `vendor-shop-001`. This run has not been done yet (`WI-AUTH-007` phase 4).
 
 ## Login
 
-The same as `web-customer` (authorization code with PKCE in the browser, the token in memory only, so a reload logs the screen out); see that app's README. `AUTH_ISSUER` and `AUTH_CLIENT_ID` are read by the server at run time and served at `/api/config`; outside production they default to the local mock issuer and `web-queue-display`. **The login code is a copy** of `web-customer`'s (register item 115): a change under `src/lib/auth/` here must also be made there. An unattended wall screen cannot log itself in again (register item 116).
+Server-side session behind an HttpOnly cookie (ADR-0019), the same package as `web-customer`: `/api/auth/login`, `/api/auth/callback`, `/api/auth/logout`, `/api/auth/me`, `/api/graphql`. The page holds no token, a reload keeps the login, and the access token is renewed on the server, so an unattended wall screen stays logged in until the session's idle limit (12 hours) or its absolute lifetime (7 days). See `apps/web-customer/README.md` and `packages/web-session/README.md`.
 
 ## Not built
 

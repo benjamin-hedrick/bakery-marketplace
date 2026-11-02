@@ -28,7 +28,7 @@ const globalId = (type, id) => Buffer.from(`${type}:${id}`).toString('base64');
 async function userToken(userId) {
   const verifier = randomBytes(32).toString('base64url');
   const challenge = createHash('sha256').update(verifier).digest('base64url');
-  const redirectUri = `${WEB}/auth/callback`;
+  const redirectUri = `${WEB}/api/auth/callback`;
   const submit = await fetch(`${ISSUER}/authorize/submit`, {
     method: 'POST',
     redirect: 'manual',

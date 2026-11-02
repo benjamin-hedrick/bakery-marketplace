@@ -11,16 +11,22 @@ The browser logs in on its own, and the access token lives in browser memory onl
 ```mermaid
 sequenceDiagram
     autonumber
-    participant B as Browser (web-customer code)
+    participant B as Browser
+    participant W as Web app server (/api/auth/*)
     participant O as Mock OIDC issuer
-    B->>B: make state, PKCE verifier and S256 challenge
-    B->>O: redirect to /authorize (challenge, state, registered redirect_uri)
-    O-->>B: login page (mock users)
-    O-->>B: redirect to /auth/callback?code&state
-    B->>B: check state
-    B->>O: POST /token (code, verifier)
-    O-->>B: access token (signed JWT, roles in `roles`)
-    Note over B: token kept in memory,<br/>sent as Authorization: Bearer on GraphQL calls
+    participant R as Redis (session store)
+    B->>W: GET /api/auth/login?returnTo=/path
+    W->>R: pending login (state, PKCE verifier), 10 minutes
+    W-->>B: 302 to the issuer (challenge, state, registered redirect_uri) + short-lived cookie with the pending id
+    B->>O: GET /authorize
+    O-->>B: login page (mock users), then 302 to /api/auth/callback?code&state
+    B->>W: GET /api/auth/callback?code&state (pending cookie)
+    W->>R: take the pending login (once)
+    W->>O: POST /token (code, verifier, no secret)
+    O-->>W: access token (signed JWT, roles in `roles`) and a refresh token
+    W->>R: session = tokens, encrypted (AES-256-GCM)
+    W-->>B: 302 to returnTo + HttpOnly session cookie (an opaque id)
+    Note over B,W: the page holds no token; GraphQL calls carry the cookie,<br/>and the server adds Authorization: Bearer for the BFF
 ```
 
 ## 2. Loading a public page (no token)

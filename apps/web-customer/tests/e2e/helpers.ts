@@ -1,70 +1,54 @@
 import { expect } from '@playwright/test';
-import type { Page, Request, Route } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
-// Shared by the browser tests that need a logged-in customer without the real issuer: the issuer is stubbed inside the browser
-// (page.route), so the whole Authorization Code + PKCE flow runs for real in the page, and the token is a fake with the right claims.
+// Shared by the browser tests that need a logged-in customer. The login runs for real (ADR-0019): the page sends the browser to
+// /api/auth/login, the app's server talks to the fake issuer (packages/web-session/test-support/fake-issuer.mjs) and sets the session cookie.
+// The issuer and the mock BFF are steered through their control endpoints.
 
-export const ISSUER = 'http://localhost:5100';
+export const ISSUER = 'http://localhost:5101';
 export const APP = 'http://localhost:3000';
+export const MOCK = 'http://localhost:4000';
 
-const b64url = (v: unknown) => Buffer.from(JSON.stringify(v)).toString('base64url');
-
-export function fakeToken(claims: Record<string, unknown> = {}) {
-  const exp = Math.floor(Date.now() / 1000) + 3600;
-  const payload = {
-    sub: 'user-customer-1',
-    name: 'Alice Customer',
-    email: 'alice@customer.local',
-    roles: 'Customer',
-    exp,
-    ...claims,
-  };
-  return `${b64url({ alg: 'RS256', typ: 'JWT' })}.${b64url(payload)}.${Buffer.from('not-a-real-signature').toString('base64url')}`;
+export interface IssuerSeen {
+  user: string;
+  mode: string;
+  accessSeconds: number;
+  authorize: Record<string, string>[];
+  tokens: { grant: string; clientId: string | null; hasSecret: boolean; hasVerifier: boolean }[];
 }
 
-export interface Issuer {
-  authorizeUrls: URL[];
-  tokenBodies: URLSearchParams[];
+const post = async (url: string, body: unknown) => {
+  const res = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`${url} did not take the state`);
+};
+
+/** Sets who logs in at the fake issuer, how long a token lives, and how it misbehaves (ok | down | revoked | bad-exchange | denied | forged-state). */
+export const setIssuer = (state: {
+  user?: 'vendor' | 'customer';
+  accessSeconds?: number;
+  refreshable?: boolean;
+  mode?: string;
+}) => post(`${ISSUER}/__state`, state);
+
+export async function issuerSeen(): Promise<IssuerSeen> {
+  return (await fetch(`${ISSUER}/__state`)).json();
 }
 
-/** Stubs the issuer: /authorize redirects straight back with a code; /token answers with `token`. */
+/** What the mock BFF was sent as Authorization, in order (null: none). Reset by the next POST /__control. */
+export async function bffAuthorizations(): Promise<(string | null)[]> {
+  return ((await (await fetch(`${MOCK}/__seen`)).json()) as { authorizations: (string | null)[] }).authorizations;
+}
+
+/** Forgets what the mock BFF has been sent so far. */
+export const forgetBffAuthorizations = () => fetch(`${MOCK}/__seen`, { method: 'DELETE' });
+
+/** Starts a test with a fresh issuer: Alice Customer logs in, tokens last an hour, nothing recorded. (Kept under its old name; it no longer stubs anything.) */
 export async function stubIssuer(
-  page: Page,
-  opts: { token?: string; tokenStatus?: number; callbackQuery?: (state: string) => string } = {},
-): Promise<Issuer> {
-  const seen: Issuer = { authorizeUrls: [], tokenBodies: [] };
-  await page.route(`${ISSUER}/authorize*`, async (route: Route) => {
-    const url = new URL(route.request().url());
-    seen.authorizeUrls.push(url);
-    const query =
-      opts.callbackQuery?.(url.searchParams.get('state')!) ?? `code=code-1&state=${url.searchParams.get('state')}`;
-    await route.fulfill({ status: 302, headers: { location: `${APP}/auth/callback?${query}` } });
-  });
-  await page.route(`${ISSUER}/token`, async (route: Route) => {
-    seen.tokenBodies.push(new URLSearchParams(route.request().postData() ?? ''));
-    const ok = (opts.tokenStatus ?? 200) === 200;
-    await route.fulfill({
-      status: opts.tokenStatus ?? 200,
-      contentType: 'application/json',
-      headers: { 'access-control-allow-origin': APP },
-      body: JSON.stringify(
-        ok
-          ? { access_token: opts.token ?? fakeToken(), token_type: 'Bearer', expires_in: 3600 }
-          : { error: 'invalid_grant' },
-      ),
-    });
-  });
-  return seen;
-}
-
-/** The Authorization header of the next GraphQL call the page makes after `trigger`. */
-export async function authorizationOfNextGraphQL(
-  page: Page,
-  trigger: () => Promise<void>,
-): Promise<string | undefined> {
-  const request: Promise<Request> = page.waitForRequest((r) => r.url().includes('/api/graphql'));
-  await trigger();
-  return (await request).headers()['authorization'];
+  _page: Page,
+  opts: { user?: 'vendor' | 'customer'; accessSeconds?: number; mode?: string } = {},
+): Promise<void> {
+  await post(`${ISSUER}/__reset`, {});
+  await setIssuer({ user: 'customer', ...opts });
 }
 
 /** Logs out, which reloads the home page (so nothing the page learned while logged in survives), and waits for that reload. */
@@ -75,7 +59,7 @@ export async function logOut(page: Page) {
   await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
 }
 
-/** Logs in through the stubbed issuer from whatever page is open, and waits until the header shows the user. */
+/** Logs in through the fake issuer from whatever page is open, and waits until the header shows the user. */
 export async function logIn(page: Page) {
   await page.getByRole('button', { name: 'Log in' }).first().click();
   await expect(page.getByTestId('user-name')).toBeVisible();

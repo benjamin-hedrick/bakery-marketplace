@@ -48,6 +48,10 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
     GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment',
     AUTH_ISSUER: issuerUrl,
     AUTH_CLIENT_ID: 'web-customer',
+    // The login happens on the app's server (ADR-0019): its own origin, and the cache Redis (compose profile with-redis, port 6380) for sessions.
+    // The encryption key is added where the server starts and never goes into this object, which the Playwright process also receives.
+    APP_ORIGIN: `http://localhost:${ports.web}`,
+    SESSION_REDIS_URL: 'redis://127.0.0.1:6380',
   };
 
   function run(name, cmd, args, opts = {}) {
@@ -96,8 +100,8 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       // The ordering service calls the catalog as itself (client credentials, ADR-0018). The mock issuer (started by compose) registers that
       // client from the same .env secret that ordering-service is given, so the secrets must exist before compose. An existing one is kept.
       run('local secrets', 'node', ['scripts/dev/init-env.mjs']);
-      run('compose up', 'docker', ['compose', 'up', '-d', '--build']);
-      run('environment check', 'node', ['scripts/dev/check-env.mjs', '--wait', '180']);
+      run('compose up', 'docker', ['compose', '--profile', 'with-redis', 'up', '-d', '--build']);
+      run('environment check', 'node', ['scripts/dev/check-env.mjs', '--with-redis', '--wait', '180']);
       run('seed', 'dotnet', ['run', '--project', 'tools/BakeryMarketplace.Seed'], {
         env: { Cosmos__ConnectionString: cosmos },
       });
@@ -141,9 +145,14 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
      * startWeb. The web container is given the BFF address of the Compose network at run time; the browser reaches the BFF through the same-origin /api/graphql route.
      */
     async startContainers({ testHooks = false } = {}) {
-      run('app containers', 'docker', ['compose', '--profile', 'apps', 'up', '-d', '--build'], {
-        env: testHooks ? { ENABLE_TEST_HOOKS: '1', GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment' } : {},
-      });
+      run(
+        'app containers',
+        'docker',
+        ['compose', '--profile', 'apps', '--profile', 'with-redis', 'up', '-d', '--build'],
+        {
+          env: testHooks ? { ENABLE_TEST_HOOKS: '1', GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment' } : {},
+        },
+      );
       await waitFor('catalog', `http://localhost:${ports.catalog}/health`);
       await waitFor('ordering', `http://localhost:${ports.ordering}/health`);
       await waitFor('bff', `http://localhost:${ports.bff}/healthz`);
@@ -157,7 +166,10 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       run('relay compile', 'node', ['scripts/ensure-artifact-dir.mjs'], { cwd: web });
       run('relay compile', 'node', [path.join('node_modules', 'relay-compiler', 'cli.js')], { cwd: web });
       run('web build', 'node', [next, 'build'], { cwd: web, env: webEnv });
-      start('web', 'node', [next, 'start', '-p', String(ports.web)], { cwd: web, env: webEnv });
+      start('web', 'node', [next, 'start', '-p', String(ports.web)], {
+        cwd: web,
+        env: { ...webEnv, SESSION_ENCRYPTION_KEY: envValue('SESSION_ENCRYPTION_KEY') },
+      });
       await waitFor('web', `http://localhost:${ports.web}/`);
     },
 
@@ -179,7 +191,10 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
     /** Stops the Compose containers and removes them (their data is lost). */
     down() {
       // --profile apps so the application containers are removed too (a no-op when they were not started).
-      spawnSync('docker', ['compose', '--profile', 'apps', 'down'], { cwd: root, stdio: 'inherit' });
+      spawnSync('docker', ['compose', '--profile', 'apps', '--profile', 'with-redis', 'down'], {
+        cwd: root,
+        stdio: 'inherit',
+      });
     },
   };
 }

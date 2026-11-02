@@ -224,8 +224,9 @@ public partial class MockOidcAuthorizeHardeningTests
     }
 
     [Fact]
-    public void TheHostDefaultIsTheLocalWebAppsCallback()
+    public void TheHostDefaultsAreTheTwoLocalWebAppsServerSideCallbacks()
     {
-        Assert.Equal([Registered], MockOidcIssuer.DefaultRedirectUris);
+        // The customer app (3000) and the queue display (3100) finish their logins on their own servers (ADR-0019); nothing else is registered.
+        Assert.Equal(["http://localhost:3000/api/auth/callback", "http://localhost:3100/api/auth/callback"], MockOidcIssuer.DefaultRedirectUris);
     }
 }

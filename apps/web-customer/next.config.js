@@ -1,6 +1,12 @@
+const path = require('node:path'); // eslint-disable-line @typescript-eslint/no-require-imports
+
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
+  // The shared session package ships TypeScript source (ADR-0019).
+  transpilePackages: ['@bakery/web-session'],
+  // The package lives outside this folder (packages/web-session), and Turbopack only reads files under its root: the repository.
+  turbopack: { root: path.join(__dirname, '..', '..') },
   // skeleton-smoke.mjs sets NEXT_DIST_DIR so its build cannot overwrite the `.next` that the mock-backed `npm run test:e2e` uses.
   distDir: process.env.NEXT_DIST_DIR || '.next',
   compiler: {

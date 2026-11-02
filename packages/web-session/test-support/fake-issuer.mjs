@@ -4,7 +4,7 @@
 // control endpoint the tests use to change who logs in, how long a token lives, and how the issuer misbehaves. Not used outside tests.
 //
 //   node packages/web-session/test-support/fake-issuer.mjs        listens on FAKE_ISSUER_PORT (default 5101)
-//   POST /__state   { user?, accessSeconds?, refreshable?, mode? }   mode: ok | down | revoked | bad-exchange
+//   POST /__state   { user?, accessSeconds?, refreshable?, mode? }   mode: ok | down | revoked | bad-exchange | denied | forged-state
 //   GET  /__state   what the issuer saw: the authorize requests and the token calls (grant types and counts, never secrets)
 //   POST /__reset
 import { createHash, randomBytes } from 'node:crypto';
@@ -81,8 +81,14 @@ http
       const code = random();
       codes.set(code, { challenge: url.searchParams.get('code_challenge'), redirectUri, user: state.user });
       const back = new URL(redirectUri);
-      back.searchParams.set('code', code);
-      if (url.searchParams.get('state')) back.searchParams.set('state', url.searchParams.get('state'));
+      if (state.mode === 'denied') {
+        back.searchParams.set('error', 'access_denied'); // the user said no, or the issuer refused
+      } else {
+        back.searchParams.set('code', code);
+      }
+      // 'forged-state' is a callback that is not the one this login started (a crafted link).
+      const returnedState = state.mode === 'forged-state' ? 'forged' : url.searchParams.get('state');
+      if (returnedState) back.searchParams.set('state', returnedState);
       res.writeHead(302, { location: back.toString() });
       return res.end();
     }

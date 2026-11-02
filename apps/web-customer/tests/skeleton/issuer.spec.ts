@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 // S1-06 against the real mock issuer container (docker compose): the login page does not reflect what it is sent as markup (open item 32),
-// and the issuer only sends a browser back to a registered redirect_uri (D-D). The web app's own callback is the registered one, which
-// the login specs already prove works.
+// and the issuer only sends a browser back to a registered redirect_uri (D-D). The web app's own server-side callback is the registered one,
+// which the login specs already prove works.
 
 const ISSUER = process.env.ISSUER_URL ?? 'http://localhost:5100';
-const REGISTERED = 'http://localhost:3000/auth/callback';
+const REGISTERED = 'http://localhost:3000/api/auth/callback';
 const authorize = (redirectUri: string, state = 's') =>
   `${ISSUER}/authorize?response_type=code&client_id=web-customer&redirect_uri=${encodeURIComponent(redirectUri)}` +
   `&state=${encodeURIComponent(state)}&code_challenge=c&code_challenge_method=S256`;

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { ConsoleMessage, Page, Request } from '@playwright/test';
-import { logIn, stubIssuer } from './helpers';
+import { bffAuthorizations, logIn, stubIssuer } from './helpers';
 
 // S1-03: the checkout, against the mock BFF (which mirrors the real BFF's authentication and its typed rejections). The issuer is stubbed
 // in the browser, so the login is the real PKCE flow. Times are shown in the browser's zone, fixed here so labels are exact.
@@ -125,7 +125,8 @@ test('a plain order is placed with ids and quantities only, with the token, a fr
     { listingId: Buffer.from('Listing:listing-sourdough-001').toString('base64'), modifierIds: [], quantity: 2 },
   ]);
   expect(input.pickupWindow).toBeNull();
-  expect(sent.headers()['authorization']).toMatch(/^Bearer /);
+  expect(sent.headers()['authorization']).toBeUndefined(); // the browser holds no token (ADR-0019) ...
+  await expect.poll(async () => (await bffAuthorizations()).at(-1)).toMatch(/^Bearer eyJ/); // ... the server puts it on the call to the BFF
   expect(JSON.stringify(JSON.parse(sent.postData()!).variables)).not.toMatch(/price|total|customer|status/i); // nothing the server decides is sent
 
   await expect(page).toHaveURL(/\/orders\/.+/);

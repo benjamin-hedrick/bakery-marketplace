@@ -32,7 +32,10 @@ function methodNotAllowed(res: ApiResponse, allow: string): void {
   res.json({ error: 'Method not allowed' });
 }
 
-/** Where a failed login is sent: the app shows the fixed message for the code. */
+/** A response header the GraphQL proxy sets when it has just ended the caller's session, so the page can show the login again. */
+export const SESSION_ENDED_HEADER = 'x-session-ended';
+
+/** Where a failed login is sent: the app shows the fixed sentence for the code. */
 export const LOGIN_ERROR_PATH = '/auth/error';
 
 export interface AuthHandlerDeps {
@@ -133,9 +136,12 @@ export function createGraphqlHandler({
     if (resolved) {
       const result = await service.bearerFor(resolved);
       if (result.kind === 'token') bearer = result.token;
-      else if (result.kind === 'ended')
-        res.setHeader('Set-Cookie', service.clearSessionCookie()); // carries on anonymously: the BFF will say UNAUTHENTICATED
-      else {
+      else if (result.kind === 'ended') {
+        // The session is over (renewal refused, or nothing to renew with). The request carries on anonymously, which a public query survives, so the
+        // page would not learn of it from the answer: this header tells it, and it shows the login again.
+        res.setHeader('Set-Cookie', service.clearSessionCookie());
+        res.setHeader(SESSION_ENDED_HEADER, '1');
+      } else {
         res.status(503);
         res.json({ error: 'Your login could not be renewed just now. Please try again.' });
         return;

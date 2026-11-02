@@ -41,10 +41,12 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 Data__B
 (cd services/graphql-bff && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)
 #    To run the journeys later (below), start it with ENABLE_TEST_HOOKS=1 as well. That forwards the declined-payment test hook; never set it outside tests.
 
-# 7. Customer web app on :3000 (GRAPHQL_URL is read at run time, on every request)
+# 7. Customer web app on :3000 (everything is read at run time, on every request). The login runs on its server (ADR-0019): it needs the cache Redis
+#    (`docker compose --profile with-redis up -d`, port 6380) and the encryption key that init-env.mjs wrote to .env as SESSION_ENCRYPTION_KEY.
+(cd packages/web-session && npm ci)
 (cd apps/web-customer && npm ci)
 (cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run build)    # also compiles the Relay artifacts, which are git-ignored
-(cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3000)
+(cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql AUTH_ISSUER=http://localhost:5100 AUTH_CLIENT_ID=web-customer APP_ORIGIN=http://localhost:3000 SESSION_REDIS_URL=redis://127.0.0.1:6380 SESSION_ENCRYPTION_KEY="$SESSION_ENCRYPTION_KEY" npx next start -p 3000)
 ```
 
 **Check it is up:** `curl localhost:5200/health`, `localhost:5300/health`, `localhost:4100/healthz` and `localhost:3000/` each return 200. Through the BFF:
@@ -54,7 +56,7 @@ curl -s -X POST localhost:4100/graphql -H 'content-type: application/json' \
   -d '{"query":"{ listings(first: 3) { edges { node { name price { cents currency } stock { status } } } } }"}'
 ```
 
-**Use it:** open http://localhost:3000, press Log in, choose "Login as Alice Customer (Customer)" (the mock issuer lists its users on its own page), open a listing, add it to the order, go to checkout, optionally pick a pickup time, and press "Place test order". A banner says no payment is taken. A plain order (no option, no pickup time) confirms by itself; one with an option or a pickup time stays "Order received" until a vendor acts. A reload logs you out, because the token is held in memory only (register item 24).
+**Use it:** open http://localhost:3000, press Log in, choose "Login as Alice Customer (Customer)" (the mock issuer lists its users on its own page), open a listing, add it to the order, go to checkout, optionally pick a pickup time, and press "Place test order". A banner says no payment is taken. A plain order (no option, no pickup time) confirms by itself; one with an option or a pickup time stays "Order received" until a vendor acts. A reload keeps you logged in: the session is on the web app's server behind an HttpOnly cookie (ADR-0019).
 
 **Run the journeys against this stack:** `cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run test:skeleton` (21 tests; they sign in as the mock users and place real orders). Two of them use the declined-payment hook, so the BFF must have been started with `ENABLE_TEST_HOOKS=1` (step 6); that is how it was started for the run recorded below.
 
@@ -111,9 +113,9 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | `Cosmos__GatewayMode` | `true` (emulator only) | the emulator only works over the gateway; deployed environments keep direct mode |
 | `Cosmos__EnsureCreated` | `true` (local only) | creates the database and `catalog` container (partition key `/vendorId`); deployed environments use Terraform |
 
-**Which addresses a login may return to.** The mock issuer only redirects a browser to a registered `redirect_uri`, compared exactly (no prefix, case or trailing-slash leniency); the default is `http://localhost:3000/auth/callback`. Set `MockOidc__RedirectUris__0`, `__1`, ... on the `mock-oidc` service to register others, for example another port. Everything its login page shows is HTML-encoded.
+**Which addresses a login may return to.** The mock issuer only redirects a browser to a registered `redirect_uri`, compared exactly (no prefix, case or trailing-slash leniency); the defaults are the two web apps' **server-side** callbacks, `http://localhost:3000/api/auth/callback` (customer) and `http://localhost:3100/api/auth/callback` (queue display). Set `MockOidc__RedirectUris__0`, `__1`, ... on the `mock-oidc` service to register others, for example another port. Everything its login page shows is HTML-encoded.
 
-**Browser login.** The web app exchanges its authorization code at the issuer's `/token` itself, so the mock issuer answers cross-origin calls from the web app's origin: exact origins only, no wildcard, no credentials (`tools/BakeryMarketplace.Auth/MockOidcCors.cs`). The default is `http://localhost:3000`; set `MockOidc__AllowedOrigins__0`, `__1`, ... on the `mock-oidc` service to change it. The web app's server reads `AUTH_ISSUER` and `AUTH_CLIENT_ID` at run time and serves them to the browser at `GET /api/config` (required in production; `next dev` defaults to `http://localhost:5100` and `web-customer`).
+**Browser login.** The web app's **server** exchanges the authorization code at the issuer's `/token` (ADR-0019), so the browser makes no cross-origin call to the issuer and `MockOidc__AllowedOrigins__*` is no longer needed for login (the CORS middleware stays, with its default, for other callers). Refresh tokens: a login that asks for the `offline_access` scope gets one; it is single use and rotated, a second use revokes the whole login, and it expires after `MockOidc__RefreshTokenMinutes` (default 480).
 
 **The authority must be exactly `http://localhost:5100`.** The mock issuer takes its issuer URL from the request's own host, so tokens carry `iss=http://localhost:5100`, and services reject any token whose issuer differs from their configured authority. A service running *inside* a container could not reach the issuer at that URL; this matters when services are containerized.
 

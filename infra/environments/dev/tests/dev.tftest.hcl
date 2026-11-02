@@ -46,7 +46,7 @@ run "no_secret_value_is_in_the_configuration" {
     error_message = "Key Vault secrets must be created with the placeholder only; real values are set after apply (ADR-0020, decision 4)."
   }
   assert {
-    condition     = length(azurerm_key_vault_secret.placeholder) == 2
+    condition     = length(azurerm_key_vault_secret.placeholder) == 3
     error_message = "Expected the Cosmos connection string and the ordering client secret."
   }
 }
@@ -89,5 +89,24 @@ run "the_cosmos_containers_match_what_the_services_expect" {
   assert {
     condition     = azurerm_cosmosdb_sql_container.catalog.default_ttl == -1 && azurerm_cosmosdb_sql_container.orders.default_ttl == null
     error_message = "The catalog container needs default_ttl = -1 so released stock reservations expire (register item 66); orders must never expire."
+  }
+}
+
+run "the_web_app_keeps_its_sessions_in_an_internal_cache_redis_with_its_key_from_the_vault" {
+  command = plan
+
+  assert {
+    condition     = azurerm_container_app.redis_cache.ingress[0].external_enabled == false && azurerm_container_app.redis_cache.ingress[0].exposed_port != azurerm_container_app.redis.ingress[0].exposed_port
+    error_message = "The cache Redis must be internal and must not share the event Redis's exposed port (ADR-0019)."
+  }
+
+  assert {
+    condition     = contains(keys(local.apps["web"].secrets), "session-encryption-key") && local.apps["web"].secrets["session-encryption-key"] == "SESSION_ENCRYPTION_KEY"
+    error_message = "The web app's session encryption key must come from the Key Vault as SESSION_ENCRYPTION_KEY, never as a literal value (ADR-0007, ADR-0019)."
+  }
+
+  assert {
+    condition     = local.apps["web"].env["SESSION_REDIS_URL"] == "redis://redis-cache:6380" && contains(keys(local.apps["web"].env), "APP_ORIGIN")
+    error_message = "The web app needs its own origin and the cache Redis address to run the login on its server."
   }
 }

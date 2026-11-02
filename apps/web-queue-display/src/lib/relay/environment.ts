@@ -40,6 +40,7 @@ const fetchGraphQL: FetchFunction = async (params, variables) => {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query: params.text, variables }),
   });
+  if (res.headers.get('x-session-ended') === '1') markLoggedOut(); // the server ended the session (renewal refused): the page offers the login
   if (!res.ok) throw new Error(`GraphQL request failed: ${res.status}`);
   const json = await res.json();
   if (json.errors?.length) {

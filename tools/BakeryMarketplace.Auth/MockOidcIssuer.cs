@@ -58,8 +58,11 @@ public static class MockOidcIssuer
     /// <summary>Encodes a value for HTML text and quoted attributes, so nothing the page is sent can become markup.</summary>
     private static string Html(string? value) => System.Net.WebUtility.HtmlEncode(value ?? "");
 
-    /// <summary>The callback of the local web app, used by the runnable host unless it is configured otherwise.</summary>
-    public static readonly string[] DefaultRedirectUris = ["http://localhost:3000/auth/callback"];
+    /// <summary>
+    /// The server-side callbacks of the two local web apps (the customer app on port 3000, the queue display on 3100; ADR-0019), used by the runnable
+    /// host unless it is configured otherwise.
+    /// </summary>
+    public static readonly string[] DefaultRedirectUris = ["http://localhost:3000/api/auth/callback", "http://localhost:3100/api/auth/callback"];
 
     /// <summary>A registered redirect_uri is an absolute http(s) address with no fragment, no credentials and no wildcard.</summary>
     private static string ValidateRedirectUri(string value)
