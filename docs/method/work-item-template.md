@@ -1,6 +1,6 @@
 # Work item template
 
-> **Status:** Current · defined 2026-10-30. Statuses are defined in `status-and-supersession.md`.
+> **Status:** Current · defined 2026-10-30; the "Verification class", "ADRs and NFRs affected" and Verification fields are proposed 2026-11-02 (register item 130) until the lead adopts them. Statuses are defined in `status-and-supersession.md`.
 
 Copy this into `docs/product/backlog/WI-<AREA>-<NNN>.md`. Check the backlog for ID collisions first (`git grep "WI-<AREA>-<NNN>"`).
 
@@ -14,6 +14,8 @@ Epic:                 EPIC-<NAME>
 Shared with epic(s):  none
 Hat/Owner:            <role>
 Size:                 <S | M | L>
+Verification class:   <V0 | V1 | V2 | V3, plus J if it completes a cross-service journey>
+ADRs and NFRs affected: <ADR numbers and NFR sections this item changes or relies on; "none" if none>
 ```
 
 **Context / Why**
@@ -39,6 +41,9 @@ Why the item exists and what it enables.
 - Blocks: ...
 - Blocked by: ...
 - Can be worked in parallel with: ...
+
+**Verification**
+The checks of the item's class from `docs/process/verification-policy.md` section 2, and for V3 the abuse cases and the limits checklist (size, count, time, rate, per caller, cleanup, failure mode).
 
 **Definition of Done**
 See `docs/process/definition-of-done.md`.
