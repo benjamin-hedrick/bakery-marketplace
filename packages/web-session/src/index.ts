@@ -6,9 +6,16 @@ export type { Sealer } from './crypto.ts';
 export { clearCookie, readCookie, serializeCookie } from './cookie.ts';
 export { checkSameOriginRead, checkStateChangingRequest } from './csrf.ts';
 export type { CsrfResult } from './csrf.ts';
-export { createAuthHandlers, createGraphqlHandler, LOGIN_ERROR_PATH, SESSION_ENDED_HEADER } from './handlers.ts';
+export {
+  createAuthHandlers,
+  createGraphqlHandler,
+  createGraphqlStreamHandler,
+  LOGIN_ERROR_PATH,
+  SESSION_ENDED_HEADER,
+} from './handlers.ts';
 export type { ApiRequest, ApiResponse } from './handlers.ts';
-export { extraForwardedHeaders, forwardedRequestHeaders, proxyGraphql } from './graphql-proxy.ts';
+export { extraForwardedHeaders, forwardedRequestHeaders, proxyGraphql, proxyGraphqlStream } from './graphql-proxy.ts';
+export type { StreamResponse } from './graphql-proxy.ts';
 export { apiRoutes, getSessionRuntime } from './runtime.ts';
 export type { SessionRuntime, SessionRuntimeResult } from './runtime.ts';
 export { createSessionService, LoginError } from './service.ts';
