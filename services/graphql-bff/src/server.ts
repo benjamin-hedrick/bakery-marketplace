@@ -68,6 +68,10 @@ export function createServer(
   const exportSpan = deps.exporter ?? createOtlpExporter(config.otlpEndpoint);
   const maxStreams = config.maxStreams ?? 500;
   let openStreams = 0;
+  // A place among the streams this instance holds is taken when a subscription is about to be established (its body has been read and it is a
+  // valid subscription), not when the request arrives: the library reads the body first, so counting at arrival would let anyone who sends a body
+  // slowly hold places and push real screens into polling.
+  const places = new WeakMap<http.IncomingMessage, { held: boolean }>();
 
   // Live updates (ADR-0021, WI-QUE-003): the graphql-sse handler, in its "distinct connections" mode only. It is reached solely by a POST to
   // /graphql that asks for an event stream. Its single-connection mode (a PUT that registers a stream token) is switched off by
@@ -92,6 +96,12 @@ export function createServer(
       // Only subscriptions are served here: queries and mutations have their own JSON route, with its own error mapping and logging.
       if (getOperationAST(document, params.operationName)?.operation !== 'subscription') {
         return rejection(new GraphQLError('Only subscription operations are served over an event stream.'));
+      }
+      const place = places.get(raw);
+      if (place) {
+        if (openStreams >= maxStreams) return busy();
+        openStreams++;
+        place.held = true;
       }
       const result = await subscribe({
         schema,
@@ -135,20 +145,15 @@ export function createServer(
       const length = Number(headerValue(req.headers['content-length']));
       if (!Number.isInteger(length) || length < 0) return send(411, { errors: [{ message: 'Length required' }] });
       if (length > MAX_BODY_BYTES) return send(413, { errors: [{ message: 'Request too large' }] });
-      if (openStreams >= maxStreams) {
-        res.setHeader('retry-after', '30');
-        return send(503, {
-          errors: [{ message: 'Live updates are busy. Please poll instead.', extensions: { code: 'STREAM_LIMIT' } }],
-        });
-      }
-      openStreams++;
+      const place = { held: false };
+      places.set(req, place);
       const callerGone = new AbortController();
       gone.set(req, callerGone.signal);
       const opened = performance.now();
       const openedAtMs = Date.now();
       res.once('close', () => {
         callerGone.abort();
-        openStreams--;
+        if (place.held) openStreams--;
         log.info({
           msg: 'graphql subscription closed',
           traceId: trace.traceId,
@@ -277,6 +282,20 @@ function contextOf(
   const testPayment =
     config.testHooks && headerValue(req.headers['x-test-payment'])?.toLowerCase() === 'decline' ? 'decline' : undefined;
   return { ...clients, trace, authorization, testPayment };
+}
+
+/** The instance holds as many streams as it will: 503 and a time to try again, in the library's response form. The screen polls meanwhile. */
+function busy(): [string, { status: number; statusText: string; headers: Record<string, string> }] {
+  return [
+    JSON.stringify({
+      errors: [{ message: 'Live updates are busy. Please poll instead.', extensions: { code: 'STREAM_LIMIT' } }],
+    }),
+    {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'content-type': 'application/json; charset=utf-8', 'retry-after': '30' },
+    },
+  ];
 }
 
 /** A refusal of a subscription request before it starts, in the library's response form: a 400 with the errors. */
