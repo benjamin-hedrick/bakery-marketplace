@@ -8,7 +8,7 @@ Slice 1 is complete and merged: a customer logs in, browses listings with stock,
 
 Since slice 1 (merged 2026-11-01, local only): the vendor's order read side in the ordering service and BFF (`WI-QUE-001`) and the queue display app, which polls every 7 seconds (`WI-QUE-002`, both Done); and browser sessions (`WI-AUTH-007`, ADR-0019): a server-side session behind an HttpOnly cookie in `packages/web-session`, used by both web apps, with the mock issuer's refresh grant. The real-stack evidence is in `docs/evidence/WI-AUTH-007/findings.md`. `WI-AUTH-007` stays In progress until the lead reviews its security-sensitive phases (the AI pass on 2026-11-02 was a code read; register items 118 to 122 are open from it).
 
-Built since, on `feature/vendor-live-queue` (not yet merged): live updates to the vendor's queue by push (`WI-QUE-003`, ADR-0021): the queue display says Live while a stream is up and polls as the fallback; on the real local stack a customer's order reaches the vendor's screen about 100 ms after it is placed (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`). The item is In review for the lead's review of its security-sensitive parts.
+Built since, on `feature/vendor-live-queue` (not yet pushed or merged): live updates to the vendor's queue by push (`WI-QUE-003`, ADR-0021): the queue display says Live while a stream is up and polls as the fallback; on the real local stack a customer's order reaches the vendor's screen about 100 ms after it is placed (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`). The item is Done (2026-11-02), approved by the lead after a review round; its known limits are in the item (not seen on Azure or behind API Management, no load, fuzz or penetration testing, register item 127 open).
 
 Not built: the admin and notification services (scaffolds), the admin web app, the vendor's order actions in the queue UI, a real payment, cloud environments.
 
@@ -19,6 +19,12 @@ The public-readiness pass is done except the settings that need the repository t
 **Priorities (set 2026-10-29, amended 2026-10-31):** 1. a polished, consistent repository that can be public, showing AI collaboration, architecture and software, and business and project work; 2. it builds and runs locally; 3. more evidence and coverage; 4. deploy and tear down a dev environment; 5. a public demo. On 2026-10-31 the lead made the deployed dev environment, and the ability to tear it down, the next main work, ahead of further product features.
 
 **Waiting on the lead:** the OKR targets and the definition of the north-star safety metric (`WI-PROD-004`, In review); the first Azure run of the new pipeline jobs; the cold-machine run and a fresh reader following the demo page (`WI-DEMO-001`, In review); the flip-day settings (item 93); and, new, the approvals for the DEV identity work below (ADR-0018, `WI-AUTH-006` phase 2).
+
+**Next, added 2026-11-02 (after the review of `WI-QUE-003`), ahead of the list below:**
+
+- **Process review (register item 130):** draft proposed edits to `nfrs.md` (real-time delivery, per-caller limits and abuse resistance, observability, security verification), `definition-of-ready.md` (abuse cases for anything that holds a connection or a resource), `definition-of-done.md` (an "ADRs and NFRs affected" line, a limits checklist, security tests shown to fail without the fix, a dependency review record, an evidence run with its starting state), `test-strategy.md` (counts from a script, not by hand) and the work item template, in a branch of their own for the lead to review; and write down the working-pattern lessons. Then plan items 128 (rate limiting of connections, logins and requests) and 129 (load and soak, fuzz, a threat model, a dynamic scan, and a plain statement of what has been independently reviewed).
+- **Review of `WI-AUTH-007`** by the lead (it stays In progress until then), with register items 118 to 122 and the pipeline's first Azure run of the `queue` and `session` jobs.
+- **Item 127** (order changes cross Redis Pub/Sub in the clear) is decided with the deployed Redis (`WI-DEP-001`).
 
 **Next, in this order (set 2026-10-31):**
 
