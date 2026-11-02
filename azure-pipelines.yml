@@ -234,6 +234,9 @@ jobs:
         inputs:
           version: $(NODE_VERSION)
       - script: npm ci
+        workingDirectory: packages/web-session
+        displayName: Install the shared session package (the app links to it and it holds the Redis client)
+      - script: npm ci
         workingDirectory: apps/web-queue-display
         displayName: Install
       - script: npm run format:check

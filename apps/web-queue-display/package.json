@@ -17,9 +17,11 @@
     "test:e2e": "playwright test",
     "lint": "eslint .",
     "format": "prettier --write . --ignore-path ../../.prettierignore",
-    "format:check": "prettier --check . --ignore-path ../../.prettierignore"
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore",
+    "mock-issuer": "node ../../packages/web-session/test-support/fake-issuer.mjs"
   },
   "dependencies": {
+    "@bakery/web-session": "file:../../packages/web-session",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",

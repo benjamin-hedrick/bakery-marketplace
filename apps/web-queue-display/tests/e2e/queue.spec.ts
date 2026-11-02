@@ -1,15 +1,25 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { fakeToken, logInAsVendor, mockRequests, order, resetMock, setMock, stubIssuer } from './helpers';
+import {
+  APP,
+  issuerSeen,
+  logInAsVendor,
+  mockRequests,
+  order,
+  resetAll,
+  setIssuer,
+  setMock,
+  startLoginOnly,
+} from './helpers';
 
-// WI-QUE-002: the live queue. The issuer is stubbed in the browser and the BFF is the mock; the clock is Playwright's, so a poll is a step,
-// not a wait.
+// WI-QUE-002 with the server-side session of ADR-0019. The login is real: the page goes to /api/auth/login, the app's server talks to the fake
+// issuer and sets an HttpOnly cookie; the BFF is the mock. The clock is Playwright's (for the page only), so a poll is a step, not a wait.
 
 const POLL_MS = 7000;
 
 test.beforeEach(async () => {
-  await resetMock();
+  await resetAll();
 });
 
 const ordersInColumns = async (page: Page, column: 'new' | 'preparing' | 'ready') =>
@@ -194,19 +204,165 @@ test('the queue has no accessibility violations that axe can find', async ({ pag
   expect(results.violations).toEqual([]);
 });
 
-test('the token is held in memory only, so a reload logs the screen out', async ({ page, context }) => {
-  const token = fakeToken();
-  await stubIssuer(page, { token });
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Log in' }).first().click();
-  await expect(page.getByTestId('user-name')).toBeVisible();
+test('the browser holds no token: a login leaves only an HttpOnly cookie, nothing readable in the page, its storage or its HTML', async ({
+  page,
+  context,
+}) => {
+  await logInAsVendor(page);
 
-  const stored = await page.evaluate(() =>
-    JSON.stringify([{ ...localStorage }, { ...sessionStorage }, document.cookie]),
+  const cookies = await context.cookies();
+  const session = cookies.find((c) => c.name === 'bakery-session-web-queue-display');
+  expect(session).toBeTruthy();
+  expect(session!.httpOnly).toBe(true);
+  expect(session!.sameSite).toBe('Lax');
+  expect(session!.path).toBe('/');
+  expect(session!.value).toMatch(/^[A-Za-z0-9_-]{43}$/); // an opaque random id, not a token
+  expect(cookies.some((c) => c.name.includes('login'))).toBe(false); // the pending-login cookie was cleared
+
+  const seenByScripts = await page.evaluate(() =>
+    JSON.stringify([document.cookie, { ...localStorage }, { ...sessionStorage }, document.documentElement.outerHTML]),
   );
-  expect(stored).not.toContain(token.split('.')[2]);
-  expect(JSON.stringify(await context.cookies())).not.toContain(token.split('.')[2]);
+  expect(seenByScripts).not.toContain(session!.value);
+  expect(seenByScripts).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}/); // no JWT anywhere the page can see
+  expect(seenByScripts).not.toMatch(/refresh/i);
+});
+
+test('the login is Authorization Code with PKCE from the server, with no client secret, and returns to the page', async ({
+  page,
+}) => {
+  await logInAsVendor(page);
+
+  const seen = await issuerSeen();
+  const authorize = seen.authorize[0]!;
+  expect(authorize['response_type']).toBe('code');
+  expect(authorize['client_id']).toBe('web-queue-display');
+  expect(authorize['redirect_uri']).toBe(`${APP}/api/auth/callback`);
+  expect(authorize['code_challenge_method']).toBe('S256');
+  expect(authorize['scope']).toBe('openid offline_access');
+  expect(authorize['state']).toMatch(/^[A-Za-z0-9_-]{16,}$/);
+  expect(seen.tokens[0]).toMatchObject({
+    grant: 'authorization_code',
+    clientId: 'web-queue-display',
+    hasSecret: false,
+    hasVerifier: true,
+  });
+  await expect(page).toHaveURL(`${APP}/`);
+});
+
+test('a reload keeps the login (the session is on the server)', async ({ page }) => {
+  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
+  await logInAsVendor(page);
+  await expect(page.getByTestId('queue-order')).toHaveCount(1);
 
   await page.reload();
+
+  await expect(page.getByTestId('user-name')).toHaveText('Corner Bakery (owner)');
+  await expect(page.getByTestId('queue-order')).toHaveCount(1);
+  expect((await issuerSeen()).tokens.filter((t) => t.grant === 'authorization_code')).toHaveLength(1); // no second login
+});
+
+test('logging out ends the session on the server: the old cookie opens nothing, and the page offers the login', async ({
+  page,
+  context,
+}) => {
+  await logInAsVendor(page);
+  const before = (await context.cookies()).find((c) => c.name === 'bakery-session-web-queue-display')!;
+
+  await page.getByRole('button', { name: 'Log out' }).click();
+
   await expect(page.getByTestId('login-required')).toBeVisible();
+  const replay = await page.request.get('/api/auth/me', { headers: { cookie: `${before.name}=${before.value}` } });
+  expect(await replay.json()).toEqual({ authenticated: false });
+});
+
+test('an access token about to expire is renewed on the server and the page never notices', async ({ page }) => {
+  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
+  await setIssuer({ accessSeconds: 30 }); // inside the 60 second margin: every call renews
+  await page.clock.install();
+  await logInAsVendor(page);
+  await expect(page.getByTestId('queue-order')).toHaveCount(1);
+  const first = (await mockRequests()).requests;
+
+  for (let step = 1; step <= 2; step++) {
+    await page.clock.runFor(POLL_MS);
+    // One poll at a time: Relay shares one request between identical queries in flight, so two polls started together would be one.
+    await expect.poll(async () => (await mockRequests()).requests).toBeGreaterThanOrEqual(first + step);
+  }
+
+  await expect(page.getByTestId('queue-order')).toHaveCount(1);
+  await expect(page.getByTestId('user-name')).toBeVisible();
+  expect((await issuerSeen()).tokens.filter((t) => t.grant === 'refresh_token').length).toBeGreaterThanOrEqual(3); // every call renewed
+  // a new bearer token each time, all built on the server
+  expect(new Set((await mockRequests()).authorizations).size).toBeGreaterThanOrEqual(3);
+});
+
+test('when the issuer refuses the renewal the session ends and the page offers the login', async ({ page }) => {
+  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
+  await setIssuer({ accessSeconds: 30 });
+  await page.clock.install();
+  await logInAsVendor(page);
+  await expect(page.getByTestId('queue-order')).toHaveCount(1);
+
+  await setIssuer({ mode: 'revoked' });
+  await page.clock.runFor(POLL_MS);
+
+  await expect(page.getByTestId('login-required')).toBeVisible();
+  await expect(page.getByTestId('queue-order')).toHaveCount(0);
+});
+
+test('a failed login lands on a page with a fixed sentence, and nothing the issuer said', async ({ page }) => {
+  await setIssuer({ mode: 'bad-exchange' });
+
+  await startLoginOnly(page);
+
+  await expect(page).toHaveURL(/\/auth\/error\?code=exchange_failed$/);
+  await expect(page.getByTestId('login-error')).toContainText('We could not complete the login');
+  await expect(page.getByTestId('login-error')).not.toContainText('invalid_grant');
+});
+
+test('a forged cross-origin post to the GraphQL route is refused and reaches nothing', async ({ page }) => {
+  await logInAsVendor(page);
+  await expect(page.getByTestId('queue-status')).toContainText('Updated');
+  const before = (await mockRequests()).requests;
+  const body = JSON.stringify({ query: '{ vendorOrders { edges { cursor } } }' });
+
+  const wrongOrigin = await page.request.post('/api/graphql', {
+    headers: { origin: 'http://evil.example', 'content-type': 'application/json' },
+    data: body,
+  });
+  const noOrigin = await page.request.post('/api/graphql', {
+    headers: { 'content-type': 'application/json' },
+    data: body,
+  });
+  const formPost = await page.request.post('/api/graphql', {
+    headers: { origin: APP, 'content-type': 'application/x-www-form-urlencoded' },
+    data: 'a=b',
+  });
+  const logoutForged = await page.request.post('/api/auth/logout', {
+    headers: { origin: 'http://evil.example', 'content-type': 'application/json' },
+    data: '{}',
+  });
+
+  expect([wrongOrigin.status(), noOrigin.status(), formPost.status(), logoutForged.status()]).toEqual([
+    403, 403, 403, 403,
+  ]);
+  expect((await mockRequests()).requests).toBe(before);
+  expect((await page.request.get('/api/auth/me')).ok()).toBe(true);
+  await expect(page.getByTestId('user-name')).toBeVisible(); // and the real session is untouched
+});
+
+test('an Authorization header sent by the browser is never passed on: the BFF gets the session token', async ({
+  page,
+}) => {
+  await logInAsVendor(page);
+  await expect(page.getByTestId('queue-status')).toContainText('Updated');
+
+  await page.request.post('/api/graphql', {
+    headers: { origin: APP, 'content-type': 'application/json', authorization: 'Bearer forged-by-the-browser' },
+    data: JSON.stringify({ query: '{ vendorOrders { edges { cursor } } }' }),
+  });
+
+  const { authorizations } = await mockRequests();
+  expect(authorizations.length).toBeGreaterThan(0);
+  expect(authorizations.every((a) => a?.startsWith('Bearer eyJ') && !a.includes('forged'))).toBe(true);
 });

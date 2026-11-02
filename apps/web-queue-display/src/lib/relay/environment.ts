@@ -1,6 +1,6 @@
 import { Environment, Network, RecordSource, Store } from 'relay-runtime';
 import type { FetchFunction } from 'relay-runtime';
-import { session } from '../auth/session.ts';
+import { markLoggedOut } from '../session';
 
 // The display is client-rendered only (ADR-0012: no server rendering where there is nothing public to render), so there is one Relay environment,
 // in the browser, and the server never fetches or holds anything. It talks to the GraphQL BFF through this app's own origin (ADR-0013).
@@ -32,23 +32,19 @@ export class GraphQLRequestError extends Error {
   }
 }
 
-/** The bearer token of the current login, as request headers. Evaluated per request, because the login can change at any time. */
-function sessionHeaders(): Record<string, string> {
-  const token = session.getAccessToken();
-  return token ? { authorization: `Bearer ${token}` } : {};
-}
-
 const fetchGraphQL: FetchFunction = async (params, variables) => {
+  // The login is the HttpOnly cookie, which the browser sends to our own origin by itself; this server attaches the bearer token (ADR-0019).
   const res = await fetch(BROWSER_GRAPHQL_URL, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...sessionHeaders() },
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query: params.text, variables }),
   });
   if (!res.ok) throw new Error(`GraphQL request failed: ${res.status}`);
   const json = await res.json();
   if (json.errors?.length) {
     if (json.errors.some((e: { extensions?: { code?: string } }) => e.extensions?.code === 'UNAUTHENTICATED')) {
-      session.clear(); // the token was missing, expired or refused: the login is over
+      markLoggedOut(); // the login is over: the page offers it again
       throw new UnauthenticatedError();
     }
     throw new GraphQLRequestError(json.errors);
@@ -58,7 +54,7 @@ const fetchGraphQL: FetchFunction = async (params, variables) => {
 
 let browserEnvironment: Environment | undefined;
 
-/** One environment per browser tab. The token goes only to our own origin, and only from the browser (ADR-0012, register item 26). */
+/** One environment per browser tab. It sends no token: the page has none (ADR-0019). */
 export function getBrowserEnvironment(): Environment {
   if (typeof window === 'undefined') throw new Error('getBrowserEnvironment() called on the server');
   browserEnvironment ??= new Environment({
