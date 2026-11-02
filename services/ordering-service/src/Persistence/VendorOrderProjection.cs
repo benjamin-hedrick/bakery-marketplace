@@ -1,7 +1,9 @@
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
+using Newtonsoft.Json;
 using OrderingService.Domain;
+using OrderingService.Streaming;
 
 namespace OrderingService.Persistence;
 
@@ -12,7 +14,8 @@ namespace OrderingService.Persistence;
 /// <c>OrderPlaced</c>, the pickup window of <c>OrderConfirmed</c>, the reason of <c>OrderCancelled</c>) are recorded whenever that event arrives.
 /// A lost race with another writer re-reads and applies the event again.
 /// </summary>
-public sealed class VendorOrderProjection(IRepository<VendorOrderDocument> documents, ILogger<VendorOrderProjection> logger)
+public sealed class VendorOrderProjection(
+    IRepository<VendorOrderDocument> documents, ILogger<VendorOrderProjection> logger, IBroadcastPublisher? broadcast = null)
 {
     private const int MaxAttempts = 20;
 
@@ -92,9 +95,30 @@ public sealed class VendorOrderProjection(IRepository<VendorOrderDocument> docum
                 doc.UpdatedAtMs = e.OccurredAt.ToUnixTimeMilliseconds();
             }
 
-            if (await documents.SaveIfUnchangedAsync(doc, vendorId, ct) is not null) return;
+            if (await documents.SaveIfUnchangedAsync(doc, vendorId, ct) is { } saved)
+            {
+                await AnnounceAsync(saved, vendorId, ct);
+                return;
+            }
         }
         throw new InvalidOperationException($"The vendor read model of order {orderId} kept changing under {e.EventType}; the event will be delivered again.");
+    }
+
+    /// <summary>
+    /// Tells the vendor's open streams, on every instance, that the order changed (ADR-0021). A nudge, not a fact: if it is lost the next change or the
+    /// vendor screen's poll repairs it, so a failure here is logged and never fails the event (which would be redelivered for nothing).
+    /// </summary>
+    private async Task AnnounceAsync(VendorOrderDocument saved, string vendorId, CancellationToken ct)
+    {
+        if (broadcast is null) return;
+        try
+        {
+            await broadcast.PublishAsync(VendorOrderChannels.For(vendorId), JsonConvert.SerializeObject(saved), ct);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            logger.LogWarning(e, "The live update of order {OrderId} could not be published; the vendor screen will catch up by polling", saved.Id);
+        }
     }
 
     private async Task<VendorOrderDocument?> FindAnywhereAsync(string orderId, CancellationToken ct)

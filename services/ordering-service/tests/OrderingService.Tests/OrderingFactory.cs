@@ -33,11 +33,18 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
 
     public ManualTime Time { get; } = new(Seed.Now);
 
-    public OrderingFactory(FakeCatalogServer catalog, string clientSecret, string environment = "Development")
+    private readonly IReadOnlyDictionary<string, string> _extraSettings;
+    private readonly Microsoft.Extensions.Logging.ILoggerProvider? _logs;
+
+    public OrderingFactory(
+        FakeCatalogServer catalog, string clientSecret, string environment = "Development",
+        IReadOnlyDictionary<string, string>? extraSettings = null, Microsoft.Extensions.Logging.ILoggerProvider? logs = null)
     {
         _catalog = catalog;
         _clientSecret = clientSecret;
         _environment = environment;
+        _extraSettings = extraSettings ?? new Dictionary<string, string>();
+        _logs = logs;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -63,8 +70,11 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
             builder.UseSetting(key, value);
         }
 
+        foreach (var (key, value) in _extraSettings) builder.UseSetting(key, value);
+
         builder.ConfigureServices(services =>
         {
+            if (_logs is not null) services.AddSingleton(_logs);
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -75,14 +85,17 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
         });
     }
 
-    public string Token(string sub, params string[] roles)
+    public string Token(string sub, params string[] roles) => TokenFor(TimeSpan.FromMinutes(10), sub, roles);
+
+    /// <summary>A token that expires after <paramref name="lifetime"/> (for the streams, which end when their token does).</summary>
+    public string TokenFor(TimeSpan lifetime, string sub, params string[] roles)
     {
         var descriptor = new SecurityTokenDescriptor
         {
             Issuer = Issuer,
             Audience = Audience,
             NotBefore = DateTime.UtcNow.AddMinutes(-30),
-            Expires = DateTime.UtcNow.AddMinutes(10),
+            Expires = DateTime.UtcNow.Add(lifetime),
             Subject = new ClaimsIdentity([new Claim("sub", sub), .. roles.Select(r => new Claim("roles", r))]),
             SigningCredentials = new SigningCredentials(SigningKey, SecurityAlgorithms.RsaSha256),
         };
@@ -93,6 +106,13 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
     {
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token(customerId, "Customer"));
+        return client;
+    }
+
+    public HttpClient ClientWithToken(string token)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;
     }
 
