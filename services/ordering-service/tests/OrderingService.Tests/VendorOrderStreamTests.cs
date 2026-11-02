@@ -5,6 +5,7 @@ using System.Text.Json;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OrderingService.Domain;
@@ -18,7 +19,7 @@ namespace OrderingService.Tests;
 /// WI-QUE-003 step 2 (ADR-0021): the vendor order stream endpoint, the hub behind it and the projection's publish. The service is hosted in-process with
 /// the in-memory broadcast; the Redis broadcast across two hosts is step 3. Streams are read as the text they are.
 /// </summary>
-public sealed class VendorOrderStreamTests
+public sealed partial class VendorOrderStreamTests
 {
     private const string Url = "/ordering/vendor/orders/stream";
     private static readonly TimeSpan Wait = TimeSpan.FromSeconds(10);
@@ -31,10 +32,25 @@ public sealed class VendorOrderStreamTests
         public OrderingFactory Factory { get; }
         public CapturedLogs Logs { get; } = new();
 
-        public Rig(params (string Key, string Value)[] settings)
+        private readonly (string Key, string Value)[] _settings;
+        private readonly List<OrderingFactory> _others = [];
+
+        public Rig(params (string Key, string Value)[] settings) : this(null, settings) { }
+
+        public Rig(Action<IServiceCollection>? configureServices, params (string Key, string Value)[] settings)
         {
+            _settings = settings;
             _catalog = new FakeCatalogServer(_secret);
-            Factory = new OrderingFactory(_catalog, _secret, extraSettings: settings.ToDictionary(s => s.Key, s => s.Value), logs: Logs);
+            Factory = new OrderingFactory(_catalog, _secret, extraSettings: settings.ToDictionary(s => s.Key, s => s.Value), logs: Logs, configureServices: configureServices);
+        }
+
+        /// <summary>Another instance of the service: the same catalog and settings, its own process state (its own in-memory stores).</summary>
+        public OrderingFactory StartOtherHost()
+        {
+            var other = new OrderingFactory(_catalog, _secret, extraSettings: _settings.ToDictionary(s => s.Key, s => s.Value));
+            _others.Add(other);
+            _ = other.CreateClient(); // starts the host and its subscriptions
+            return other;
         }
 
         public HttpClient Customer(string id = "customer-1") => Factory.CustomerClient(id);
@@ -55,6 +71,7 @@ public sealed class VendorOrderStreamTests
 
         public async ValueTask DisposeAsync()
         {
+            foreach (var other in _others) await other.DisposeAsync();
             await Factory.DisposeAsync();
             await _catalog.DisposeAsync();
         }
@@ -183,7 +200,7 @@ public sealed class VendorOrderStreamTests
         using var stream = await Sse.OpenAsync(vendor);
         Assert.Equal(HttpStatusCode.OK, stream.Status);
         Assert.Equal("text/event-stream", stream.Response.Content.Headers.ContentType?.MediaType);
-        Assert.Contains("no-store", stream.Response.Headers.CacheControl.ToString());
+        Assert.Contains("no-store", stream.Response.Headers.CacheControl?.ToString() ?? "");
         var hello = await stream.NextAsync();
         Assert.Contains("connected", hello!.Comments);
 
@@ -424,6 +441,29 @@ public sealed class VendorOrderStreamTests
     private sealed class ThrowingPublisher : IBroadcastPublisher
     {
         public Task PublishAsync(string channel, string message, CancellationToken ct = default) => throw new InvalidOperationException("Redis is down");
+    }
+
+    // ---- the live channel is unavailable
+
+    [Fact]
+    public async Task AStreamCannotBeOpenedWhenTheLiveChannelIsDownSoTheScreenKeepsPolling()
+    {
+        await using var rig = new Rig(services => services.Replace(ServiceDescriptor.Singleton<IBroadcastSubscriber>(new DownSubscriber())));
+        using var vendor = rig.Vendor();
+
+        using var stream = await Sse.OpenAsync(vendor);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, stream.Status);
+        Assert.True(stream.Response.Headers.Contains("Retry-After"));
+        Assert.Equal(0, rig.Factory.Services.GetRequiredService<VendorOrderStreamHub>().OpenCount);
+        // The list is still served: polling is the fallback.
+        Assert.Equal(HttpStatusCode.OK, (await vendor.GetAsync("/ordering/vendor/orders")).StatusCode);
+    }
+
+    private sealed class DownSubscriber : IBroadcastSubscriber
+    {
+        public Task<IAsyncDisposable> SubscribeAsync(string channel, Func<string, CancellationToken, Task> handler, CancellationToken ct = default) =>
+            throw new InvalidOperationException("Redis is down");
     }
 
     // ---- what is logged
