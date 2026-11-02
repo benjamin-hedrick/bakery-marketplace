@@ -5,6 +5,7 @@ import { defaultStorePrefix, parseEncryptionKey, sessionConfigFromEnv } from '..
 import { clearCookie, readCookie, serializeCookie } from '../src/cookie.ts';
 import { createSealer } from '../src/crypto.ts';
 import { checkSameOriginRead, checkStateChangingRequest } from '../src/csrf.ts';
+import { LOGIN_MESSAGES, loginMessage } from '../src/messages.ts';
 import { newKey } from './helpers.ts';
 
 describe('the sealer (AES-256-GCM)', () => {
@@ -128,6 +129,30 @@ describe('the settings', () => {
       for (const value of Object.values(change))
         if (value) assert.ok(!result.reason.includes(value), 'a value was printed');
     }
+  });
+
+  test('the in-memory store must be asked for twice: by name and by the explicit allowance', () => {
+    assert.ok(!sessionConfigFromEnv({ ...base, SESSION_REDIS_URL: 'memory' }).ok);
+    const allowed = sessionConfigFromEnv({ ...base, SESSION_REDIS_URL: 'memory', SESSION_ALLOW_MEMORY_STORE: '1' });
+    assert.ok(allowed.ok);
+    assert.equal(allowed.config.redisUrl, 'memory');
+    // the allowance alone changes nothing for a real Redis address
+    const real = sessionConfigFromEnv({
+      ...base,
+      SESSION_REDIS_URL: 'redis://127.0.0.1:6379',
+      SESSION_ALLOW_MEMORY_STORE: '1',
+    });
+    assert.ok(real.ok && real.config.redisUrl === 'redis://127.0.0.1:6379');
+  });
+
+  test('the renewal margin defaults to 60 seconds and can be set for tests', () => {
+    const normal = sessionConfigFromEnv(base);
+    const short = sessionConfigFromEnv({ ...base, SESSION_REFRESH_MARGIN_SECONDS: '5' });
+
+    assert.ok(normal.ok && short.ok);
+    assert.equal(normal.config.refreshMarginSeconds, 60);
+    assert.equal(short.config.refreshMarginSeconds, 5);
+    assert.ok(!sessionConfigFromEnv({ ...base, SESSION_REFRESH_MARGIN_SECONDS: '0' }).ok);
   });
 
   test('the previous key must have a different id from the current one', () => {
@@ -274,5 +299,18 @@ describe('CSRF checks', () => {
     assert.ok(checkSameOriginRead({ 'sec-fetch-site': 'none' }, ORIGIN).ok);
     assert.ok(!checkSameOriginRead({ origin: 'http://evil.example' }, ORIGIN).ok);
     assert.ok(!checkSameOriginRead({ 'sec-fetch-site': 'cross-site' }, ORIGIN).ok);
+  });
+});
+
+describe('the login messages', () => {
+  test('a code from the query string gets its own fixed text, and anything else gets the general one', () => {
+    assert.equal(loginMessage('state_mismatch'), LOGIN_MESSAGES.state_mismatch);
+    for (const unknown of ['nonsense', '', undefined, 7, null, 'constructor', '__proto__', 'toString']) {
+      assert.equal(loginMessage(unknown), LOGIN_MESSAGES.exchange_failed, String(unknown));
+    }
+  });
+
+  test('no message mentions a token, a secret or a code', () => {
+    for (const text of Object.values(LOGIN_MESSAGES)) assert.doesNotMatch(text, /token|secret|verifier|password/i);
   });
 });

@@ -1,52 +1,19 @@
-import type { Page, Route } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
-// A logged-in vendor without the real issuer: the issuer is stubbed inside the browser (page.route), so the whole Authorization Code + PKCE
-// flow runs for real in the page, and the token is a fake with the right claims. The mock BFF is steered through POST /__state.
+// A logged-in vendor in the browser tests. The login runs for real: the page sends the browser to /api/auth/login, the app's server goes to the
+// fake issuer (packages/web-session/test-support/fake-issuer.mjs), exchanges the code, and sets the session cookie. The mock BFF and the fake
+// issuer are steered through their control endpoints (POST /__state).
 
-export const ISSUER = 'http://localhost:5100';
 export const APP = 'http://localhost:3100';
 export const MOCK = 'http://localhost:4101';
+export const ISSUER = 'http://localhost:5101';
 
-const b64url = (v: unknown) => Buffer.from(JSON.stringify(v)).toString('base64url');
-
-export function fakeToken(claims: Record<string, unknown> = {}) {
-  const payload = {
-    sub: 'vendor-shop-001',
-    name: 'Corner Bakery (owner)',
-    email: 'owner@cornerbakery.local',
-    roles: 'Vendor',
-    exp: Math.floor(Date.now() / 1000) + 3600,
-    ...claims,
-  };
-  return `${b64url({ alg: 'RS256', typ: 'JWT' })}.${b64url(payload)}.${Buffer.from('not-a-real-signature').toString('base64url')}`;
-}
-
-export interface Issuer {
-  authorizeUrls: URL[];
-  tokenBodies: URLSearchParams[];
-}
-
-/** Stubs the issuer: /authorize redirects straight back with a code; /token answers with `token`. */
-export async function stubIssuer(page: Page, opts: { token?: string } = {}): Promise<Issuer> {
-  const seen: Issuer = { authorizeUrls: [], tokenBodies: [] };
-  await page.route(`${ISSUER}/authorize*`, async (route: Route) => {
-    const url = new URL(route.request().url());
-    seen.authorizeUrls.push(url);
-    await route.fulfill({
-      status: 302,
-      headers: { location: `${APP}/auth/callback?code=code-1&state=${url.searchParams.get('state')}` },
-    });
-  });
-  await page.route(`${ISSUER}/token`, async (route: Route) => {
-    seen.tokenBodies.push(new URLSearchParams(route.request().postData() ?? ''));
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      headers: { 'access-control-allow-origin': APP },
-      body: JSON.stringify({ access_token: opts.token ?? fakeToken(), token_type: 'Bearer', expires_in: 3600 }),
-    });
-  });
-  return seen;
+export interface IssuerSeen {
+  user: string;
+  mode: string;
+  accessSeconds: number;
+  authorize: Record<string, string>[];
+  tokens: { grant: string; clientId: string | null; hasSecret: boolean; hasVerifier: boolean }[];
 }
 
 export interface MockOrder {
@@ -81,23 +48,45 @@ export function order(o: MockOrder) {
   };
 }
 
-/** Sets what the mock BFF answers with (and, optionally, how it fails). */
-export async function setMock(state: { orders?: ReturnType<typeof order>[]; mode?: string }): Promise<void> {
-  const res = await fetch(`${MOCK}/__state`, { method: 'POST', body: JSON.stringify(state) });
-  if (!res.ok) throw new Error('the mock BFF did not take the state');
-}
+const post = async (url: string, body: unknown) => {
+  const res = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`${url} did not take the state`);
+};
 
-export async function resetMock(): Promise<void> {
-  await fetch(`${MOCK}/__reset`, { method: 'POST' });
+/** Sets what the mock BFF answers with (and, optionally, how it fails). */
+export const setMock = (state: { orders?: ReturnType<typeof order>[]; mode?: string }) =>
+  post(`${MOCK}/__state`, state);
+
+/** Sets who logs in at the fake issuer, how long a token lives, and how the issuer misbehaves (ok | down | revoked | bad-exchange). */
+export const setIssuer = (state: {
+  user?: 'vendor' | 'customer';
+  accessSeconds?: number;
+  refreshable?: boolean;
+  mode?: string;
+}) => post(`${ISSUER}/__state`, state);
+
+export async function resetAll(): Promise<void> {
+  await post(`${MOCK}/__reset`, {});
+  await post(`${ISSUER}/__reset`, {});
 }
 
 export async function mockRequests(): Promise<{ requests: number; authorizations: (string | null)[] }> {
   return (await fetch(`${MOCK}/__state`)).json();
 }
 
-/** Logs in through the stubbed issuer and lands on the queue. */
+export async function issuerSeen(): Promise<IssuerSeen> {
+  return (await fetch(`${ISSUER}/__state`)).json();
+}
+
+/** Logs in through the fake issuer by the real flow and waits until the header shows who is logged in. */
 export async function logInAsVendor(page: Page): Promise<void> {
-  await stubIssuer(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Log in' }).first().click();
+  await page.getByTestId('user-name').waitFor();
+}
+
+/** Opens the page and clicks Log in without waiting for the result (for the cases where the login fails). */
+export async function startLoginOnly(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByRole('button', { name: 'Log in' }).first().click();
 }

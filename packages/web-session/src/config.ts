@@ -35,6 +35,9 @@ export type SessionConfigResult = { ok: true; config: SessionConfig } | { ok: fa
 
 export const CALLBACK_PATH = '/api/auth/callback';
 
+/** The value of SESSION_REDIS_URL that keeps sessions in the process's own memory: tests and demos only, and only when SESSION_ALLOW_MEMORY_STORE=1. */
+export const MEMORY_STORE = 'memory';
+
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 function httpAddress(value: string | undefined): URL | undefined {
@@ -116,8 +119,22 @@ export function sessionConfigFromEnv(env: Record<string, string | undefined>): S
   }
 
   const redisUrl = env['SESSION_REDIS_URL']?.trim();
-  if (!redisUrl) return { ok: false, reason: 'SESSION_REDIS_URL is not set' };
+  if (!redisUrl)
+    return {
+      ok: false,
+      reason: 'SESSION_REDIS_URL is not set (use "memory" only for tests, with SESSION_ALLOW_MEMORY_STORE=1)',
+    };
+  if (redisUrl === MEMORY_STORE && env['SESSION_ALLOW_MEMORY_STORE'] !== '1') {
+    return {
+      ok: false,
+      reason:
+        'SESSION_REDIS_URL=memory needs SESSION_ALLOW_MEMORY_STORE=1: sessions would live in one process and be lost on restart',
+    };
+  }
 
+  const margin = seconds(env['SESSION_REFRESH_MARGIN_SECONDS'], 60, 1);
+  if (margin === undefined)
+    return { ok: false, reason: 'SESSION_REFRESH_MARGIN_SECONDS is not a positive whole number' };
   const idleMinutes = seconds(env['SESSION_IDLE_MINUTES'], 12 * 60, 1);
   const absoluteHours = seconds(env['SESSION_ABSOLUTE_HOURS'], 7 * 24, 1);
   if (idleMinutes === undefined) return { ok: false, reason: 'SESSION_IDLE_MINUTES is not a positive whole number' };
@@ -140,7 +157,7 @@ export function sessionConfigFromEnv(env: Record<string, string | undefined>): S
       cookieSecure: secure,
       idleSeconds: idleMinutes * 60,
       absoluteSeconds: absoluteHours * 3600,
-      refreshMarginSeconds: 60,
+      refreshMarginSeconds: margin,
       pendingSeconds: 600,
       currentKey,
       previousKey,

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { createAuthHandlers, createGraphqlHandler, type ApiRequest, type ApiResponse } from '../src/handlers.ts';
+import { apiRoutes } from '../src/runtime.ts';
 import { buildAuthorizeUrl, exchangeCode, refreshTokens, TokenError } from '../src/oidc.ts';
 import { createSessionService } from '../src/service.ts';
 import { createMemoryStore } from '../src/store.ts';
@@ -377,5 +378,22 @@ describe('the GraphQL handler', () => {
 
     assert.equal(out.out.statusCode, 503);
     assert.equal(r.bff.length, 0);
+  });
+});
+
+describe('the ready-made routes', () => {
+  test('without usable settings every route answers 503 with a fixed sentence and names no setting or value', async () => {
+    const noisy = console.error;
+    console.error = () => {}; // the reason is logged on the server; keep the test output clean
+    try {
+      for (const route of [apiRoutes.login, apiRoutes.callback, apiRoutes.logout, apiRoutes.me, apiRoutes.graphql]) {
+        const out = res();
+        await route(req('GET'), out.api);
+        assert.equal(out.out.statusCode, 503);
+        assert.deepEqual(out.out.body, { error: 'Login is not configured' });
+      }
+    } finally {
+      console.error = noisy;
+    }
   });
 });
