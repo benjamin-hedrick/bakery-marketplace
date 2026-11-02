@@ -331,6 +331,9 @@ jobs:
       - script: npm ci
         workingDirectory: apps/web-customer
         displayName: Install web-customer
+      - script: npm ci
+        workingDirectory: apps/web-queue-display
+        displayName: Install web-queue-display (the skeleton also runs the vendor's queue screen)
       - script: npx playwright install --with-deps chromium
         workingDirectory: apps/web-customer
         displayName: Install Chromium
