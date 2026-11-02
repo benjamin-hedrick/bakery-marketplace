@@ -9,6 +9,7 @@ using OrderingService.Checkout;
 using OrderingService.Orders;
 using OrderingService.Outbox;
 using OrderingService.Persistence;
+using OrderingService.Streaming;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,12 +79,18 @@ if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
         redis, maxStreamLength: builder.Configuration.GetValue<int?>("Events:MaxStreamLength"), serviceName: "ordering-service");
     builder.Services.AddSingleton<IEventPublisher>(transport);
     builder.Services.AddSingleton<IEventSubscriber>(transport);
+    var broadcast = new RedisBroadcast(redis); // Pub/Sub on the same connection, for the live vendor streams (ADR-0021)
+    builder.Services.AddSingleton<IBroadcastPublisher>(broadcast);
+    builder.Services.AddSingleton<IBroadcastSubscriber>(broadcast);
 }
 else if (string.Equals(eventsBackend, "inmemory", StringComparison.OrdinalIgnoreCase))
 {
     var transport = new InMemoryEventTransport();
     builder.Services.AddSingleton<IEventPublisher>(transport);
     builder.Services.AddSingleton<IEventSubscriber>(transport);
+    var broadcast = new InMemoryBroadcast();
+    builder.Services.AddSingleton<IBroadcastPublisher>(broadcast);
+    builder.Services.AddSingleton<IBroadcastSubscriber>(broadcast);
 }
 else
 {
@@ -93,6 +100,8 @@ builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection("Outb
 builder.Services.AddSingleton<OutboxSignal>();
 builder.Services.AddSingleton<OrderEventPublisher>();
 builder.Services.AddHostedService<OutboxRelay>();
+builder.Services.Configure<VendorStreamOptions>(builder.Configuration.GetSection("VendorStream"));
+builder.Services.AddSingleton<VendorOrderStreamHub>();
 builder.Services.AddHostedService<VendorOrderSubscriptions>(); // the vendor order read model, fed by the order events (N-03)
 
 // Checkout (WI-ORD-001).
@@ -132,6 +141,7 @@ app.MapPickupWindowEndpoints();
 app.MapCheckoutEndpoints();
 app.MapOrderActionEndpoints();
 app.MapVendorOrderEndpoints();
+app.MapVendorOrderStreamEndpoint();
 
 app.Run();
 

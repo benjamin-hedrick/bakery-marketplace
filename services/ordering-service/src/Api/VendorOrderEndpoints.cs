@@ -34,7 +34,8 @@ public sealed record VendorOrderDto(
     DateTimeOffset? PlacedAt,
     DateTimeOffset UpdatedAt,
     IReadOnlyList<VendorOrderLineDto> Lines,
-    string? PickupInstructions)
+    string? PickupInstructions,
+    long LastSequence)
 {
     public static VendorOrderDto From(VendorOrderDocument d, IReadOnlyDictionary<string, ListingNames> names) => new(
         d.Id, OrderReference.For(d.Id), d.Status.ToString(), d.TotalCents, d.Currency, d.LineCount, d.ItemCount, d.FulfillmentType?.ToString(),
@@ -46,7 +47,7 @@ public sealed record VendorOrderDto(
             return new VendorOrderLineDto(
                 l.ListingId, known?.Name,
                 l.ModifierIds.Select(m => new VendorOrderModifierDto(m, known?.Modifiers.GetValueOrDefault(m))).ToList(), l.Quantity);
-        }).ToList(), d.PickupInstructions);
+        }).ToList(), d.PickupInstructions, d.LastSequence);
 }
 
 public sealed record VendorOrderPage(IReadOnlyList<VendorOrderDto> Items, string? NextCursor);
