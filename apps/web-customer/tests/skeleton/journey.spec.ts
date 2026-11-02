@@ -87,7 +87,9 @@ test('a plain order: browse, choose, log in, order, and it is confirmed by itsel
   await page.reload(); // a reload keeps the login: the session is on the server behind a cookie (ADR-0019)
   await expect(page.getByTestId('order-status')).toHaveText('Order confirmed');
 
+  const loggedOut = page.waitForEvent('load'); // logging out ends the session, then reloads the home page: wait for that before going anywhere
   await page.getByRole('button', { name: 'Log out' }).click(); // once the session is ended, the same link asks again, then shows the same order
+  await loggedOut;
   await page.goto(orderUrl);
   await expect(page.getByTestId('login-required')).toBeVisible();
   await page.getByTestId('login-required').getByRole('button', { name: 'Log in' }).click();
