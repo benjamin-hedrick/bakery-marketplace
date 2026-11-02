@@ -15,6 +15,13 @@ public sealed class VendorStreamOptions
     /// <summary>Open streams on one instance across all vendors. Beyond it a new stream is refused with 503.</summary>
     public int MaxStreamsPerInstance { get; set; } = 500;
 
+    /// <summary>
+    /// The longest one write to a client may take. A client that holds the connection open and does not read (or reads far too slowly) would otherwise
+    /// hold its place and a blocked write until the stream's own end. When a write takes longer the stream is closed. Applies to every write,
+    /// the final `expired` and `closed` events included.
+    /// </summary>
+    public TimeSpan WriteTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
     /// <summary>Messages queued for one stream. A client that falls this far behind is dropped and resynchronizes with the list.</summary>
     public int QueueCapacity { get; set; } = 64;
 }

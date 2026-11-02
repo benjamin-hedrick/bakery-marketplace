@@ -57,9 +57,25 @@ public static class VendorOrderStreamEndpoint
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(http.RequestAborted, stream.Closed, lifetime.ApplicationStopping);
             var token = linked.Token;
+
+            // One write, bounded in time. `until` ends it early (the client left, the stream was closed); the timeout ends it as a failure.
+            async Task SendAsync(string text, CancellationToken until)
+            {
+                using var bounded = CancellationTokenSource.CreateLinkedTokenSource(until);
+                bounded.CancelAfter(o.WriteTimeout);
+                try
+                {
+                    await WriteAsync(response, text, bounded.Token);
+                }
+                catch (OperationCanceledException) when (bounded.IsCancellationRequested && !until.IsCancellationRequested)
+                {
+                    throw new WriteTimedOut();
+                }
+            }
+
             try
             {
-                await WriteAsync(response, "retry: 3000\n: connected\n\n", token);
+                await SendAsync("retry: 3000\n: connected\n\n", token);
                 if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("A vendor order stream opened ({Open} open on this instance)", hub.OpenCount);
 
                 var lastWrite = DateTimeOffset.UtcNow;
@@ -68,7 +84,7 @@ public static class VendorOrderStreamEndpoint
                     var remaining = deadline - DateTimeOffset.UtcNow;
                     if (remaining <= TimeSpan.Zero)
                     {
-                        await WriteAsync(response, $"event: expired\ndata: {{\"reason\":\"{endReason}\"}}\n\n", CancellationToken.None);
+                        await SendAsync($"event: expired\ndata: {{\"reason\":\"{endReason}\"}}\n\n", http.RequestAborted);
                         break;
                     }
 
@@ -79,7 +95,7 @@ public static class VendorOrderStreamEndpoint
                     try
                     {
                         var message = await stream.Queue.Reader.ReadAsync(timeout.Token);
-                        await WriteAsync(response, $"event: order\nid: {message.OrderId}:{message.Sequence}\ndata: {message.Json}\n\n", token);
+                        await SendAsync($"event: order\nid: {message.OrderId}:{message.Sequence}\ndata: {message.Json}\n\n", token);
                         hub.RecordSent(message);
                         lastWrite = DateTimeOffset.UtcNow;
                     }
@@ -89,7 +105,7 @@ public static class VendorOrderStreamEndpoint
                         // The wait ended: either the deadline is due (the loop top ends the stream) or a heartbeat is.
                         if (deadline - DateTimeOffset.UtcNow > TimeSpan.Zero)
                         {
-                            await WriteAsync(response, ": heartbeat\n\n", token);
+                            await SendAsync(": heartbeat\n\n", token);
                             lastWrite = DateTimeOffset.UtcNow;
                         }
                     }
@@ -97,8 +113,15 @@ public static class VendorOrderStreamEndpoint
 
                 if (stream.CloseReason is { } closed && !http.RequestAborted.IsCancellationRequested)
                 {
-                    await WriteAsync(response, $"event: closed\ndata: {{\"reason\":\"{closed}\"}}\n\n", CancellationToken.None);
+                    await SendAsync($"event: closed\ndata: {{\"reason\":\"{closed}\"}}\n\n", http.RequestAborted);
                 }
+            }
+            catch (WriteTimedOut)
+            {
+                // The client holds the connection and does not read: the stream is closed and the connection dropped, which frees its place.
+                hub.RecordClosedByServer("write-timeout");
+                logger.LogWarning("A vendor order stream was closed: the client did not read within {Timeout} ms", (int)o.WriteTimeout.TotalMilliseconds);
+                http.Abort();
             }
             catch (OperationCanceledException)
             {
@@ -124,6 +147,9 @@ public static class VendorOrderStreamEndpoint
         long.TryParse(user.FindFirst("exp")?.Value, out var seconds) ? DateTimeOffset.FromUnixTimeSeconds(seconds) : null;
 
     private static TimeSpan Min(TimeSpan a, TimeSpan b) => a < b ? a : b;
+
+    /// <summary>A write to the client took longer than the write timeout.</summary>
+    private sealed class WriteTimedOut : Exception;
 
     private static async Task WriteAsync(HttpResponse response, string text, CancellationToken ct)
     {

@@ -1,6 +1,6 @@
 # Non-Functional Requirements
 
-> **Status:** Current · updated 2026-10-30. Requirements are targets and decisions; section 8 says what has been measured. Nothing here has been load-tested or deployed.
+> **Status:** Current · updated 2026-11-02 (section 3.3 corrected; register item 130 lists what else to revisit). Requirements are targets and decisions; section 8 says what has been measured. Nothing here has been load-tested or deployed.
 
 Per `WI-NFR-001`: every requirement below traces to a specific ADR or vision principle — no NFR here should read as invented without that trace. The target numbers (load, availability) were set by the lead as planning assumptions, not derived from measured traffic.
 
@@ -28,7 +28,7 @@ Status legend matches the rest of the project: **[MVP]** binding for v1 · **[MV
 **[MVP]** Microsoft Entra External ID (the text of ADR-0006 says Azure AD B2C, which stopped accepting new tenants; see its amendment), JWT bearer tokens, role claim + resource-ownership checks per service. Service callers authenticate with OAuth2 client credentials and an app role (ADR-0018, Proposed). Source: ADR-0006. Locally a mock issuer stands in; Entra is not configured.
 
 ### 3.3 CSRF
-**[MVP]** Not applicable under the current design, stated explicitly rather than by omission: tokens are transmitted via the `Authorization` header only, never stored in or read from a cookie (ADR-0006's token-storage note). Classic CSRF exploits automatic cookie attachment, which does not apply here. **This conclusion is conditional — if any future work item introduces cookie-based token storage (e.g., a refresh-token strategy), this section is invalidated and CSRF-specific mitigation must be added at that time**, per ADR-0006. The planned cookie session (backlog N-01) is exactly that case. Today the access token is held in browser memory only and a reload logs the user out (register 24).
+**[MVP]** Applies, and is mitigated. The browser apps keep the login in a server-side session behind an HttpOnly cookie (ADR-0019, `WI-AUTH-007`): `__Host-` name, `Secure` except on loopback, `SameSite=Lax`. Every request that can change state, and the subscription stream, must carry an `Origin` equal to the app's own and a JSON content type, or it is a 403 and changes nothing (`packages/web-session/src/csrf.ts`; tests in the package and in both apps' browser suites). The services themselves still take the bearer token in the `Authorization` header only and never read a cookie: the web app's server turns the session into that header. History: this section used to read "not applicable", conditional on no cookie token storage (ADR-0006) and saying it was invalidated if a cookie session was introduced; the session was built and the section was not updated until 2026-11-02 (register item 130).
 
 ### 3.4 Injection protection
 **[MVP]** All Cosmos DB access uses parameterized queries via the SDK's query builder — no raw query string construction anywhere in the codebase. Source: this is a new baseline stated here for the first time, feeding into `docs/process/engineering-standards.md`'s secure-coding section (also updated to reference it).
