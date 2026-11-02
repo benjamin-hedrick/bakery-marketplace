@@ -14,7 +14,13 @@ export {
   SESSION_ENDED_HEADER,
 } from './handlers.ts';
 export type { ApiRequest, ApiResponse } from './handlers.ts';
-export { extraForwardedHeaders, forwardedRequestHeaders, proxyGraphql, proxyGraphqlStream } from './graphql-proxy.ts';
+export {
+  extraForwardedHeaders,
+  forwardedRequestHeaders,
+  MAX_REQUEST_BODY_BYTES,
+  proxyGraphql,
+  proxyGraphqlStream,
+} from './graphql-proxy.ts';
 export type { StreamResponse } from './graphql-proxy.ts';
 export { apiRoutes, getSessionRuntime } from './runtime.ts';
 export type { SessionRuntime, SessionRuntimeResult } from './runtime.ts';

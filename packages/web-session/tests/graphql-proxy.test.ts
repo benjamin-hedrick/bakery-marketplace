@@ -75,6 +75,20 @@ describe('the GraphQL proxy', () => {
     assert.equal(Buffer.from(calls[0]!.init.body as Uint8Array).toString(), '{"query":"{a}"}');
   });
 
+  test('refuses a body over 64 KB with 413 and calls nothing (register item 124), and accepts one just under it', async () => {
+    const { calls, fetchImpl } = fakeFetch(() => new Response('{}'));
+    const tooBig = response();
+
+    await proxyGraphql(request('POST', {}, 'x'.repeat(64 * 1024 + 1)), tooBig.res, TARGET, [], fetchImpl);
+
+    assert.equal(tooBig.out.status, 413);
+    assert.deepEqual(tooBig.out.json, { error: 'The request is too large' });
+    assert.equal(calls.length, 0);
+
+    await proxyGraphql(request('POST', {}, 'x'.repeat(64 * 1024)), response().res, TARGET, [], fetchImpl);
+    assert.equal(calls.length, 1);
+  });
+
   test('a different address on the next call goes to that address (the setting is not captured)', async () => {
     const { calls, fetchImpl } = fakeFetch(() => new Response('{}'));
     await proxyGraphql(request('POST', {}, '{}'), response().res, 'http://one/graphql', [], fetchImpl);

@@ -36,7 +36,7 @@ A missing or malformed setting stops the routes with a 503 and logs the **name**
 
 ## Using it from an app (phase 3)
 
-Each app mounts the handlers as thin API routes, for example `pages/api/auth/login.ts`: `export default (req, res) => getSessionRuntime()...auth.login(req, res)`, and `/api/graphql` as `runtime.graphql`; a live screen also mounts `pages/api/graphql-stream.ts` (`apiRoutes.graphqlStream`, with `config = { api: { bodyParser: false, responseLimit: false } }`). The Next config lists the package in `transpilePackages`, because it ships TypeScript source.
+Each app mounts the handlers as thin API routes, for example `pages/api/auth/login.ts`: `export default (req, res) => getSessionRuntime()...auth.login(req, res)`, and `/api/graphql` as `runtime.graphql`; a live screen also mounts `pages/api/graphql-stream.ts` (`apiRoutes.graphqlStream`, with `config = { api: { bodyParser: false, responseLimit: false } }`). The Next config lists the package in `transpilePackages`, because it ships TypeScript source. Both GraphQL routes turn the framework's body parser off and read the request themselves, at most `MAX_REQUEST_BODY_BYTES` (64 KB, the BFF's own limit); a larger body is a 413 and nothing is sent on.
 
 ## Tests
 
