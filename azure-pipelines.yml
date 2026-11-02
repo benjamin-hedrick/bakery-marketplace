@@ -280,6 +280,30 @@ jobs:
           targetPath: apps/web-queue-display/test-results
           artifact: queue-playwright-traces
 
+  - job: session
+    displayName: web-session package (real Redis)
+    steps:
+      - task: UseNode@1
+        inputs:
+          version: $(NODE_VERSION)
+      - script: docker compose up -d --wait redis-events
+        displayName: Start Redis for the session store tests
+      - script: npm ci
+        workingDirectory: packages/web-session
+        displayName: Install
+      - script: npm run format:check
+        workingDirectory: packages/web-session
+        displayName: Format check (Prettier)
+      - script: npm run typecheck
+        workingDirectory: packages/web-session
+        displayName: Typecheck
+      - script: npm test
+        workingDirectory: packages/web-session
+        displayName: Tests (the Redis store runs against the real Redis; REDIS_CONNECTION_STRING is set for the pipeline)
+      - script: docker compose down
+        displayName: Stop Redis
+        condition: always()
+
   - job: skeleton
     displayName: Walking skeleton (real stack)
     steps:
