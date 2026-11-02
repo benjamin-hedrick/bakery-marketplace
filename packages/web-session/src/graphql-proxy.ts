@@ -70,8 +70,56 @@ export interface StreamOptions {
   maxBodyBytes?: number;
   /** How long to wait for the BFF to accept the stream. Once it is open it may live as long as the BFF keeps it. */
   connectTimeoutMs?: number;
-  /** Asked every `everyMs` while the stream is open; when it answers false the stream is ended (the session is over). */
-  keepOpen?: { check: () => Promise<boolean>; everyMs: number };
+  /**
+   * The request body, already read by the caller (which reads it before it counts the stream against its limits, register item 126). When absent
+   * it is read here, within `maxBodyBytes`.
+   */
+  body?: Uint8Array<ArrayBuffer>;
+  /** Asked now and then while the stream is open; when it answers false the stream is ended (the session is over). See {@link KeepOpen}. */
+  keepOpen?: KeepOpen;
+}
+
+/**
+ * The check that keeps an open stream tied to its session. While it answers, it is asked every `everyMs` (with up to 10% added, so that many
+ * streams do not ask together). When it fails (the session store cannot answer) it is asked less often each time, see {@link checkDelayMs}, and after
+ * `maxFailures` failures in a row (default 3: about 70 seconds at the default interval) the stream is ended instead of left running unchecked. A
+ * stream ended that way is opened again by the screen, which polls meanwhile; one successful check starts the count again.
+ */
+export interface KeepOpen {
+  check: () => Promise<boolean>;
+  everyMs: number;
+  maxFailures?: number;
+}
+
+/** The wait before the next check: `everyMs` while checks work, then twice, four times and (at most) six times that after each failure in a row. */
+export function checkDelayMs(everyMs: number, failures: number): number {
+  return failures <= 0 ? everyMs : Math.min(everyMs * 2 ** failures, everyMs * 6);
+}
+
+/** Runs the checks of a {@link KeepOpen} until `onEnd` is called (the session is over or the checks keep failing). Returns the function that stops them. */
+function watchSession(keepOpen: KeepOpen, onEnd: () => void): () => void {
+  const maxFailures = keepOpen.maxFailures ?? 3;
+  let failures = 0;
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const schedule = () => {
+    timer = setTimeout(() => void run(), checkDelayMs(keepOpen.everyMs, failures) * (1 + Math.random() * 0.1));
+  };
+  const run = async () => {
+    try {
+      if (!(await keepOpen.check())) return onEnd();
+      failures = 0;
+    } catch {
+      failures++;
+      if (failures >= maxFailures) return onEnd();
+    }
+    if (!stopped) schedule();
+  };
+  schedule();
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
 }
 
 /**
@@ -93,6 +141,20 @@ async function readBodyWithin(req: ProxyRequest, limit: number): Promise<Uint8Ar
     chunks.push(buffer);
   }
   return new Uint8Array(Buffer.concat(chunks));
+}
+
+/** Reads a request body of at most `limit` bytes: the bytes, or the status to answer with (413 too large, 400 unreadable). */
+export async function readRequestBody(
+  req: ProxyRequest,
+  limit: number = MAX_REQUEST_BODY_BYTES,
+): Promise<{ ok: true; body: Uint8Array<ArrayBuffer> } | { ok: false; status: 413 | 400; error: string }> {
+  try {
+    return { ok: true, body: await readBodyWithin(req, limit) };
+  } catch (e) {
+    return e instanceof BodyTooLarge
+      ? { ok: false, status: 413, error: 'The request is too large' }
+      : { ok: false, status: 400, error: 'The request could not be read' };
+  }
 }
 
 /**
@@ -122,20 +184,22 @@ export async function proxyGraphqlStream(
     keepOpen,
   } = options;
 
-  let body: Uint8Array<ArrayBuffer>;
-  try {
-    body = await readBodyWithin(req, maxBodyBytes);
-  } catch (e) {
-    res.status(e instanceof BodyTooLarge ? 413 : 400);
-    res.json({ error: e instanceof BodyTooLarge ? 'The request is too large' : 'The request could not be read' });
-    return;
+  let body = options.body;
+  if (!body) {
+    const read = await readRequestBody(req, maxBodyBytes);
+    if (!read.ok) {
+      res.status(read.status);
+      res.json({ error: read.error });
+      return;
+    }
+    body = read.body;
   }
 
   const controller = new AbortController();
   const browserGone = () => controller.abort();
   res.once('close', browserGone);
   const connecting = setTimeout(() => controller.abort(), connectTimeoutMs);
-  let watch: NodeJS.Timeout | undefined;
+  let stopWatch: (() => void) | undefined;
   try {
     const upstream = await fetchImpl(target, {
       method: 'POST',
@@ -153,14 +217,7 @@ export async function proxyGraphqlStream(
     res.setHeader('x-accel-buffering', 'no');
     res.flushHeaders();
 
-    if (keepOpen) {
-      watch = setInterval(() => {
-        keepOpen
-          .check()
-          .then((live) => live || controller.abort())
-          .catch(() => undefined); // a store that cannot answer is not a reason to end the stream; the next check asks again
-      }, keepOpen.everyMs);
-    }
+    if (keepOpen) stopWatch = watchSession(keepOpen, () => controller.abort());
 
     if (upstream.body) {
       const reader = upstream.body.getReader();
@@ -186,7 +243,7 @@ export async function proxyGraphqlStream(
     }
   } finally {
     clearTimeout(connecting);
-    if (watch) clearInterval(watch);
+    stopWatch?.();
     res.off('close', browserGone);
     controller.abort(); // whatever ended it, the call to the BFF ends with it
   }

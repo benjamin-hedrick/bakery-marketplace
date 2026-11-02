@@ -98,6 +98,10 @@ public sealed class VendorOrderStreamHub(
 
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
+    // The one lock of the hub's bookkeeping. It makes four things atomic that must not interleave: finding or creating a vendor's single broadcast
+    // subscription on this instance, counting the streams against the per-vendor and per-instance limits (and retiring the oldest), adding or removing
+    // a stream from the vendor's list, and unsubscribing when the last stream goes (so that a stream opening at that moment cannot be left with a
+    // subscription that is being disposed). Register item 125: it is held across the Redis subscribe, which is the part to take out of it.
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly Dictionary<string, VendorChannel> _vendors = new(StringComparer.Ordinal);
     private int _total;
@@ -220,6 +224,9 @@ public sealed class VendorOrderStreamHub(
             _metrics.ClosedByServer.Add(1, new KeyValuePair<string, object?>("reason", "slow-client"));
         }
     }
+
+    /// <summary>Counts a stream the endpoint closed on its own account (for example a client that stopped reading), by reason.</summary>
+    internal void RecordClosedByServer(string reason) => _metrics.ClosedByServer.Add(1, new KeyValuePair<string, object?>("reason", reason));
 
     internal void RecordSent(VendorStreamMessage message)
     {

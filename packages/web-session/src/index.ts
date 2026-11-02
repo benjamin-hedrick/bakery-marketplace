@@ -18,6 +18,8 @@ export {
   extraForwardedHeaders,
   forwardedRequestHeaders,
   MAX_REQUEST_BODY_BYTES,
+  checkDelayMs,
+  readRequestBody,
   proxyGraphql,
   proxyGraphqlStream,
 } from './graphql-proxy.ts';

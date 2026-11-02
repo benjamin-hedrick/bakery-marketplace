@@ -138,7 +138,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QA-003](WI-QA-003.md) | Planned experiments: AI-assisted testing and the mobile question | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead decides to run the experiments |
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `services/ordering-service` (`Persistence/VendorOrder*.cs`), `services/graphql-bff` |
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `apps/web-queue-display` |
-| [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | EPIC-QUEUE-DISPLAY | In review | all seven steps are built and run on the real local stack (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`); waiting for the lead's review of the stream's security-sensitive parts, which the Definition of Done requires: ordering's `Api/VendorOrderStreamEndpoint.cs` and `Streaming/VendorOrderStreamHub.cs` (the vendor from the token, expiry, limits), the BFF's event-stream route in `src/server.ts`, and the web app's `createGraphqlStreamHandler` and `proxyGraphqlStream` in `packages/web-session`. Register items 125 to 127 are open from the AI first pass |
+| [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | EPIC-QUEUE-DISPLAY | In review | all seven steps are built and run on the real local stack (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`); waiting for the lead's review of the stream's security-sensitive parts, which the Definition of Done requires: ordering's `Api/VendorOrderStreamEndpoint.cs` and `Streaming/VendorOrderStreamHub.cs` (the vendor from the token, expiry, limits), the BFF's event-stream route in `src/server.ts`, and the web app's `createGraphqlStreamHandler` and `proxyGraphqlStream` in `packages/web-session`. Register items 125 and 127 are open from the AI first pass (126 was fixed at the review); items 128 to 130 record the gaps the review named (rate limiting, load/fuzz/penetration testing, the NFRs and Definitions) |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
@@ -182,22 +182,22 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-127 numbered items in `docs/governance/open-items-register.md` (highest number 127).
+130 numbered items in `docs/governance/open-items-register.md` (highest number 130).
 
 | Type | Count |
 |---|---|
 | Known limitation | 10 |
+| Process | 8 |
 | Tracking | 7 |
-| Process | 7 |
 | Not started | 6 |
 | Verification gap | 6 |
 | Hardening | 6 |
+| Gap | 5 |
 | Documentation drift | 5 |
 | Tech debt | 4 |
 | Open decision | 3 |
 | Design gap | 3 |
 | Decision | 3 |
-| Gap | 3 |
 | Accepted risk | 2 |
 | Deferred architecture | 2 |
 | Deferred scope (by design) | 2 |
@@ -255,9 +255,9 @@ Accepted: 20 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
-| Resolved | 39 |
+| Resolved | 40 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 52 |
+| Open | 54 |
 | Decided | 1 |
 | Partly | 1 |

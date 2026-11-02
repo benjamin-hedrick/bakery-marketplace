@@ -10,7 +10,8 @@ import {
 } from '../src/handlers.ts';
 import type { StreamResponse } from '../src/graphql-proxy.ts';
 import { createSessionService } from '../src/service.ts';
-import { createMemoryStore } from '../src/store.ts';
+import { createMemoryStore, type SessionStore } from '../src/store.ts';
+import { checkDelayMs } from '../src/graphql-proxy.ts';
 import { ManualClock, errorResponse, fakeIssuer, fakeJwt, newSealer, testConfig, tokenResponse } from './helpers.ts';
 
 // WI-QUE-003 step 5 (ADR-0021): the web app's way to a subscription. Real HTTP servers stand in for the BFF and for the app: what is tested is
@@ -112,15 +113,36 @@ let logged: string[];
 let sessionCookie: string;
 let firstAccessToken: string;
 
+/** Makes the session store fail on demand, and notes when it was asked while failing. */
+const storeDown = { fail: false, asked: [] as number[] };
+
 async function start(
-  options: { maxOpen?: number; sessionCheckMs?: number; issuerAnswer?: Parameters<typeof fakeIssuer>[0] } = {},
+  options: {
+    maxOpen?: number;
+    maxPerSession?: number;
+    maxFailedChecks?: number;
+    sessionCheckMs?: number;
+    issuerAnswer?: Parameters<typeof fakeIssuer>[0];
+  } = {},
 ) {
+  storeDown.fail = false;
+  storeDown.asked = [];
   bff = fakeBff();
   await new Promise<void>((r) => bff.server.listen(0, '127.0.0.1', r));
   clock = new ManualClock();
   logged = [];
   const config = testConfig();
-  const store = createMemoryStore(newSealer(), clock.now);
+  const memory = createMemoryStore(newSealer(), clock.now);
+  const store: SessionStore = {
+    ...memory,
+    get: async (id) => {
+      if (storeDown.fail) {
+        storeDown.asked.push(Date.now());
+        throw new Error('the session store is down');
+      }
+      return memory.get(id);
+    },
+  };
   firstAccessToken = fakeJwt({}, clock.time + 60 * MINUTE);
   issuer = fakeIssuer(
     options.issuerAnswer ??
@@ -140,6 +162,8 @@ async function start(
     log: (e) => logged.push(e),
     sessionCheckMs: options.sessionCheckMs ?? 40,
     ...(options.maxOpen ? { maxOpen: options.maxOpen } : {}),
+    ...(options.maxPerSession ? { maxPerSession: options.maxPerSession } : {}),
+    ...(options.maxFailedChecks ? { maxFailedChecks: options.maxFailedChecks } : {}),
   });
   app = http.createServer((req, res) => {
     // What the framework adds to a response in the real app.
@@ -162,12 +186,16 @@ async function start(
   await new Promise<void>((r) => app.listen(0, '127.0.0.1', r));
   appUrl = `http://127.0.0.1:${(app.address() as AddressInfo).port}/api/graphql-stream`;
 
-  // Log in through the service: the cookie the browser would hold afterwards.
+  sessionCookie = await login();
+}
+
+/** Logs in through the service: the cookie the browser would hold afterwards. Each call is a new session. */
+async function login(): Promise<string> {
   const begin = await service.startLogin('/');
   const loginCookie = begin.setCookies[0]!.split(';')[0]!;
   const state = new URL(begin.location).searchParams.get('state')!;
   const done = await service.finishLogin(new URLSearchParams({ code: 'c', state }), loginCookie);
-  sessionCookie = done.setCookies[0]!.split(';')[0]!;
+  return done.setCookies[0]!.split(';')[0]!;
 }
 
 afterEach(async () => {
@@ -397,5 +425,111 @@ describe('the subscription route, at its limit', () => {
     const again = await open();
     assert.equal(again.status, 200);
     await again.body?.cancel();
+  });
+});
+
+describe('the session check of an open stream (review decision A)', () => {
+  test('is asked less often after each failure, up to six times the interval', () => {
+    assert.deepEqual(
+      [0, 1, 2, 3, 4, 9].map((failures) => checkDelayMs(10_000, failures)),
+      [10_000, 20_000, 40_000, 60_000, 60_000, 60_000],
+    );
+  });
+
+  test('ends the stream after three checks in a row that cannot be answered, asking less often each time', async () => {
+    await start({ sessionCheckMs: 40 });
+    const res = await open();
+    const frames = new Frames(res);
+    await frames.next();
+    await waitFor(() => bff.open.size === 1);
+
+    storeDown.fail = true;
+
+    assert.equal(await frames.next(3000), null); // ended
+    await waitFor(() => bff.open.size === 0);
+    assert.equal(storeDown.asked.length, 3); // asked three times, not forever
+    const [first, second, third] = storeDown.asked as [number, number, number];
+    assert.ok(
+      third - second > (second - first) * 1.4,
+      `the gaps grew: ${second - first} ms, then ${third - second} ms`,
+    );
+  });
+
+  test('keeps the stream through a single failed check, and counts again from zero after a good one', async () => {
+    await start({ sessionCheckMs: 40 });
+    const res = await open();
+    const frames = new Frames(res);
+    await frames.next();
+
+    storeDown.fail = true;
+    await waitFor(() => storeDown.asked.length >= 1);
+    storeDown.fail = false; // one failure, then it answers
+    await new Promise((r) => setTimeout(r, 400)); // several good checks pass
+    storeDown.fail = true;
+    await waitFor(() => storeDown.asked.length >= 2); // a second failure, but not three in a row
+    storeDown.fail = false;
+    bff.push('event: next\ndata: {"data":{"n":1}}\n\n');
+
+    assert.equal(await frames.next(), 'event: next\ndata: {"data":{"n":1}}'); // still open
+  });
+
+  test('still ends the stream at once when the store answers that the session is over', async () => {
+    await start({ sessionCheckMs: 40 });
+    const res = await open();
+    const frames = new Frames(res);
+    await frames.next();
+
+    await service.logout(sessionCookie);
+
+    assert.equal(await frames.next(2000), null);
+  });
+});
+
+describe('the places of the subscription route (register item 126)', () => {
+  test('a login may have five live screens by default; a sixth is refused with 429 and the others are not affected', async () => {
+    await start({ maxPerSession: 2 });
+    const first = new Frames(await open());
+    await first.next();
+    const second = new Frames(await open());
+    await second.next();
+
+    const refused = await open();
+
+    assert.equal(refused.status, 429);
+    assert.equal(refused.headers.get('retry-after'), '30');
+    assert.ok(logged.some((l) => l.includes('per-session limit')));
+    const other = await open({ cookie: await login() }); // another login is not counted against this one
+    assert.equal(other.status, 200);
+    await other.body?.cancel();
+    await first.cancel(); // and a place freed by one that closes can be used again
+    await waitFor(() => bff.open.size <= 2);
+    await new Promise((r) => setTimeout(r, 50));
+    const again = await open();
+    assert.equal(again.status, 200);
+    await again.body?.cancel();
+    await second.cancel();
+  });
+
+  test('a request that sends its body slowly does not take a place', async () => {
+    await start({ maxOpen: 1, maxPerSession: 1 });
+    const slow = http.request(appUrl, {
+      method: 'POST',
+      headers: {
+        origin: ORIGIN,
+        'content-type': 'application/json',
+        accept: 'text/event-stream',
+        cookie: sessionCookie,
+        'content-length': '200',
+      },
+    });
+    slow.on('error', () => undefined);
+    slow.write('{"query":"subscription'); // 20 of 200 bytes, and then nothing
+    await new Promise((r) => setTimeout(r, 100));
+
+    const real = await open(); // would be 503 (the process) or 429 (the login) if the slow one had been counted
+
+    assert.equal(real.status, 200);
+    await real.body?.cancel();
+    slow.destroy();
   });
 });

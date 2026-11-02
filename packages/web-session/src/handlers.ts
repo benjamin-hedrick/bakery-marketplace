@@ -5,6 +5,7 @@ import {
   extraForwardedHeaders,
   proxyGraphql,
   proxyGraphqlStream,
+  readRequestBody,
   type ProxyRequest,
   type ProxyResponse,
   type StreamResponse,
@@ -165,6 +166,10 @@ export interface GraphqlStreamHandlerDeps extends GraphqlHandlerDeps {
   sessionCheckMs?: number;
   /** The most streams this server process relays at once; beyond it a new one is refused with 503 and the screen polls. Default 500. */
   maxOpen?: number;
+  /** The most streams one login (session) may have open at once; a further one is refused with 429. Ordering allows a vendor five. Default 5. */
+  maxPerSession?: number;
+  /** How many session checks in a row may fail before the stream is ended (see {@link KeepOpen}). Default 3. */
+  maxFailedChecks?: number;
 }
 
 /**
@@ -182,8 +187,11 @@ export function createGraphqlStreamHandler({
   log = () => {},
   sessionCheckMs = 10_000,
   maxOpen = 500,
+  maxPerSession = 5,
+  maxFailedChecks = 3,
 }: GraphqlStreamHandlerDeps) {
   let open = 0;
+  const perSession = new Map<string, number>();
   return async function graphqlStream(req: ApiRequest, res: ApiResponse & StreamResponse): Promise<void> {
     res.setHeader('Cache-Control', 'no-store');
     if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
@@ -219,23 +227,43 @@ export function createGraphqlStreamHandler({
       res.json({ error: 'Your login could not be renewed just now. Please try again.' });
       return;
     }
+    // The body is read before the stream is counted (register item 126): a body sent slowly holds a connection, which the server's own timeouts
+    // deal with, but not one of the places that other screens need.
+    const read = await readRequestBody(req);
+    if (!read.ok) {
+      res.status(read.status);
+      res.json({ error: read.error });
+      return;
+    }
     if (open >= maxOpen) {
       res.setHeader('Retry-After', '30');
       res.status(503);
       res.json({ error: 'Live updates are busy. Please poll instead.' });
       return;
     }
+    if ((perSession.get(resolved.id) ?? 0) >= maxPerSession) {
+      log('graphql stream refused: per-session limit');
+      res.setHeader('Retry-After', '30');
+      res.status(429);
+      res.json({ error: 'This login has too many live screens open. Please poll instead.' });
+      return;
+    }
 
     open++;
+    perSession.set(resolved.id, (perSession.get(resolved.id) ?? 0) + 1);
     try {
       await proxyGraphqlStream(req, res, target(), {
         extraHeaders: extraForwardedHeaders(extraHeaders?.()),
         ...(fetchImpl ? { fetchImpl } : {}),
         bearerToken: bearer.token,
-        keepOpen: { check: () => service.isActive(resolved.id), everyMs: sessionCheckMs },
+        body: read.body,
+        keepOpen: { check: () => service.isActive(resolved.id), everyMs: sessionCheckMs, maxFailures: maxFailedChecks },
       });
     } finally {
       open--;
+      const left = (perSession.get(resolved.id) ?? 1) - 1;
+      if (left <= 0) perSession.delete(resolved.id);
+      else perSession.set(resolved.id, left);
     }
   };
 }
