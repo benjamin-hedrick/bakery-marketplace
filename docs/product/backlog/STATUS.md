@@ -182,7 +182,7 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-130 numbered items in `docs/governance/open-items-register.md` (highest number 130).
+131 numbered items in `docs/governance/open-items-register.md` (highest number 131).
 
 | Type | Count |
 |---|---|
@@ -251,6 +251,7 @@ Accepted: 20 · Superseded: 1
 | Test defect, found by a pipeline run | 1 |
 | Deployment follow-up | 1 |
 | Residual risk | 1 |
+| Open decisions and verification | 1 |
 
 | Item status | Count |
 |---|---|
@@ -258,6 +259,6 @@ Accepted: 20 · Superseded: 1
 | Resolved | 41 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 53 |
+| Open | 54 |
 | Decided | 1 |
 | Partly | 1 |

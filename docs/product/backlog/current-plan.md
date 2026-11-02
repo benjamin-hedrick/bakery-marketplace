@@ -18,7 +18,7 @@ The public-readiness pass is done except the settings that need the repository t
 
 **Priorities (set 2026-10-29, amended 2026-10-31):** 1. a polished, consistent repository that can be public, showing AI collaboration, architecture and software, and business and project work; 2. it builds and runs locally; 3. more evidence and coverage; 4. deploy and tear down a dev environment; 5. a public demo. On 2026-10-31 the lead made the deployed dev environment, and the ability to tear it down, the next main work, ahead of further product features.
 
-**Waiting on the lead:** the OKR targets and the definition of the north-star safety metric (`WI-PROD-004`, In review); the first Azure run of the new pipeline jobs; the cold-machine run and a fresh reader following the demo page (`WI-DEMO-001`, In review); the flip-day settings (item 93); and, new, the approvals for the DEV identity work below (ADR-0018, `WI-AUTH-006` phase 2).
+**Waiting on the lead:** the four decisions in register item 131 (whether `WI-QUE-003` stays Done before an Azure pipeline run; items 127 and the unchecked API Management streaming; the delay display's shared-clock condition), the review of `WI-AUTH-007`; the OKR targets and the definition of the north-star safety metric (`WI-PROD-004`, In review); the first Azure run of the new pipeline jobs; the cold-machine run and a fresh reader following the demo page (`WI-DEMO-001`, In review); the flip-day settings (item 93); and, new, the approvals for the DEV identity work below (ADR-0018, `WI-AUTH-006` phase 2).
 
 **Next, added 2026-11-02 (after the review of `WI-QUE-003`), ahead of the list below:**
 
