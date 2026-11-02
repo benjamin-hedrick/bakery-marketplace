@@ -33,6 +33,7 @@ const vendorOrder = {
     { listingId: 'listing-croissant-001', listingName: null, modifiers: [], quantity: 1 },
   ],
   pickupInstructions: 'Ring the side bell',
+  lastSequence: 3,
 };
 
 interface Seen {
@@ -119,7 +120,7 @@ const gid = toGlobalId('VendorOrder', vendorOrder.id);
 const LIST = `query($status: VendorOrderFilter, $first: Int, $after: String) {
   vendorOrders(status: $status, first: $first, after: $after) {
     edges { cursor node { id reference status total { cents currency } lineCount itemCount automatic placedAt updatedAt
-      pickupWindow { start end } pickupInstructions
+      pickupWindow { start end } pickupInstructions sequence
       lines { listingId listingName quantity modifiers { id name } } } }
     pageInfo { hasNextPage endCursor } } }`;
 
@@ -131,6 +132,7 @@ describe('Query.vendorOrders', () => {
     const node = body.data.vendorOrders.edges[0].node;
     assert.equal(node.id, gid);
     assert.equal(node.reference, '3B4C5D');
+    assert.equal(node.sequence, 3);
     assert.equal(node.status, 'PLACED');
     assert.deepEqual(node.total, { cents: 2400, currency: 'USD' });
     assert.equal(node.itemCount, 3);

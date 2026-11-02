@@ -51,6 +51,8 @@ export interface OrderingVendorOrder {
     quantity: number;
   }[];
   pickupInstructions: string | null;
+  /** The highest event sequence applied to the order (see the schema's VendorOrder.sequence). */
+  lastSequence: number;
 }
 export interface OrderingVendorOrderPage {
   items: OrderingVendorOrder[];
@@ -106,6 +108,18 @@ export interface OrderingClient {
   ): Promise<OrderingVendorOrderPage>;
   /** One of the calling vendor's orders, or null (404: it does not exist, is not theirs, or is not in their view yet). */
   getVendorOrder(id: string, authorization: string, trace: TraceContext): Promise<OrderingVendorOrder | null>;
+  /**
+   * Opens the calling vendor's live stream (ADR-0021) and resolves once ordering has accepted it, so a refusal (401, 403, 503) is thrown here as a
+   * {@link DownstreamError} with that status, before any event. The result yields each changed order, whole, and ends when ordering ends the stream
+   * (the token expired, the maximum age, replaced by a newer stream, or it dropped this reader). It throws a {@link DownstreamError} if the stream is
+   * cut or goes silent for longer than the idle limit. Return it (or abort the signal) to close the connection to ordering. The token is forwarded
+   * unchanged and ordering takes the vendor id from it.
+   */
+  openVendorOrderStream(
+    authorization: string,
+    trace: TraceContext,
+    signal?: AbortSignal,
+  ): Promise<AsyncGenerator<OrderingVendorOrder, void>>;
 }
 
 export function createOrderingClient(
@@ -113,6 +127,7 @@ export function createOrderingClient(
   timeoutMs: number,
   fetchImpl: typeof fetch = fetch,
   checkoutTimeoutMs: number = timeoutMs,
+  streamIdleMs: number = 45000,
 ): OrderingClient {
   async function request(
     path: string,
@@ -185,7 +200,117 @@ export function createOrderingClient(
       if (!res.ok) throw new DownstreamError(`ordering vendor order returned ${res.status}`, res.status);
       return parse<OrderingVendorOrder>(res);
     },
+    async openVendorOrderStream(authorization, trace, signal) {
+      const controller = new AbortController();
+      const onCallerAbort = () => controller.abort();
+      if (signal?.aborted) controller.abort();
+      else signal?.addEventListener('abort', onCallerAbort, { once: true });
+      // The timeout covers only the wait for ordering to accept the stream; once it is open it may live as long as the token does.
+      const connecting = setTimeout(() => controller.abort(), timeoutMs);
+      let res: Response;
+      try {
+        res = await fetchImpl(`${baseUrl}/ordering/vendor/orders/stream`, {
+          method: 'GET',
+          headers: { accept: 'text/event-stream', traceparent: toTraceparent(trace), authorization },
+          signal: controller.signal,
+        });
+      } catch (e) {
+        signal?.removeEventListener('abort', onCallerAbort);
+        throw new DownstreamError(`ordering stream request failed: ${e instanceof Error ? e.name : 'error'}`);
+      } finally {
+        clearTimeout(connecting);
+      }
+      if (!res.ok || !res.body) {
+        signal?.removeEventListener('abort', onCallerAbort);
+        await res.body?.cancel().catch(() => undefined);
+        throw new DownstreamError(`ordering stream returned ${res.status}`, res.status);
+      }
+      return readOrderEvents(res.body, controller, streamIdleMs, () =>
+        signal?.removeEventListener('abort', onCallerAbort),
+      );
+    },
   };
+}
+
+const MAX_FRAME_CHARS = 1024 * 1024;
+
+/**
+ * Reads ordering's event stream (Server-Sent Events): "order" events carry the changed vendor order; "expired" and "closed" end the stream;
+ * comment lines (the heartbeat) only show that the connection is alive. Closing this generator aborts the request to ordering.
+ */
+async function* readOrderEvents(
+  body: ReadableStream<Uint8Array>,
+  controller: AbortController,
+  idleMs: number,
+  cleanup: () => void,
+): AsyncGenerator<OrderingVendorOrder, void> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    for (;;) {
+      const chunk = await readWithin(reader, idleMs, controller);
+      if (chunk.done) return;
+      buffer += decoder.decode(chunk.value, { stream: true }).replace(/\r\n/g, '\n');
+      if (buffer.length > MAX_FRAME_CHARS) throw new DownstreamError('ordering stream frame too large');
+      let end: number;
+      while ((end = buffer.indexOf('\n\n')) >= 0) {
+        const frame = buffer.slice(0, end);
+        buffer = buffer.slice(end + 2);
+        const event = frameEvent(frame);
+        if (event === undefined) continue; // a heartbeat or a comment
+        if (event.name === 'order') yield parseOrderEvent(event.data);
+        else if (event.name === 'expired' || event.name === 'closed') return;
+      }
+    }
+  } finally {
+    controller.abort();
+    cleanup();
+    reader.cancel().catch(() => undefined);
+  }
+}
+
+async function readWithin(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  idleMs: number,
+  controller: AbortController,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  let timer: NodeJS.Timeout | undefined;
+  const silent = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new DownstreamError('ordering stream went silent')), idleMs);
+  });
+  try {
+    return await Promise.race([reader.read(), silent]);
+  } catch (e) {
+    if (e instanceof DownstreamError) throw e;
+    // Aborted (by the reader closing it) or cut: report it without the cause, which could carry the address.
+    throw new DownstreamError(controller.signal.aborted ? 'ordering stream closed' : 'ordering stream was cut');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function frameEvent(frame: string): { name: string; data: string } | undefined {
+  let name: string | undefined;
+  const data: string[] = [];
+  for (const line of frame.split('\n')) {
+    if (line.startsWith('event:')) name = line.slice(6).trim();
+    else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
+  }
+  return name === undefined ? undefined : { name, data: data.join('\n') };
+}
+
+function parseOrderEvent(data: string): OrderingVendorOrder {
+  let order: unknown;
+  try {
+    order = JSON.parse(data);
+  } catch {
+    throw new DownstreamError('ordering stream sent an event that is not JSON');
+  }
+  const o = order as Partial<OrderingVendorOrder> | null;
+  if (!o || typeof o.id !== 'string' || typeof o.status !== 'string' || typeof o.lastSequence !== 'number')
+    throw new DownstreamError('ordering stream sent an order without an id, status and sequence');
+  return o as OrderingVendorOrder;
 }
 
 async function parse<T>(res: Response): Promise<T> {

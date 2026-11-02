@@ -135,6 +135,11 @@ type VendorOrder implements Node {
   placedAt: DateTime
   "When the order last changed; the list is ordered by it."
   updatedAt: DateTime!
+  """
+  The highest event sequence number applied to this order. A screen holding an order replaces it with a pushed one only if this is higher,
+  so a late or repeated update never moves an order backwards.
+  """
+  sequence: Int!
 }
 
 type VendorOrderLine {
@@ -169,6 +174,16 @@ enum OrderStatus {
   READY_FOR_FULFILLMENT
   COMPLETED
   CANCELLED
+}
+
+"""
+Live updates (ADR-0021). Needs a vendor's bearer token, like the vendor queries, and is served over Server-Sent Events (the graphql-sse
+protocol, one request per subscription). The stream ends when the token expires or after an hour; the client then lists again and reconnects.
+When live updates are unavailable the subscription fails and the screen keeps polling vendorOrders.
+"""
+type Subscription {
+  "The vendor's order whenever it changes, whole (the same shape the list returns). Nothing is replayed: list first, then apply these."
+  vendorOrderChanged: VendorOrder!
 }
 
 type Mutation {

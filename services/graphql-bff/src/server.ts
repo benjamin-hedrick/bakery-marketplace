@@ -1,17 +1,38 @@
 import http from 'node:http';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { buildSchema, execute, parse, validate, GraphQLError, type ExecutionResult } from 'graphql';
+import {
+  buildSchema,
+  execute,
+  getOperationAST,
+  parse,
+  subscribe,
+  validate,
+  GraphQLError,
+  type ExecutionResult,
+} from 'graphql';
+import { createHandler as createSseHandler } from 'graphql-sse/lib/use/http';
 import type { Config } from './config.ts';
 import { createCatalogClient, type CatalogClient } from './catalog-client.ts';
 import { createOrderingClient, type OrderingClient } from './ordering-client.ts';
 import { ClientError, DownstreamError, internalError } from './errors.ts';
-import { rootValue, type Context } from './resolvers.ts';
+import { rootValue, subscriptionRoot, type Context } from './resolvers.ts';
 import { createOtlpExporter, type SpanExporter } from './otlp.ts';
 import { startTrace, toTraceparent } from './trace.ts';
 
 const schema = buildSchema(readFileSync(fileURLToPath(new URL('../schema/schema.graphql', import.meta.url)), 'utf8'));
 const MAX_BODY_BYTES = 64 * 1024;
+const EVENT_STREAM = 'text/event-stream';
+
+/** Per request: aborted when the caller's connection closes. The library hands onSubscribe the Node request, which is the key. */
+const gone = new WeakMap<http.IncomingMessage, AbortSignal>();
+
+// The field resolvers of both transports: a property of the source, called with (args, context) when it is a function.
+const fieldResolver = (src: unknown, _args: unknown, context: unknown, info: { fieldName: string }) => {
+  const v = (src as Record<string, unknown>)[info.fieldName];
+  return typeof v === 'function' ? (v as (a: unknown, c: unknown) => unknown).call(src, _args, context) : v;
+};
+const typeResolver = (value: unknown) => (value as { __typename?: string }).__typename;
 
 export interface Logger {
   info(entry: Record<string, unknown>): void;
@@ -28,9 +49,59 @@ export function createServer(
 ): http.Server {
   const catalog = deps.catalog ?? createCatalogClient(config.catalogUrl, config.timeoutMs);
   const ordering =
-    deps.ordering ?? createOrderingClient(config.orderingUrl, config.timeoutMs, undefined, config.checkoutTimeoutMs);
+    deps.ordering ??
+    createOrderingClient(
+      config.orderingUrl,
+      config.timeoutMs,
+      undefined,
+      config.checkoutTimeoutMs,
+      config.streamIdleMs,
+    );
   const log = deps.log ?? jsonLogger;
   const exportSpan = deps.exporter ?? createOtlpExporter(config.otlpEndpoint);
+  const maxStreams = config.maxStreams ?? 500;
+  let openStreams = 0;
+
+  // Live updates (ADR-0021, WI-QUE-003): the graphql-sse handler, in its "distinct connections" mode only. It is reached solely by a POST to
+  // /graphql that asks for an event stream. Its single-connection mode (a PUT that registers a stream token) is switched off by
+  // `authenticate` never returning a token, and the GET form is unreachable because the router below only passes POSTs.
+  const sse = createSseHandler({
+    schema,
+    authenticate: () => undefined,
+    onSubscribe: async (req, params) => {
+      const raw = req.raw as http.IncomingMessage;
+      const ctx = {
+        ...contextOf(raw, config, { catalog, ordering }, startTrace(headerValue(raw.headers.traceparent))),
+        signal: gone.get(raw),
+      };
+      let document;
+      try {
+        document = parse(params.query as string);
+      } catch (e) {
+        return rejection(new GraphQLError(e instanceof Error ? e.message : 'Syntax error'));
+      }
+      const invalid = validate(schema, document);
+      if (invalid.length) return rejection(...invalid);
+      // Only subscriptions are served here: queries and mutations have their own JSON route, with its own error mapping and logging.
+      if (getOperationAST(document, params.operationName)?.operation !== 'subscription') {
+        return rejection(new GraphQLError('Only subscription operations are served over an event stream.'));
+      }
+      const result = await subscribe({
+        schema,
+        document,
+        rootValue: subscriptionRoot,
+        contextValue: ctx,
+        variableValues: params.variables,
+        operationName: params.operationName,
+        fieldResolver,
+        subscribeFieldResolver: fieldResolver,
+        typeResolver,
+      });
+      // The library tells a ready result from execution arguments by its "data" key, which an errors-only result lacks.
+      if (!isAsyncIterable(result)) return { data: null, ...safeResult(result, ctx, log) };
+      return safeStream(result, ctx, log);
+    },
+  });
 
   return http.createServer(async (req, res) => {
     const trace = startTrace(headerValue(req.headers.traceparent));
@@ -51,6 +122,64 @@ export function createServer(
     if (req.url === '/healthz') return send(200, { ok: true });
     if (req.url !== '/graphql' || req.method !== 'POST') return send(404, { errors: [{ message: 'Not found' }] });
 
+    if (headerValue(req.headers.accept) === EVENT_STREAM) {
+      // The library reads the whole request body before anything else, so the size is bounded here: a length is required and must be small.
+      const length = Number(headerValue(req.headers['content-length']));
+      if (!Number.isInteger(length) || length < 0) return send(411, { errors: [{ message: 'Length required' }] });
+      if (length > MAX_BODY_BYTES) return send(413, { errors: [{ message: 'Request too large' }] });
+      if (openStreams >= maxStreams) {
+        res.setHeader('retry-after', '30');
+        return send(503, {
+          errors: [{ message: 'Live updates are busy. Please poll instead.', extensions: { code: 'STREAM_LIMIT' } }],
+        });
+      }
+      openStreams++;
+      const callerGone = new AbortController();
+      gone.set(req, callerGone.signal);
+      const opened = performance.now();
+      const openedAtMs = Date.now();
+      res.once('close', () => {
+        callerGone.abort();
+        openStreams--;
+        log.info({
+          msg: 'graphql subscription closed',
+          traceId: trace.traceId,
+          spanId: trace.spanId,
+          durationMs: Math.round(performance.now() - opened),
+        });
+        exportSpan({
+          trace,
+          operationName: undefined,
+          statusCode: 200,
+          failed: false,
+          startedAtMs: openedAtMs,
+          durationMs: performance.now() - opened,
+        });
+      });
+      // Headers the library does not set. Its own cache-control is no-cache; an authenticated stream is private, no-store (ADR-0014).
+      res.setHeader('x-correlation-id', trace.traceId);
+      res.setHeader('traceparent', toTraceparent(trace));
+      res.setHeader('x-accel-buffering', 'no');
+      const writeHead = res.writeHead.bind(res) as (...a: unknown[]) => http.ServerResponse;
+      res.writeHead = ((status: number, ...rest: unknown[]) => {
+        const headers = rest.find((a) => typeof a === 'object' && a !== null) as Record<string, string> | undefined;
+        if (headers) headers['cache-control'] = 'private, no-store';
+        return writeHead(status, ...rest);
+      }) as typeof res.writeHead;
+      try {
+        await sse(req, res);
+      } catch (e) {
+        log.error({
+          msg: 'graphql subscription failed',
+          traceId: trace.traceId,
+          error: { name: e instanceof Error ? e.name : 'error' },
+        });
+        if (!res.headersSent) send(500, { errors: [internalError(trace.traceId)] });
+        else res.destroy();
+      }
+      return;
+    }
+
     let source: string;
     let variables: Record<string, unknown> | undefined;
     let operationName: string | undefined;
@@ -68,17 +197,11 @@ export function createServer(
       return send(400, { errors: [{ message: 'Invalid request body', extensions: { code: 'BAD_REQUEST' } }] });
     }
 
-    const authorization = bearerOnly(headerValue(req.headers.authorization));
-    // The D-10 hook: only when test hooks are on, and only the one value the hook defines.
-    const testPayment =
-      config.testHooks && headerValue(req.headers['x-test-payment'])?.toLowerCase() === 'decline'
-        ? 'decline'
-        : undefined;
     const result = await run(
       source,
       variables,
       operationName,
-      { catalog, ordering, trace, authorization, testPayment },
+      contextOf(req, config, { catalog, ordering }, trace),
       log,
     );
     log.info({
@@ -125,13 +248,66 @@ async function run(
     contextValue: ctx,
     variableValues: variables,
     operationName,
-    fieldResolver: (src, args, context, info) => {
-      const v = (src as Record<string, unknown>)[info.fieldName];
-      return typeof v === 'function' ? (v as (a: unknown, c: unknown) => unknown).call(src, args, context) : v;
-    },
-    typeResolver: (value) => (value as { __typename?: string }).__typename,
+    fieldResolver,
+    typeResolver,
   });
 
+  return safeResult(result, ctx, log);
+}
+
+/** The request's context: the caller's bearer credential (only that shape), the test hook when enabled, and the trace. */
+function contextOf(
+  req: http.IncomingMessage,
+  config: Config,
+  clients: { catalog: CatalogClient; ordering: OrderingClient },
+  trace: Context['trace'],
+): Context {
+  const authorization = bearerOnly(headerValue(req.headers.authorization));
+  // The D-10 hook: only when test hooks are on, and only the one value the hook defines.
+  const testPayment =
+    config.testHooks && headerValue(req.headers['x-test-payment'])?.toLowerCase() === 'decline' ? 'decline' : undefined;
+  return { ...clients, trace, authorization, testPayment };
+}
+
+/** A refusal of a subscription request before it starts, in the library's response form: a 400 with the errors. */
+function rejection(
+  ...errors: GraphQLError[]
+): [string, { status: number; statusText: string; headers: Record<string, string> }] {
+  return [
+    JSON.stringify({ errors: errors.map((e) => e.toJSON()) }),
+    { status: 400, statusText: 'Bad Request', headers: { 'content-type': 'application/json; charset=utf-8' } },
+  ];
+}
+
+function isAsyncIterable<T>(v: unknown): v is AsyncIterable<T> {
+  return typeof v === 'object' && v !== null && Symbol.asyncIterator in v;
+}
+
+/** Each event of a subscription, with the same safe error mapping as a query. Closing the result closes the source. */
+async function* safeStream(
+  source: AsyncIterable<ExecutionResult>,
+  ctx: Context,
+  log: Logger,
+): AsyncGenerator<ExecutionResult> {
+  try {
+    for await (const result of source) yield safeResult(result, ctx, log);
+  } catch (e) {
+    if (ctx.signal?.aborted) return; // the caller left: the abort closed the connection to ordering, which is not a failure
+    // The stream from ordering broke after it had started (cut, silent, or sent something unreadable): end it with the safe error, not a
+    // dropped connection. The detail is logged here and never sent.
+    log.error({
+      msg: 'subscription failed',
+      traceId: ctx.trace.traceId,
+      error:
+        e instanceof DownstreamError
+          ? { name: e.name, message: e.message, status: e.status }
+          : { name: e instanceof Error ? e.name : 'error' },
+    });
+    yield { data: null, errors: [internalError(ctx.trace.traceId)] };
+  }
+}
+
+function safeResult(result: ExecutionResult, ctx: Context, log: Logger): ExecutionResult {
   if (!result.errors) return result;
   // Errors raised by a resolver are logged in full here and replaced by the safe shape; the client never sees the detail.
   const mapped = result.errors.map((err) => {
