@@ -1,0 +1,19 @@
+// @bakery/web-session (ADR-0019, WI-AUTH-007): the server-side browser session shared by the web apps.
+export { CALLBACK_PATH, defaultStorePrefix, parseEncryptionKey, sessionConfigFromEnv } from './config.ts';
+export type { EncryptionKey, SessionConfig, SessionConfigResult } from './config.ts';
+export { createSealer } from './crypto.ts';
+export type { Sealer } from './crypto.ts';
+export { clearCookie, readCookie, serializeCookie } from './cookie.ts';
+export { checkSameOriginRead, checkStateChangingRequest } from './csrf.ts';
+export type { CsrfResult } from './csrf.ts';
+export { createAuthHandlers, createGraphqlHandler, LOGIN_ERROR_PATH } from './handlers.ts';
+export type { ApiRequest, ApiResponse } from './handlers.ts';
+export { extraForwardedHeaders, forwardedRequestHeaders, proxyGraphql } from './graphql-proxy.ts';
+export { getSessionRuntime } from './runtime.ts';
+export type { SessionRuntime, SessionRuntimeResult } from './runtime.ts';
+export { createSessionService, LOGIN_MESSAGES, LoginError } from './service.ts';
+export type { BearerResult, LoginErrorCode, ResolvedSession, SessionService } from './service.ts';
+export { createMemoryStore, createRedisStore, newMemoryBacking } from './store.ts';
+export type { SessionStore } from './store.ts';
+export { safeReturnTo } from './return-to.ts';
+export type { PendingLogin, SessionRecord, SessionView } from './types.ts';

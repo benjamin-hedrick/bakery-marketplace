@@ -6,7 +6,7 @@
 //   node scripts/ci/node-gates.mjs            format, lint, typecheck in both projects, plus the documentation status and link checks
 //   node scripts/ci/node-gates.mjs --tests    also the BFF tests, the web unit tests and the script tests (scripts/ci/tests)
 //
-// Needs `npm ci` done in services/graphql-bff, apps/web-customer and apps/web-queue-display. Every step runs even if an earlier one fails, so one run lists
+// Needs `npm ci` done in services/graphql-bff, apps/web-customer, apps/web-queue-display and packages/web-session. Every step runs even if an earlier one fails, so one run lists
 // everything to fix. Not covered here (run them separately): .NET (`node scripts/ci/linux-check.mjs`), secrets
 // (`node scripts/ci/secret-scan.mjs`), the browser suites and the real-stack smoke (`node scripts/ci/skeleton-smoke.mjs`).
 // Exit code 0 when every step passes, 1 when any fails.
@@ -25,6 +25,8 @@ const steps = [
   { name: 'web: format (also scripts/ and azure-pipelines.yml)', ...npm('apps/web-customer', 'format:check') },
   { name: 'web: lint', ...npm('apps/web-customer', 'lint') },
   { name: 'web: typecheck (runs relay-compiler)', ...npm('apps/web-customer', 'typecheck') },
+  { name: 'session package: format', ...npm('packages/web-session', 'format:check') },
+  { name: 'session package: typecheck', ...npm('packages/web-session', 'typecheck') },
   { name: 'queue display: format', ...npm('apps/web-queue-display', 'format:check') },
   { name: 'queue display: lint', ...npm('apps/web-queue-display', 'lint') },
   { name: 'queue display: typecheck (runs relay-compiler)', ...npm('apps/web-queue-display', 'typecheck') },
@@ -47,6 +49,10 @@ if (withTests) {
     { name: 'bff: tests', ...npm('services/graphql-bff', 'test') },
     { name: 'web: unit tests', ...npm('apps/web-customer', 'test:unit') },
     { name: 'queue display: unit tests', ...npm('apps/web-queue-display', 'test:unit') },
+    {
+      name: 'session package: tests (the Redis store tests run only with REDIS_CONNECTION_STRING)',
+      ...npm('packages/web-session', 'test'),
+    },
     {
       name: 'scripts: destroy guard and pipeline structure tests',
       cwd: root,

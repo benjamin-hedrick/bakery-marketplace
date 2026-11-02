@@ -1,0 +1,27 @@
+{
+  "name": "@bakery/web-session",
+  "version": "0.0.0",
+  "private": true,
+  "description": "WI-AUTH-007 (ADR-0019): the server-side browser session shared by the web apps: login, an encrypted session store, renewal, CSRF checks and the GraphQL proxy",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "format": "prettier --write . --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore"
+  },
+  "dependencies": {
+    "ioredis": "6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.9",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  }
+}

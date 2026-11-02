@@ -17,6 +17,10 @@ const envPath = path.join(root, '.env');
 // Keys this script manages. Add a key here when another service client needs a secret.
 const managed = [
   { key: 'ORDERING_CLIENT_SECRET', note: 'client secret of ordering-service for the mock issuer (ADR-0018)' },
+  {
+    key: 'SESSION_ENCRYPTION_KEY',
+    note: 'key that encrypts browser sessions held in Redis by the web apps (ADR-0019)',
+  },
 ];
 
 const rotate = process.argv.includes('--rotate');
