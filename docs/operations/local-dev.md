@@ -186,7 +186,7 @@ Images: `services/Dockerfile.dotnet` (catalog and ordering; one recipe, build ar
 
 Two details of the container network. The issuer string in tokens must be one name, but a container reaches the mock issuer as `mock-oidc` and the browser as `localhost`: the mock issuer is given `MockOidc__Issuer=http://localhost:5100`, and the services fetch metadata from `Auth__MetadataAddress=http://mock-oidc:5100/...` while still validating tokens against `Auth__Authority=http://localhost:5100`. And ordering sends its client secret to `http://mock-oidc:5100/token`, which is plain http to a non-loopback host; the library refuses that unless the host opts in, and ordering opts in only when `ASPNETCORE_ENVIRONMENT=Development` (`allowInsecureTokenEndpoint`, never read from configuration).
 
-Verified 2026-10-31 on this machine (Windows, Docker Desktop): the Playwright skeleton suite, 21 of 21, against the four containers (`docs/evidence/WI-DEP-001/images-and-compose-2026-10-31.md`). Not verified: the pipeline (Linux agent), a cold start with no layer cache.
+Verified 2026-10-31 on this machine (Windows, Docker Desktop): the Playwright skeleton suite, 21 of 21, against the four containers (`docs/evidence/WI-DEP-001/images-and-compose-2026-10-31.md`); and on 2026-11-02, 25 of 25 against images rebuilt with the live queue (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`; the queue display runs on the host in both). Not verified: the pipeline (Linux agent), a cold start with no layer cache.
 
 ## Moving to Entra: what changes
 

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -98,56 +99,88 @@ public sealed class VendorOrderStreamHub(
 
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
-    // The one lock of the hub's bookkeeping. It makes four things atomic that must not interleave: finding or creating a vendor's single broadcast
-    // subscription on this instance, counting the streams against the per-vendor and per-instance limits (and retiring the oldest), adding or removing
-    // a stream from the vendor's list, and unsubscribing when the last stream goes (so that a stream opening at that moment cannot be left with a
-    // subscription that is being disposed). Register item 125: it is held across the Redis subscribe, which is the part to take out of it.
-    private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly Dictionary<string, VendorChannel> _vendors = new(StringComparer.Ordinal);
+    // One lock per vendor, not one for the hub (register item 125). A vendor's lock makes four things atomic that must not interleave: finding or
+    // creating that vendor's single broadcast subscription on this instance; adding or removing one of their streams; retiring their oldest streams
+    // beyond the per-vendor limit; and unsubscribing when their last stream goes, so that a stream opening at that moment cannot be left with a
+    // subscription that is being disposed. The Redis subscribe is a network call made while holding it, so a slow subscribe delays only that vendor's
+    // own opens and closes. The count for the whole instance is under no lock: a place is reserved with an atomic increment before anything is done
+    // and given back if it is not used.
+    private readonly ConcurrentDictionary<string, VendorChannel> _vendors = new(StringComparer.Ordinal);
     private int _total;
-    private bool _disposed;
+    private volatile bool _disposed;
 
     private sealed class VendorChannel
     {
-        public IAsyncDisposable Subscription { get; set; } = null!;
+        public SemaphoreSlim Gate { get; } = new(1, 1);
+        public IAsyncDisposable? Subscription { get; set; }
         public volatile VendorStreamSession[] Streams = [];
+
+        /// <summary>Set, under <see cref="Gate"/>, when the entry has been taken out of the hub. A caller that was waiting for the gate starts again with a new entry.</summary>
+        public bool Removed { get; set; }
     }
 
-    /// <summary>The number of open streams on this instance.</summary>
+    /// <summary>The number of open streams on this instance (including a place reserved by an open that is still being set up).</summary>
     public int OpenCount => Volatile.Read(ref _total);
 
     /// <summary>Opens a stream for a vendor, or returns null when this instance is at its limit. Throws if the broadcast backend cannot be subscribed.</summary>
     public async Task<VendorStreamSession?> OpenAsync(string vendorId, CancellationToken ct)
     {
         var o = options.Value;
-        await _gate.WaitAsync(ct);
+        if (_disposed) return null;
+        if (Interlocked.Increment(ref _total) > o.MaxStreamsPerInstance)
+        {
+            Interlocked.Decrement(ref _total);
+            return null;
+        }
+
+        var placed = false;
         try
         {
-            if (_disposed || _total >= o.MaxStreamsPerInstance) return null;
-
-            if (!_vendors.TryGetValue(vendorId, out var vendor))
+            while (true)
             {
-                var created = new VendorChannel();
-                created.Subscription = await broadcast.SubscribeAsync(VendorOrderChannels.For(vendorId), (message, token) => OnMessageAsync(created, vendorId, message, token), ct);
-                _vendors[vendorId] = vendor = created;
-            }
+                var vendor = _vendors.GetOrAdd(vendorId, _ => new VendorChannel());
+                await vendor.Gate.WaitAsync(ct);
+                try
+                {
+                    if (vendor.Removed) continue; // this vendor's last stream closed while this waited: start again with the new entry
+                    if (_disposed) return null;
 
-            var stream = new VendorStreamSession(vendorId, o.QueueCapacity);
-            var open = vendor.Streams.Append(stream).ToList();
-            while (open.Count > o.MaxStreamsPerVendor)
-            {
-                var oldest = open[0];
-                open.RemoveAt(0);
-                Retire(oldest, "replaced");
+                    if (vendor.Subscription is null)
+                    {
+                        try
+                        {
+                            vendor.Subscription = await broadcast.SubscribeAsync(
+                                VendorOrderChannels.For(vendorId), (message, token) => OnMessageAsync(vendor, vendorId, message, token), ct);
+                        }
+                        catch
+                        {
+                            if (vendor.Streams.Length == 0) Discard(vendorId, vendor); // nothing uses it: the next open starts fresh
+                            throw;
+                        }
+                    }
+
+                    var stream = new VendorStreamSession(vendorId, o.QueueCapacity);
+                    var open = vendor.Streams.Append(stream).ToList();
+                    while (open.Count > o.MaxStreamsPerVendor)
+                    {
+                        var oldest = open[0];
+                        open.RemoveAt(0);
+                        Retire(oldest, "replaced");
+                    }
+                    vendor.Streams = open.ToArray();
+                    _metrics.Open.Add(1);
+                    placed = true;
+                    return stream;
+                }
+                finally
+                {
+                    vendor.Gate.Release();
+                }
             }
-            vendor.Streams = open.ToArray();
-            _total++;
-            _metrics.Open.Add(1);
-            return stream;
         }
         finally
         {
-            _gate.Release();
+            if (!placed) Interlocked.Decrement(ref _total); // the place was reserved and not used
         }
     }
 
@@ -166,27 +199,34 @@ public sealed class VendorOrderStreamHub(
 
     private async Task RemoveAsync(VendorStreamSession stream)
     {
-        await _gate.WaitAsync();
+        if (!_vendors.TryGetValue(stream.VendorId, out var vendor)) return;
+        await vendor.Gate.WaitAsync();
         try
         {
-            if (!_vendors.TryGetValue(stream.VendorId, out var vendor)) return;
             var remaining = vendor.Streams.Where(s => !ReferenceEquals(s, stream)).ToArray();
             if (remaining.Length != vendor.Streams.Length) // not already retired by the limit or by shutdown
             {
-                _total--;
+                Interlocked.Decrement(ref _total);
                 _metrics.Open.Add(-1);
             }
             vendor.Streams = remaining;
             if (remaining.Length == 0)
             {
-                _vendors.Remove(stream.VendorId);
-                await vendor.Subscription.DisposeAsync();
+                Discard(stream.VendorId, vendor);
+                if (vendor.Subscription is { } subscription) await subscription.DisposeAsync();
             }
         }
         finally
         {
-            _gate.Release();
+            vendor.Gate.Release();
         }
+    }
+
+    // Takes an entry out of the hub. Called under the entry's gate.
+    private void Discard(string vendorId, VendorChannel vendor)
+    {
+        vendor.Removed = true;
+        _vendors.TryRemove(new KeyValuePair<string, VendorChannel>(vendorId, vendor));
     }
 
     // A stream removed from the list by the limit: counted out here so the caller's later ReleaseAsync does not count it twice.
@@ -194,7 +234,7 @@ public sealed class VendorOrderStreamHub(
     {
         stream.MarkReleased();
         stream.Close(reason);
-        _total--;
+        Interlocked.Decrement(ref _total);
         _metrics.Open.Add(-1);
         _metrics.ClosedByServer.Add(1, new KeyValuePair<string, object?>("reason", reason));
     }
@@ -236,21 +276,21 @@ public sealed class VendorOrderStreamHub(
 
     public async ValueTask DisposeAsync()
     {
-        await _gate.WaitAsync();
-        try
+        _disposed = true;
+        foreach (var (vendorId, vendor) in _vendors.ToArray())
         {
-            _disposed = true;
-            foreach (var vendor in _vendors.Values)
+            await vendor.Gate.WaitAsync();
+            try
             {
                 foreach (var stream in vendor.Streams) Retire(stream, "shutdown");
                 vendor.Streams = [];
-                await vendor.Subscription.DisposeAsync();
+                Discard(vendorId, vendor);
+                if (vendor.Subscription is { } subscription) await subscription.DisposeAsync();
             }
-            _vendors.Clear();
-        }
-        finally
-        {
-            _gate.Release();
+            finally
+            {
+                vendor.Gate.Release();
+            }
         }
         _metrics.Dispose();
     }
