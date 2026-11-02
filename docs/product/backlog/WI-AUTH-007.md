@@ -1,4 +1,4 @@
-> **Status:** In progress · remaining: phase 4 (the evidence run and the amendments; phases 1 to 3 are built, see the progress notes under this banner)
+> **Status:** In progress · remaining: the security review the definition of done requires (phases 1 to 4 are built and the real-stack evidence is in `docs/evidence/WI-AUTH-007/findings.md`)
 
 > **Progress note (2026-11-02):** ADR-0019 is Accepted and the lead approved the auth work. **Phase 1 built:** the mock issuer's `refresh_token` grant (`tools/BakeryMarketplace.Auth/MockOidcIssuer.cs`): a refresh token is issued to a login that asked for `offline_access`; it is opaque, single use and rotated on every use; a token used twice revokes the whole login; each token expires (default 8 hours, `MockOidc__RefreshTokenMinutes`) and each use renews it; a token is refused to another client; the user and roles are read from the registry on every refresh, never from the request. Access tokens now carry a unique `jti`. 12 new tests in `RefreshTokenGrantTests.cs`; the Auth project has 175 passing. Not yet used by any app.
 

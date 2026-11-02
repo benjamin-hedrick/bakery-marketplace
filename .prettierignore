@@ -16,3 +16,4 @@ docs/
 # Next.js rewrites this file in its own style on every build
 apps/web-customer/tsconfig.json
 apps/web-customer/next-env.d.ts
+apps/web-queue-display/next-env.d.ts
