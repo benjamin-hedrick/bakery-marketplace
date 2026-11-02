@@ -8,7 +8,9 @@ Slice 1 is complete and merged: a customer logs in, browses listings with stock,
 
 Since slice 1 (merged 2026-11-01, local only): the vendor's order read side in the ordering service and BFF (`WI-QUE-001`) and the queue display app, which polls every 7 seconds (`WI-QUE-002`, both Done); and browser sessions (`WI-AUTH-007`, ADR-0019): a server-side session behind an HttpOnly cookie in `packages/web-session`, used by both web apps, with the mock issuer's refresh grant. The real-stack evidence is in `docs/evidence/WI-AUTH-007/findings.md`. `WI-AUTH-007` stays In progress until the lead reviews its security-sensitive phases (the AI pass on 2026-11-02 was a code read; register items 118 to 122 are open from it).
 
-Not built: the admin and notification services (scaffolds), the admin web app, push to the vendor queue (`WI-QUE-003`, ADR-0021, next), the vendor's order actions in the queue UI, a real payment, cloud environments.
+Built since, on `feature/vendor-live-queue` (not yet merged): live updates to the vendor's queue by push (`WI-QUE-003`, ADR-0021): the queue display says Live while a stream is up and polls as the fallback; on the real local stack a customer's order reaches the vendor's screen about 100 ms after it is placed (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`). The item is In review for the lead's review of its security-sensitive parts.
+
+Not built: the admin and notification services (scaffolds), the admin web app, the vendor's order actions in the queue UI, a real payment, cloud environments.
 
 ## What is happening now
 
@@ -28,7 +30,7 @@ The public-readiness pass is done except the settings that need the repository t
 6. Process, in small steps alongside 3 to 5: evidence stamping (commit, command, date, raw output on every evidence record), a pre-push hook that runs `node-gates.mjs`, and the AI-collaboration record as structured data (catches by control, interventions) with the two open theory tests (`WI-QA-002`, `G-H04` and `G-H05`).
 7. Mobile: a decision spike (`WI-QA-003`: Maestro support, Expo or another stack, local-only or CI), then one small mobile job with Maestro flows. Independent of the deploy path.
 8. A recording of the demo journey, ideally against the deployed dev environment.
-9. The vendor read side and queue display (`N-03`, `N-04`): **built (2026-11-01)**. Now: live updates by push (`WI-QUE-003`, ADR-0021, branch `feature/vendor-live-queue`), then the vendor's actions in the queue UI.
+9. The vendor read side and queue display (`N-03`, `N-04`): **built (2026-11-01)**. Live updates by push (`WI-QUE-003`, ADR-0021) are **built and run locally (2026-11-02, branch `feature/vendor-live-queue`)**; next the vendor's actions in the queue UI.
 10. Outbox and stock hardening (`N-06`, `N-07`: register items 66, 67, 74) and a latency budget (item 100).
 11. A dependency audit and SBOM (`WI-SEC-004`).
 

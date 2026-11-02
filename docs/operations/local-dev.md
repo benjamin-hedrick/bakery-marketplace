@@ -131,6 +131,8 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | Mock issuer container: serves discovery; tokens it issues are accepted by a real catalog-service (vendor → 201, customer → 403, garbage → 401) | Verified |
 | catalog-service against the real Cosmos emulator and real Redis Streams: draft create, publish gate (409), `VendorVerified` delivered via a Redis stream, publish, public read from Cosmos, `ListingPublished` on the stream | Verified, one clean pass from a fresh stack |
 | The emulator's documented fixed account key works | Verified (authenticated operations succeeded) |
+| The vendor's live queue (WI-QUE-003): a customer's order, and each action the vendor takes on it, reach the queue display by push (168 ms for the first order; p50 68 ms, p95 99 ms over 20 orders), with the whole stack running (`node scripts/ci/skeleton-smoke.mjs`, 25 of 25; `docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`) | Verified on this machine, host mode |
+| A stream ending at a real issuer's token expiry, a service or Redis restarted under a live screen, the queue display as a container, an OTLP collector for the stream metrics | **Not verified** |
 | The Cosmos emulator over HTTPS, Linux/macOS hosts, and Docker Desktop on other machines | **Not verified** |
 | Emulator persistence across `down`, resource usage under load, startup time on a cold pull | **Not measured** |
 
