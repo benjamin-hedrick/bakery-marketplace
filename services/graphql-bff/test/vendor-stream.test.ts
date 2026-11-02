@@ -489,6 +489,23 @@ describe('the event-stream route', () => {
     again.close();
   });
 
+  test('a request that sends its body slowly does not take a place among the streams', async () => {
+    const slow = http.request(limitedUrl, {
+      method: 'POST',
+      headers: { accept: 'text/event-stream', 'content-type': 'application/json', 'content-length': '200', ...auth },
+    });
+    slow.on('error', () => undefined);
+    slow.write('{"query":"subscription'); // 20 of 200 bytes, and then nothing
+    await new Promise((r) => setTimeout(r, 100));
+
+    const real = await Stream.open(limitedUrl); // this BFF holds one stream
+
+    assert.equal(real.res.status, 200);
+    await waitFor(() => fake.open.size === 1);
+    real.close();
+    slow.destroy();
+  });
+
   test('leaves the JSON route as it was: a POST that does not ask for a stream is a normal query', async () => {
     const res = await fetch(bffUrl, {
       method: 'POST',

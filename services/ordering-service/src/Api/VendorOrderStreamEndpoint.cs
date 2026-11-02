@@ -22,7 +22,7 @@ public static class VendorOrderStreamEndpoint
         app.MapGet("/ordering/vendor/orders/stream", async (
             HttpContext http, VendorOrderStreamHub hub, IOptions<VendorStreamOptions> options, IHostApplicationLifetime lifetime, ILoggerFactory loggers) =>
         {
-            var logger = loggers.CreateLogger("OrderingService.VendorStreamSession");
+            var logger = loggers.CreateLogger("OrderingService.VendorStream");
             var vendorId = CheckoutEndpoints.SubjectOf(http.User);
             if (vendorId is null) return Results.Unauthorized();
 
@@ -80,7 +80,7 @@ public static class VendorOrderStreamEndpoint
                     {
                         var message = await stream.Queue.Reader.ReadAsync(timeout.Token);
                         await WriteAsync(response, $"event: order\nid: {message.OrderId}:{message.Sequence}\ndata: {message.Json}\n\n", token);
-                        VendorOrderStreamHub.RecordSent(message);
+                        hub.RecordSent(message);
                         lastWrite = DateTimeOffset.UtcNow;
                     }
                     catch (OperationCanceledException)

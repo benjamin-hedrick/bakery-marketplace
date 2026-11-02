@@ -63,13 +63,38 @@ public sealed class VendorStreamSession : IDisposable
 /// stream: the stream is found by the vendor id of the token that opened it, and the document's own vendor id is checked again.
 /// </summary>
 public sealed class VendorOrderStreamHub(
-    IBroadcastSubscriber broadcast, ListingNameCache names, IOptions<VendorStreamOptions> options, ILogger<VendorOrderStreamHub> logger) : IAsyncDisposable
+    IBroadcastSubscriber broadcast, ListingNameCache names, IOptions<VendorStreamOptions> options, TimeProvider time, ILogger<VendorOrderStreamHub> logger) : IAsyncDisposable
 {
-    internal static readonly Meter Meter = new("OrderingService.VendorStreamSession");
-    private static readonly UpDownCounter<int> OpenStreams = Meter.CreateUpDownCounter<int>("vendor_stream_open", description: "Open vendor order streams on this instance");
-    private static readonly Counter<long> Sent = Meter.CreateCounter<long>("vendor_stream_messages_sent");
-    private static readonly Counter<long> Dropped = Meter.CreateCounter<long>("vendor_stream_closed_by_server", description: "Streams the server closed, by reason");
-    private static readonly Histogram<double> Delay = Meter.CreateHistogram<double>("vendor_stream_delivery_delay_ms", "ms", "From the event's time to its write on the stream");
+    /// <summary>The name of the hub's meter, for the telemetry registration (ADR-0021, observability).</summary>
+    public const string MeterName = "OrderingService.VendorStream";
+
+    /// <summary>
+    /// The hub's metrics: how many streams are open, how many messages were written, how many streams the server closed (by reason) and the delay from
+    /// an event's time to its write on a stream. Owned by the hub (one per process in the service) so a test can read exactly its own numbers.
+    /// </summary>
+    private sealed class Metrics : IDisposable
+    {
+        public Meter Meter { get; } = new(MeterName);
+        public UpDownCounter<int> Open { get; }
+        public Counter<long> Sent { get; }
+        public Counter<long> ClosedByServer { get; }
+        public Histogram<double> Delay { get; }
+
+        public Metrics()
+        {
+            Open = Meter.CreateUpDownCounter<int>("vendor_stream_open", description: "Open vendor order streams on this instance");
+            Sent = Meter.CreateCounter<long>("vendor_stream_messages_sent");
+            ClosedByServer = Meter.CreateCounter<long>("vendor_stream_closed_by_server", description: "Streams the server closed, by reason");
+            Delay = Meter.CreateHistogram<double>("vendor_stream_delivery_delay_ms", "ms", "From the event's time to its write on the stream");
+        }
+
+        public void Dispose() => Meter.Dispose();
+    }
+
+    private readonly Metrics _metrics = new();
+
+    /// <summary>The hub's meter (for a test to listen to).</summary>
+    public Meter Meter => _metrics.Meter;
 
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
@@ -113,7 +138,7 @@ public sealed class VendorOrderStreamHub(
             }
             vendor.Streams = open.ToArray();
             _total++;
-            OpenStreams.Add(1);
+            _metrics.Open.Add(1);
             return stream;
         }
         finally
@@ -145,7 +170,7 @@ public sealed class VendorOrderStreamHub(
             if (remaining.Length != vendor.Streams.Length) // not already retired by the limit or by shutdown
             {
                 _total--;
-                OpenStreams.Add(-1);
+                _metrics.Open.Add(-1);
             }
             vendor.Streams = remaining;
             if (remaining.Length == 0)
@@ -166,8 +191,8 @@ public sealed class VendorOrderStreamHub(
         stream.MarkReleased();
         stream.Close(reason);
         _total--;
-        OpenStreams.Add(-1);
-        Dropped.Add(1, new KeyValuePair<string, object?>("reason", reason));
+        _metrics.Open.Add(-1);
+        _metrics.ClosedByServer.Add(1, new KeyValuePair<string, object?>("reason", reason));
     }
 
     private async Task OnMessageAsync(VendorChannel vendor, string vendorId, string message, CancellationToken ct)
@@ -192,14 +217,14 @@ public sealed class VendorOrderStreamHub(
             if (stream.Queue.Writer.TryWrite(item)) continue;
             // The client is not reading fast enough: drop it; it reconnects and fetches the list.
             stream.Close("slow-client");
-            Dropped.Add(1, new KeyValuePair<string, object?>("reason", "slow-client"));
+            _metrics.ClosedByServer.Add(1, new KeyValuePair<string, object?>("reason", "slow-client"));
         }
     }
 
-    internal static void RecordSent(VendorStreamMessage message)
+    internal void RecordSent(VendorStreamMessage message)
     {
-        Sent.Add(1);
-        Delay.Record(Math.Max(0, (DateTimeOffset.UtcNow - message.UpdatedAt).TotalMilliseconds));
+        _metrics.Sent.Add(1);
+        _metrics.Delay.Record(Math.Max(0, (time.GetUtcNow() - message.UpdatedAt).TotalMilliseconds)); // the clock the events were stamped with
     }
 
     public async ValueTask DisposeAsync()
@@ -220,5 +245,6 @@ public sealed class VendorOrderStreamHub(
         {
             _gate.Release();
         }
+        _metrics.Dispose();
     }
 }

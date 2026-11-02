@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -12,13 +13,14 @@ namespace BakeryMarketplace.Logging;
 /// configuration and no code here knows about it. Without an endpoint the instrumentation still runs, which gives every
 /// request a real W3C trace ID for <see cref="CorrelationIdMiddleware"/> and for logs. See WI-PORT-005.
 /// Request headers, bodies and tokens are not captured: this registration sets no header-capture or enrichment options.
+/// A service that keeps its own metrics names their <see cref="System.Diagnostics.Metrics.Meter"/>s in <c>meters</c>; those leave the process the same way.
 /// </summary>
 public static class TelemetryExtensions
 {
     public const string EventingSourceName = "BakeryMarketplace.Eventing";
 
     public static IServiceCollection AddBakeryTelemetry(
-        this IServiceCollection services, IConfiguration configuration, string serviceName)
+        this IServiceCollection services, IConfiguration configuration, string serviceName, params string[] meters)
     {
         if (services is null) throw new ArgumentNullException(nameof(services));
         if (configuration is null) throw new ArgumentNullException(nameof(configuration));
@@ -36,6 +38,14 @@ public static class TelemetryExtensions
                     .AddSource(EventingSourceName);
                 if (export) tracing.AddOtlpExporter();
             });
+        if (meters.Length > 0)
+        {
+            services.AddOpenTelemetry().WithMetrics(metrics =>
+            {
+                foreach (var meter in meters) metrics.AddMeter(meter);
+                if (export) metrics.AddOtlpExporter();
+            });
+        }
         return services;
     }
 }

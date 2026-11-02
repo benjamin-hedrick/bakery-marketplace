@@ -29,7 +29,7 @@ builder.Services.AddCors(options =>
 });
 
 // Tracing (ADR-0016): exports over OTLP only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
-builder.Services.AddBakeryTelemetry(builder.Configuration, "ordering-service");
+builder.Services.AddBakeryTelemetry(builder.Configuration, "ordering-service", VendorOrderStreamHub.MeterName);
 
 // Auth (ADR-0006): customers call this service with their own token; Authority and Audience come from config.
 builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !builder.Environment.IsDevelopment());
