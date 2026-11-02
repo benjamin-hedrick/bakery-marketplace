@@ -7,6 +7,7 @@
 | Record | What it shows |
 |---|---|
 | [`ai-usage-2026-10-31.md`](ai-usage-2026-10-31.md) | Cost, time and token use of two Claude Code sessions as copied from the usage screen, with notes on how to read them |
+| [`ai-usage-2026-11-01.md`](ai-usage-2026-11-01.md) | Cost, time and token use of one larger Claude Code session (browser sessions and the vendor queue), as copied from the usage screen |
 | [`baseline-2026-10-30.md`](baseline-2026-10-30.md) | Link and stale-phrase baseline, clean-clone build and tests, the browser flake baseline (570 executions), real-stack timings, and a mutation sample of 10 tests |
 | [`slice-1/findings.md`](slice-1/findings.md) | The slice-1 customer journey on the real stack, a trace through a checkout, a check of what is exported, and observations |
 | [`test-reliability/findings.md`](test-reliability/findings.md) | Ten test failures between 2026-10-26 and 2026-10-29, seven found only on a clean agent, with causes and fixes |
