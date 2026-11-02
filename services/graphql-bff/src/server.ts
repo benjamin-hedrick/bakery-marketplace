@@ -27,6 +27,13 @@ const EVENT_STREAM = 'text/event-stream';
 /** Per request: aborted when the caller's connection closes. The library hands onSubscribe the Node request, which is the key. */
 const gone = new WeakMap<http.IncomingMessage, AbortSignal>();
 
+/**
+ * Requests whose subscription has been established (ordering accepted the stream). Their response starts with a comment line, so a screen can tell
+ * an established subscription from a refusal, which also arrives as HTTP 200 with the error as its first event, without waiting for the first
+ * change or the first ping (up to 12 seconds).
+ */
+const established = new WeakSet<http.IncomingMessage>();
+
 // The field resolvers of both transports: a property of the source, called with (args, context) when it is a function.
 const fieldResolver = (src: unknown, _args: unknown, context: unknown, info: { fieldName: string }) => {
   const v = (src as Record<string, unknown>)[info.fieldName];
@@ -99,6 +106,7 @@ export function createServer(
       });
       // The library tells a ready result from execution arguments by its "data" key, which an errors-only result lacks.
       if (!isAsyncIterable(result)) return { data: null, ...safeResult(result, ctx, log) };
+      established.add(raw);
       return safeStream(result, ctx, log);
     },
   });
@@ -164,7 +172,9 @@ export function createServer(
       res.writeHead = ((status: number, ...rest: unknown[]) => {
         const headers = rest.find((a) => typeof a === 'object' && a !== null) as Record<string, string> | undefined;
         if (headers) headers['cache-control'] = 'private, no-store';
-        return writeHead(status, ...rest);
+        const out = writeHead(status, ...rest);
+        if (status === 200 && established.has(req)) res.write(': ready\n\n');
+        return out;
       }) as typeof res.writeHead;
       try {
         await sse(req, res);

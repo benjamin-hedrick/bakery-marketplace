@@ -8,7 +8,7 @@ The vendor's live order queue: a screen for the counter or the kitchen that show
 
 Three columns, **New** (placed, waiting for the vendor), **Preparing** (confirmed or in preparation) and **Ready**, each with the oldest order first. An order is its short **reference** (the last six characters of its id, to read out across the counter), what was ordered (quantity, listing name, option names; the id where a name is not known), the requested pickup window and any instructions. Completed and cancelled orders are not shown.
 
-- **Polling.** Every 7 seconds (`POLL_MS`) it asks the BFF's `vendorOrders(status: ACTIVE)` with the vendor's token. Real-time push is a v2 candidate, not built.
+- **Live, with polling as the fallback** (`WI-QUE-003`, ADR-0021). The screen opens a `vendorOrderChanged` subscription (Server-Sent Events through this app's own `/api/graphql-stream`, which attaches the session's token on the server) and says **Live** while it is up; changed orders are applied on top of the list only if their sequence number is higher. Polling stays the baseline: while the stream is up the list is asked for as a check every 60 seconds, and when it is not the screen says **Polling**, asks every 7 seconds (`POLL_MS`) and retries the stream after 1, 2, 4 ... up to 30 seconds. A stream with no byte for 45 seconds is dead; one the server ends after a healthy life (the token expired) is opened again at once. The rules are in `src/lib/live-feed.ts` (no React, unit tested with a fake clock) and the browser end in `src/lib/live-stream.ts`. Add `?delay=1` to the address to see how long the last pushed change took to arrive.
 - **New orders.** What is on the screen when it opens is not new. An order that appears in a later answer is marked **New** for a minute and announced to screen readers.
 - **When a poll fails** the last good queue stays on the screen with "Cannot refresh. Showing the queue as of ...", and it recovers by itself. A login the service no longer accepts ends the queue and offers the login again; a login that is not a vendor's says so.
 - **Display only.** The only button is Log out. Acting on an order is the vendor app's job, not this screen's.
@@ -25,7 +25,7 @@ npm run build && npm start # production build on :3100 (GRAPHQL_URL is read at r
 npm run test:e2e           # Playwright (starts the mocks and the app itself if they are not running); 19 tests
 ```
 
-On first use run `npx playwright install chromium`. The login runs for real against the fake issuer, with sessions kept in the app's memory (tests only), and the tests use Playwright's clock, so a poll is a step, not a wait.
+On first use run `npx playwright install chromium`. The login runs for real against the fake issuer, with sessions kept in the app's memory (tests only), and the tests use Playwright's clock, so a poll is a step, not a wait. The mock BFF serves the subscription when told to (`streamMode: 'ok'`) and refuses it by default, so the tests written before live updates exercise the polling fallback unchanged.
 
 ## Against the real stack
 

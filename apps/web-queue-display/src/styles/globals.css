@@ -91,6 +91,21 @@ button {
   margin-bottom: 0.75rem;
 }
 
+.queue-mode {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.queue-mode[data-mode='live']::before {
+  content: '';
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
 .queue-status [role='alert'] {
   display: inline-block;
   padding: 0.3rem 0.7rem;

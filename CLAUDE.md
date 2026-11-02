@@ -37,11 +37,11 @@ npm run test:e2e         # Playwright (Chromium); `npx playwright install chromi
 npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/operations/local-dev.md)
 ```
 
-GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (105 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `ENABLE_TEST_HOOKS=1` forwards the declined-payment test hook and must never be set outside tests). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
+GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (106 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `ENABLE_TEST_HOOKS=1` forwards the declined-payment test hook and must never be set outside tests). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
 
 Session package (`packages/web-session`, `WI-AUTH-007`, used by both web apps since 2026-11-02; run `npm ci` here before in an app): `npm ci`, `npm run typecheck`, `npm test` (121 tests; the 13 Redis store tests run only with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and Redis up, and are skipped otherwise). The apps' browser tests use its fake issuer (`npm run mock-issuer`) and need no Redis; the real-stack login needs the cache Redis (`docker compose --profile with-redis up -d`).
 
-Queue display (`apps/web-queue-display`, port 3100): `npm ci`, `npm run typecheck`, `npm run test:unit` (8 tests), `npm run test:e2e` (19 Playwright tests against `npm run mock` on :4101 and the fake issuer on :5101).
+Queue display (`apps/web-queue-display`, port 3100): `npm ci`, `npm run typecheck`, `npm run test:unit` (22 tests), `npm run test:e2e` (32 Playwright tests against `npm run mock` on :4101 and the fake issuer on :5101).
 
 Generated Relay artifacts (`src/__generated__/`) are gitignored; `npm run relay` recreates them. `ENABLE_TEST_HOOKS` must never be set outside tests. Details: `apps/web-customer/README.md`.
 

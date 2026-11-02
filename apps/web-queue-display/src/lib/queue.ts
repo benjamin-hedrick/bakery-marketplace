@@ -7,6 +7,8 @@ export interface QueueOrder {
   placedAt?: string | null | undefined;
   updatedAt: string;
   pickupWindow?: { start: string; end: string } | null | undefined;
+  /** The highest event sequence applied to the order. A pushed change replaces what the screen holds only if this is higher. */
+  sequence?: number | undefined;
 }
 
 export interface Column<T extends QueueOrder> {
@@ -54,4 +56,21 @@ export function groupOrders<T extends QueueOrder>(orders: readonly T[]): Column<
 /** The ids in `current` that were not in `previous`: the orders that arrived since the last answer. */
 export function newOrderIds(previous: ReadonlySet<string>, current: readonly string[]): string[] {
   return current.filter((id) => !previous.has(id));
+}
+
+/**
+ * The list with one pushed change applied (ADR-0021). The change replaces the order the screen holds only if its sequence is higher, so a late or
+ * repeated update never moves an order backwards; an order the screen did not hold is added; one that is no longer shown (completed, cancelled) is
+ * removed. If nothing changes, the same list is returned, so the screen does not draw again.
+ */
+export function applyChange<T extends QueueOrder>(orders: readonly T[], change: T): T[] {
+  const index = orders.findIndex((o) => o.id === change.id);
+  const held = index >= 0 ? orders[index]! : undefined;
+  if (held && change.sequence !== undefined && held.sequence !== undefined && held.sequence >= change.sequence) {
+    return orders as T[];
+  }
+  const shown = change.status in COLUMN_OF;
+  if (!shown) return held ? orders.filter((o) => o.id !== change.id) : (orders as T[]);
+  if (!held) return [change, ...orders];
+  return orders.map((o) => (o.id === change.id ? change : o));
 }
