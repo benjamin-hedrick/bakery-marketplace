@@ -1,7 +1,14 @@
 import type { IncomingHttpHeaders } from 'node:http';
 import type { SessionConfig } from './config.ts';
 import { checkStateChangingRequest } from './csrf.ts';
-import { extraForwardedHeaders, proxyGraphql, type ProxyRequest, type ProxyResponse } from './graphql-proxy.ts';
+import {
+  extraForwardedHeaders,
+  proxyGraphql,
+  proxyGraphqlStream,
+  type ProxyRequest,
+  type ProxyResponse,
+  type StreamResponse,
+} from './graphql-proxy.ts';
 import { LoginError, type SessionService } from './service.ts';
 
 // Request handlers for the web app's API routes (Next.js Pages Router shape, written against the few members they use so the package does not
@@ -150,5 +157,85 @@ export function createGraphqlHandler({
 
     res.setHeader('Cache-Control', 'no-store');
     await proxyGraphql(req, res, target(), extraForwardedHeaders(extraHeaders?.()), fetchImpl, bearer);
+  };
+}
+
+export interface GraphqlStreamHandlerDeps extends GraphqlHandlerDeps {
+  /** How often an open stream asks whether its session is still live. Default 10 seconds. */
+  sessionCheckMs?: number;
+  /** The most streams this server process relays at once; beyond it a new one is refused with 503 and the screen polls. Default 500. */
+  maxOpen?: number;
+}
+
+/**
+ * POST /api/graphql-stream: the browser's way to a subscription (ADR-0021). It checks what the JSON route checks (CSRF, the session, renewal of an
+ * access token that is about to expire, and the bearer header built on the server) and then relays the BFF's event stream as it arrives. A stream
+ * ends when the BFF ends it (the token expired, the maximum age), when the browser leaves, or when the session ends (logout, idle or absolute
+ * limit); the client then asks again and gets a renewed token. It needs a session: an anonymous caller is refused here instead of being sent on.
+ */
+export function createGraphqlStreamHandler({
+  config,
+  service,
+  target,
+  extraHeaders,
+  fetchImpl,
+  log = () => {},
+  sessionCheckMs = 10_000,
+  maxOpen = 500,
+}: GraphqlStreamHandlerDeps) {
+  let open = 0;
+  return async function graphqlStream(req: ApiRequest, res: ApiResponse & StreamResponse): Promise<void> {
+    res.setHeader('Cache-Control', 'no-store');
+    if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
+    const check = checkStateChangingRequest(req.method, req.headers, config.appOrigin);
+    if (!check.ok) {
+      log(`graphql stream refused: ${check.reason}`);
+      res.status(403);
+      res.json({ error: 'Forbidden' });
+      return;
+    }
+    if (first(req.headers.accept) !== 'text/event-stream') {
+      res.status(406);
+      res.json({ error: 'This route serves event streams only' });
+      return;
+    }
+
+    const resolved = await service.resolve(req.headers.cookie);
+    if (!resolved) {
+      res.status(401);
+      res.json({ error: 'Please log in to continue.' });
+      return;
+    }
+    const bearer = await service.bearerFor(resolved);
+    if (bearer.kind === 'ended') {
+      res.setHeader('Set-Cookie', service.clearSessionCookie());
+      res.setHeader(SESSION_ENDED_HEADER, '1');
+      res.status(401);
+      res.json({ error: 'Please log in to continue.' });
+      return;
+    }
+    if (bearer.kind !== 'token') {
+      res.status(503);
+      res.json({ error: 'Your login could not be renewed just now. Please try again.' });
+      return;
+    }
+    if (open >= maxOpen) {
+      res.setHeader('Retry-After', '30');
+      res.status(503);
+      res.json({ error: 'Live updates are busy. Please poll instead.' });
+      return;
+    }
+
+    open++;
+    try {
+      await proxyGraphqlStream(req, res, target(), {
+        extraHeaders: extraForwardedHeaders(extraHeaders?.()),
+        ...(fetchImpl ? { fetchImpl } : {}),
+        bearerToken: bearer.token,
+        keepOpen: { check: () => service.isActive(resolved.id), everyMs: sessionCheckMs },
+      });
+    } finally {
+      open--;
+    }
   };
 }

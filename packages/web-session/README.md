@@ -13,7 +13,7 @@ The server-side browser session shared by the web apps (ADR-0019, `WI-AUTH-007`)
 | `store.ts` | The session store interface; a memory store and a Redis store (the cache Redis). |
 | `oidc.ts` | The authorize address, the code exchange and the refresh grant against `<issuer>/token`. A public client with PKCE. |
 | `service.ts` | `startLogin`, `finishLogin`, `resolve` (idle and absolute limits), `bearerFor` (renewal, once per session across instances), `logout`, `endSessionsOf`. |
-| `handlers.ts` | The API routes: `login`, `callback`, `logout`, `me`, and the `graphql` proxy. |
+| `handlers.ts` | The API routes: `login`, `callback`, `logout`, `me`, the `graphql` proxy and, for a screen with live updates, `createGraphqlStreamHandler` (`/api/graphql-stream`: the same session, CSRF and renewal checks, then the BFF's event stream relayed as it arrives and ended when the session ends). |
 | `csrf.ts`, `cookie.ts` | The origin and content-type checks; the cookie attributes. |
 | `runtime.ts` | `getSessionRuntime()`: one runtime per process, built from the environment. |
 
@@ -36,7 +36,7 @@ A missing or malformed setting stops the routes with a 503 and logs the **name**
 
 ## Using it from an app (phase 3)
 
-Each app mounts the handlers as thin API routes, for example `pages/api/auth/login.ts`: `export default (req, res) => getSessionRuntime()...auth.login(req, res)`, and `/api/graphql` as `runtime.graphql`. The Next config lists the package in `transpilePackages`, because it ships TypeScript source.
+Each app mounts the handlers as thin API routes, for example `pages/api/auth/login.ts`: `export default (req, res) => getSessionRuntime()...auth.login(req, res)`, and `/api/graphql` as `runtime.graphql`; a live screen also mounts `pages/api/graphql-stream.ts` (`apiRoutes.graphqlStream`, with `config = { api: { bodyParser: false, responseLimit: false } }`). The Next config lists the package in `transpilePackages`, because it ships TypeScript source.
 
 ## Tests
 

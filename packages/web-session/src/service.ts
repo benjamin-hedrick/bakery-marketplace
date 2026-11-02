@@ -162,6 +162,15 @@ export function createSessionService({
       return { id, record };
     },
 
+    /**
+     * Whether the session is still live (it exists and is inside its idle and absolute limits), without counting as activity. A long-lived stream
+     * asks this now and then, so a logout, an idle timeout or the absolute limit stops it instead of letting it run to the end of its token.
+     */
+    async isActive(id: string): Promise<boolean> {
+      const record = await store.get(id);
+      return record !== null && !expired(record);
+    },
+
     view(record: SessionRecord): SessionView {
       return {
         subject: record.subject,

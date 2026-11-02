@@ -39,7 +39,7 @@ npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/
 
 GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (105 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `ENABLE_TEST_HOOKS=1` forwards the declined-payment test hook and must never be set outside tests). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
 
-Session package (`packages/web-session`, `WI-AUTH-007`, used by both web apps since 2026-11-02; run `npm ci` here before in an app): `npm ci`, `npm run typecheck`, `npm test` (104 tests; the 13 Redis store tests run only with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and Redis up, and are skipped otherwise). The apps' browser tests use its fake issuer (`npm run mock-issuer`) and need no Redis; the real-stack login needs the cache Redis (`docker compose --profile with-redis up -d`).
+Session package (`packages/web-session`, `WI-AUTH-007`, used by both web apps since 2026-11-02; run `npm ci` here before in an app): `npm ci`, `npm run typecheck`, `npm test` (120 tests; the 13 Redis store tests run only with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and Redis up, and are skipped otherwise). The apps' browser tests use its fake issuer (`npm run mock-issuer`) and need no Redis; the real-stack login needs the cache Redis (`docker compose --profile with-redis up -d`).
 
 Queue display (`apps/web-queue-display`, port 3100): `npm ci`, `npm run typecheck`, `npm run test:unit` (8 tests), `npm run test:e2e` (19 Playwright tests against `npm run mock` on :4101 and the fake issuer on :5101).
 
@@ -60,6 +60,7 @@ node --test "scripts/ci/tests/*.test.mjs"   # the destroy guard and the pipeline
 node scripts/ci/secret-scan.mjs            # run before every push: gitleaks over the full committed history (Docker); exit 1 = a finding (config .gitleaks.toml)
 node scripts/ci/linux-check.mjs             # runs the .NET test steps on Linux in a container limited to 2 CPUs like the agent, with a 3 minute hang timeout (committed tree); the pipeline is Ubuntu, development here is Windows. Tests must not block on tasks (register item 117)
 node scripts/dev/demo.mjs                  # starts the whole slice-1 stack, warms it, prints a guide, waits; Enter or Ctrl+C tears down (docs/operations/demo.md)
+node scripts/dev/check-stream-passthrough.mjs  # WI-QUE-003: the built queue display relays an event stream incrementally, uncompressed, and frees the BFF call when the browser leaves (needs `npm run build` in apps/web-queue-display)
 node scripts/dev/capture-journey.mjs        # screenshots of the journey into docs/operations/demo/, against a running demo
 node scripts/dev/measure-latency.mjs        # sequential latency of reads and checkout against a running demo (p50, p95, max)
 node scripts/ci/repeat-suite.mjs --runs 10  # the mock-backed browser suite repeated, with a quality report (scripts/ci/quality-report.mjs)

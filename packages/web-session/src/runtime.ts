@@ -1,9 +1,10 @@
 import { defaultStorePrefix, MEMORY_STORE, sessionConfigFromEnv, type SessionConfig } from './config.ts';
 import { createSealer } from './crypto.ts';
-import { createAuthHandlers, createGraphqlHandler } from './handlers.ts';
+import { createAuthHandlers, createGraphqlHandler, createGraphqlStreamHandler } from './handlers.ts';
 import { createSessionService, type SessionService } from './service.ts';
 import { createMemoryStore, createRedisStore, type SessionStore } from './store.ts';
 import type { ApiRequest, ApiResponse } from './handlers.ts';
+import type { StreamResponse } from './graphql-proxy.ts';
 
 export interface SessionRuntime {
   config: SessionConfig;
@@ -11,6 +12,7 @@ export interface SessionRuntime {
   store: SessionStore;
   auth: ReturnType<typeof createAuthHandlers>;
   graphql: ReturnType<typeof createGraphqlHandler>;
+  graphqlStream: ReturnType<typeof createGraphqlStreamHandler>;
 }
 
 export type SessionRuntimeResult = { ok: true; runtime: SessionRuntime } | { ok: false; reason: string };
@@ -59,6 +61,13 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
           extraHeaders: () => process.env['GRAPHQL_EXTRA_FORWARDED_HEADERS'],
           log,
         }),
+        graphqlStream: createGraphqlStreamHandler({
+          config,
+          service,
+          target: () => process.env['GRAPHQL_URL'],
+          extraHeaders: () => process.env['GRAPHQL_EXTRA_FORWARDED_HEADERS'],
+          log,
+        }),
       },
     };
   }
@@ -66,9 +75,9 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
   return result;
 }
 
-type Handler = (req: ApiRequest, res: ApiResponse) => Promise<void>;
+type Handler<R extends ApiResponse = ApiResponse> = (req: ApiRequest, res: R) => Promise<void>;
 
-function route(pick: (runtime: SessionRuntime) => Handler): Handler {
+function route<R extends ApiResponse = ApiResponse>(pick: (runtime: SessionRuntime) => Handler<R>): Handler<R> {
   return async (req, res) => {
     const result = getSessionRuntime();
     if (!result.ok) {
@@ -82,7 +91,7 @@ function route(pick: (runtime: SessionRuntime) => Handler): Handler {
 }
 
 /**
- * The five API routes an app mounts, each answering 503 "Login is not configured" if the settings are unusable. In a Pages Router app:
+ * The six API routes an app mounts (the sixth, the subscription route, only where there is a live screen), each answering 503 "Login is not configured" if the settings are unusable. In a Pages Router app:
  * `export default apiRoutes.login;` in `pages/api/auth/login.ts`, and so on; `pages/api/graphql.ts` also exports `config = { api: { bodyParser: false } }`.
  */
 export const apiRoutes = {
@@ -91,4 +100,6 @@ export const apiRoutes = {
   logout: route((r) => r.auth.logout),
   me: route((r) => r.auth.me),
   graphql: route((r) => r.graphql),
+  /** The subscription route: `pages/api/graphql-stream.ts`, with `config = { api: { bodyParser: false, responseLimit: false } }`. */
+  graphqlStream: route<ApiResponse & StreamResponse>((r) => r.graphqlStream),
 };
