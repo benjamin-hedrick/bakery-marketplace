@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-export const ports = { catalog: 5200, ordering: 5300, bff: 4100, web: 3000 };
+export const ports = { catalog: 5200, ordering: 5300, bff: 4100, web: 3000, queue: 3100 };
 export const issuerUrl = 'http://localhost:5100';
 export const bffUrl = `http://localhost:${ports.bff}/graphql`;
 const isWin = process.platform === 'win32';
@@ -157,6 +157,28 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       await waitFor('ordering', `http://localhost:${ports.ordering}/health`);
       await waitFor('bff', `http://localhost:${ports.bff}/healthz`);
       await waitFor('web', `http://localhost:${ports.web}/`);
+    },
+
+    /**
+     * The vendor's queue display (apps/web-queue-display, port 3100) as a host process in every mode: it has no container image. Built against the real
+     * BFF and logged in through the real mock issuer, with its sessions in the cache Redis like the customer app's.
+     */
+    async startQueue() {
+      const queueDir = path.join(root, 'apps', 'web-queue-display');
+      const queueEnv = {
+        GRAPHQL_URL: bffUrl,
+        NEXT_DIST_DIR: distDir,
+        AUTH_ISSUER: issuerUrl,
+        AUTH_CLIENT_ID: 'web-queue-display',
+        APP_ORIGIN: `http://localhost:${ports.queue}`,
+        SESSION_REDIS_URL: 'redis://127.0.0.1:6380',
+        SESSION_ENCRYPTION_KEY: envValue('SESSION_ENCRYPTION_KEY'),
+      };
+      run('queue relay compile', 'node', ['scripts/ensure-artifact-dir.mjs'], { cwd: queueDir });
+      run('queue relay compile', 'node', [path.join('node_modules', 'relay-compiler', 'cli.js')], { cwd: queueDir });
+      run('queue build', 'node', [next, 'build'], { cwd: queueDir, env: queueEnv });
+      start('queue', 'node', [next, 'start', '-p', String(ports.queue)], { cwd: queueDir, env: queueEnv });
+      await waitFor('queue', `http://localhost:${ports.queue}/`);
     },
 
     /** Builds the Next.js app against the real BFF and starts it. */

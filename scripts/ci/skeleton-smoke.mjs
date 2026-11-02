@@ -34,6 +34,7 @@ try {
     await stack.startServices({ testHooks: true });
     await stack.startWeb();
   }
+  await stack.startQueue(); // the vendor's screen, for the journey from a customer's order to the vendor's queue
 
   const pw = spawnSync(
     'node',
