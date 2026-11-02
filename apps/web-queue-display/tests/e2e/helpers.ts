@@ -20,6 +20,7 @@ export interface MockOrder {
   id: string;
   reference: string;
   status: string;
+  sequence?: number;
   itemCount?: number;
   automatic?: boolean;
   placedAt?: string | null;
@@ -37,6 +38,7 @@ export interface MockOrder {
 /** An order with every field the queue asks for; override what a test cares about. */
 export function order(o: MockOrder) {
   return {
+    sequence: 1,
     itemCount: 1,
     automatic: false,
     placedAt: '2026-11-02T13:00:00+00:00',
@@ -54,8 +56,31 @@ const post = async (url: string, body: unknown) => {
 };
 
 /** Sets what the mock BFF answers with (and, optionally, how it fails). */
-export const setMock = (state: { orders?: ReturnType<typeof order>[]; mode?: string }) =>
-  post(`${MOCK}/__state`, state);
+export const setMock = (state: {
+  orders?: ReturnType<typeof order>[];
+  mode?: string;
+  /** "ok" serves the subscription; the default, "unavailable", refuses it (the display then polls). */
+  streamMode?: 'ok' | 'unavailable';
+  /** How often the mock sends a heartbeat on an open stream; 0 is never (a silent stream). */
+  heartbeatMs?: number;
+}) => post(`${MOCK}/__state`, state);
+
+/** Pushes one changed order to every open stream, as the BFF does when ordering reports a change. */
+export const pushChange = (changed: ReturnType<typeof order>) => post(`${MOCK}/__push`, { order: changed });
+
+/** Ends every open stream the way the BFF does when the token expires (a normal completion). */
+export const endStreams = () => post(`${MOCK}/__end`, {});
+
+/** Cuts every open stream's connection. */
+export const dropStreams = () => post(`${MOCK}/__drop`, {});
+
+export async function mockStreams(): Promise<{
+  streamRequests: number;
+  openStreams: number;
+  streamAuthorizations: (string | null)[];
+}> {
+  return (await fetch(`${MOCK}/__state`)).json();
+}
 
 /** Sets who logs in at the fake issuer, how long a token lives, and how the issuer misbehaves (ok | down | revoked | bad-exchange | denied | forged-state). */
 export const setIssuer = (state: {

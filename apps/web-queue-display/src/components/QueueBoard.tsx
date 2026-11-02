@@ -3,9 +3,12 @@ import { graphql } from 'react-relay';
 import { fetchQuery } from 'relay-runtime';
 import type { QueueBoardQuery, QueueBoardQuery$data } from '../__generated__/QueueBoardQuery.graphql';
 import { GraphQLRequestError, getBrowserEnvironment, UnauthenticatedError } from '../lib/relay/environment';
-import { groupOrders, newOrderIds, type QueueOrder } from '../lib/queue';
+import { LiveFeed, type Mode } from '../lib/live-feed';
+import { openVendorOrderStream, type OrderChange } from '../lib/live-stream';
+import { applyChange, groupOrders, newOrderIds, type QueueOrder } from '../lib/queue';
 
-// The vendor's orders that are still in progress, newest change first. Display only: nothing on this screen changes an order.
+// The vendor's orders that are still in progress, newest change first. Display only: nothing on this screen changes an order. The list is the
+// baseline (WI-QUE-002); live changes arrive on a stream and are applied on top by their sequence numbers (WI-QUE-003, ADR-0021).
 const queueQuery = graphql`
   query QueueBoardQuery {
     vendorOrders(status: ACTIVE, first: 50) {
@@ -14,6 +17,7 @@ const queueQuery = graphql`
           id
           reference
           status
+          sequence
           itemCount
           automatic
           placedAt
@@ -38,13 +42,13 @@ const queueQuery = graphql`
   }
 `;
 
-/** How often the screen asks again. Polling is the v1 design (WI-QUE-002); real-time push is a v2 candidate, not built. */
-export const POLL_MS = 7000;
-
 /** How long an order stays marked as new after it first appears on the screen. */
 export const NEW_FOR_MS = 60_000;
 
 type Orders = NonNullable<QueueBoardQuery$data['vendorOrders']>['edges'][number]['node'][];
+// A pushed order must be usable in the list: if the two documents drift apart, this stops compiling.
+const _sameShape = (change: OrderChange): Orders[number] => change;
+void _sameShape;
 type Load =
   { state: 'loading' } | { state: 'ready' } | { state: 'ended' } | { state: 'forbidden' } | { state: 'failed' };
 
@@ -61,7 +65,36 @@ export function QueueBoard() {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [fresh, setFresh] = useState<ReadonlyMap<string, number>>(new Map());
   const [announcement, setAnnouncement] = useState('');
+  const [mode, setMode] = useState<Mode>('connecting');
+  const [delayMs, setDelayMs] = useState<number | null>(null);
   const seen = useRef<Set<string> | null>(null); // null until the first answer: what is on the screen at the start is not "new"
+  const held = useRef<Orders>([]); // what the screen shows now, for applying a pushed change on top of it
+  const feed = useRef<LiveFeed<OrderChange> | null>(null);
+
+  /** Puts a list of orders on the screen and marks the ones that were not there before (from the list or from the stream alike). */
+  const show = useCallback((next: Orders, now: number) => {
+    const arrived =
+      seen.current === null
+        ? []
+        : newOrderIds(
+            seen.current,
+            next.map((o) => o.id),
+          );
+    seen.current = new Set(next.map((o) => o.id));
+    held.current = next;
+    setOrders(next);
+    if (arrived.length > 0) {
+      setFresh((current) => new Map([...current, ...arrived.map((id) => [id, now] as const)]));
+      setAnnouncement(
+        `New: ${next
+          .filter((o) => arrived.includes(o.id))
+          .map((o) => o.reference)
+          .join(', ')}`,
+      );
+    }
+    setUpdatedAt(new Date(now));
+    setLoad({ state: 'ready' });
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -71,44 +104,51 @@ export function QueueBoard() {
         {},
         { fetchPolicy: 'network-only' },
       ).toPromise();
-      const next = (data?.vendorOrders.edges ?? []).map((e) => e.node);
-      const now = Date.now();
-      const arrived =
-        seen.current === null
-          ? []
-          : newOrderIds(
-              seen.current,
-              next.map((o) => o.id),
-            );
-      seen.current = new Set(next.map((o) => o.id));
-      setOrders(next);
-      if (arrived.length > 0) {
-        setFresh((current) => new Map([...current, ...arrived.map((id) => [id, now] as const)]));
-        setAnnouncement(
-          `New: ${next
-            .filter((o) => arrived.includes(o.id))
-            .map((o) => o.reference)
-            .join(', ')}`,
-        );
-      }
-      setUpdatedAt(new Date(now));
-      setLoad({ state: 'ready' });
+      show(
+        (data?.vendorOrders.edges ?? []).map((e) => e.node),
+        Date.now(),
+      );
     } catch (e) {
       // The last good list stays on the screen: a kitchen should not lose its queue because one poll failed.
-      if (e instanceof UnauthenticatedError) setLoad({ state: 'ended' });
-      else if (e instanceof GraphQLRequestError && e.codes.includes('FORBIDDEN')) setLoad({ state: 'forbidden' });
-      else setLoad({ state: 'failed' });
+      if (e instanceof UnauthenticatedError) {
+        feed.current?.stop();
+        setLoad({ state: 'ended' });
+      } else if (e instanceof GraphQLRequestError && e.codes.includes('FORBIDDEN')) {
+        feed.current?.stop();
+        setLoad({ state: 'forbidden' });
+      } else setLoad({ state: 'failed' });
     }
-  }, []);
+  }, [show]);
+
+  /** A change from the stream: applied only if it is newer than what the screen holds. */
+  const change = useCallback(
+    (incoming: OrderChange) => {
+      const next = applyChange(held.current, incoming);
+      if (next === held.current) return;
+      const now = Date.now();
+      setDelayMs(Math.max(0, now - Date.parse(incoming.updatedAt)));
+      show(next, now);
+    },
+    [show],
+  );
 
   useEffect(() => {
-    const first = setTimeout(() => void refresh(), 0); // from a callback, not the effect body: the first answer sets state when it arrives
-    const timer = setInterval(() => void refresh(), POLL_MS);
+    const live = new LiveFeed<OrderChange>({
+      openStream: openVendorOrderStream,
+      refreshList: refresh,
+      applyChange: change,
+      onMode: setMode,
+      isFatal: (e) =>
+        e instanceof UnauthenticatedError || (e instanceof GraphQLRequestError && e.codes.includes('FORBIDDEN')),
+      onFatal: (e) => setLoad(e instanceof UnauthenticatedError ? { state: 'ended' } : { state: 'forbidden' }),
+    });
+    feed.current = live;
+    live.start();
     return () => {
-      clearTimeout(first);
-      clearInterval(timer);
+      live.stop();
+      feed.current = null;
     };
-  }, [refresh]);
+  }, [refresh, change]);
 
   // The "new" mark fades by itself: forget the ones older than NEW_FOR_MS.
   useEffect(() => {
@@ -136,6 +176,9 @@ export function QueueBoard() {
   }
 
   const columns = groupOrders(orders);
+  // For a demo: add ?delay=1 to the address to see how long the last pushed change took to arrive. The clocks of the server and of this screen
+  // must agree for the number to mean anything, so it is off unless asked for.
+  const showDelay = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('delay');
 
   return (
     <main className="queue" aria-label="Order queue">
@@ -147,8 +190,19 @@ export function QueueBoard() {
             Cannot refresh. Showing the queue as of {updatedAt ? clock.format(updatedAt) : 'never'}.
           </span>
         ) : (
-          <span>Updated {updatedAt ? clock.format(updatedAt) : ''}</span>
+          <span>
+            Updated {updatedAt ? clock.format(updatedAt) : ''}
+            {' · '}
+            <span className="queue-mode" data-testid="queue-mode" data-mode={mode === 'live' ? 'live' : 'polling'}>
+              {mode === 'live' ? 'Live' : 'Polling'}
+            </span>
+          </span>
         )}
+        {showDelay && delayMs !== null ? (
+          <span className="queue-delay" data-testid="queue-delay">
+            {' · '}Last change reached this screen {delayMs} ms after it happened
+          </span>
+        ) : null}
       </div>
       <div className="visually-hidden" role="status" aria-live="polite" data-testid="queue-announcement">
         {announcement}

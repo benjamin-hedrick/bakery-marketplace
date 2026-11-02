@@ -247,6 +247,28 @@ describe('Subscription.vendorOrderChanged', () => {
     s.close();
   });
 
+  test('says it is ready, with a comment, as soon as the subscription is established, and not when it is refused', async () => {
+    // The library follows it with an empty comment of its own on every stream (some browsers ignore a flushed header alone); "ready" is ours.
+    const ok = await Stream.open();
+    const comments: (string | undefined)[] = [];
+    for (let frame = await ok.next(); frame; frame = await ok.next()) {
+      comments.push(frame.comment);
+      if (frame.comment === 'ready') break;
+    }
+    assert.deepEqual(comments, ['ready']); // the very first thing sent: before any change and long before the first ping
+    ok.close();
+
+    fake.mode = 'unauthorized';
+    const refused = await Stream.open();
+    const seen: Frame[] = [];
+    for (let frame = await refused.next(); frame; frame = await refused.next()) {
+      seen.push(frame);
+      if (frame.event === 'next') break;
+    }
+    assert.equal(seen.at(-1)?.event, 'next'); // the error is what follows the library's empty comment
+    assert.ok(!seen.some((f) => f.comment === 'ready'));
+  });
+
   test('answers as an uncached event stream that carries the trace id', async () => {
     const s = await Stream.open();
 
