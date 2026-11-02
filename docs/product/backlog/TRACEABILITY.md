@@ -14,7 +14,7 @@ Of 53 work items marked Done: 28 are named by a test file, 16 by an evidence rec
 | [AUTH-002](WI-AUTH-002.md) | Per-service resource-ownership check pattern + reference application | Done | `ResourceOwnershipHandlerTests.cs` | `findings.md` |
 | [AUTH-005](WI-AUTH-005.md) | Local mock OIDC issuer — token minting + PKCE authorization-code flow | Done | `MockOidcMiddlewareIntegrationTests.cs` | *none* |
 | [AUTH-006](WI-AUTH-006.md) | Service-to-service authentication (OAuth2 client credentials) | In progress | `ClientCredentialsIssuerTests.cs` | *none* |
-| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | In progress | `RefreshTokenGrantTests.cs` | *none* |
+| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | In progress | `RefreshTokenGrantTests.cs` | `findings.md` |
 | [CACHE-001](WI-CACHE-001.md) | Define CacheProvider interface + shared contract test suite | Done | `CacheProviderContractTests.cs` | *none* |
 | [CACHE-002](WI-CACHE-002.md) | RedisCacheProvider implementation | Done | `RedisCacheProviderTests.cs` | *none* |
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | Done | `LocalCacheProviderTests.cs`, `ResilientCacheProviderTests.cs` | *none* |

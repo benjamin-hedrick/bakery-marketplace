@@ -655,3 +655,18 @@ The lead chose the cache Redis for the session store (ADR-0019). The cache Redis
 Type: Deployment follow-up · Source: `WI-AUTH-007` phase 3, 2026-11-02 · Hat: Platform Engineering
 Status: Open
 Nothing has been planned or applied on Azure. When the dev environment is next applied: (1) the Key Vault secret `session-encryption-key` is created as a placeholder, and its value (32 random bytes, base64url) must be set out of band before the web app can log anyone in (the web routes answer 503 "Login is not configured" until then); (2) a new `redis-cache` container app (TCP port 6380) holds the sessions; (3) the mock issuer's registered callback is `<web>/api/auth/callback` and its browser CORS origin setting is gone. The mocked-provider tests cover the shape (`infra/environments/dev/tests/dev.tftest.hcl`), not the behaviour on Azure. The first real apply should record the login working end to end (a browser, the deployed web app, the deployed mock issuer, the session in `redis-cache`).
+
+**120. The mock issuer skips the refresh token's client check when `client_id` is omitted**
+Type: Hardening · Source: security review of `WI-AUTH-007`, 2026-11-02 · Hat: Security, Platform Engineering
+Status: Open
+In `MockOidcIssuer.RefreshTokenGrant` the check that a refresh token is used by the client it was issued to runs only when the request carries a `client_id`; leaving it out skips the check. A stolen, still unused refresh token could be presented without naming a client. Exploiting it needs the token first, and the mock issuer is a stand-in, but it is deployed to the dev environment (`WI-DEP-001`). Fix: require `client_id` on the refresh grant and refuse a mismatch or a missing value, with a test in `RefreshTokenGrantTests`. Auth logic, so it needs the lead's approval before the change.
+
+**121. The code exchange does not validate `iss` or `aud` on the token it receives**
+Type: Hardening · Source: security review of `WI-AUTH-007`, 2026-11-02 · Hat: Security, Architect
+Status: Open
+`packages/web-session` takes the access token from the token endpoint over the server's own call and reads its claims without checking the issuer or audience (`claims.ts` says so; every service still validates the token itself, ADR-0006). That is safe while the issuer is the mock, reached directly. When a real identity provider replaces it, check `iss` against `AUTH_ISSUER` and `aud` against the expected audience before a session is created, and verify the signature if the token is ever used for more than display. Do it with the move to a real provider, not before.
+
+**122. Nothing stops `SESSION_ALLOW_MEMORY_STORE=1` in a deployed environment**
+Type: Hardening · Source: security review of `WI-AUTH-007`, 2026-11-02 · Hat: Platform Engineering
+Status: Open
+`SESSION_REDIS_URL=memory` is accepted only with `SESSION_ALLOW_MEMORY_STORE=1`, which is a guard against a mistake, not a block. If it were set on the deployed web app, sessions would live in one process, be lost on restart and not be shared between instances. Fix: a test in `infra/environments/dev/tests/dev.tftest.hcl` that the web app's environment does not contain either setting, and optionally a refusal in the package when `APP_ORIGIN` is not loopback.
