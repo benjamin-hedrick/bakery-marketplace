@@ -6,6 +6,8 @@
 
 > **Progress note (2026-11-02, step 3):** two hosts of the ordering service on one real Redis (Compose `redis-events`, `REDIS_CONNECTION_STRING=127.0.0.1:6379`; `Events:Backend=redis` gives Streams for the events and Pub/Sub for the broadcast). `VendorOrderStreamRedisTests.cs` (partial class of `VendorOrderStreamTests`): a change placed through host A reaches streams open on A and on B; a vendor's confirm on A reaches a stream on B with a higher sequence; another vendor's stream on B receives nothing; the Redis subscription count for the vendor's channel is 1 while several streams are open on one host, 2 with a stream on each of two hosts, and 0 after the last close (read with `PUBSUB NUMSUB`). These tests use a `RedisFact` attribute: without Redis they are reported as skipped (5 skipped, 18 passed), never as passed. One more test, for the channel being unavailable: opening a stream answers 503 with `Retry-After` while the list still works. With Redis up: 23 passed, 0 skipped, repeated 5 times. Because Streams give each event to one instance, these hosts compete for the events, so the instance that projects an event is often not the one that took the request; the tests pass either way, which is the point. Not done: a run with the whole stack and a browser (steps 5 to 7).
 
+> **Progress note (2026-11-02, dependency):** `graphql-sse` is chosen and pinned at exactly **2.6.3** in `services/graphql-bff` and `apps/web-queue-display` (the open point of ADR-0021 decision 1, accepted by the lead). The review, including a rebuild of the `v2.6.3` git tag that reproduced all 51 published files byte for byte (the package has no npm provenance attestation), is in `docs/evidence/WI-QUE-003/graphql-sse-review-2026-11-02.md`. Nothing uses it yet; step 4 does. The BFF will send only `POST /graphql` requests with `Accept: text/event-stream` to the library's handler, so its single-connection mode and `GET` form stay unreachable.
+
 ```
 WI ID:               QUE-003
 Title:                Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021)
@@ -52,4 +54,4 @@ See `docs/process/definition-of-done.md`. Item-specific addition: a security rev
 Parts. The adapter, the BFF subscription and the screen are well specified. The stream endpoint's authentication and expiry are security-sensitive and need the lead's review.
 
 **Open Points (working)**
-- The `graphql-sse` library version to pin and review when step 4 starts (ADR-0021 decision 1).
+*(none: the `graphql-sse` version was pinned and reviewed on 2026-11-02)*

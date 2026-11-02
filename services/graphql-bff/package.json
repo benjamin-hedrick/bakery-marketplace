@@ -16,7 +16,8 @@
     "format:check": "prettier --check . --ignore-path ../../.prettierignore"
   },
   "dependencies": {
-    "graphql": "16.14.2"
+    "graphql": "16.14.2",
+    "graphql-sse": "2.6.3"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
