@@ -46,5 +46,5 @@ RESULT: all checks passed
 
 ## Found while building
 
-- The JSON route (`/api/graphql`) reads a request body without a size limit (`readBody` in `graphql-proxy.ts`), since the framework's body parser is off. The new route limits its body; the old one was left as it was, which is outside this item. Recorded as register item 124.
+- The JSON route (`/api/graphql`) reads a request body without a size limit (`readBody` in `graphql-proxy.ts`), since the framework's body parser is off. The new route limited its body; the old one did not. Recorded as register item 124 and fixed the same day with the lead's approval: `proxyGraphql` now reads at most 64 KB too (413 above it), with a test.
 - Node runs the package's tests with type stripping, which does not allow constructor parameter properties; the test helper was written without them.

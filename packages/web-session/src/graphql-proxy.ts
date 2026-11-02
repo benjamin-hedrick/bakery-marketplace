@@ -54,12 +54,6 @@ export interface ProxyResponse {
   json(body: unknown): unknown;
 }
 
-async function readBody(req: ProxyRequest): Promise<Uint8Array<ArrayBuffer>> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
-  return new Uint8Array(Buffer.concat(chunks));
-}
-
 /** The slice of a response that a relayed stream needs: the JSON helpers above plus the Node members for writing in pieces. */
 export type StreamResponse = ProxyResponse &
   Pick<
@@ -79,6 +73,13 @@ export interface StreamOptions {
   /** Asked every `everyMs` while the stream is open; when it answers false the stream is ended (the session is over). */
   keepOpen?: { check: () => Promise<boolean>; everyMs: number };
 }
+
+/**
+ * The largest request body either GraphQL route reads (register item 124). The framework's body parser is off on these routes so the proxy can send
+ * the bytes on unchanged, which also means nothing else limits them. A query, a checkout or a subscription request is a few hundred bytes; the BFF
+ * refuses more than this itself.
+ */
+export const MAX_REQUEST_BODY_BYTES = 64 * 1024;
 
 class BodyTooLarge extends Error {}
 
@@ -116,7 +117,7 @@ export async function proxyGraphqlStream(
     extraHeaders = [],
     fetchImpl = fetch,
     bearerToken,
-    maxBodyBytes = 64 * 1024,
+    maxBodyBytes = MAX_REQUEST_BODY_BYTES,
     connectTimeoutMs = 10_000,
     keepOpen,
   } = options;
@@ -217,7 +218,7 @@ export async function proxyGraphql(
         ...forwardedRequestHeaders(req.headers, extraHeaders),
         ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}),
       },
-      ...(hasBody ? { body: await readBody(req) } : {}),
+      ...(hasBody ? { body: await readBodyWithin(req, MAX_REQUEST_BODY_BYTES) } : {}),
     });
     const body = Buffer.from(await upstream.arrayBuffer());
     res.status(upstream.status);
@@ -225,7 +226,12 @@ export async function proxyGraphql(
       if (!HOP_BY_HOP_RESPONSE_HEADERS.has(name)) res.setHeader(name, value);
     });
     res.send(body);
-  } catch {
+  } catch (e) {
+    if (e instanceof BodyTooLarge) {
+      res.status(413);
+      res.json({ error: 'The request is too large' });
+      return;
+    }
     res.status(502);
     res.json({ error: 'The GraphQL service could not be reached' });
   }
