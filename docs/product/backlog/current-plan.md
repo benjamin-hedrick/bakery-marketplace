@@ -1,6 +1,6 @@
 # Current plan
 
-> **Status:** Current · written 2026-10-30, order of next work updated 2026-11-02. The status of every work item is in `STATUS.md` (generated); this page says what is built, what is happening now and where the next work is listed. Keep it short: update it when the focus changes.
+> **Status:** Current · written 2026-10-30, order of next work updated 2026-11-03. The status of every work item is in `STATUS.md` (generated); this page says what is built, what is happening now and where the next work is listed. Keep it short: update it when the focus changes.
 
 ## What is built
 
@@ -9,6 +9,8 @@ Slice 1 is complete and merged: a customer logs in, browses listings with stock,
 Since slice 1 (merged 2026-11-01, local only): the vendor's order read side in the ordering service and BFF (`WI-QUE-001`) and the queue display app, which polls every 7 seconds (`WI-QUE-002`, both Done); and browser sessions (`WI-AUTH-007`, ADR-0019): a server-side session behind an HttpOnly cookie in `packages/web-session`, used by both web apps, with the mock issuer's refresh grant. The real-stack evidence is in `docs/evidence/WI-AUTH-007/findings.md`. `WI-AUTH-007` stays In progress until the lead reviews its security-sensitive phases (the AI pass on 2026-11-02 was a code read; register items 118 to 122 are open from it).
 
 Built since, on `feature/vendor-live-queue` (not yet pushed or merged): live updates to the vendor's queue by push (`WI-QUE-003`, ADR-0021): the queue display says Live while a stream is up and polls as the fallback; on the real local stack a customer's order reaches the vendor's screen about 100 ms after it is placed (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`). The item is Done (2026-11-02), approved by the lead after a review round; its known limits are in the item (not seen on Azure or behind API Management, no load, fuzz or penetration testing, register item 127 open).
+
+Built since, on `feature/quality-vendor-actions` (not yet merged; a quality-and-vendor pass, 2026-11-02 and 2026-11-03, all local): the vendor's actions in the queue display (accept, decline, start, ready, hand over; `WI-QUE-004`); first rate limits at the web apps and a backstop at the BFF (`WI-RATE-001`, register item 128); Firefox, WebKit and phone-profile projects for the browser suites (`BROWSERS=all`; register item 132 lists 13 failures not yet diagnosed); a threat model, generated-input tests, a 66-minute soak, an OWASP ZAP scan and a statement of what has been reviewed (`WI-SEC-005`, register item 129), which led to browser hardening headers (CSP, frame protection), limits on GraphQL operation size, and the fix of a request that ended the BFF process (register items 134 to 136). The verification policy and the other process-review edits (register item 130) are merged as proposals. The lead has not yet reviewed any of this branch.
 
 Not built: the admin and notification services (scaffolds), the admin web app, the vendor's order actions in the queue UI, a real payment, cloud environments.
 
@@ -22,9 +24,12 @@ The public-readiness pass is done except the settings that need the repository t
 
 **Next, added 2026-11-02 (after the review of `WI-QUE-003`), ahead of the list below:**
 
-- **Process review (register item 130): drafted 2026-11-02 on `feature/process-review`, for the lead's review (`docs/process/verification-policy.md` and the proposed edits it points to).** Original scope: draft proposed edits to `nfrs.md` (real-time delivery, per-caller limits and abuse resistance, observability, security verification), `definition-of-ready.md` (abuse cases for anything that holds a connection or a resource), `definition-of-done.md` (an "ADRs and NFRs affected" line, a limits checklist, security tests shown to fail without the fix, a dependency review record, an evidence run with its starting state), `test-strategy.md` (counts from a script, not by hand) and the work item template, in a branch of their own for the lead to review; and write down the working-pattern lessons. Then plan items 128 (rate limiting of connections, logins and requests) and 129 (load and soak, fuzz, a threat model, a dynamic scan, and a plain statement of what has been independently reviewed).
+- **Review of the quality-and-vendor branch** (`feature/quality-vendor-actions`, about 18 commits): `WI-QUE-004`, `WI-RATE-001`, `WI-SEC-005` and the cross-browser projects. Open for the lead: register item 137 (the BFF backstop is shared by all users of a web app), whether a deployed environment refuses GraphQL introspection, `'unsafe-inline'` in the CSP's `script-src`, the production numbers for the rate limits, and item 132 (13 cross-browser failures to diagnose).
+- **Adopt or change the process-review proposals** (`docs/process/verification-policy.md`, the Definitions of Ready and Done, NFR 3.8, 3.9, 5.1 and 5.2): merged as proposals; nothing is binding until the lead says so.
 - **Review of `WI-AUTH-007`** by the lead (it stays In progress until then), with register items 118 to 122 and the pipeline's first Azure run of the `queue` and `session` jobs.
 - **Item 127** (order changes cross Redis Pub/Sub in the clear) is decided with the deployed Redis (`WI-DEP-001`).
+
+**Product order agreed with the lead (2026-11-02):** after the quality work, notifications on order events (`NOT-001`, `NOT-002`; a second consumer for the event backbone), then the customer's order history (`WI-CUST-007`) and personalization, then a mobile spike (`WI-QA-003`). Vendor onboarding (seeded data and the mock identity stay), the admin console and a real payment (design only) come last or are not built for the demo. The deployed dev environment, Azure and Entra stay a separate, parallel track.
 
 **Next, in this order (set 2026-10-31):**
 
