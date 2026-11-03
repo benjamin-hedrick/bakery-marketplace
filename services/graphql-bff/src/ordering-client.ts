@@ -77,6 +77,12 @@ export interface OrderingError {
 export type PlaceResult =
   { kind: 'order'; order: OrderingOrder } | { kind: 'error'; status: number; error: OrderingError };
 
+/** The vendor actions of ordering-service, as the path segment of `POST /ordering/orders/{id}/{action}`. */
+export type OrderActionName = 'confirm' | 'decline' | 'start-preparation' | 'ready' | 'complete';
+
+export type OrderActionResult =
+  { kind: 'done'; order: OrderingOrder } | { kind: 'not_found' } | { kind: 'refused'; currentStatus: string | null };
+
 export interface OrderingClient {
   /**
    * Places an order for the caller. The expected 4xx answers (422, 409, 402, and 401/403) come back as `kind: 'error'` for the caller to map; a
@@ -90,6 +96,17 @@ export interface OrderingClient {
     trace: TraceContext,
     testPayment?: 'decline',
   ): Promise<PlaceResult>;
+  /**
+   * A vendor's action on an order (confirm, decline, start-preparation, ready, complete). The vendor's token is forwarded unchanged; ordering
+   * decides the role, the ownership and whether the action is allowed from the order's status. 404 (missing, or not the caller's) is
+   * `not_found`; 409 is `refused` with the current status. A 401 or 403 is a {@link DownstreamError} with that status; anything else throws.
+   */
+  orderAction(
+    id: string,
+    action: OrderActionName,
+    authorization: string,
+    trace: TraceContext,
+  ): Promise<OrderActionResult>;
   /** Public. */
   pickupWindows(vendorId: string, trace: TraceContext): Promise<OrderingWindow[]>;
   /**
@@ -174,6 +191,22 @@ export function createOrderingClient(
         return { kind: 'error', status: res.status, error };
       }
       throw new DownstreamError(`ordering checkout returned ${res.status}`, res.status);
+    },
+    async orderAction(id, action, authorization, trace) {
+      const res = await request(`/ordering/orders/${encodeURIComponent(id)}/${action}`, trace, authorization, {
+        method: 'POST',
+      });
+      if (res.status === 200) return { kind: 'done', order: await parse<OrderingOrder>(res) };
+      if (res.status === 404) {
+        await res.body?.cancel().catch(() => undefined);
+        return { kind: 'not_found' };
+      }
+      if (res.status === 409) {
+        const body = await parse<{ currentStatus?: unknown }>(res);
+        return { kind: 'refused', currentStatus: typeof body?.currentStatus === 'string' ? body.currentStatus : null };
+      }
+      await res.body?.cancel().catch(() => undefined);
+      throw new DownstreamError(`ordering order action returned ${res.status}`, res.status);
     },
     async pickupWindows(vendorId, trace) {
       const res = await request(`/ordering/pickup-windows?${new URLSearchParams({ vendorId })}`, trace);
