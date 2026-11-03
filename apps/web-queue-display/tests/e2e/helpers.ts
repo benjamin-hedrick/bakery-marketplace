@@ -63,6 +63,10 @@ export const setMock = (state: {
   streamMode?: 'ok' | 'unavailable';
   /** How often the mock sends a heartbeat on an open stream; 0 is never (a silent stream). */
   heartbeatMs?: number;
+  /** How the mock answers a vendor action: ok (moves the order along), conflict, notfound, forbidden, error. */
+  actionMode?: 'ok' | 'conflict' | 'notfound' | 'forbidden' | 'error';
+  /** The mock answers an action after this many milliseconds (an action in flight). */
+  actionDelayMs?: number;
 }) => post(`${MOCK}/__state`, state);
 
 /** Pushes one changed order to every open stream, as the BFF does when ordering reports a change. */
@@ -93,6 +97,11 @@ export const setIssuer = (state: {
 export async function resetAll(): Promise<void> {
   await post(`${MOCK}/__reset`, {});
   await post(`${ISSUER}/__reset`, {});
+}
+
+/** The vendor actions the mock BFF received, in order. */
+export async function mockActions(): Promise<{ action: string; orderId: string; authorization: string | null }[]> {
+  return ((await (await fetch(`${MOCK}/__state`)).json()) as { actions: never[] }).actions;
 }
 
 export async function mockRequests(): Promise<{ requests: number; authorizations: (string | null)[] }> {

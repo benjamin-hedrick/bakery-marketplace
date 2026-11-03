@@ -179,13 +179,16 @@ test('a login that is not a vendor sees a plain message, not an empty queue', as
   await expect(page.getByTestId('queue-forbidden')).toContainText("not a vendor's");
 });
 
-test('the screen is display only: it offers no way to change an order', async ({ page }) => {
+test('the only controls that change an order are the buttons on its card (WI-QUE-004 replaced "display only")', async ({
+  page,
+}) => {
   await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
   await logInAsVendor(page);
   await expect(page.getByTestId('queue-order')).toHaveCount(1);
 
-  const buttons = await page.getByRole('button').allTextContents();
-  expect(buttons).toEqual(['Log out']);
+  expect(await page.getByRole('button').allTextContents()).toEqual(['Log out', 'Accept', 'Decline']);
+  expect(await page.getByTestId('queue-order').getByRole('button').count()).toBe(2); // nothing else on a card; no link or form changes an order
+  expect(await page.locator('main form, main a').count()).toBe(0);
 });
 
 test('the queue has no accessibility violations that axe can find', async ({ page }) => {

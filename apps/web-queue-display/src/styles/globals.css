@@ -211,3 +211,31 @@ section[role='alert'] {
   background: var(--warn-bg);
   color: var(--warn-text);
 }
+
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.order-actions button {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  font-weight: 600;
+}
+
+.order-actions button.primary {
+  background: var(--accent);
+  color: var(--accent-text, #fff);
+}
+
+.order-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.action-problem {
+  flex-basis: 100%;
+  margin: 0;
+}

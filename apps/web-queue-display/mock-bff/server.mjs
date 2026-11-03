@@ -17,6 +17,9 @@ const initial = () => ({
   streamRequests: 0,
   streamAuthorizations: [],
   heartbeatMs: 12000, // 0 = never (a silent stream)
+  actionMode: 'ok', // ok | conflict | notfound | forbidden | error | slow
+  actionDelayMs: 0, // answer the mutation after this long (an action "in flight")
+  actions: [], // each vendorOrderAction received: { action, orderId, authorization }
 });
 const state = initial();
 const streams = new Set(); // { res, timer }
@@ -75,13 +78,44 @@ function openStream(req, res) {
   });
 }
 
+// What ordering does with an action, as far as the screen can tell: the order moves to its next status (sequence + 1) and the change is pushed
+// to the open streams; a completed or declined order leaves the list (the queue lists orders in progress). Which action is allowed from which
+// status is ordering's rule; the mock keeps only enough of it to move an order along.
+const NEXT = {
+  CONFIRM: ['PLACED', 'CONFIRMED'],
+  DECLINE: ['PLACED', 'CANCELLED'],
+  START_PREPARATION: ['CONFIRMED', 'IN_PREPARATION'],
+  MARK_READY: ['IN_PREPARATION', 'READY_FOR_FULFILLMENT'],
+  COMPLETE: ['READY_FOR_FULFILLMENT', 'COMPLETED'],
+};
+
+async function vendorOrderAction(res, req, query, variables) {
+  const { orderId, action } = variables.input ?? {};
+  state.actions.push({ action, orderId, authorization: req.headers.authorization ?? null });
+  if (state.actionDelayMs > 0) await new Promise((r) => setTimeout(r, state.actionDelayMs));
+  if (state.actionMode === 'forbidden') return send(res, 200, error('FORBIDDEN', 'Not allowed.'));
+  if (state.actionMode === 'error') return send(res, 500, { error: 'boom' });
+  const found = state.orders.find((o) => o.id === orderId);
+  const rejected = (code) =>
+    send(res, 200, { data: { vendorOrderAction: { __typename: 'VendorOrderActionRejected', code } } });
+  if (state.actionMode === 'notfound' || !found) return rejected('NOT_FOUND');
+  const [from, to] = NEXT[action] ?? [];
+  if (state.actionMode === 'conflict' || found.status !== from) return rejected('NOT_ALLOWED_NOW');
+  found.status = to;
+  found.sequence = (found.sequence ?? 1) + 1;
+  found.updatedAt = new Date().toISOString();
+  for (const s of streams) s.res.write(sse('next', { data: { vendorOrderChanged: found } }));
+  if (to === 'COMPLETED' || to === 'CANCELLED') state.orders = state.orders.filter((o) => o.id !== orderId);
+  return send(res, 200, { data: { vendorOrderAction: { __typename: 'VendorOrderActionDone', orderId, status: to } } });
+}
+
 http
   .createServer(async (req, res) => {
     if (req.url === '/healthz') return send(res, 200, { ok: true });
 
     if (req.url === '/__state' && req.method === 'POST') {
       const next = JSON.parse(await readBody(req));
-      for (const key of ['orders', 'mode', 'streamMode', 'heartbeatMs'])
+      for (const key of ['orders', 'mode', 'streamMode', 'heartbeatMs', 'actionMode', 'actionDelayMs'])
         if (next[key] !== undefined) state[key] = next[key];
       return send(res, 200, { ok: true });
     }
@@ -93,6 +127,7 @@ http
         streamRequests: state.streamRequests,
         streamAuthorizations: state.streamAuthorizations,
         openStreams: streams.size,
+        actions: state.actions,
       });
     }
     if (req.url === '/__reset' && req.method === 'POST') {
@@ -116,7 +151,7 @@ http
     }
 
     if (req.url === '/graphql' && req.method === 'POST') {
-      const { query = '' } = JSON.parse((await readBody(req)) || '{}');
+      const { query = '', variables = {} } = JSON.parse((await readBody(req)) || '{}');
       if (req.headers.accept === 'text/event-stream' && query.includes('vendorOrderChanged'))
         return openStream(req, res);
       state.requests += 1;
@@ -126,6 +161,7 @@ http
       }
       if (state.mode === 'forbidden') return send(res, 200, error('FORBIDDEN', 'Not allowed.'));
       if (state.mode === 'error') return send(res, 500, { error: 'boom' });
+      if (query.includes('vendorOrderAction')) return vendorOrderAction(res, req, query, variables);
       if (query.includes('vendorOrders')) {
         return send(res, 200, {
           data: {
