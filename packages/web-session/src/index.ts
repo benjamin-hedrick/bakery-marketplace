@@ -34,3 +34,10 @@ export { createMemoryStore, createRedisStore, newMemoryBacking } from './store.t
 export type { SessionStore } from './store.ts';
 export { safeReturnTo } from './return-to.ts';
 export type { PendingLogin, SessionRecord, SessionView } from './types.ts';
+export {
+  clientAddress,
+  createTokenBucketLimiter,
+  createWebRateLimits,
+  rateLimitSettingsFromEnv,
+} from './rate-limit.ts';
+export type { RateDecision, RateLimiter, RateLimitSettings, WebRateLimits } from './rate-limit.ts';

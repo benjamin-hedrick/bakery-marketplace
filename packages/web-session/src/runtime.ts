@@ -1,5 +1,6 @@
 import { defaultStorePrefix, MEMORY_STORE, sessionConfigFromEnv, type SessionConfig } from './config.ts';
 import { createSealer } from './crypto.ts';
+import { createWebRateLimits, rateLimitSettingsFromEnv } from './rate-limit.ts';
 import { createAuthHandlers, createGraphqlHandler, createGraphqlStreamHandler } from './handlers.ts';
 import { createSessionService, type SessionService } from './service.ts';
 import { createMemoryStore, createRedisStore, type SessionStore } from './store.ts';
@@ -30,8 +31,14 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
   if (existing) return existing;
 
   const parsed = sessionConfigFromEnv(env);
+  const limitSettings = rateLimitSettingsFromEnv(env);
   let result: SessionRuntimeResult;
-  if (!parsed.ok) {
+  if (!limitSettings.ok) {
+    console.error(
+      JSON.stringify({ level: 'error', msg: 'the rate limit settings are not usable', reason: limitSettings.reason }),
+    );
+    result = { ok: false, reason: limitSettings.reason };
+  } else if (!parsed.ok) {
     console.error(
       JSON.stringify({ level: 'error', msg: 'the session settings are not usable', reason: parsed.reason }),
     );
@@ -47,19 +54,21 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
         ? createMemoryStore(sealer)
         : createRedisStore(sealer, config.redisUrl, env['SESSION_REDIS_PREFIX'] || defaultStorePrefix(config.clientId));
     const service = createSessionService({ config, store, log });
+    const limits = createWebRateLimits(limitSettings.settings);
     result = {
       ok: true,
       runtime: {
         config,
         service,
         store,
-        auth: createAuthHandlers({ config, service, log }),
+        auth: createAuthHandlers({ config, service, log, limits }),
         graphql: createGraphqlHandler({
           config,
           service,
           target: () => process.env['GRAPHQL_URL'],
           extraHeaders: () => process.env['GRAPHQL_EXTRA_FORWARDED_HEADERS'],
           log,
+          limits,
         }),
         graphqlStream: createGraphqlStreamHandler({
           config,
@@ -67,6 +76,7 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
           target: () => process.env['GRAPHQL_URL'],
           extraHeaders: () => process.env['GRAPHQL_EXTRA_FORWARDED_HEADERS'],
           log,
+          limits,
         }),
       },
     };
