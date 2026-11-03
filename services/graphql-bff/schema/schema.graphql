@@ -187,6 +187,12 @@ type Subscription {
 }
 
 type Mutation {
+  """
+  A vendor's action on one of their own orders (WI-QUE-004). Needs a vendor's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another
+  role). Ordering-service decides whether the order is the caller's and whether its status allows the action; expected refusals come back as
+  VendorOrderActionRejected, not as errors. The result is the order's new status: the queue learns of the change from the stream or the list.
+  """
+  vendorOrderAction(input: VendorOrderActionInput!): VendorOrderActionPayload!
   "Places a test order for the caller. Needs a bearer token. Expected failures come back as PlaceOrderRejected, not as errors."
   placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
 }
@@ -249,4 +255,43 @@ type StockShortfall {
   "A Listing global id."
   listingId: ID!
   available: Int!
+}
+
+input VendorOrderActionInput {
+  "A VendorOrder global id."
+  orderId: ID!
+  action: VendorOrderAction!
+}
+
+"What a vendor can do to an order. Which of them is allowed from which status is ordering-service's rule, not a rule here."
+enum VendorOrderAction {
+  CONFIRM
+  DECLINE
+  START_PREPARATION
+  MARK_READY
+  COMPLETE
+}
+
+union VendorOrderActionPayload = VendorOrderActionDone | VendorOrderActionRejected
+
+type VendorOrderActionDone {
+  "The VendorOrder global id the action was sent for."
+  orderId: ID!
+  "The order's status after the action."
+  status: OrderStatus!
+}
+
+"An expected refusal. The message is fixed client-safe text."
+type VendorOrderActionRejected {
+  code: VendorOrderActionRejectionCode!
+  message: String!
+  "For NOT_ALLOWED_NOW: where the order is now, when ordering said."
+  currentStatus: OrderStatus
+}
+
+enum VendorOrderActionRejectionCode {
+  "No such order for this vendor (a missing and another vendor's order look the same)."
+  NOT_FOUND
+  "The order's status does not allow this action now."
+  NOT_ALLOWED_NOW
 }

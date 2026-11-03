@@ -1,7 +1,7 @@
 import type { CatalogClient, CatalogListing } from './catalog-client.ts';
 import { DownstreamError, forbidden, unauthenticated } from './errors.ts';
 import { fromGlobalId, serviceIdFor, toGlobalId } from './global-id.ts';
-import type { OrderingClient, OrderingOrder, OrderingVendorOrder } from './ordering-client.ts';
+import type { OrderActionName, OrderingClient, OrderingOrder, OrderingVendorOrder } from './ordering-client.ts';
 import type { TraceContext } from './trace.ts';
 
 export interface Context {
@@ -247,8 +247,55 @@ async function placeOrder(args: { input: PlaceOrderInput }, ctx: Context) {
   return rejected(mapped.code, mapped.message, fieldProblems(result.error.errors), shortfalls);
 }
 
+const VENDOR_ACTIONS: Record<string, OrderActionName> = {
+  CONFIRM: 'confirm',
+  DECLINE: 'decline',
+  START_PREPARATION: 'start-preparation',
+  MARK_READY: 'ready',
+  COMPLETE: 'complete',
+};
+
+const actionRejected = (
+  code: 'NOT_FOUND' | 'NOT_ALLOWED_NOW',
+  message: string,
+  currentStatus: string | null = null,
+) => ({
+  __typename: 'VendorOrderActionRejected',
+  code,
+  message,
+  currentStatus,
+});
+
+/**
+ * A vendor's action on one of their orders (WI-QUE-004). Mapping only: the enum becomes ordering's path, the caller's token goes through, and
+ * ordering decides the role, the ownership and whether the order's status allows the action (ADR-0006, ADR-0013). Its text never reaches the client.
+ */
+async function vendorOrderAction(args: { input: { orderId: string; action: string } }, ctx: Context) {
+  if (!ctx.authorization) throw unauthenticated();
+  const action = VENDOR_ACTIONS[args.input.action];
+  if (action === undefined) throw new DownstreamError('unknown vendor action'); // the schema's enum makes this unreachable
+  const serviceId = serviceIdFor('VendorOrder', args.input.orderId);
+  if (serviceId === null) return actionRejected('NOT_FOUND', 'That order could not be found.');
+
+  const result = await vendorCall(ctx, (authorization) =>
+    ctx.ordering.orderAction(serviceId, action, authorization, ctx.trace),
+  );
+  if (result.kind === 'done') {
+    return {
+      __typename: 'VendorOrderActionDone',
+      orderId: args.input.orderId,
+      status: enumValue('order status', ORDER_STATUS, result.order.status),
+    };
+  }
+  if (result.kind === 'not_found') return actionRejected('NOT_FOUND', 'That order could not be found.');
+  const current =
+    result.currentStatus === null ? null : ORDER_STATUS[result.currentStatus as keyof typeof ORDER_STATUS];
+  return actionRejected('NOT_ALLOWED_NOW', 'That cannot be done to this order now. It has changed.', current ?? null);
+}
+
 export const rootValue = {
   placeOrder,
+  vendorOrderAction,
   async listings(args: { first?: number; after?: string | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
     const page = await ctx.catalog.list({ limit: first, after: args.after ?? undefined }, ctx.trace);
