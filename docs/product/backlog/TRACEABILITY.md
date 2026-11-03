@@ -65,8 +65,8 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | In progress | *none* | `latency-2026-10-30.md`, `quality-report-2026-10-30.md` |
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | Done | `vendor-orders.test.ts`, `VendorOrderReadModelTests.cs` | *none* |
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | Done | `queue.spec.ts` | `ai-usage-2026-11-01.md` |
-| [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | Done | `vendor-live.spec.ts`, `live.spec.ts`, `graphql-stream.test.ts` and 6 more | `README.md`, `graphql-sse-review-2026-11-02.md`, `real-stack-2026-11-02.md` and 2 more |
-| [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | In review | `vendor-actions.spec.ts`, `actions.spec.ts`, `queue.spec.ts` and 1 more | *none* |
+| [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | Done | `vendor-live.spec.ts`, `live.spec.ts`, `graphql-stream.test.ts` and 6 more | `README.md`, `graphql-sse-review-2026-11-02.md`, `real-stack-2026-11-02.md` and 3 more |
+| [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | In review | `vendor-actions.spec.ts`, `actions.spec.ts`, `queue.spec.ts` and 1 more | `real-stack-2026-11-02.md` |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | Built | *none* | `baseline-2026-10-30.md` |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | Done | *none* | *none* |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | Done | `DomainEventPayloadsTests.cs` | *none* |
