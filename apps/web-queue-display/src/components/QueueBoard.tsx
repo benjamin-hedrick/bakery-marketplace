@@ -5,10 +5,11 @@ import type { QueueBoardQuery, QueueBoardQuery$data } from '../__generated__/Que
 import { GraphQLRequestError, getBrowserEnvironment, UnauthenticatedError } from '../lib/relay/environment';
 import { LiveFeed, type Mode } from '../lib/live-feed';
 import { openVendorOrderStream, type OrderChange } from '../lib/live-stream';
+import { OrderActions } from './OrderActions';
 import { applyChange, groupOrders, newOrderIds, type QueueOrder } from '../lib/queue';
 
-// The vendor's orders that are still in progress, newest change first. Display only: nothing on this screen changes an order. The list is the
-// baseline (WI-QUE-002); live changes arrive on a stream and are applied on top by their sequence numbers (WI-QUE-003, ADR-0021).
+// The vendor's orders that are still in progress, newest change first. The vendor acts on an order with the buttons on its card (WI-QUE-004);
+// the board itself only shows what the service says. The list is the baseline (WI-QUE-002); live changes arrive on a stream and are applied on top by their sequence numbers (WI-QUE-003, ADR-0021).
 const queueQuery = graphql`
   query QueueBoardQuery {
     vendorOrders(status: ACTIVE, first: 50) {
@@ -244,6 +245,13 @@ export function QueueBoard() {
                     ))}
                   </ul>
                   {o.pickupInstructions ? <p className="instructions">{o.pickupInstructions}</p> : null}
+                  <OrderActions
+                    orderId={o.id}
+                    reference={o.reference}
+                    status={o.status}
+                    onSettled={() => void refresh()}
+                    onAnnounce={setAnnouncement}
+                  />
                 </li>
               ))}
             </ul>
