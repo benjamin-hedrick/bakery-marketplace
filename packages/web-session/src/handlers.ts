@@ -10,6 +10,7 @@ import {
   type ProxyResponse,
   type StreamResponse,
 } from './graphql-proxy.ts';
+import { clientAddress, RATE_LIMITED_MESSAGE, type WebRateLimits } from './rate-limit.ts';
 import { LoginError, type SessionService } from './service.ts';
 
 // Request handlers for the web app's API routes (Next.js Pages Router shape, written against the few members they use so the package does not
@@ -17,6 +18,8 @@ import { LoginError, type SessionService } from './service.ts';
 
 export interface ApiRequest extends ProxyRequest {
   url?: string | undefined;
+  /** The connection, for the caller's address (rate limits). */
+  socket?: { remoteAddress?: string | undefined } | null | undefined;
   headers: IncomingHttpHeaders;
   query?: Record<string, string | string[] | undefined>;
 }
@@ -40,6 +43,17 @@ function methodNotAllowed(res: ApiResponse, allow: string): void {
   res.json({ error: 'Method not allowed' });
 }
 
+/** The caller's address for the rate limits (the connection's own, or behind a configured number of proxies the entry they added). */
+const addressOf = (req: ApiRequest, limits: WebRateLimits) => clientAddress(req, limits.trustedProxyHops);
+
+/** Refuses a request that is over a limit: 429 with how long to wait, and nothing behind the route is touched. */
+function refuseRateLimited(res: ApiResponse, retryAfterSeconds: number): void {
+  res.setHeader('Retry-After', String(retryAfterSeconds));
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(429);
+  res.json({ error: RATE_LIMITED_MESSAGE });
+}
+
 /** A response header the GraphQL proxy sets when it has just ended the caller's session, so the page can show the login again. */
 export const SESSION_ENDED_HEADER = 'x-session-ended';
 
@@ -50,13 +64,22 @@ export interface AuthHandlerDeps {
   config: SessionConfig;
   service: SessionService;
   log?: (event: string) => void;
+  /** Rate limits; none when absent. */
+  limits?: WebRateLimits | undefined;
 }
 
-export function createAuthHandlers({ config, service, log = () => {} }: AuthHandlerDeps) {
+export function createAuthHandlers({ config, service, log = () => {}, limits }: AuthHandlerDeps) {
   return {
     /** GET /api/auth/login?returnTo=/path: sends the browser to the issuer. */
     async login(req: ApiRequest, res: ApiResponse): Promise<void> {
       if (req.method !== 'GET') return methodNotAllowed(res, 'GET');
+      const wait = limits?.login.take(addressOf(req, limits));
+      if (wait && !wait.allowed) {
+        log('login refused: rate limit');
+        res.setHeader('Retry-After', String(wait.retryAfterSeconds));
+        res.setHeader('Cache-Control', 'no-store');
+        return redirect(res, `${LOGIN_ERROR_PATH}?code=rate_limited`);
+      }
       const start = await service.startLogin(first(req.query?.returnTo));
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Set-Cookie', start.setCookies);
@@ -68,6 +91,12 @@ export function createAuthHandlers({ config, service, log = () => {} }: AuthHand
       if (req.method !== 'GET') return methodNotAllowed(res, 'GET');
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Referrer-Policy', 'no-referrer');
+      const wait = limits?.loginCallback.take(addressOf(req, limits));
+      if (wait && !wait.allowed) {
+        log('login callback refused: rate limit');
+        res.setHeader('Retry-After', String(wait.retryAfterSeconds));
+        return redirect(res, `${LOGIN_ERROR_PATH}?code=rate_limited`);
+      }
       const query = new URL(req.url ?? '/', 'http://localhost').searchParams;
       try {
         const done = await service.finishLogin(query, req.headers.cookie);
@@ -83,6 +112,11 @@ export function createAuthHandlers({ config, service, log = () => {} }: AuthHand
     /** POST /api/auth/logout: ends the session on the server and clears the cookie. */
     async logout(req: ApiRequest, res: ApiResponse): Promise<void> {
       if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
+      const wait = limits?.address.take(addressOf(req, limits));
+      if (wait && !wait.allowed) {
+        log('logout refused: rate limit');
+        return refuseRateLimited(res, wait.retryAfterSeconds);
+      }
       const check = checkStateChangingRequest(req.method, req.headers, config.appOrigin);
       if (!check.ok) {
         log(`logout refused: ${check.reason}`);
@@ -100,6 +134,11 @@ export function createAuthHandlers({ config, service, log = () => {} }: AuthHand
     async me(req: ApiRequest, res: ApiResponse): Promise<void> {
       if (req.method !== 'GET') return methodNotAllowed(res, 'GET');
       res.setHeader('Cache-Control', 'no-store');
+      const wait = limits?.address.take(addressOf(req, limits));
+      if (wait && !wait.allowed) {
+        log('me refused: rate limit');
+        return refuseRateLimited(res, wait.retryAfterSeconds);
+      }
       const resolved = await service.resolve(req.headers.cookie);
       res.status(200);
       res.json(resolved ? { authenticated: true, user: service.view(resolved.record) } : { authenticated: false });
@@ -116,6 +155,8 @@ export interface GraphqlHandlerDeps {
   extraHeaders?: () => string | undefined;
   fetchImpl?: typeof fetch;
   log?: (event: string) => void;
+  /** Rate limits; none when absent. */
+  limits?: WebRateLimits | undefined;
 }
 
 /**
@@ -129,8 +170,16 @@ export function createGraphqlHandler({
   extraHeaders,
   fetchImpl,
   log = () => {},
+  limits,
 }: GraphqlHandlerDeps) {
   return async function graphql(req: ApiRequest, res: ApiResponse): Promise<void> {
+    // The address ceiling comes first, before the session store is asked about a cookie, so a flood of junk cookies cannot reach it without limit.
+    const address = limits ? addressOf(req, limits) : '';
+    const wait = limits?.address.take(address);
+    if (wait && !wait.allowed) {
+      log('graphql request refused: rate limit (address)');
+      return refuseRateLimited(res, wait.retryAfterSeconds);
+    }
     const check = checkStateChangingRequest(req.method, req.headers, config.appOrigin);
     if (!check.ok) {
       log(`graphql request refused: ${check.reason}`);
@@ -141,6 +190,12 @@ export function createGraphqlHandler({
 
     let bearer: string | undefined;
     const resolved = await service.resolve(req.headers.cookie);
+    // Per login when there is one, per address when there is not (a public page).
+    const own = limits?.graphql.take(resolved ? `s:${resolved.id}` : `a:${address}`);
+    if (own && !own.allowed) {
+      log('graphql request refused: rate limit');
+      return refuseRateLimited(res, own.retryAfterSeconds);
+    }
     if (resolved) {
       const result = await service.bearerFor(resolved);
       if (result.kind === 'token') bearer = result.token;
@@ -189,12 +244,18 @@ export function createGraphqlStreamHandler({
   maxOpen = 500,
   maxPerSession = 5,
   maxFailedChecks = 3,
+  limits,
 }: GraphqlStreamHandlerDeps) {
   let open = 0;
   const perSession = new Map<string, number>();
   return async function graphqlStream(req: ApiRequest, res: ApiResponse & StreamResponse): Promise<void> {
     res.setHeader('Cache-Control', 'no-store');
     if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
+    const wait = limits?.address.take(addressOf(req, limits));
+    if (wait && !wait.allowed) {
+      log('graphql stream refused: rate limit (address)');
+      return refuseRateLimited(res, wait.retryAfterSeconds);
+    }
     const check = checkStateChangingRequest(req.method, req.headers, config.appOrigin);
     if (!check.ok) {
       log(`graphql stream refused: ${check.reason}`);
@@ -213,6 +274,12 @@ export function createGraphqlStreamHandler({
       res.status(401);
       res.json({ error: 'Please log in to continue.' });
       return;
+    }
+    // How fast one login may open streams (how many it may hold at once is limited below). Before the token is renewed, which costs a call to the issuer.
+    const opens = limits?.stream.take(`s:${resolved.id}`);
+    if (opens && !opens.allowed) {
+      log('graphql stream refused: rate limit (opens)');
+      return refuseRateLimited(res, opens.retryAfterSeconds);
     }
     const bearer = await service.bearerFor(resolved);
     if (bearer.kind === 'ended') {
