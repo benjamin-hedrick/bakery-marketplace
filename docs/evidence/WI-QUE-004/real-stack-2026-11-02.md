@@ -24,7 +24,7 @@ The 27 are the 25 earlier journeys and these two.
 
 ## What the first run found
 
-The first run (on the working tree on top of `f9fb55b`) **failed** the first journey: after **Accept**, the card went to Preparing and then back to New with its buttons enabled, and stayed there. The cause: the first version of the action asked the board for the list after a success; the list was read from ordering's vendor read model before it had caught up (still Placed) and replaced the newer card that the stream had already pushed. Nothing pushed again, so it stayed. The mock-backed tests could not show this, because the mock's list and stream are always in step. The fix in this item: a success no longer fetches the list. The cause in the board (a fetched list replaces what the screen holds whatever its sequence) is register item 133 and is not fixed here; changing it changes `WI-QUE-003`'s logic and needs the lead's decision.
+The first run (on the working tree on top of `f9fb55b`) **failed** the first journey: after **Accept**, the card went to Preparing and then back to New with its buttons enabled, and stayed there. The cause: the first version of the action asked the board for the list after a success; the list was read from ordering's vendor read model before it had caught up (still Placed) and replaced the newer card that the stream had already pushed. Nothing pushed again, so it stayed. The mock-backed tests could not show this, because the mock's list and stream are always in step. The fix in this item: a success no longer fetches the list. The cause in the board (a fetched list replaced what the screen holds whatever its sequence) is register item 133. The lead approved the fix afterwards (a merge of the fetched list by sequence); the real-stack run below was made before that fix and is repeated in the section "After the fix to item 133".
 
 ## Other tests, after the change
 
@@ -46,3 +46,7 @@ Tests shown to fail with the behavior removed: in the BFF, the 403 to FORBIDDEN 
 - Containers mode (`skeleton-smoke.mjs --containers`) was not run; the queue display image is unchanged except for its code.
 - A vendor cancel after confirmation, the customer's pickup confirmation, and the read-model race above (item 133).
 - An independent review: the abuse cases were written and tested by the AI agent that built the item; the lead's review is the other check.
+
+## After the fix to item 133
+
+The merge of a fetched list by sequence (`mergeFetched`) was added to the board on the working tree on top of the rebased commits (commit `8fe65bc`). `node scripts/ci/skeleton-smoke.mjs` was run again from the same starting state: `27 passed (38.3s)`, `[skeleton] Playwright exit code 0`, including both vendor-actions journeys and the earlier live-queue journeys that use the board. The queue display's mock-backed browser suite: 45 passed; unit: 32 passed. The new browser test, in which the list lags the stream, fails with the merge taken out and passes with it. The real stack's own read-model lag was not reproduced a second time (it depends on timing); the guarantee rests on the unit tests of the merge and the browser test that forces the lag.

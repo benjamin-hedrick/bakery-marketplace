@@ -67,6 +67,8 @@ export const setMock = (state: {
   actionMode?: 'ok' | 'conflict' | 'notfound' | 'forbidden' | 'error';
   /** The mock answers an action after this many milliseconds (an action in flight). */
   actionDelayMs?: number;
+  /** Makes the list answer with these orders instead of the live ones (a read that is behind the stream); null puts it back. */
+  listSnapshot?: ReturnType<typeof order>[] | null;
 }) => post(`${MOCK}/__state`, state);
 
 /** Pushes one changed order to every open stream, as the BFF does when ordering reports a change. */

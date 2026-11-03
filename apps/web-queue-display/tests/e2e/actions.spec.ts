@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { APP, logInAsVendor, mockActions, order, resetAll, setMock } from './helpers';
+import { APP, dropStreams, logInAsVendor, mockActions, mockRequests, order, resetAll, setMock } from './helpers';
 
 // WI-QUE-004: the vendor's actions on an order card. The login is real (the fake issuer); the BFF is the mock, which moves an order along the way
 // ordering does and rejects as ordering does. Whether an action is allowed, and for whom, is ordering's decision (tested in the BFF and ordering
@@ -207,4 +207,25 @@ test('with live updates unavailable the card still moves, at the next poll', asy
 
   await expect(page.getByRole('button', { name: 'Accept order AAA111' })).toBeDisabled(); // off until the order shows its new status
   await expect.poll(() => inColumn(page, 'preparing'), { timeout: 20_000 }).toEqual(['AAA111']);
+});
+
+test('a list read that is behind the stream does not undo a change the stream already delivered (register item 133)', async ({
+  page,
+}) => {
+  const placed = order({ id: 'o1', reference: 'AAA111', status: 'PLACED', sequence: 2 });
+  await setMock({ orders: [placed], streamMode: 'ok' });
+  await logInAsVendor(page);
+  await page.getByRole('button', { name: 'Accept order AAA111' }).click();
+  await expect.poll(() => inColumn(page, 'preparing')).toEqual(['AAA111']);
+
+  // From now on the list is read from a read model that has not caught up: it still says Placed, sequence 2. Cutting the stream makes the
+  // screen catch up by asking for the list.
+  const before = (await mockRequests()).requests;
+  await setMock({ listSnapshot: [placed] });
+  await dropStreams();
+  await expect.poll(async () => (await mockRequests()).requests, { timeout: 15_000 }).toBeGreaterThan(before);
+
+  await expect(page.getByTestId('queue-order')).toHaveCount(1);
+  expect(await inColumn(page, 'preparing')).toEqual(['AAA111']);
+  expect(await inColumn(page, 'new')).toEqual([]);
 });

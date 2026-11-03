@@ -74,3 +74,34 @@ export function applyChange<T extends QueueOrder>(orders: readonly T[], change: 
   if (!held) return [change, ...orders];
   return orders.map((o) => (o.id === change.id ? change : o));
 }
+
+/**
+ * A fetched list put on top of what the screen already holds (register item 133). A list read can start before a pushed change and end after
+ * it, and ordering's read model may be behind the stream, so the fetched list is not simply the truth:
+ * - an order in both: the one with the higher sequence stays (a fetched order with no sequence, or a held one with none, takes the fetched);
+ * - an order only in the fetched list: added, unless a push about it arrived while the fetch was running (the screen already decided about it,
+ *   for example removed it because it completed);
+ * - an order only on the screen: kept if a push about it arrived while the fetch was running, otherwise dropped (the list is the authority on
+ *   which orders are in progress).
+ * `pushedDuringFetch(id)` says whether a push about that order arrived after the fetch began.
+ */
+export function mergeFetched<T extends QueueOrder>(
+  held: readonly T[],
+  fetched: readonly T[],
+  pushedDuringFetch: (id: string) => boolean,
+): T[] {
+  const heldById = new Map(held.map((o) => [o.id, o] as const));
+  const merged: T[] = [];
+  for (const f of fetched) {
+    const h = heldById.get(f.id);
+    if (h) {
+      const heldIsNewer = h.sequence !== undefined && f.sequence !== undefined && h.sequence > f.sequence;
+      merged.push(heldIsNewer ? h : f);
+    } else if (!pushedDuringFetch(f.id)) {
+      merged.push(f);
+    }
+  }
+  const fetchedIds = new Set(fetched.map((o) => o.id));
+  for (const h of held) if (!fetchedIds.has(h.id) && pushedDuringFetch(h.id)) merged.push(h);
+  return merged;
+}

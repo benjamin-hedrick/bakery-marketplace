@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { groupOrders, newOrderIds, type QueueOrder } from '../../src/lib/queue.ts';
+import { groupOrders, mergeFetched, newOrderIds, type QueueOrder } from '../../src/lib/queue.ts';
 
 const order = (id: string, status: string, placedAt: string | null = '2026-11-02T13:00:00+00:00'): QueueOrder => ({
   id,
@@ -99,5 +99,45 @@ describe('newOrderIds', () => {
   test('is empty when nothing arrived, and an order that left and came back counts as new again', () => {
     assert.deepEqual(newOrderIds(new Set(['a']), ['a']), []);
     assert.deepEqual(newOrderIds(new Set(), ['a']), ['a']);
+  });
+});
+
+describe('mergeFetched (register item 133)', () => {
+  const o = (id: string, status: string, sequence?: number): QueueOrder => ({ ...order(id, status), sequence });
+  const never = () => false;
+  const ids = (list: QueueOrder[]) => list.map((x) => `${x.id}:${x.status}:${x.sequence}`).sort();
+
+  test('a fetched list that is older than a pushed change does not undo it', () => {
+    const merged = mergeFetched([o('a', 'CONFIRMED', 3)], [o('a', 'PLACED', 2)], never);
+    assert.deepEqual(ids(merged), ['a:CONFIRMED:3']);
+  });
+
+  test('a fetched order that is newer than the one on the screen replaces it', () => {
+    assert.deepEqual(ids(mergeFetched([o('a', 'PLACED', 2)], [o('a', 'CONFIRMED', 3)], never)), ['a:CONFIRMED:3']);
+  });
+
+  test('the same sequence takes the fetched order, and a missing sequence on either side takes the fetched order', () => {
+    assert.deepEqual(ids(mergeFetched([o('a', 'PLACED', 2)], [o('a', 'PLACED', 2)], never)), ['a:PLACED:2']);
+    assert.deepEqual(ids(mergeFetched([o('a', 'PLACED')], [o('a', 'CONFIRMED', 3)], never)), ['a:CONFIRMED:3']);
+    assert.deepEqual(ids(mergeFetched([o('a', 'CONFIRMED', 3)], [o('a', 'PLACED')], never)), ['a:PLACED:undefined']);
+  });
+
+  test('an order only in the fetched list is added, unless a push about it arrived during the fetch', () => {
+    assert.deepEqual(ids(mergeFetched([], [o('b', 'PLACED', 1)], never)), ['b:PLACED:1']);
+    // pushed as completed during the fetch, so the screen no longer holds it: the older list must not bring it back
+    assert.deepEqual(ids(mergeFetched([], [o('b', 'READY_FOR_FULFILLMENT', 4)], (id) => id === 'b')), []);
+  });
+
+  test('an order only on the screen is dropped (the list is the authority), unless a push about it arrived during the fetch', () => {
+    assert.deepEqual(ids(mergeFetched([o('c', 'PLACED', 1)], [], never)), []);
+    assert.deepEqual(ids(mergeFetched([o('c', 'PLACED', 1)], [], (id) => id === 'c')), ['c:PLACED:1']);
+  });
+
+  test('does not change the lists it was given', () => {
+    const held = [o('a', 'CONFIRMED', 3)];
+    const fetched = [o('a', 'PLACED', 2), o('b', 'PLACED', 1)];
+    mergeFetched(held, fetched, never);
+    assert.deepEqual(ids(held), ['a:CONFIRMED:3']);
+    assert.deepEqual(ids(fetched), ['a:PLACED:2', 'b:PLACED:1']);
   });
 });
