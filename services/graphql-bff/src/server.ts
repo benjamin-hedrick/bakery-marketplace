@@ -222,20 +222,32 @@ export function createServer(
         operationName?: string;
       };
       if (typeof body.query !== 'string') throw new Error('query missing');
+      // `variables` must be an object and `operationName` a string when present: graphql-js throws on anything else, and a throw here would
+      // have ended the whole process (register item 136).
+      if (body.variables !== undefined && body.variables !== null && !isPlainObject(body.variables))
+        throw new Error('variables must be an object');
+      if (body.operationName !== undefined && body.operationName !== null && typeof body.operationName !== 'string')
+        throw new Error('operationName must be a string');
       source = body.query;
-      variables = body.variables;
-      operationName = body.operationName;
+      variables = body.variables ?? undefined;
+      operationName = body.operationName ?? undefined;
     } catch {
       return send(400, { errors: [{ message: 'Invalid request body', extensions: { code: 'BAD_REQUEST' } }] });
     }
 
-    const result = await run(
-      source,
-      variables,
-      operationName,
-      contextOf(req, config, { catalog, ordering }, trace),
-      log,
-    );
+    let result: ExecutionResult;
+    try {
+      result = await run(source, variables, operationName, contextOf(req, config, { catalog, ordering }, trace), log);
+    } catch (e) {
+      // Anything the execution throws that is not an error of the operation itself must not escape the request handler: an unhandled
+      // rejection ends the process. The caller gets the generic error and the trace id to quote.
+      log.error({
+        msg: 'graphql request failed unexpectedly',
+        traceId: trace.traceId,
+        error: e instanceof Error ? e.name : 'error',
+      });
+      return send(500, { errors: [internalError(trace.traceId)] });
+    }
     log.info({
       msg: 'graphql request',
       traceId: trace.traceId,
@@ -256,6 +268,9 @@ export function createServer(
     });
   });
 }
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
 
 async function run(
   source: string,
@@ -358,7 +373,9 @@ function safeResult(result: ExecutionResult, ctx: Context, log: Logger): Executi
   // Errors raised by a resolver are logged in full here and replaced by the safe shape; the client never sees the detail.
   const mapped = result.errors.map((err) => {
     const cause = err.originalError;
-    if (!cause || cause instanceof ClientError) return err; // validation errors and the few errors meant for the client
+    // Validation errors, the few errors meant for the client, and variable coercion errors: a coercion error has a cause (the scalar's own error)
+    // but no path, because it did not come from a resolver. Calling it INTERNAL would blame the server for the caller's input.
+    if (!cause || cause instanceof ClientError || err.path === undefined) return err;
     log.error({
       msg: 'resolver failed',
       traceId: ctx.trace.traceId,
