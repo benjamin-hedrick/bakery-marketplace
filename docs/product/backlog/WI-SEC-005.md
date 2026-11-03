@@ -1,4 +1,7 @@
-> **Status:** In progress
+> **Status:** In progress · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do
+
+> **Progress note (2026-11-02, steps 1 and 2):** the threat model is written (two gaps found: register 134 and 135). The fuzz step found a request that ended the BFF process (register 136) in its first run; it is fixed with a test that starts the real process. Generated-input tests now cover the BFF's stream reader, JSON route and event-stream path, the global ids, and the session package's returnTo, cookie, CSRF, header, body, address and limiter functions. BFF 141 tests, session package 172 (13 skipped without Redis).
+
 
 ```
 WI ID:                SEC-005

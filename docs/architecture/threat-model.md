@@ -85,6 +85,7 @@ flowchart LR
 | D3 | A flood of requests, logins or junk cookies | Per-address and per-login rate limits (`WI-RATE-001`); BFF backstop | package, BFF and browser tests | Counts are per process; numbers are starting values; not load tested |
 | D4 | A large or deeply nested GraphQL operation, many aliases, a batch | Body limit 64 KB at the BFF and the web route | tests of the body limit | **Gap, register 135:** no depth, alias or cost limit; introspection is on |
 | D5 | Many screens reconnecting together after a restart | Backoff with randomness in the live feed | unit tests of the feed | Never tried at scale |
+| D7 | One malformed request ending the BFF process | Validation of `variables` and `operationName`; a catch around the execution so nothing escapes the handler | process-level test that starts the BFF and sends the bodies; 1,200 generated requests | **Found and fixed 2026-11-02 (register 136):** a string for `variables` ended the process. It had no control before |
 | D6 | A slow or failing service holding the BFF's requests | Bounded timeouts; a generic error | BFF tests (slow ordering) | none known |
 
 ### Elevation of privilege and the browser as a victim
