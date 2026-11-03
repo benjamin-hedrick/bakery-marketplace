@@ -69,6 +69,32 @@ public class RedisCacheProvider : ICacheProvider
         }
     }
 
+    public async Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(keys);
+        var distinct = keys.Distinct().ToArray();
+        if (distinct.Any(string.IsNullOrEmpty)) throw new ArgumentException("A key cannot be null or empty.", nameof(keys));
+        var found = new Dictionary<string, T>();
+        if (distinct.Length == 0) return found;
+
+        // One MGET. As in GetAsync, connectivity errors propagate so the circuit breaker can see them.
+        RedisValue[] values = await _database.StringGetAsync(distinct.Select(k => (RedisKey)k).ToArray());
+        for (var i = 0; i < distinct.Length; i++)
+        {
+            if (!values[i].HasValue || values[i].IsNull) continue;
+            try
+            {
+                var item = JsonSerializer.Deserialize<T>((string)values[i]!, _jsonOptions);
+                if (item is not null) found[distinct[i]] = item;
+            }
+            catch (JsonException)
+            {
+                // Unreadable shape: a miss, as in GetAsync.
+            }
+        }
+        return found;
+    }
+
     public async Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", nameof(key));

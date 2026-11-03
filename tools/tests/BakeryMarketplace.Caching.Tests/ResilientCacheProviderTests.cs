@@ -88,11 +88,24 @@ public sealed class ResilientCacheProviderTests
         Assert.Equal("recovered", result.Value);
     }
 
+    [Fact]
+    public async Task GetMany_PrimaryFailure_FallsBackToLocal()
+    {
+        var (sut, fallback) = BuildSut(new AlwaysFailingCacheProvider());
+        await fallback.SetAsync("a", "from-fallback");
+
+        var result = await sut.GetManyAsync<string>(new[] { "a", "b" });
+
+        Assert.Equal("from-fallback", Assert.Single(result).Value);
+    }
+
     // ── Test doubles ─────────────────────────────────────────────────────────
 
     private sealed class AlwaysFailingCacheProvider : ICacheProvider
     {
         public Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken ct = default) =>
+            throw new InvalidOperationException("Simulated primary failure.");
+        public Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default) =>
             throw new InvalidOperationException("Simulated primary failure.");
         public Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default) =>
             throw new InvalidOperationException("Simulated primary failure.");
@@ -113,6 +126,13 @@ public sealed class ResilientCacheProviderTests
             return _store.TryGetValue(key, out var v)
                 ? Task.FromResult(CacheResult<T>.Hit((T)v!))
                 : Task.FromResult(CacheResult<T>.Miss());
+        }
+
+        public Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default)
+        {
+            if (ShouldFail) throw new InvalidOperationException("Toggled to fail.");
+            IReadOnlyDictionary<string, T> found = keys.Where(_store.ContainsKey).Distinct().ToDictionary(k => k, k => (T)_store[k]!);
+            return Task.FromResult(found);
         }
 
         public Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)

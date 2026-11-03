@@ -47,6 +47,20 @@ public sealed class ResilientCacheProvider : ICacheProvider
         }
     }
 
+    public async Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _breaker.ExecuteAsync(
+                token => _primary.GetManyAsync<T>(keys, token), ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogFallback(nameof(GetManyAsync), $"{keys.Count} keys", ex);
+            return await _fallback.GetManyAsync<T>(keys, ct);
+        }
+    }
+
     public async Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
     {
         try

@@ -56,6 +56,45 @@ public abstract class CacheProviderContractTests : IDisposable
     }
 
     [Fact]
+    public async Task GetMany_ReturnsOnlyTheKeysThatWereFound()
+    {
+        var id = Guid.NewGuid();
+        await _provider.SetAsync($"test:many:{id}:a", "A");
+        await _provider.SetAsync($"test:many:{id}:c", "C");
+
+        var result = await _provider.GetManyAsync<string>(
+            new[] { $"test:many:{id}:a", $"test:many:{id}:b", $"test:many:{id}:c" });
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("A", result[$"test:many:{id}:a"]);
+        Assert.Equal("C", result[$"test:many:{id}:c"]);
+        Assert.False(result.ContainsKey($"test:many:{id}:b"));
+    }
+
+    [Fact]
+    public async Task GetMany_WithDuplicateKeys_ReadsEachOnce_AndWithNoKeys_ReturnsEmpty()
+    {
+        var key = $"test:many-dup:{Guid.NewGuid()}";
+        await _provider.SetAsync(key, "v");
+
+        var result = await _provider.GetManyAsync<string>(new[] { key, key });
+        var none = await _provider.GetManyAsync<string>(Array.Empty<string>());
+
+        Assert.Single(result);
+        Assert.Empty(none);
+    }
+
+    [Fact]
+    public async Task GetMany_AfterDelete_OmitsTheKey()
+    {
+        var key = $"test:many-del:{Guid.NewGuid()}";
+        await _provider.SetAsync(key, "v");
+        await _provider.DeleteAsync(key);
+
+        Assert.Empty(await _provider.GetManyAsync<string>(new[] { key }));
+    }
+
+    [Fact]
     public async Task DeleteThenGet_ReturnsMiss()
     {
         // Arrange

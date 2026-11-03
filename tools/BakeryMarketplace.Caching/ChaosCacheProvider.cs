@@ -61,6 +61,12 @@ public sealed class ChaosCacheProvider : ICacheProvider
         return await _inner.GetAsync<T>(key, ct);
     }
 
+    public async Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default)
+    {
+        await InjectChaosAsync(ct);
+        return await _inner.GetManyAsync<T>(keys, ct);
+    }
+
     public async Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
     {
         await InjectChaosAsync(ct);
