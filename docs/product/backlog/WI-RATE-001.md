@@ -1,4 +1,7 @@
-> **Status:** In progress
+> **Status:** In review · evidence: the Outcome note under this banner; `docs/evidence/WI-RATE-001/`
+
+> **Outcome note (2026-11-02):** built on `feature/rate-limiting`, not merged. `packages/web-session/src/rate-limit.ts` holds the token bucket (bounded to 10,000 keys, injectable clock), the address rule and the settings; both web apps get the limits through the shared handlers (35 new package tests, 162 in all, 13 Redis tests skipped without Redis). The BFF has its own small copy of the bucket and the backstop (8 new tests, 115 in all). A second copy of the queue display runs with tight limits and one trusted proxy hop for 4 browser tests (36 in all). Tests were shown to fail with the login limiter, the stream limiter, the key bound, the proxy-hop rule, the order of the address check and the BFF refusal taken out; the browser tests were not mutated. The real-stack journeys (`skeleton-smoke.mjs`, 25 passed on this branch) run with the default limits and none was refused. **Changes from the plan:** the browser suites set the web limits out of the way (they log in faster than any person); acceptance 7 is therefore shown by the package test of a vendor screen polling for ten minutes and by the real-stack run, not by the mock-backed suites. **Not done:** a shared limiter, production numbers, per-action limits, a test under load (register item 129), any run on Azure or behind a proxy.
+
 
 ```
 WI ID:                RATE-001
@@ -7,7 +10,7 @@ Type:                 Library (with route wiring)
 Epic:                 EPIC-RATE-LIMITING
 Shared with epic(s):  EPIC-AUTH
 Hat/Owner:            Engineering/Build, Security
-Status:               In progress
+Status:               In review
 Size:                 M
 Verification class:   V3 (a limit on login and request routes; touches the shared session package). Classes are proposed in `docs/process/verification-policy.md`.
 ADRs and NFRs affected: ADR-0008 (API Management cannot limit per user, so this is the service-layer part), ADR-0019 (the session routes), ADR-0021 (stream opens); NFR 3.8 (abuse resistance and per-caller limits).
@@ -33,7 +36,7 @@ ADRs and NFRs affected: ADR-0008 (API Management cannot limit per user, so this 
 4. A refusal on a JSON route is `429` with `Retry-After` (whole seconds, at least 1), `Cache-Control: no-store` and a fixed sentence; nothing is forwarded to the BFF or the store. A refusal on the login routes redirects to the existing error page with the code `rate_limited` and a fixed sentence.
 5. The BFF has one backstop, `BFF_RATE_LIMIT_PER_MINUTE` (default 600) per source address on its `/graphql` route (and the stream), refused with `429` and `Retry-After`.
 6. A setting that is not a whole number from 1 to 100000 stops the web runtime or the BFF from starting, naming the variable (not its value), like the session settings.
-7. Normal use is not refused: a vendor screen that polls every 7 seconds and acts, a customer who browses, and the login flow stay far below the limits, shown by the existing suites running with the default limits on the real stack.
+7. Normal use is not refused: a vendor screen that polls every 7 seconds, a customer who browses and the login flow stay far below the limits. Shown by a package test of a screen polling for ten minutes with the default limits, and by the real-stack journeys running with the defaults. The mock-backed browser suites log in faster than any person and have the web limits set out of the way.
 8. Each limit has a test that a burst is refused and the next window allows again; keys are separate (one address or login does not use another's); memory is bounded under many keys; the refusal reaches nothing behind it; a spoofed `X-Forwarded-For` does not change the key at the default.
 9. Tests that guard these properties were shown to fail with the limit taken out; the outcome note says how.
 10. NFR 3.8, the test strategy and `docs/operations/local-dev.md` are updated; register items 27, 126 and 128 are updated.
