@@ -25,6 +25,16 @@ public sealed class LocalCacheProvider : ICacheProvider
         return Task.FromResult(CacheResult<T>.Miss());
     }
 
+    public Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(keys);
+        var found = new Dictionary<string, T>();
+        foreach (var key in keys.Distinct())
+            if (_cache.TryGetValue(key, out T? value) && value is not null)
+                found[key] = value;
+        return Task.FromResult<IReadOnlyDictionary<string, T>>(found);
+    }
+
     public Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
     {
         var options = new MemoryCacheEntryOptions
