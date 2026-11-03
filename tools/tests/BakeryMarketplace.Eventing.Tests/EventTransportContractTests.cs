@@ -35,6 +35,28 @@ public abstract class EventTransportContractTests
         );
 
     [Fact]
+    public async Task BatchSubscription_ReceivesAPublishedEnvelope()
+    {
+        var (publisher, subscriber) = CreateTransportPair();
+        var original = MakeEnvelope("hello-batch");
+        var received = new TaskCompletionSource<IReadOnlyList<DomainEventEnvelope<string>>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await subscriber.SubscribeBatchAsync<string>(original.EventType, (events, _) =>
+        {
+            received.TrySetResult(events);
+            return Task.FromResult<IReadOnlyCollection<Guid>>(Array.Empty<Guid>());
+        });
+
+        await publisher.PublishAsync(original);
+        var batch = await received.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var one = Assert.Single(batch);
+        Assert.Equal(original.EventId, one.EventId);
+        Assert.Equal("hello-batch", one.Payload);
+    }
+
+    [Fact]
     public async Task PublishThenConsume_ReturnsSameEnvelope()
     {
         // Arrange
