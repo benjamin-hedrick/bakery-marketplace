@@ -6,12 +6,12 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-91 specs.
+92 specs.
 
 | Status | Count |
 |---|---|
 | Done | 54 |
-| In progress | 5 |
+| In progress | 6 |
 | In review | 5 |
 | Built | 1 |
 | Ready | 10 |
@@ -46,6 +46,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PRODUCT-STRATEGY | 1 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
 | EPIC-QUALITY-EVIDENCE | 1 of 3 | QA-001, QA-002, QA-003 |
 | EPIC-QUEUE-DISPLAY | 3 of 4 | QUE-001, QUE-002, QUE-003, QUE-004 |
+| EPIC-RATE-LIMITING | 0 of 1 | RATE-001 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
 | EPIC-SEARCH | 0 of 1 | SRCH-001 |
 | EPIC-SECRETS | 1 of 2 | SEC-001, SEC-003 |
@@ -140,6 +141,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `apps/web-queue-display` |
 | [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-003/` (the real-stack run and the first-pass security review, the `graphql-sse` review); approved by the lead on 2026-11-02 after a review round |
 | [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | EPIC-QUEUE-DISPLAY | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-004/` |
+| [RATE-001](WI-RATE-001.md) | First rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128) | EPIC-RATE-LIMITING | In progress |  |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
