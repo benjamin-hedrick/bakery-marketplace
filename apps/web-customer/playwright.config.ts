@@ -53,6 +53,12 @@ export default defineConfig({
         AUTH_ISSUER: 'http://localhost:5101',
         AUTH_CLIENT_ID: 'web-customer',
         APP_ORIGIN: 'http://localhost:3000',
+        // The suites log in and send requests far faster than any person does: the rate limits (WI-RATE-001) are set out of the way here. The
+        // limits themselves are tested on a second server with tight settings (tests/e2e/rate-limit.spec.ts, queue display).
+        RATE_LIMIT_LOGIN_PER_MINUTE: '100000',
+        RATE_LIMIT_GRAPHQL_PER_MINUTE: '100000',
+        RATE_LIMIT_STREAM_PER_MINUTE: '100000',
+        RATE_LIMIT_ADDRESS_PER_MINUTE: '100000',
         SESSION_REDIS_URL: 'memory',
         SESSION_ALLOW_MEMORY_STORE: '1',
         SESSION_ENCRYPTION_KEY: randomBytes(32).toString('base64url'),

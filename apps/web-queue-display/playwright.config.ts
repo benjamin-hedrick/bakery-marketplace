@@ -51,9 +51,37 @@ export default defineConfig({
         AUTH_ISSUER: 'http://localhost:5101',
         AUTH_CLIENT_ID: 'web-queue-display',
         APP_ORIGIN: 'http://localhost:3100',
+        // The suites log in and send requests far faster than any person does: the rate limits (WI-RATE-001) are set out of the way here. The
+        // limits themselves are tested on a second server with tight settings (tests/e2e/rate-limit.spec.ts, queue display).
+        RATE_LIMIT_LOGIN_PER_MINUTE: '100000',
+        RATE_LIMIT_GRAPHQL_PER_MINUTE: '100000',
+        RATE_LIMIT_STREAM_PER_MINUTE: '100000',
+        RATE_LIMIT_ADDRESS_PER_MINUTE: '100000',
         SESSION_REDIS_URL: 'memory',
         SESSION_ALLOW_MEMORY_STORE: '1',
         SESSION_ENCRYPTION_KEY: randomBytes(32).toString('base64url'),
+      },
+    },
+    // A second copy of the same build with tight rate limits, for tests/e2e/rate-limit.spec.ts. One proxy hop is trusted, so each test chooses its own
+    // address with an X-Forwarded-For header and the tests do not use each other's allowance.
+    {
+      command: 'npx next start -p 3101',
+      url: 'http://localhost:3101',
+      reuseExistingServer: true,
+      timeout: 60_000,
+      env: {
+        GRAPHQL_URL: 'http://localhost:4101/graphql',
+        AUTH_ISSUER: 'http://localhost:5101',
+        AUTH_CLIENT_ID: 'web-queue-display',
+        APP_ORIGIN: 'http://localhost:3101',
+        SESSION_REDIS_URL: 'memory',
+        SESSION_ALLOW_MEMORY_STORE: '1',
+        SESSION_ENCRYPTION_KEY: randomBytes(32).toString('base64url'),
+        TRUSTED_PROXY_HOPS: '1',
+        RATE_LIMIT_LOGIN_PER_MINUTE: '3',
+        RATE_LIMIT_GRAPHQL_PER_MINUTE: '6',
+        RATE_LIMIT_STREAM_PER_MINUTE: '2',
+        RATE_LIMIT_ADDRESS_PER_MINUTE: '40',
       },
     },
   ],

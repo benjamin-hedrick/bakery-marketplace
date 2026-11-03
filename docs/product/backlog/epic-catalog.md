@@ -265,7 +265,7 @@ Scope: cross-cutting-artifact · Primary hat(s): Platform Engineering, Operation
 
 ### EPIC-RATE-LIMITING — Rate Limiting / Abuse Prevention
 Scope: cross-cutting-artifact · Primary hat(s): Architect, Platform Engineering · Status: Not Started
-- 🔶 RATE-001 (Library) — **In progress 2026-11-02**, see `WI-RATE-001.md` — first rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128)
+- 🔶 RATE-001 (Library) — **In review 2026-11-02**, see `WI-RATE-001.md` — first rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128)
 - ⚪ RATE-002 (Service Implementation) — Review/rating abuse detection (fake reviews) — overlaps with `EPIC-REVIEWS`, deliberately cross-listed rather than picked into one home (same pattern as the monetization-model overlap noted below)
 - ⚪ RATE-003 (Service Implementation) — Ad-fraud detection basics — overlaps with `EPIC-ADVERTISING`, same deliberate cross-listing
 - 🟢 RATE-004 (Infra/Environment) — Coarse per-subscription throttling at the API Gateway — overlaps with `EPIC-API-GATEWAY`'s `GW-006`; per ADR-0008, this does NOT cover `RATE-001`/`002`/`003`'s per-user/per-content concerns, since Consumption tier lacks `rate-limit-by-key`

@@ -239,3 +239,19 @@ Writes 7 listings (6 Published, 1 Draft negative case) for `vendor-shop-001` and
 3. **(Fixed 2026-10-28, `S1-06`; kept for the record.) The mock issuer's login page reflected query parameters unescaped** (`redirect_uri`, `state`, `code_challenge`; confirmed by sending a script payload). Dev-only and loopback-bound here, but it is a defect in `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs` (`WI-AUTH-005`); fix with HTML encoding.
 4. **The Redis Streams transport acknowledges messages it cannot deserialize without dead-lettering them** (register item 88; first noted as reconciliation finding B2). Not exercised here.
 5. **No Stripe CLI wiring** (no spec; part of `PAY-001`, backlog N-08) and **no application containers** (register item 71). The Next.js app, the BFF and the trace viewer exist and run on the host as described above.
+
+## Rate limits (WI-RATE-001, register item 128)
+
+The web apps and the BFF limit how fast a caller may act. Locally the defaults are far above what a person does and far below what a script does, so a test suite that logs in many times a minute from one machine is refused. The browser suites set the web limits out of the way in their Playwright configs; the real-stack journeys (`skeleton-smoke.mjs`) run with the defaults.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `RATE_LIMIT_LOGIN_PER_MINUTE` | 10 | web apps: login start and callback, each, per address |
+| `RATE_LIMIT_GRAPHQL_PER_MINUTE` | 120 | web apps: `/api/graphql` per login (per address when not logged in) |
+| `RATE_LIMIT_STREAM_PER_MINUTE` | 10 | web apps: opening `/api/graphql-stream`, per login |
+| `RATE_LIMIT_ADDRESS_PER_MINUTE` | 600 | web apps: all routes except login, per address, before the session store |
+| `TRUSTED_PROXY_HOPS` | 0 | web apps: how many proxies add to `X-Forwarded-For`; 0 ignores the header. Behind a proxy with 0, everyone shares the proxy's address |
+| `BFF_RATE_LIMIT_PER_MINUTE` | 600 | BFF: `/graphql` per source address (in practice the web app's server) |
+
+A value that is not a whole number from 1 to 100000 (0 to 100000 for the hops) stops the web app or the BFF from starting, and the message names the variable. A refusal is `429` with `Retry-After`; a refused login goes to the error page with a sentence. The counts are per process.
+

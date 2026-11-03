@@ -148,7 +148,7 @@ In v1, only public listing pages use SSR. Authenticated pages render client-side
 
 **27. Per-user throttling at the BFF — not decided**
 Type: Open question · Source: ADR-0013 (2026-10-26) · Hat: Architect
-Status: Open
+Status: Open · first step built 2026-11-02 (`WI-RATE-001`, register item 128): per-login and per-address limits at the web apps and a coarse backstop at the BFF; per-user limits or query-cost limiting inside the BFF are still not decided
 APIM Consumption still lacks `rate-limit-by-key` (ADR-0008). Whether the GraphQL BFF takes on any per-user or per-query-cost limiting is left to `EPIC-RATE-LIMITING`.
 
 **28. Catalog public reads probe one partition per verified vendor**
@@ -703,8 +703,10 @@ The channel `vendor-orders:{vendorId}` carries the vendor read model document as
 
 **128. Nothing limits the rate of connections, logins or requests per caller, and nothing tests that it holds**
 Type: Gap · Source: the lead's questions at the review of `WI-QUE-003`, 2026-11-02 · Hat: Architect, Security
-Status: Open · planned 2026-11-02 as a checkpoint in `docs/process/verification-policy.md` (section 7); building needs the lead's design approval (login logic)
+Status: First step built 2026-11-02 on `feature/rate-limiting` (`WI-RATE-001`, In review); what remains is listed after the description
 What exists: item 27 (per-user throttling at the BFF, an open question), the epic `EPIC-RATE-LIMITING` (`RATE-001` to `RATE-003` not started; `RATE-004` and `GW-006` are only the coarse per-subscription policy at API Management, which cannot limit per user, ADR-0008), and nothing built. `WI-QUE-003` added limits on what one connection or one login may hold (streams per vendor 5, per login 5, per process and per BFF 500, body 64 KB, a write timeout, a silence limit) but nothing limits how fast a caller may open them: anyone can post to the BFF's event-stream route or the web app's routes as fast as the network allows (a junk bearer token costs the BFF one call to ordering, which answers 401; each login attempt costs a call to the issuer), and the stream can be opened again and again. "Reconciled" means: decide where per-address and per-login limits live (API Management cannot per user, so the web app's server and the BFF), set numbers, build the first cheap step (a token bucket per address on `/api/auth/*`, `/api/graphql`, `/api/graphql-stream` and the BFF), and test that a burst is refused and normal use is not. Link: items 27 and 126, `RATE-001`.
+
+**Built (`WI-RATE-001`, decided by the lead 2026-11-02):** an in-memory token bucket per key (bounded to 10,000 keys) in `packages/web-session`, used by both web apps: logins 10 a minute per address (start and callback each), `/api/graphql` 120 a minute per login (per address without one), stream opens 10 a minute per login, and an address ceiling of 600 a minute across the other routes checked before the session store is asked; the BFF has a backstop of 600 a minute per source address. The address is the connection's own unless `TRUSTED_PROXY_HOPS` says how many proxies add to `X-Forwarded-For`. **Still open:** a shared (Redis) limiter for more than one replica; the production numbers and hop count (with `WI-DEP-001`); per-action limits for vendors; limits at the services themselves; a load test that approaches the limits (item 129).
 
 **129. No load, soak, fuzz or penetration testing is planned or recorded**
 Type: Gap · Source: the lead's questions at the review of `WI-QUE-003`, 2026-11-02 · Hat: Quality, Security
