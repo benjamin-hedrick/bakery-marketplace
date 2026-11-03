@@ -9,17 +9,10 @@ namespace NotificationService.Processing;
 /// <summary>What the composer is told about an order event. The payload is the typed record, as received.</summary>
 public sealed record OrderEventInfo(Guid EventId, string EventType, string OrderId, string CustomerId, object Payload);
 
-/// <summary>Turns an order event and a contact into a subject and body. <c>NOT-002</c> replaces the placeholder with the templates.</summary>
+/// <summary>Turns an order event and a contact into a subject and body (<c>NOT-002</c>).</summary>
 public interface IMessageComposer
 {
     (string Subject, string Body) Compose(OrderEventInfo info, Contact contact);
-}
-
-/// <summary>Placeholder wording until <c>NOT-002</c>: names the event and the order, nothing else.</summary>
-public sealed class PlainMessageComposer : IMessageComposer
-{
-    public (string Subject, string Body) Compose(OrderEventInfo info, Contact contact) =>
-        ($"Order {info.OrderId}: {info.EventType}", $"Hello {contact.DisplayName}, your order {info.OrderId} has a new status: {info.EventType}.");
 }
 
 /// <summary>
@@ -112,6 +105,9 @@ public sealed class OrderEventNotifier(
 /// <summary>Subscribes the notifier to the six order events, in batches (one contact read per poll).</summary>
 public sealed class OrderEventSubscriptions(IEventSubscriber subscriber, OrderEventNotifier notifier, ILogger<OrderEventSubscriptions> logger) : IHostedService
 {
+    /// <summary>The event types subscribed to; each needs a template in <see cref="TemplateMessageComposer"/>.</summary>
+    public static readonly string[] EventTypes = ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", "OrderReadyForFulfillment", "OrderCompleted", "OrderCancelled"];
+
     public async Task StartAsync(CancellationToken ct)
     {
         await subscriber.SubscribeBatchAsync<OrderPlacedPayload>("OrderPlaced",

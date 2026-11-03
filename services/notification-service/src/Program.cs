@@ -62,7 +62,7 @@ else
 builder.Services.AddSingleton<IContactDirectory>(sp => new CachedContactDirectory(
     SeededContactDirectory.FromMockIdentity(), sp.GetRequiredService<ICacheProvider>(), sp.GetRequiredService<ILogger<CachedContactDirectory>>()));
 builder.Services.AddSingleton<INotificationSender, LogNotificationSender>();
-builder.Services.AddSingleton<IMessageComposer, PlainMessageComposer>();
+builder.Services.AddSingleton<IMessageComposer, TemplateMessageComposer>();
 builder.Services.AddSingleton(sp => new SentLedger(sp.GetRequiredService<ICacheProvider>()));
 builder.Services.AddSingleton<OrderEventNotifier>();
 builder.Services.AddHostedService<OrderEventSubscriptions>();

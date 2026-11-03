@@ -95,7 +95,7 @@ Scope: Reviews/Trust · Primary hat(s): Digital PM · Status: Not Started · Hos
 ### EPIC-NOTIFICATIONS — Notifications
 Scope: Notifications · Primary hat(s): Engineering/Build · Status: Not Started
 - ✅ NOT-001 (Service Implementation) — In review: `WI-NOT-001`. Event-triggered dispatch only, no business logic of its own (Conformist, per bounded context map)
-- ✅ NOT-002 (Service Implementation) — Ready: `WI-NOT-002`. Templates for the order lifecycle; allergy warning and low-stock alert deferred (register item 138)
+- ✅ NOT-002 (Service Implementation) — In review: `WI-NOT-002`. Templates for the order lifecycle; allergy warning and low-stock alert deferred (register item 138)
 
 ### EPIC-ADMIN — Admin / Moderation Console
 Scope: Admin/Moderation · Primary hat(s): Engineering/Build, Operations · Status: Not Started

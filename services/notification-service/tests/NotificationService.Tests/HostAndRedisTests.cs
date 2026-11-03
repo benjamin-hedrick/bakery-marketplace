@@ -51,6 +51,33 @@ public sealed class HostTests
     }
 
     [Fact]
+    public async Task AWholeOrderLifecycleProducesTheFiveExpectedMessagesInOrder()
+    {
+        var sender = new RecordingNotificationSender();
+        using var host = Host("inmemory", sender);
+        using var client = host.CreateClient();
+        var publisher = (IEventPublisher)host.Services.GetRequiredService<IEventSubscriber>();
+        const string order = "order-lifecycle-77";
+        var start = DateTimeOffset.UtcNow;
+        var window = FulfillmentDetails.ForPickup(start.AddHours(1), start.AddHours(2));
+        long seq = 0;
+        Task Publish<T>(string type, T payload) => publisher.PublishAsync(
+            new DomainEventEnvelope<T>(Guid.NewGuid(), type, 1, DateTimeOffset.UtcNow, "Order", order, ++seq, payload));
+
+        await Publish("OrderPlaced", new OrderPlacedPayload(order, "user-customer-1", "v1", [], 900, "GBP", FulfillmentType.Pickup, window));
+        await Publish("OrderConfirmed", new OrderConfirmedPayload(order, CustomerId: "user-customer-1"));
+        await Publish("OrderPreparationStarted", new OrderPreparationStartedPayload(order, CustomerId: "user-customer-1"));
+        await Publish("OrderReadyForFulfillment", new OrderReadyForFulfillmentPayload(order, "v1", FulfillmentType.Pickup, window, "user-customer-1"));
+        await Publish("OrderCompleted", new OrderCompletedPayload(order, DateTimeOffset.UtcNow, CustomerId: "user-customer-1"));
+
+        Assert.Equal(
+            ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", "OrderReadyForFulfillment", "OrderCompleted"],
+            sender.Sent.Select(n => n.EventType));
+        Assert.All(sender.Sent, n => Assert.Equal("alice@customer.local", n.ToAddress));
+        Assert.Contains("is ready for pickup", sender.Sent.ElementAt(3).Body);
+    }
+
+    [Fact]
     public void TheServiceRefusesToStartWithoutAnEventsBackend()
     {
         // Development's appsettings choose redis, so run as Production, where nothing is configured.
@@ -83,7 +110,7 @@ public sealed class RedisBatchTests : IDisposable
         var sender = new RecordingNotificationSender();
         var notifier = new OrderEventNotifier(
             new CachedContactDirectory(directory, cache, NullLogger<CachedContactDirectory>.Instance),
-            new PlainMessageComposer(), sender, new SentLedger(cache), NullLogger<OrderEventNotifier>.Instance);
+            new TemplateMessageComposer(), sender, new SentLedger(cache), NullLogger<OrderEventNotifier>.Instance);
 
         // Seed the stream with three events before subscribing, so the first poll reads all three. A fresh event type keeps the
         // test independent of anything else in Redis.
