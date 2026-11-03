@@ -36,6 +36,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
   const out = path.join(root, outDir);
   mkdirSync(out, { recursive: true });
   const children = [];
+  const specs = new Map(); // how each process was started, so a test can stop one and start it again
   const log = (m) => console.log(`[${label}] ${m}`);
   const web = path.join(root, 'apps', 'web-customer');
   const bff = path.join(root, 'services', 'graphql-bff');
@@ -61,6 +62,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
   }
 
   function start(name, cmd, args, opts) {
+    specs.set(name, { cmd, args, opts });
     const file = createWriteStream(path.join(out, `${name}.log`));
     const child = spawn(cmd, args, {
       cwd: root,
@@ -193,6 +195,28 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
         env: { ...webEnv, SESSION_ENCRYPTION_KEY: envValue('SESSION_ENCRYPTION_KEY') },
       });
       await waitFor('web', `http://localhost:${ports.web}/`);
+    },
+
+    /** Stops one process started by this stack (its whole tree). For tests that take a service away under load. */
+    stopOne(name) {
+      const entry = children.findLast((c) => c.name === name);
+      if (!entry || entry.child.exitCode !== null || !entry.child.pid) return;
+      log(`stopping ${name}`);
+      if (isWin) spawnSync('taskkill', ['/T', '/F', '/PID', String(entry.child.pid)]);
+      else {
+        try {
+          process.kill(-entry.child.pid, 'SIGTERM');
+        } catch {
+          /* already gone */
+        }
+      }
+    },
+
+    /** Starts a process again with the command it was first started with (after {@link stopOne}). It does not wait for it to be healthy. */
+    startOne(name) {
+      const spec = specs.get(name);
+      if (!spec) throw new Error(`${name} was never started by this stack`);
+      return start(name, spec.cmd, spec.args, spec.opts);
     },
 
     stopAll() {
