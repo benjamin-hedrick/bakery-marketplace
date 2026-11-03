@@ -6,7 +6,7 @@ import { GraphQLRequestError, getBrowserEnvironment, UnauthenticatedError } from
 import { LiveFeed, type Mode } from '../lib/live-feed';
 import { openVendorOrderStream, type OrderChange } from '../lib/live-stream';
 import { OrderActions } from './OrderActions';
-import { applyChange, groupOrders, newOrderIds, type QueueOrder } from '../lib/queue';
+import { applyChange, groupOrders, mergeFetched, newOrderIds, type QueueOrder } from '../lib/queue';
 
 // The vendor's orders that are still in progress, newest change first. The vendor acts on an order with the buttons on its card (WI-QUE-004);
 // the board itself only shows what the service says. The list is the baseline (WI-QUE-002); live changes arrive on a stream and are applied on top by their sequence numbers (WI-QUE-003, ADR-0021).
@@ -71,6 +71,7 @@ export function QueueBoard() {
   const seen = useRef<Set<string> | null>(null); // null until the first answer: what is on the screen at the start is not "new"
   const held = useRef<Orders>([]); // what the screen shows now, for applying a pushed change on top of it
   const feed = useRef<LiveFeed<OrderChange> | null>(null);
+  const pushedAt = useRef<Map<string, number>>(new Map()); // when a push last said something about an order (the merge of a fetched list needs it)
 
   /** Puts a list of orders on the screen and marks the ones that were not there before (from the list or from the stream alike). */
   const show = useCallback((next: Orders, now: number) => {
@@ -98,6 +99,7 @@ export function QueueBoard() {
   }, []);
 
   const refresh = useCallback(async () => {
+    const startedAt = Date.now();
     try {
       const data = await fetchQuery<QueueBoardQuery>(
         getBrowserEnvironment(),
@@ -105,8 +107,13 @@ export function QueueBoard() {
         {},
         { fetchPolicy: 'network-only' },
       ).toPromise();
+      // The list may have been read before a change that was pushed while it was on its way: merge, do not replace (register item 133).
       show(
-        (data?.vendorOrders.edges ?? []).map((e) => e.node),
+        mergeFetched(
+          held.current,
+          (data?.vendorOrders.edges ?? []).map((e) => e.node),
+          (id) => (pushedAt.current.get(id) ?? 0) >= startedAt,
+        ),
         Date.now(),
       );
     } catch (e) {
@@ -124,6 +131,7 @@ export function QueueBoard() {
   /** A change from the stream: applied only if it is newer than what the screen holds. */
   const change = useCallback(
     (incoming: OrderChange) => {
+      pushedAt.current.set(incoming.id, Date.now());
       const next = applyChange(held.current, incoming);
       if (next === held.current) return;
       const now = Date.now();

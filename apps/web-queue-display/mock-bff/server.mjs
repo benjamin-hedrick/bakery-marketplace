@@ -19,6 +19,7 @@ const initial = () => ({
   heartbeatMs: 12000, // 0 = never (a silent stream)
   actionMode: 'ok', // ok | conflict | notfound | forbidden | error | slow
   actionDelayMs: 0, // answer the mutation after this long (an action "in flight")
+  listSnapshot: null, // when set, the list answers with this instead of the live orders (a read that is behind the stream)
   actions: [], // each vendorOrderAction received: { action, orderId, authorization }
 });
 const state = initial();
@@ -115,7 +116,7 @@ http
 
     if (req.url === '/__state' && req.method === 'POST') {
       const next = JSON.parse(await readBody(req));
-      for (const key of ['orders', 'mode', 'streamMode', 'heartbeatMs', 'actionMode', 'actionDelayMs'])
+      for (const key of ['orders', 'mode', 'streamMode', 'heartbeatMs', 'actionMode', 'actionDelayMs', 'listSnapshot'])
         if (next[key] !== undefined) state[key] = next[key];
       return send(res, 200, { ok: true });
     }
@@ -166,7 +167,7 @@ http
         return send(res, 200, {
           data: {
             vendorOrders: {
-              edges: state.orders.map((node) => ({ cursor: node.id, node })),
+              edges: (state.listSnapshot ?? state.orders).map((node) => ({ cursor: node.id, node })),
               pageInfo: { hasNextPage: false, endCursor: null },
             },
           },
