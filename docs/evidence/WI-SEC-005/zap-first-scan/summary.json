@@ -1,0 +1,127 @@
+[
+  {
+    "name": "customer app",
+    "alerts": 9,
+    "byRisk": {
+      "Medium": [
+        {
+          "name": "CSP: script-src unsafe-inline",
+          "instances": 4
+        },
+        {
+          "name": "CSP: style-src unsafe-inline",
+          "instances": 5
+        }
+      ],
+      "Low": [
+        {
+          "name": "Cross-Origin-Embedder-Policy Header Missing or Invalid",
+          "instances": 5
+        },
+        {
+          "name": "Cross-Origin-Opener-Policy Header Missing or Invalid",
+          "instances": 5
+        },
+        {
+          "name": "Cross-Origin-Resource-Policy Header Missing or Invalid",
+          "instances": 5
+        },
+        {
+          "name": "Server Leaks Information via \"X-Powered-By\" HTTP Response Header Field(s)",
+          "instances": 5
+        }
+      ],
+      "Informational": [
+        {
+          "name": "Modern Web Application",
+          "instances": 5
+        },
+        {
+          "name": "Non-Storable Content",
+          "instances": 5
+        },
+        {
+          "name": "Storable and Cacheable Content",
+          "instances": 5
+        }
+      ]
+    },
+    "exit": 0
+  },
+  {
+    "name": "queue display",
+    "alerts": 9,
+    "byRisk": {
+      "Medium": [
+        {
+          "name": "CSP: script-src unsafe-inline",
+          "instances": 3
+        },
+        {
+          "name": "CSP: style-src unsafe-inline",
+          "instances": 3
+        }
+      ],
+      "Low": [
+        {
+          "name": "Cross-Origin-Embedder-Policy Header Missing or Invalid",
+          "instances": 1
+        },
+        {
+          "name": "Cross-Origin-Opener-Policy Header Missing or Invalid",
+          "instances": 1
+        },
+        {
+          "name": "Cross-Origin-Resource-Policy Header Missing or Invalid",
+          "instances": 5
+        },
+        {
+          "name": "Server Leaks Information via \"X-Powered-By\" HTTP Response Header Field(s)",
+          "instances": 3
+        }
+      ],
+      "Informational": [
+        {
+          "name": "Modern Web Application",
+          "instances": 3
+        },
+        {
+          "name": "Non-Storable Content",
+          "instances": 2
+        },
+        {
+          "name": "Storable and Cacheable Content",
+          "instances": 5
+        }
+      ]
+    },
+    "exit": 0
+  },
+  {
+    "name": "GraphQL BFF",
+    "alerts": 4,
+    "byRisk": {
+      "Low": [
+        {
+          "name": "Cross-Origin-Resource-Policy Header Missing or Invalid",
+          "instances": 1
+        },
+        {
+          "name": "X-Content-Type-Options Header Missing",
+          "instances": 1
+        }
+      ],
+      "Informational": [
+        {
+          "name": "A Client Error response code was returned by the server",
+          "instances": 17
+        },
+        {
+          "name": "Non-Storable Content",
+          "instances": 1
+        }
+      ]
+    },
+    "exit": 0
+  }
+]

@@ -11,8 +11,8 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 54 |
-| In progress | 6 |
-| In review | 6 |
+| In progress | 5 |
+| In review | 7 |
 | Built | 1 |
 | Ready | 10 |
 | Proposed | 4 |
@@ -146,7 +146,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
 | [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | EPIC-CI-CD | Deferred | trigger: with the public-readiness pass (register item 93) or when a deployment stage is added |
-| [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In progress | steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below) |
+| [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In review | evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/` (fuzz, soak, ZAP), `docs/governance/review-statement.md`; steps 1 to 5 are done · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below) |
 | [SRCH-001](WI-SRCH-001.md) | Search/filter by dietary preference (consumes Preference Snapshot) | EPIC-SEARCH | Ready |  |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.EventSchemas` and its tests |
 | [TOOL-002](WI-TOOL-002.md) | Structured logging + correlation-ID helper (tools/BakeryMarketplace.Logging) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.Logging` and `tools/tests/BakeryMarketplace.Logging.Tests` |
@@ -186,7 +186,7 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-136 numbered items in `docs/governance/open-items-register.md` (highest number 136).
+137 numbered items in `docs/governance/open-items-register.md` (highest number 137).
 
 | Type | Count |
 |---|---|
@@ -258,6 +258,7 @@ Accepted: 20 · Superseded: 1
 | Open decisions and verification | 1 |
 | Known limitation (race) | 1 |
 | Defect (security: unauthenticated denial of service) | 1 |
+| Design weakness | 1 |
 
 | Item status | Count |
 |---|---|
@@ -265,8 +266,8 @@ Accepted: 20 · Superseded: 1
 | Resolved | 45 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 53 |
+| Open | 54 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
-| In | 1 |
+| Done | 1 |

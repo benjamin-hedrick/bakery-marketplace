@@ -1,0 +1,965 @@
+{
+  "startedAt": "2026-11-03T02:42:05.563Z",
+  "options": {
+    "minutes": 65,
+    "orderEvery": 5,
+    "readers": 2,
+    "restartAt": 0.5,
+    "outage": 10,
+    "sampleEvery": 30
+  },
+  "limits": {
+    "opened": 7,
+    "stillOpen": 5,
+    "endedIndexes": [
+      1,
+      2
+    ],
+    "results": [
+      {
+        "index": 1,
+        "status": 200,
+        "openMs": 2263,
+        "ended": true,
+        "endedAfterMs": 2367
+      },
+      {
+        "index": 2,
+        "status": 200,
+        "openMs": 20,
+        "ended": true,
+        "endedAfterMs": 114
+      },
+      {
+        "index": 3,
+        "status": 200,
+        "openMs": 19,
+        "ended": false,
+        "endedAfterMs": null
+      },
+      {
+        "index": 4,
+        "status": 200,
+        "openMs": 19,
+        "ended": false,
+        "endedAfterMs": null
+      },
+      {
+        "index": 5,
+        "status": 200,
+        "openMs": 15,
+        "ended": false,
+        "endedAfterMs": null
+      },
+      {
+        "index": 6,
+        "status": 200,
+        "openMs": 20,
+        "ended": false,
+        "endedAfterMs": null
+      },
+      {
+        "index": 7,
+        "status": 200,
+        "openMs": 19,
+        "ended": false,
+        "endedAfterMs": null
+      }
+    ]
+  },
+  "run": {
+    "wallSeconds": 3966,
+    "ordersPlaced": 762,
+    "orderErrorsTotal": 4,
+    "orderErrorsDuringOutage": 4,
+    "orderErrorsOutsideOutage": 0,
+    "orderErrorSamples": [
+      {
+        "at": 1793675724325,
+        "what": "INTERNAL"
+      },
+      {
+        "at": 1793675729657,
+        "what": "INTERNAL"
+      },
+      {
+        "at": 1793675734667,
+        "what": "INTERNAL"
+      },
+      {
+        "at": 1793675739683,
+        "what": "INTERNAL"
+      }
+    ],
+    "requestToScreenMs": {
+      "n": 3810,
+      "min": 61,
+      "p50": 110,
+      "p95": 146,
+      "p99": 181,
+      "max": 1510
+    },
+    "requestToScreenMsOutsideOutageWindow": {
+      "n": 3780,
+      "min": 61,
+      "p50": 110,
+      "p95": 146,
+      "p99": 179,
+      "max": 1510
+    },
+    "ordersMissedBySomeScreen": 0,
+    "missingTotal": 0,
+    "missingAfterRecovery": 0,
+    "missingSamples": [],
+    "reads": {
+      "n": 63922,
+      "min": 1,
+      "p50": 20,
+      "p95": 37,
+      "p99": 45,
+      "max": 999,
+      "errors": 154,
+      "errorsOutsideOutage": 0,
+      "errorSamples": [
+        {
+          "at": 1793675722000,
+          "what": "status 200 INTERNAL"
+        },
+        {
+          "at": 1793675722002,
+          "what": "status 200 INTERNAL"
+        },
+        {
+          "at": 1793675722240,
+          "what": "status 200 INTERNAL"
+        },
+        {
+          "at": 1793675722240,
+          "what": "status 200 INTERNAL"
+        },
+        {
+          "at": 1793675722482,
+          "what": "status 200 INTERNAL"
+        }
+      ],
+      "readersConcurrent": 2,
+      "pauseMs": 200
+    },
+    "restart": {
+      "outageSeconds": 19,
+      "requestedOutage": 10
+    },
+    "screens": [
+      {
+        "name": "screen-1",
+        "opened": 7,
+        "ended": 6,
+        "failedOpens": 6,
+        "known": 762
+      },
+      {
+        "name": "screen-2",
+        "opened": 7,
+        "ended": 6,
+        "failedOpens": 6,
+        "known": 762
+      },
+      {
+        "name": "screen-3",
+        "opened": 7,
+        "ended": 6,
+        "failedOpens": 6,
+        "known": 762
+      },
+      {
+        "name": "screen-4",
+        "opened": 7,
+        "ended": 6,
+        "failedOpens": 6,
+        "known": 762
+      },
+      {
+        "name": "screen-5",
+        "opened": 7,
+        "ended": 6,
+        "failedOpens": 6,
+        "known": 762
+      }
+    ],
+    "memoryMb": [
+      {
+        "t": 46,
+        "ordering": 120,
+        "catalog": 117,
+        "bff": 73
+      },
+      {
+        "t": 77,
+        "ordering": 95,
+        "catalog": 94,
+        "bff": 66
+      },
+      {
+        "t": 108,
+        "ordering": 96,
+        "catalog": 95,
+        "bff": 71
+      },
+      {
+        "t": 138,
+        "ordering": 95,
+        "catalog": 97,
+        "bff": 97
+      },
+      {
+        "t": 169,
+        "ordering": 96,
+        "catalog": 98,
+        "bff": 97
+      },
+      {
+        "t": 199,
+        "ordering": 86,
+        "catalog": 81,
+        "bff": 145
+      },
+      {
+        "t": 230,
+        "ordering": 83,
+        "catalog": 75,
+        "bff": 150
+      },
+      {
+        "t": 261,
+        "ordering": 55,
+        "catalog": 60,
+        "bff": 147
+      },
+      {
+        "t": 291,
+        "ordering": 67,
+        "catalog": 60,
+        "bff": 148
+      },
+      {
+        "t": 322,
+        "ordering": 58,
+        "catalog": 49,
+        "bff": 146
+      },
+      {
+        "t": 352,
+        "ordering": 83,
+        "catalog": 72,
+        "bff": 149
+      },
+      {
+        "t": 383,
+        "ordering": 80,
+        "catalog": 77,
+        "bff": 149
+      },
+      {
+        "t": 414,
+        "ordering": 74,
+        "catalog": 77,
+        "bff": 148
+      },
+      {
+        "t": 444,
+        "ordering": 75,
+        "catalog": 65,
+        "bff": 149
+      },
+      {
+        "t": 475,
+        "ordering": 75,
+        "catalog": 57,
+        "bff": 150
+      },
+      {
+        "t": 506,
+        "ordering": 67,
+        "catalog": 55,
+        "bff": 151
+      },
+      {
+        "t": 536,
+        "ordering": 58,
+        "catalog": 48,
+        "bff": 149
+      },
+      {
+        "t": 567,
+        "ordering": 54,
+        "catalog": 44,
+        "bff": 150
+      },
+      {
+        "t": 597,
+        "ordering": 53,
+        "catalog": 46,
+        "bff": 150
+      },
+      {
+        "t": 628,
+        "ordering": 52,
+        "catalog": 43,
+        "bff": 149
+      },
+      {
+        "t": 659,
+        "ordering": 61,
+        "catalog": 60,
+        "bff": 151
+      },
+      {
+        "t": 689,
+        "ordering": 57,
+        "catalog": 56,
+        "bff": 149
+      },
+      {
+        "t": 720,
+        "ordering": 44,
+        "catalog": 39,
+        "bff": 149
+      },
+      {
+        "t": 750,
+        "ordering": 49,
+        "catalog": 41,
+        "bff": 150
+      },
+      {
+        "t": 781,
+        "ordering": 57,
+        "catalog": 47,
+        "bff": 149
+      },
+      {
+        "t": 812,
+        "ordering": 59,
+        "catalog": 49,
+        "bff": 151
+      },
+      {
+        "t": 842,
+        "ordering": 55,
+        "catalog": 51,
+        "bff": 152
+      },
+      {
+        "t": 873,
+        "ordering": 49,
+        "catalog": 48,
+        "bff": 149
+      },
+      {
+        "t": 904,
+        "ordering": 48,
+        "catalog": 36,
+        "bff": 141
+      },
+      {
+        "t": 934,
+        "ordering": 53,
+        "catalog": 39,
+        "bff": 148
+      },
+      {
+        "t": 965,
+        "ordering": 57,
+        "catalog": 45,
+        "bff": 150
+      },
+      {
+        "t": 996,
+        "ordering": 58,
+        "catalog": 49,
+        "bff": 149
+      },
+      {
+        "t": 1026,
+        "ordering": 62,
+        "catalog": 50,
+        "bff": 150
+      },
+      {
+        "t": 1057,
+        "ordering": 64,
+        "catalog": 50,
+        "bff": 151
+      },
+      {
+        "t": 1087,
+        "ordering": 51,
+        "catalog": 41,
+        "bff": 151
+      },
+      {
+        "t": 1118,
+        "ordering": 53,
+        "catalog": 43,
+        "bff": 150
+      },
+      {
+        "t": 1149,
+        "ordering": 55,
+        "catalog": 48,
+        "bff": 152
+      },
+      {
+        "t": 1179,
+        "ordering": 49,
+        "catalog": 45,
+        "bff": 150
+      },
+      {
+        "t": 1210,
+        "ordering": 49,
+        "catalog": 46,
+        "bff": 149
+      },
+      {
+        "t": 1241,
+        "ordering": 80,
+        "catalog": 56,
+        "bff": 151
+      },
+      {
+        "t": 1271,
+        "ordering": 75,
+        "catalog": 55,
+        "bff": 152
+      },
+      {
+        "t": 1302,
+        "ordering": 72,
+        "catalog": 58,
+        "bff": 152
+      },
+      {
+        "t": 1332,
+        "ordering": 56,
+        "catalog": 60,
+        "bff": 152
+      },
+      {
+        "t": 1363,
+        "ordering": 56,
+        "catalog": 61,
+        "bff": 152
+      },
+      {
+        "t": 1393,
+        "ordering": 44,
+        "catalog": 50,
+        "bff": 151
+      },
+      {
+        "t": 1424,
+        "ordering": 48,
+        "catalog": 51,
+        "bff": 150
+      },
+      {
+        "t": 1454,
+        "ordering": 49,
+        "catalog": 51,
+        "bff": 151
+      },
+      {
+        "t": 1485,
+        "ordering": 49,
+        "catalog": 53,
+        "bff": 151
+      },
+      {
+        "t": 1516,
+        "ordering": 47,
+        "catalog": 48,
+        "bff": 151
+      },
+      {
+        "t": 1546,
+        "ordering": 66,
+        "catalog": 56,
+        "bff": 148
+      },
+      {
+        "t": 1577,
+        "ordering": 64,
+        "catalog": 51,
+        "bff": 149
+      },
+      {
+        "t": 1607,
+        "ordering": 64,
+        "catalog": 59,
+        "bff": 150
+      },
+      {
+        "t": 1638,
+        "ordering": 66,
+        "catalog": 62,
+        "bff": 149
+      },
+      {
+        "t": 1668,
+        "ordering": 49,
+        "catalog": 59,
+        "bff": 147
+      },
+      {
+        "t": 1699,
+        "ordering": 50,
+        "catalog": 59,
+        "bff": 150
+      },
+      {
+        "t": 1729,
+        "ordering": 50,
+        "catalog": 59,
+        "bff": 151
+      },
+      {
+        "t": 1760,
+        "ordering": 51,
+        "catalog": 60,
+        "bff": 152
+      },
+      {
+        "t": 1790,
+        "ordering": 51,
+        "catalog": 61,
+        "bff": 150
+      },
+      {
+        "t": 1821,
+        "ordering": 52,
+        "catalog": 60,
+        "bff": 152
+      },
+      {
+        "t": 1851,
+        "ordering": 60,
+        "catalog": 62,
+        "bff": 150
+      },
+      {
+        "t": 1882,
+        "ordering": 58,
+        "catalog": 62,
+        "bff": 151
+      },
+      {
+        "t": 1912,
+        "ordering": 66,
+        "catalog": 64,
+        "bff": 151
+      },
+      {
+        "t": 1943,
+        "ordering": 66,
+        "catalog": 65,
+        "bff": 152
+      },
+      {
+        "t": 1973,
+        "ordering": 66,
+        "catalog": 65,
+        "bff": 152
+      },
+      {
+        "t": 2004,
+        "ordering": null,
+        "catalog": 66,
+        "bff": 153
+      },
+      {
+        "t": 2034,
+        "ordering": 143,
+        "catalog": 54,
+        "bff": 157
+      },
+      {
+        "t": 2065,
+        "ordering": 136,
+        "catalog": 54,
+        "bff": 155
+      },
+      {
+        "t": 2095,
+        "ordering": 135,
+        "catalog": 47,
+        "bff": 155
+      },
+      {
+        "t": 2126,
+        "ordering": 136,
+        "catalog": 48,
+        "bff": 154
+      },
+      {
+        "t": 2156,
+        "ordering": 124,
+        "catalog": 48,
+        "bff": 153
+      },
+      {
+        "t": 2187,
+        "ordering": 127,
+        "catalog": 48,
+        "bff": 154
+      },
+      {
+        "t": 2217,
+        "ordering": 128,
+        "catalog": 52,
+        "bff": 154
+      },
+      {
+        "t": 2248,
+        "ordering": 130,
+        "catalog": 52,
+        "bff": 154
+      },
+      {
+        "t": 2279,
+        "ordering": 129,
+        "catalog": 53,
+        "bff": 154
+      },
+      {
+        "t": 2309,
+        "ordering": 131,
+        "catalog": 53,
+        "bff": 154
+      },
+      {
+        "t": 2340,
+        "ordering": 102,
+        "catalog": 60,
+        "bff": 155
+      },
+      {
+        "t": 2370,
+        "ordering": 102,
+        "catalog": 58,
+        "bff": 155
+      },
+      {
+        "t": 2401,
+        "ordering": 101,
+        "catalog": 58,
+        "bff": 155
+      },
+      {
+        "t": 2432,
+        "ordering": 101,
+        "catalog": 59,
+        "bff": 155
+      },
+      {
+        "t": 2462,
+        "ordering": 87,
+        "catalog": 53,
+        "bff": 151
+      },
+      {
+        "t": 2493,
+        "ordering": 87,
+        "catalog": 53,
+        "bff": 153
+      },
+      {
+        "t": 2523,
+        "ordering": 87,
+        "catalog": 53,
+        "bff": 152
+      },
+      {
+        "t": 2554,
+        "ordering": 69,
+        "catalog": 54,
+        "bff": 154
+      },
+      {
+        "t": 2584,
+        "ordering": 53,
+        "catalog": 55,
+        "bff": 154
+      },
+      {
+        "t": 2615,
+        "ordering": 48,
+        "catalog": 33,
+        "bff": 152
+      },
+      {
+        "t": 2645,
+        "ordering": 62,
+        "catalog": 52,
+        "bff": 151
+      },
+      {
+        "t": 2676,
+        "ordering": 50,
+        "catalog": 45,
+        "bff": 150
+      },
+      {
+        "t": 2706,
+        "ordering": 40,
+        "catalog": 37,
+        "bff": 143
+      },
+      {
+        "t": 2737,
+        "ordering": 40,
+        "catalog": 40,
+        "bff": 141
+      },
+      {
+        "t": 2768,
+        "ordering": 48,
+        "catalog": 42,
+        "bff": 136
+      },
+      {
+        "t": 2798,
+        "ordering": 38,
+        "catalog": 35,
+        "bff": 150
+      },
+      {
+        "t": 2829,
+        "ordering": 29,
+        "catalog": 31,
+        "bff": 136
+      },
+      {
+        "t": 2860,
+        "ordering": 36,
+        "catalog": 39,
+        "bff": 135
+      },
+      {
+        "t": 2890,
+        "ordering": 35,
+        "catalog": 38,
+        "bff": 138
+      },
+      {
+        "t": 2921,
+        "ordering": 40,
+        "catalog": 35,
+        "bff": 148
+      },
+      {
+        "t": 2952,
+        "ordering": 54,
+        "catalog": 48,
+        "bff": 137
+      },
+      {
+        "t": 2982,
+        "ordering": 34,
+        "catalog": 30,
+        "bff": 123
+      },
+      {
+        "t": 3013,
+        "ordering": 43,
+        "catalog": 37,
+        "bff": 151
+      },
+      {
+        "t": 3044,
+        "ordering": 34,
+        "catalog": 47,
+        "bff": 134
+      },
+      {
+        "t": 3074,
+        "ordering": 48,
+        "catalog": 48,
+        "bff": 150
+      },
+      {
+        "t": 3105,
+        "ordering": 42,
+        "catalog": 39,
+        "bff": 152
+      },
+      {
+        "t": 3136,
+        "ordering": 38,
+        "catalog": 42,
+        "bff": 141
+      },
+      {
+        "t": 3166,
+        "ordering": 50,
+        "catalog": 45,
+        "bff": 148
+      },
+      {
+        "t": 3197,
+        "ordering": 36,
+        "catalog": 48,
+        "bff": 145
+      },
+      {
+        "t": 3228,
+        "ordering": 40,
+        "catalog": 33,
+        "bff": 132
+      },
+      {
+        "t": 3258,
+        "ordering": 59,
+        "catalog": 55,
+        "bff": 146
+      },
+      {
+        "t": 3289,
+        "ordering": 40,
+        "catalog": 36,
+        "bff": 131
+      },
+      {
+        "t": 3320,
+        "ordering": 33,
+        "catalog": 27,
+        "bff": 130
+      },
+      {
+        "t": 3350,
+        "ordering": 48,
+        "catalog": 38,
+        "bff": 148
+      },
+      {
+        "t": 3381,
+        "ordering": 60,
+        "catalog": 47,
+        "bff": 149
+      },
+      {
+        "t": 3411,
+        "ordering": 56,
+        "catalog": 57,
+        "bff": 151
+      },
+      {
+        "t": 3442,
+        "ordering": 42,
+        "catalog": 49,
+        "bff": 148
+      },
+      {
+        "t": 3473,
+        "ordering": 37,
+        "catalog": 41,
+        "bff": 149
+      },
+      {
+        "t": 3503,
+        "ordering": 39,
+        "catalog": 35,
+        "bff": 138
+      },
+      {
+        "t": 3534,
+        "ordering": 42,
+        "catalog": 36,
+        "bff": 148
+      },
+      {
+        "t": 3564,
+        "ordering": 44,
+        "catalog": 52,
+        "bff": 149
+      },
+      {
+        "t": 3595,
+        "ordering": 45,
+        "catalog": 53,
+        "bff": 151
+      },
+      {
+        "t": 3625,
+        "ordering": 55,
+        "catalog": 57,
+        "bff": 150
+      },
+      {
+        "t": 3656,
+        "ordering": 59,
+        "catalog": 55,
+        "bff": 152
+      },
+      {
+        "t": 3687,
+        "ordering": 59,
+        "catalog": 56,
+        "bff": 152
+      },
+      {
+        "t": 3717,
+        "ordering": 61,
+        "catalog": 56,
+        "bff": 152
+      },
+      {
+        "t": 3748,
+        "ordering": 61,
+        "catalog": 57,
+        "bff": 151
+      },
+      {
+        "t": 3778,
+        "ordering": 62,
+        "catalog": 58,
+        "bff": 151
+      },
+      {
+        "t": 3809,
+        "ordering": 62,
+        "catalog": 59,
+        "bff": 151
+      },
+      {
+        "t": 3839,
+        "ordering": 63,
+        "catalog": 59,
+        "bff": 151
+      },
+      {
+        "t": 3870,
+        "ordering": 72,
+        "catalog": 65,
+        "bff": 153
+      },
+      {
+        "t": 3900,
+        "ordering": 70,
+        "catalog": 56,
+        "bff": 153
+      },
+      {
+        "t": 3931,
+        "ordering": 69,
+        "catalog": 56,
+        "bff": 152
+      }
+    ]
+  },
+  "verdict": {
+    "limitsHeld": true,
+    "nothingMissed": true,
+    "nothingMissedAfterRecovery": true
+  }
+}

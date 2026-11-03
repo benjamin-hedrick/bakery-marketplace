@@ -23,12 +23,12 @@ The code, tests and documents were written by AI agents (Claude Code sessions) w
 - **No independent human review of any code or design**, by a person who did not direct or write it. The lead's reviews are the only human ones.
 - **`WI-AUTH-007` (the cookie session) has not been reviewed by the lead**; it stays In progress until it is (register items 118 to 122).
 - **No penetration test and no review by a security specialist.**
-- **No dynamic scan** of the running system has been recorded (see the register entry for item 129; this line is updated when `WI-SEC-005` step 4 has run).
+- **Only one narrow dynamic scan** has been run: an unauthenticated OWASP ZAP scan of the local stack on 2026-11-03 (a baseline scan of both web apps, an API scan of the GraphQL endpoint). It found no High alert and no vulnerability beyond browser-hardening gaps, which were fixed. It did not see anything behind a login, the .NET services directly, or any deployed system (`docs/evidence/WI-SEC-005/zap-2026-11-03.md`).
 - **No dependency audit or SBOM** (`WI-SEC-004`). One new dependency, `graphql-sse`, was reviewed by hand and pinned.
 - **No review of anything deployed**, because nothing is deployed. No review of the Terraform against an Azure subscription beyond the gate rehearsal in `docs/evidence/WI-DEP-001/`.
 - **No review by a real identity provider's behavior.** The issuer is a local mock.
 - **No accessibility review by a person.** Automated checks (axe) cover what a tool can decide.
-- **No load test beyond the local run** in `docs/evidence/WI-SEC-005/`, on one machine.
+- **No load test beyond one local soak** (66 minutes, five screens, one machine; `docs/evidence/WI-SEC-005/load-soak-2026-11-03.md`).
 
 ## How to read this
 

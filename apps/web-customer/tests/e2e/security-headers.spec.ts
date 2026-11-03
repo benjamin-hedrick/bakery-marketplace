@@ -22,6 +22,9 @@ test('every kind of response carries the hardening headers', async ({ request })
     expect(h['x-content-type-options'], where).toBe('nosniff');
     expect(h['referrer-policy'], where).toMatch(/^(strict-origin-when-cross-origin|no-referrer)$/);
     expect(h['permissions-policy'], where).toContain('camera=()');
+    expect(h['cross-origin-opener-policy'], where).toBe('same-origin');
+    expect(h['cross-origin-resource-policy'], where).toBe('same-origin');
+    expect(h['x-powered-by'], where).toBeUndefined();
     const csp = h['content-security-policy'] ?? '';
     for (const directive of [
       "default-src 'self'",
