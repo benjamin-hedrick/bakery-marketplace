@@ -1,5 +1,24 @@
 import { randomBytes } from 'node:crypto';
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
+
+// Browsers: Chromium only by default (what the pipeline runs). `BROWSERS=all` adds Firefox, WebKit and two phone profiles; `BROWSERS=firefox,webkit`
+// picks some (docs/process/test-strategy.md). Run `npx playwright install firefox webkit` first.
+const projectsByName = {
+  chromium: { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  firefox: { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  webkit: { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  'mobile-chrome': { name: 'mobile-chrome', use: { ...devices['Pixel 7'] } },
+  'mobile-safari': { name: 'mobile-safari', use: { ...devices['iPhone 14'] } },
+};
+const wanted =
+  (process.env.BROWSERS ?? 'chromium') === 'all'
+    ? Object.keys(projectsByName)
+    : (process.env.BROWSERS ?? 'chromium').split(',');
+const projects = wanted.map((n) => {
+  const p = projectsByName[n.trim() as keyof typeof projectsByName];
+  if (!p) throw new Error(`Unknown browser project: ${n}`);
+  return p;
+});
 
 // Expects `npm run mock` (the BFF), `npm run mock-issuer` (the issuer) and a production `next start` to be running, or lets Playwright start all
 // three. Production mode on purpose: hydration warnings differ from `next dev`. The login happens on the app's server (ADR-0019), so the issuer is a
@@ -11,6 +30,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: [['list']],
+  projects,
   use: { baseURL: 'http://localhost:3100', trace: 'retain-on-failure' },
   webServer: [
     { command: 'npm run mock', url: 'http://localhost:4101/healthz', reuseExistingServer: true, timeout: 30_000 },
