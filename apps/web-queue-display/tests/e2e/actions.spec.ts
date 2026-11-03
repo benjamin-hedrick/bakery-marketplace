@@ -39,7 +39,7 @@ test('each card offers only what the vendor does next at its status, and a final
 test('an order goes through the whole line: accept, start, ready, handed over; the card moves and each action is sent once with the login', async ({
   page,
 }) => {
-  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
+  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })], streamMode: 'ok' });
   await logInAsVendor(page);
   await expect.poll(() => inColumn(page, 'new')).toEqual(['AAA111']);
 
@@ -64,7 +64,7 @@ test('an order goes through the whole line: accept, start, ready, handed over; t
 });
 
 test('an order that is declined asks once more first, and nothing is sent until the second click', async ({ page }) => {
-  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
+  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })], streamMode: 'ok' });
   await logInAsVendor(page);
 
   await page.getByRole('button', { name: 'Decline order AAA111' }).click();
@@ -77,7 +77,11 @@ test('an order that is declined asks once more first, and nothing is sent until 
 });
 
 test('while an action is in flight the buttons are off, so a second click sends nothing more', async ({ page }) => {
-  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })], actionDelayMs: 800 });
+  await setMock({
+    orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })],
+    actionDelayMs: 800,
+    streamMode: 'ok',
+  });
   await logInAsVendor(page);
   const accept = page.getByRole('button', { name: 'Accept order AAA111' });
 
@@ -114,7 +118,11 @@ test('an order that cannot be found says so', async ({ page }) => {
 test('a failing service says it did not work, shows no detail, and the same action works when the service is back', async ({
   page,
 }) => {
-  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })], actionMode: 'error' });
+  await setMock({
+    orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })],
+    actionMode: 'error',
+    streamMode: 'ok',
+  });
   await logInAsVendor(page);
 
   await page.getByRole('button', { name: 'Accept order AAA111' }).click();
@@ -139,7 +147,7 @@ test('when the login ends, the action says so and the screen offers the login ag
 });
 
 test('the buttons work from the keyboard', async ({ page }) => {
-  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
+  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })], streamMode: 'ok' });
   await logInAsVendor(page);
 
   await page.getByRole('button', { name: 'Accept order AAA111' }).focus();
@@ -189,4 +197,14 @@ test('the queue with its buttons has no accessibility violations that axe can fi
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
 
   expect(results.violations).toEqual([]);
+});
+
+test('with live updates unavailable the card still moves, at the next poll', async ({ page }) => {
+  await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })], streamMode: 'unavailable' });
+  await logInAsVendor(page);
+
+  await page.getByRole('button', { name: 'Accept order AAA111' }).click();
+
+  await expect(page.getByRole('button', { name: 'Accept order AAA111' })).toBeDisabled(); // off until the order shows its new status
+  await expect.poll(() => inColumn(page, 'preparing'), { timeout: 20_000 }).toEqual(['AAA111']);
 });

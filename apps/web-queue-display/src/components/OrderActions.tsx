@@ -46,7 +46,7 @@ interface Props {
   orderId: string;
   reference: string;
   status: string;
-  /** Asks the board for the list again, so it shows what the action did (and what a refusal found). */
+  /** Asks the board for the list again, after a refusal or a failure (the screen may be behind). */
   onSettled: () => void;
   onAnnounce: (text: string) => void;
 }
@@ -81,11 +81,13 @@ export function OrderActions({ orderId, reference, status, onSettled, onAnnounce
     if (outcome.kind === 'done') {
       setSentFrom(status);
       onAnnounce(`${button.label}: order ${reference}`);
+      // No list is fetched here: the change arrives on the stream (or at the next poll), and a list read that started before ordering's read model
+      // caught up could put the order back where it was (register item 133).
     } else {
       setMessage(OUTCOME_TEXT[outcome.kind]);
       onAnnounce(`Order ${reference}: ${OUTCOME_TEXT[outcome.kind]}`);
+      onSettled(); // a refusal means the screen was behind: ask for the list so it shows what the service holds
     }
-    onSettled();
   };
 
   const click = (button: ActionButton) => {

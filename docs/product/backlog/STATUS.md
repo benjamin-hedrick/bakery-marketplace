@@ -11,8 +11,8 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 54 |
-| In progress | 6 |
-| In review | 4 |
+| In progress | 5 |
+| In review | 5 |
 | Built | 1 |
 | Ready | 10 |
 | Proposed | 4 |
@@ -139,7 +139,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `services/ordering-service` (`Persistence/VendorOrder*.cs`), `services/graphql-bff` |
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `apps/web-queue-display` |
 | [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-003/` (the real-stack run and the first-pass security review, the `graphql-sse` review); approved by the lead on 2026-11-02 after a review round |
-| [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | EPIC-QUEUE-DISPLAY | In progress |  |
+| [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | EPIC-QUEUE-DISPLAY | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-004/` |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
@@ -183,7 +183,7 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-131 numbered items in `docs/governance/open-items-register.md` (highest number 131).
+132 numbered items in `docs/governance/open-items-register.md` (highest number 133).
 
 | Type | Count |
 |---|---|
@@ -253,6 +253,7 @@ Accepted: 20 · Superseded: 1
 | Deployment follow-up | 1 |
 | Residual risk | 1 |
 | Open decisions and verification | 1 |
+| Known limitation (race) | 1 |
 
 | Item status | Count |
 |---|---|
@@ -260,6 +261,6 @@ Accepted: 20 · Superseded: 1
 | Resolved | 41 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 54 |
+| Open | 55 |
 | Decided | 1 |
 | Partly | 1 |
