@@ -77,7 +77,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         await _database.StreamAddAsync(streamKey, entries, maxLength: _maxStreamLength, useApproximateMaxLength: _maxStreamLength is not null);
     }
 
-    public async Task SubscribeAsync<T>(
+    public Task SubscribeAsync<T>(
         string eventType,
         Func<DomainEventEnvelope<T>, CancellationToken, Task> handler,
         CancellationToken ct = default)
@@ -86,9 +86,40 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         if (handler is null) throw new ArgumentNullException(nameof(handler));
 
         string streamKey = GetStreamKey(eventType);
-        // One group per service and event type (register item 29): two services subscribing to the same event each receive every message,
-        // while instances of one service share the group and split the work. Without a service name the old per-event-type name is kept.
-        string groupName = string.IsNullOrWhiteSpace(_serviceName) ? $"cg:{eventType}" : $"cg:{_serviceName}:{eventType}";
+        string groupName = GroupName(eventType);
+        return RunSubscriptionAsync(eventType, async (deliveries, token) =>
+        {
+            foreach (var (entry, count) in deliveries)
+                await ProcessAsync(entry, count, streamKey, groupName, handler, token);
+        }, ct);
+    }
+
+    public Task SubscribeBatchAsync<T>(
+        string eventType,
+        Func<IReadOnlyList<DomainEventEnvelope<T>>, CancellationToken, Task<IReadOnlyCollection<Guid>>> handler,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(eventType)) throw new ArgumentException("EventType cannot be empty.", nameof(eventType));
+        if (handler is null) throw new ArgumentNullException(nameof(handler));
+
+        string streamKey = GetStreamKey(eventType);
+        string groupName = GroupName(eventType);
+        return RunSubscriptionAsync(eventType,
+            (deliveries, token) => ProcessBatchAsync(deliveries, streamKey, groupName, handler, token), ct);
+    }
+
+    // One group per service and event type (register item 29): two services subscribing to the same event each receive every message,
+    // while instances of one service share the group and split the work. Without a service name the old per-event-type name is kept.
+    private string GroupName(string eventType) =>
+        string.IsNullOrWhiteSpace(_serviceName) ? $"cg:{eventType}" : $"cg:{_serviceName}:{eventType}";
+
+    private async Task RunSubscriptionAsync(
+        string eventType,
+        Func<IReadOnlyList<(StreamEntry Entry, long DeliveryCount)>, CancellationToken, Task> processBatch,
+        CancellationToken ct)
+    {
+        string streamKey = GetStreamKey(eventType);
+        string groupName = GroupName(eventType);
         string consumerName = $"consumer:{Guid.NewGuid():N}";
 
         try
@@ -126,11 +157,12 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
                                 streamKey, groupName, consumerName, (long)_redeliverAfter.TotalMilliseconds,
                                 pending.Select(p => p.MessageId).ToArray());
                             var deliveries = pending.ToDictionary(p => (string)p.MessageId!, p => p.DeliveryCount + 1);
-                            foreach (var entry in claimed)
+                            var again = claimed.Where(e => !e.IsNull)
+                                .Select(e => (e, (long)deliveries.GetValueOrDefault((string)e.Id!, 2))).ToList();
+                            if (again.Count > 0)
                             {
-                                if (entry.IsNull) continue;
                                 worked = true;
-                                await ProcessAsync(entry, deliveries.GetValueOrDefault((string)entry.Id!, 2), streamKey, groupName, handler, cts.Token);
+                                await processBatch(again, cts.Token);
                             }
                         }
                     }
@@ -148,10 +180,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
                         continue;
                     }
 
-                    foreach (var entry in entries)
-                    {
-                        await ProcessAsync(entry, 1, streamKey, groupName, handler, cts.Token);
-                    }
+                    await processBatch(entries.Select(e => (e, 1L)).ToList(), cts.Token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -205,18 +234,71 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         }
         catch
         {
-            if (deliveryCount >= _maxDeliveryAttempts)
-            {
-                string deadLetterKey = $"{streamKey}:dead-letter";
-                await _database.StreamAddAsync(deadLetterKey, new NameValueEntry[]
-                {
-                    new("envelope", (string)jsonValue!),
-                    new("failedAt", DateTimeOffset.UtcNow.ToString("O")),
-                    new("attempts", deliveryCount.ToString())
-                });
+            await FailAsync(entry, deliveryCount, (string)jsonValue!, streamKey, groupName);
+        }
+    }
 
-                await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+    /// <summary>A failed delivery stays pending; at the maximum number of deliveries it is copied to the dead-letter stream and acknowledged.</summary>
+    private async Task FailAsync(StreamEntry entry, long deliveryCount, string envelopeJson, string streamKey, string groupName)
+    {
+        if (deliveryCount >= _maxDeliveryAttempts)
+        {
+            string deadLetterKey = $"{streamKey}:dead-letter";
+            await _database.StreamAddAsync(deadLetterKey, new NameValueEntry[]
+            {
+                new("envelope", envelopeJson),
+                new("failedAt", DateTimeOffset.UtcNow.ToString("O")),
+                new("attempts", deliveryCount.ToString())
+            });
+
+            await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+        }
+    }
+
+    /// <summary>
+    /// Runs the batch handler once for the entries of one poll. Entries whose event id the handler returns (or all of them, if it
+    /// throws) are treated as failed and follow the same retry and dead-letter path as <see cref="ProcessAsync{T}"/>; the rest are
+    /// acknowledged one by one. No per-event trace scope is started: a batch has no single parent trace.
+    /// </summary>
+    private async Task ProcessBatchAsync<T>(
+        IReadOnlyList<(StreamEntry Entry, long DeliveryCount)> deliveries, string streamKey, string groupName,
+        Func<IReadOnlyList<DomainEventEnvelope<T>>, CancellationToken, Task<IReadOnlyCollection<Guid>>> handler, CancellationToken token)
+    {
+        var parsed = new List<(StreamEntry Entry, long DeliveryCount, string Json, DomainEventEnvelope<T> Envelope)>();
+        foreach (var (entry, count) in deliveries)
+        {
+            var jsonValue = entry.Values.FirstOrDefault(v => v.Name == "envelope").Value;
+            DomainEventEnvelope<T>? envelope = null;
+            if (!jsonValue.IsNull)
+            {
+                try { envelope = JsonSerializer.Deserialize<DomainEventEnvelope<T>>((string)jsonValue!, _jsonOptions); }
+                catch { }
             }
+
+            if (envelope == null) await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id); // unreadable: nothing to retry
+            else parsed.Add((entry, count, (string)jsonValue!, envelope));
+        }
+        if (parsed.Count == 0) return;
+
+        IReadOnlyCollection<Guid> failedIds;
+        try
+        {
+            failedIds = await handler(parsed.Select(p => p.Envelope).ToList(), token);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            failedIds = parsed.Select(p => p.Envelope.EventId).ToList();
+        }
+
+        var failed = new HashSet<Guid>(failedIds);
+        foreach (var p in parsed)
+        {
+            if (failed.Contains(p.Envelope.EventId)) await FailAsync(p.Entry, p.DeliveryCount, p.Json, streamKey, groupName);
+            else await _database.StreamAcknowledgeAsync(streamKey, groupName, p.Entry.Id);
         }
     }
 

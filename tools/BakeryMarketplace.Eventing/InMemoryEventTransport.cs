@@ -31,6 +31,20 @@ public class InMemoryEventTransport : IEventPublisher, IEventSubscriber
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// In memory a publish is delivered at once, so a batch is always one event. Failed ids are not retried (this transport has no
+    /// redelivery); a failure is thrown to the publisher, as for <see cref="SubscribeAsync{T}"/>.
+    /// </summary>
+    public Task SubscribeBatchAsync<T>(
+        string eventType,
+        Func<IReadOnlyList<DomainEventEnvelope<T>>, CancellationToken, Task<IReadOnlyCollection<Guid>>> handler,
+        CancellationToken ct = default) =>
+        SubscribeAsync<T>(eventType, async (envelope, token) =>
+        {
+            var failed = await handler(new[] { envelope }, token);
+            if (failed.Count > 0) throw new InvalidOperationException($"Batch handler reported event {envelope.EventId} as failed.");
+        }, ct);
+
     public async Task PublishAsync<T>(DomainEventEnvelope<T> envelope, CancellationToken ct = default)
     {
         envelope = EventTracing.StampTraceparent(envelope);
