@@ -10,6 +10,7 @@ import {
   validate,
   GraphQLError,
   type ExecutionResult,
+  type ValidationRule,
 } from 'graphql';
 import { createHandler as createSseHandler } from 'graphql-sse/lib/use/http';
 import type { Config } from './config.ts';
@@ -17,6 +18,7 @@ import { createCatalogClient, type CatalogClient } from './catalog-client.ts';
 import { createOrderingClient, type OrderingClient } from './ordering-client.ts';
 import { ClientError, DownstreamError, internalError } from './errors.ts';
 import { rootValue, subscriptionRoot, type Context } from './resolvers.ts';
+import { validationRules, DEFAULT_LIMITS } from './limits.ts';
 import { createOtlpExporter, type SpanExporter } from './otlp.ts';
 import { connectionAddress, createTokenBucketLimiter, DEFAULT_PER_MINUTE } from './rate-limit.ts';
 import { startTrace, toTraceparent } from './trace.ts';
@@ -68,6 +70,7 @@ export function createServer(
   const log = deps.log ?? jsonLogger;
   const exportSpan = deps.exporter ?? createOtlpExporter(config.otlpEndpoint);
   const maxStreams = config.maxStreams ?? 500;
+  const rules = validationRules(config.operationLimits ?? DEFAULT_LIMITS);
   const limiter = createTokenBucketLimiter(config.rateLimitPerMinute ?? DEFAULT_PER_MINUTE);
   let openStreams = 0;
   // A place among the streams this instance holds is taken when a subscription is about to be established (its body has been read and it is a
@@ -93,7 +96,7 @@ export function createServer(
       } catch (e) {
         return rejection(new GraphQLError(e instanceof Error ? e.message : 'Syntax error'));
       }
-      const invalid = validate(schema, document);
+      const invalid = validate(schema, document, rules);
       if (invalid.length) return rejection(...invalid);
       // Only subscriptions are served here: queries and mutations have their own JSON route, with its own error mapping and logging.
       if (getOperationAST(document, params.operationName)?.operation !== 'subscription') {
@@ -237,7 +240,14 @@ export function createServer(
 
     let result: ExecutionResult;
     try {
-      result = await run(source, variables, operationName, contextOf(req, config, { catalog, ordering }, trace), log);
+      result = await run(
+        source,
+        variables,
+        operationName,
+        contextOf(req, config, { catalog, ordering }, trace),
+        log,
+        rules,
+      );
     } catch (e) {
       // Anything the execution throws that is not an error of the operation itself must not escape the request handler: an unhandled
       // rejection ends the process. The caller gets the generic error and the trace id to quote.
@@ -278,6 +288,7 @@ async function run(
   operationName: string | undefined,
   ctx: Context,
   log: Logger,
+  rules: readonly ValidationRule[],
 ): Promise<ExecutionResult> {
   let document;
   try {
@@ -285,7 +296,7 @@ async function run(
   } catch (e) {
     return { errors: [new GraphQLError(e instanceof Error ? e.message : 'Syntax error')] };
   }
-  const invalid = validate(schema, document);
+  const invalid = validate(schema, document, rules);
   if (invalid.length) return { errors: invalid };
 
   const result = await execute({

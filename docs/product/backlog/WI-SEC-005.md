@@ -1,7 +1,9 @@
-> **Status:** In progress · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do
+> **Status:** In progress · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below)
 
 > **Progress note (2026-11-02, steps 1 and 2):** the threat model is written (two gaps found: register 134 and 135). The fuzz step found a request that ended the BFF process (register 136) in its first run; it is fixed with a test that starts the real process. Generated-input tests now cover the BFF's stream reader, JSON route and event-stream path, the global ids, and the session package's returnTo, cookie, CSRF, header, body, address and limiter functions. BFF 141 tests, session package 172 (13 skipped without Redis).
 
+
+> **Progress note (2026-11-02, fixes for 134 and 135):** the browser hardening headers are set in both apps (CSP without a script nonce, frame protection, `nosniff`, referrer and permissions policy) with tests that show them working in five browser profiles, and the BFF refuses operations over a depth, root-field and total-field limit (and can refuse introspection). BFF 155 tests; queue display 53 browser tests. Open: `'unsafe-inline'` in `script-src`, HSTS, and the introspection decision.
 
 ```
 WI ID:                SEC-005
@@ -41,5 +43,6 @@ Register item 129: no load, soak, fuzz or dynamic testing is planned or recorded
 Full for the build and the runs. Flag, do not choose: any fix to auth or session logic; what level of independent review the project claims.
 
 **Open Points (working)**
-- [ ] Whether to fix the missing browser hardening headers (register 134) and the missing GraphQL cost limits (register 135) in this item or as their own: the lead decides.
+- [x] Whether to fix the missing browser hardening headers (register 134) and the missing GraphQL cost limits (register 135) in this item or as their own. **Resolved 2026-11-02:** the lead asked for both now; done in this item.
+- [ ] Whether a deployed environment refuses introspection (`BFF_DISABLE_INTROSPECTION=1`), and whether to move `script-src` to nonces (a larger change).
 - [ ] Whether an outside reviewer is wanted before the repository is public.

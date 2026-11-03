@@ -1,3 +1,4 @@
+import { limitsFromEnv, type OperationLimits } from './limits.ts';
 import { ratePerMinuteFromEnv } from './rate-limit.ts';
 
 export interface Config {
@@ -27,6 +28,8 @@ export interface Config {
   maxStreams?: number | undefined;
   /** A coarse ceiling on requests per minute from one source address (`BFF_RATE_LIMIT_PER_MINUTE`, default 600). In practice the source is the web app's server. */
   rateLimitPerMinute?: number | undefined;
+  /** Limits on the size of an operation and whether introspection is refused (`BFF_MAX_QUERY_DEPTH`, `BFF_MAX_ROOT_FIELDS`, `BFF_MAX_FIELDS`, `BFF_DISABLE_INTROSPECTION=1`). */
+  operationLimits?: OperationLimits | undefined;
   /** OTLP/HTTP base URL (`OTEL_EXPORTER_OTLP_ENDPOINT`). Unset means traces are not exported. */
   otlpEndpoint?: string | undefined;
 }
@@ -43,6 +46,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     streamIdleMs: Number(env.STREAM_IDLE_MS ?? 45000),
     maxStreams: Number(env.MAX_STREAMS ?? 500),
     rateLimitPerMinute: ratePerMinuteFromEnv(env),
+    operationLimits: limitsFromEnv(env),
     otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
   };
 }
