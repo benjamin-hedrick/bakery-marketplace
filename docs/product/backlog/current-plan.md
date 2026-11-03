@@ -29,7 +29,9 @@ The public-readiness pass is done except the settings that need the repository t
 - **Review of `WI-AUTH-007`** by the lead (it stays In progress until then), with register items 118 to 122 and the pipeline's first Azure run of the `queue` and `session` jobs.
 - **Item 127** (order changes cross Redis Pub/Sub in the clear) is decided with the deployed Redis (`WI-DEP-001`).
 
-**Product order agreed with the lead (2026-11-02):** after the quality work, notifications on order events (`NOT-001`, `NOT-002`; a second consumer for the event backbone), then the customer's order history (`WI-CUST-007`) and personalization, then a mobile spike (`WI-QA-003`). Vendor onboarding (seeded data and the mock identity stay), the admin console and a real payment (design only) come last or are not built for the demo. The deployed dev environment, Azure and Entra stay a separate, parallel track.
+**Notifications built (2026-11-03, branch `feature/slice-notifications`, not yet pushed or reviewed):** `NOT-001` and `NOT-002` are In review, with `ICacheProvider.GetManyAsync` and `IEventSubscriber.SubscribeBatchAsync` added to `tools/`. Local only: no real provider, not in `docker-compose.yml`. Candidate small next steps on the same branch: add the service to the Compose `apps` profile with a real-checkout smoke run, a contract test of the event names against ordering, a trace scope for batches. Allergy and low-stock templates wait for their events (register 138).
+
+**Product order agreed with the lead (2026-11-02):** after the quality work, notifications on order events (`NOT-001`, `NOT-002`; built, above), then the customer's order history (`WI-CUST-007`) and personalization, then a mobile spike (`WI-QA-003`). Vendor onboarding (seeded data and the mock identity stay), the admin console and a real payment (design only) come last or are not built for the demo. The deployed dev environment, Azure and Entra stay a separate, parallel track.
 
 **Next, in this order (set 2026-10-31):**
 
