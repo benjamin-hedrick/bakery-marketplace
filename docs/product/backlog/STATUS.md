@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-93 specs.
+95 specs.
 
 | Status | Count |
 |---|---|
@@ -14,7 +14,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In progress | 5 |
 | In review | 7 |
 | Built | 1 |
-| Ready | 10 |
+| Ready | 12 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 1 |
@@ -38,6 +38,7 @@ Superseded and obsolete items are not counted.
 | EPIC-GOLIVE-SUPPORT | 0 of 1 | LAUNCH-002 |
 | EPIC-GOVERNANCE | 1 of 1 | GOV-001 |
 | EPIC-LOCAL-DEV | 3 of 4 | DEMO-001, DEV-001, DEV-002, DEV-004 |
+| EPIC-NOTIFICATIONS | 0 of 2 | NOT-001, NOT-002 |
 | EPIC-OPS-ARTIFACTS | 3 of 3 | OPS-001, OPS-002, OPS-003 |
 | EPIC-ORDERING | 7 of 8 | ORD-001, ORD-002, ORD-003, ORD-004, ORD-005, ORD-006, ORD-007, ORD-008 |
 | EPIC-PM-ARTIFACTS | 4 of 8 | MGMT-001, MGMT-002, MGMT-003, MGMT-004, MGMT-005, MGMT-006, MGMT-007, MGMT-008 |
@@ -108,6 +109,8 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | EPIC-PM-ARTIFACTS | Done | evidence: `docs/management/stakeholder-communications-plan.md` |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | EPIC-PM-ARTIFACTS | Done | evidence: `docs/process/branching-strategy.md` |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
+| [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | Ready | evidence: none yet; `services/notification-service` is an empty scaffold |
+| [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | Ready | evidence: none yet |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/sla.md` |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/evidence/runbook-event-broker-2026-10-30.md`; the runbook is `docs/operations/runbooks/event-broker-unavailable-during-checkout.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
@@ -186,15 +189,15 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-137 numbered items in `docs/governance/open-items-register.md` (highest number 137).
+138 numbered items in `docs/governance/open-items-register.md` (highest number 138).
 
 | Type | Count |
 |---|---|
 | Known limitation | 10 |
 | Process | 8 |
+| Gap | 8 |
 | Verification gap | 7 |
 | Tracking | 7 |
-| Gap | 7 |
 | Not started | 6 |
 | Hardening | 6 |
 | Documentation drift | 5 |
@@ -266,7 +269,7 @@ Accepted: 20 · Superseded: 1
 | Resolved | 45 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 54 |
+| Open | 55 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
