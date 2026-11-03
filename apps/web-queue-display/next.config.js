@@ -30,11 +30,15 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
+  // Not shared with other origins: no other site may open the app in a window it can script, or embed its responses.
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
 ];
 
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
+  poweredByHeader: false, // no `X-Powered-By: Next.js`: a scan reports it as information about the stack
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

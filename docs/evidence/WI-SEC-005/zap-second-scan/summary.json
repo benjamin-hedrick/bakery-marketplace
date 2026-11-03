@@ -1,0 +1,93 @@
+[
+  {
+    "name": "customer app",
+    "alerts": 6,
+    "byRisk": {
+      "Medium": [
+        {
+          "name": "CSP: script-src unsafe-inline",
+          "instances": 3
+        },
+        {
+          "name": "CSP: style-src unsafe-inline",
+          "instances": 5
+        }
+      ],
+      "Low": [
+        {
+          "name": "Cross-Origin-Embedder-Policy Header Missing or Invalid",
+          "instances": 5
+        }
+      ],
+      "Informational": [
+        {
+          "name": "Modern Web Application",
+          "instances": 5
+        },
+        {
+          "name": "Non-Storable Content",
+          "instances": 3
+        },
+        {
+          "name": "Storable and Cacheable Content",
+          "instances": 5
+        }
+      ]
+    },
+    "exit": 0
+  },
+  {
+    "name": "queue display",
+    "alerts": 6,
+    "byRisk": {
+      "Medium": [
+        {
+          "name": "CSP: script-src unsafe-inline",
+          "instances": 1
+        },
+        {
+          "name": "CSP: style-src unsafe-inline",
+          "instances": 3
+        }
+      ],
+      "Low": [
+        {
+          "name": "Cross-Origin-Embedder-Policy Header Missing or Invalid",
+          "instances": 1
+        }
+      ],
+      "Informational": [
+        {
+          "name": "Modern Web Application",
+          "instances": 3
+        },
+        {
+          "name": "Non-Storable Content",
+          "instances": 2
+        },
+        {
+          "name": "Storable and Cacheable Content",
+          "instances": 5
+        }
+      ]
+    },
+    "exit": 0
+  },
+  {
+    "name": "GraphQL BFF",
+    "alerts": 2,
+    "byRisk": {
+      "Informational": [
+        {
+          "name": "A Client Error response code was returned by the server",
+          "instances": 17
+        },
+        {
+          "name": "Non-Storable Content",
+          "instances": 1
+        }
+      ]
+    },
+    "exit": 0
+  }
+]

@@ -1,9 +1,11 @@
-> **Status:** In progress · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below)
+> **Status:** In review · evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/` (fuzz, soak, ZAP), `docs/governance/review-statement.md`; steps 1 to 5 are done · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below)
 
 > **Progress note (2026-11-02, steps 1 and 2):** the threat model is written (two gaps found: register 134 and 135). The fuzz step found a request that ended the BFF process (register 136) in its first run; it is fixed with a test that starts the real process. Generated-input tests now cover the BFF's stream reader, JSON route and event-stream path, the global ids, and the session package's returnTo, cookie, CSRF, header, body, address and limiter functions. BFF 141 tests, session package 172 (13 skipped without Redis).
 
 
 > **Progress note (2026-11-02, fixes for 134 and 135):** the browser hardening headers are set in both apps (CSP without a script nonce, frame protection, `nosniff`, referrer and permissions policy) with tests that show them working in five browser profiles, and the BFF refuses operations over a depth, root-field and total-field limit (and can refuse introspection). BFF 155 tests; queue display 53 browser tests. Open: `'unsafe-inline'` in `script-src`, HSTS, and the introspection decision.
+
+> **Outcome note (2026-11-03):** all five steps are done and recorded. The fuzz step found a request that ended the BFF process (register 136, fixed). The threat model found two gaps (134 browser hardening headers, 135 GraphQL cost limits), fixed at the lead's request. The soak (66 minutes, 762 orders, five screens, an ordering restart): nothing missed, p50 110 ms and p95 146 ms request-to-screen, no memory growth; it also showed that the BFF's rate-limit backstop is shared by all users of a web app (register 137, open). The unauthenticated ZAP scan found no High alert; its Mediums are `unsafe-inline` in the CSP, and its Lows were fixed except the Embedder Policy. Not done: an independent review, a scan behind a login, a scan of the .NET services directly, and anything deployed.
 
 ```
 WI ID:                SEC-005
@@ -12,7 +14,7 @@ Type:                 Docs and tests
 Epic:                 EPIC-CI-CD
 Shared with epic(s):  EPIC-QUALITY-EVIDENCE
 Hat/Owner:            Quality, Security
-Status:               In progress
+Status:               In review
 Size:                 L
 Verification class:   V3 (security verification itself). Classes are proposed in `docs/process/verification-policy.md`.
 ADRs and NFRs affected: NFR 3.8 and 3.9, 5.1; ADR-0019, ADR-0021 (their limits are exercised); `WI-SEC-004` (the scan is added to its scope).

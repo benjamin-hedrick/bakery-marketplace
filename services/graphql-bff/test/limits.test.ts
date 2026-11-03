@@ -240,4 +240,22 @@ describe('the /graphql route with the limits', () => {
     );
     assert.ok(!/event: next\ndata:.*"vendorOrderChanged"/.test(text));
   });
+
+  test('every answer says nosniff and same-origin resource policy, errors and refusals included', async () => {
+    const url = await bff();
+    for (const [path, init] of [
+      ['/healthz', {}],
+      ['/nope', {}],
+      [
+        '/graphql',
+        { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"query":"{ __typename }"}' },
+      ],
+      ['/graphql', { method: 'POST', headers: { 'content-type': 'application/json' }, body: 'not json' }],
+    ] as const) {
+      const res = await fetch(`${url}${path}`, init);
+      await res.text();
+      assert.equal(res.headers.get('x-content-type-options'), 'nosniff', `${path} ${res.status}`);
+      assert.equal(res.headers.get('cross-origin-resource-policy'), 'same-origin', `${path} ${res.status}`);
+    }
+  });
 });

@@ -135,6 +135,9 @@ export function createServer(
         'content-type': 'application/json',
         // Authenticated/personalised responses default to no-store (ADR-0014); no public-cache policy exists for this slice yet.
         'cache-control': 'private, no-store',
+        // A scan asks for these on every response, JSON included (WI-SEC-005).
+        'x-content-type-options': 'nosniff',
+        'cross-origin-resource-policy': 'same-origin',
         // Response-only alias of the trace id (ADR-0016). An inbound X-Correlation-Id is never read.
         'x-correlation-id': trace.traceId,
         traceparent: toTraceparent(trace),
