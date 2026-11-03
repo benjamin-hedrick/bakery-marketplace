@@ -20,6 +20,7 @@ nav:
   - Architecture:
       - Container Diagram: architecture/c4/container.md
       - Request Path: architecture/request-path.md
+      - Threat Model: architecture/threat-model.md
       - Context and Components:
           - System Context: architecture/c4/context.md
           - Service Components: architecture/c4/component-services.md
@@ -27,6 +28,7 @@ nav:
       - ADRs: architecture/adr/README.md
       - Decision Timeline: architecture/decision-timeline.md
       - Tech Stack: architecture/tech-stack.md
+      - Threat model: architecture/threat-model.md
       - NFRs: architecture/nfrs.md
       - Data Model / API Contracts: architecture/data-model-api-contracts.md
       - First-Slice Contract: architecture/first-slice-contract.md

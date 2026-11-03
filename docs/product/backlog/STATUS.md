@@ -6,12 +6,12 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-92 specs.
+93 specs.
 
 | Status | Count |
 |---|---|
 | Done | 54 |
-| In progress | 5 |
+| In progress | 6 |
 | In review | 6 |
 | Built | 1 |
 | Ready | 10 |
@@ -30,7 +30,7 @@ Superseded and obsolete items are not counted.
 | EPIC-BACKLOG-PLANNING | 0 of 2 | PLAN-001, PLAN-002 |
 | EPIC-CACHING | 4 of 4 | CACHE-001, CACHE-002, CACHE-003, CACHE-004 |
 | EPIC-CATALOG | 3 of 4 | CAT-001, CAT-003, CAT-005, CAT-006 |
-| EPIC-CI-CD | 0 of 1 | SEC-004 |
+| EPIC-CI-CD | 0 of 2 | SEC-004, SEC-005 |
 | EPIC-CLOUD-INFRA | 0 of 1 | DEP-001 |
 | EPIC-DATA-STORE | 2 of 2 | DATA-001, DATA-002 |
 | EPIC-EVENTING | 2 of 2 | EVT-001, EVT-003 |
@@ -146,6 +146,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
 | [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | EPIC-CI-CD | Deferred | trigger: with the public-readiness pass (register item 93) or when a deployment stage is added |
+| [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In progress |  |
 | [SRCH-001](WI-SRCH-001.md) | Search/filter by dietary preference (consumes Preference Snapshot) | EPIC-SEARCH | Ready |  |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.EventSchemas` and its tests |
 | [TOOL-002](WI-TOOL-002.md) | Structured logging + correlation-ID helper (tools/BakeryMarketplace.Logging) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.Logging` and `tools/tests/BakeryMarketplace.Logging.Tests` |
@@ -185,7 +186,7 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-133 numbered items in `docs/governance/open-items-register.md` (highest number 133).
+135 numbered items in `docs/governance/open-items-register.md` (highest number 135).
 
 | Type | Count |
 |---|---|
@@ -193,9 +194,9 @@ Accepted: 20 · Superseded: 1
 | Process | 8 |
 | Verification gap | 7 |
 | Tracking | 7 |
+| Gap | 7 |
 | Not started | 6 |
 | Hardening | 6 |
-| Gap | 5 |
 | Documentation drift | 5 |
 | Tech debt | 4 |
 | Open decision | 3 |
@@ -263,7 +264,8 @@ Accepted: 20 · Superseded: 1
 | Resolved | 42 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 54 |
+| Open | 55 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
+| In | 1 |

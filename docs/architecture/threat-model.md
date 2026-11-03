@@ -1,0 +1,109 @@
+# Threat model: the browser, session and stream surface
+
+> **Status:** Current · written 2026-11-02 by the AI agent that wrote most of the code under review (`WI-SEC-005`, register item 129). It is a first model, not an independent one: it lists what the agent could see from the code, the tests and the documents. The services behind the BFF are covered only at their edge. Nothing here has been checked against a deployed system, because none exists.
+
+## Scope and method
+
+**In scope:** the vendor's queue display and the customer app (browser), their Next.js servers' API routes (`/api/auth/*`, `/api/graphql`, `/api/graphql-stream`), the shared session package, the session store, the GraphQL BFF, and the edge of ordering-service and catalog-service (token validation, ownership, the vendor stream and the vendor actions). **Out of scope:** payment (a stub), the admin and notification services (scaffolds), deployed infrastructure, Entra, and the mock issuer's own security (it is a test tool). Method: for each trust boundary, what an attacker can send or hold, what stops it, what test shows it, and what is left. Threats are grouped by the STRIDE headings only to make gaps easier to see.
+
+## Assets
+
+1. **A login**: the session id in the cookie, and the tokens held for it on the server (access token, refresh token).
+2. **A vendor's orders and what can be done to them** (the queue, and now accept, decline, start, ready, hand over): a vendor's customers, items and pickup times.
+3. **A customer's orders and their dietary choices** (treated as quasi-health data, NFR 3.7).
+4. **Availability of the vendor's screen** during service hours.
+5. **The secrets**: the session encryption key, the services' client secret (`.env`, never committed).
+
+## Trust boundaries
+
+```mermaid
+flowchart LR
+  A[Attacker's site or network]:::bad
+  B[Browser<br/>holds an opaque cookie only]
+  W[Web app server<br/>session, CSRF, rate limits<br/>adds the bearer token]
+  R[(Session store<br/>Redis, encrypted records)]
+  F[BFF<br/>composition and error mapping<br/>does not validate tokens]
+  S[Services<br/>validate token, role, ownership]
+  E[(Events Redis<br/>Pub/Sub and streams)]
+  I[Issuer<br/>mock locally]
+  A -. 1 .-> B
+  A -. 2 .-> W
+  B -- 3 --> W
+  W -- 4 --> R
+  W -- 5 --> F
+  A -. 6 .-> F
+  F -- 7 --> S
+  S -- 8 --> E
+  W -- 9 --> I
+  classDef bad fill:#fdd,stroke:#a00;
+```
+
+1 and 2 are the internet; 3 is the only route the browser is meant to use; 6 is anyone who can reach the BFF's port directly (locally, anyone on the machine; in the cloud, behind API Management, ADR-0008, not built); 8 is the weakest link on the ground: Redis requires no authentication locally and Pub/Sub carries order documents in the clear (register item 127).
+
+## Threats, controls, evidence, and what is left
+
+"Evidence" names tests that exist and pass (local runs only). **Gap** marks a threat with no control or no test; each gap is in the register.
+
+### Spoofing (who is calling)
+
+| # | Threat | Control | Evidence | Left |
+|---|---|---|---|---|
+| S1 | Guessing or stealing a session id | 256-bit random opaque id; `HttpOnly`; `SameSite=Lax`; `__Host-` and `Secure` except on loopback HTTP; idle and absolute lifetimes | package tests on the cookie and the id shape; both apps' browser tests that the page holds no token | Over HTTP on loopback the cookie is not `Secure` (by design, local only). Theft by script depends on S6 |
+| S2 | Forged login callback or a code injected into someone's login | `state`, PKCE verifier, a one-use pending-login record, tied to a cookie | package tests; browser tests of a forged state | The real issuer has not been used |
+| S3 | A token made up by the caller | Every service validates signature, issuer, audience and role itself (zero trust, ADR-0006); the BFF forwards the token unchanged | service and library tests; real-stack journeys with a junk token get 401 | Keys are the mock issuer's. Entra not tested |
+| S4 | A browser sending its own `Authorization` header | The web route drops it and uses the session's | browser test "an Authorization header sent by the browser is never passed on" | none known |
+| S5 | A second vendor acting on the first's order | Ordering takes the vendor from the token and answers 404 for another vendor's order | ordering tests; BFF test; real-stack journey (vendor actions) | none known |
+
+### Tampering (changing what is sent or stored)
+
+| # | Threat | Control | Evidence | Left |
+|---|---|---|---|---|
+| T1 | Cross-site request forgery on the web routes, including the vendor actions | `SameSite=Lax` plus an `Origin` equal to the app's and a JSON content type on every state-changing request and on the stream | package tests; both apps' browser tests (foreign, missing, form-encoded) | Origin-based; a browser that sends no `Origin` on a same-origin POST would be refused, not allowed |
+| T2 | An altered or copied session record in the store | AES-256-GCM with the session id as associated data | package store tests | The key is a process secret; rotation needs a restart (ADR-0007) |
+| T3 | Open redirect through `returnTo` | Only a path inside the app is accepted | package tests of the rules | none known |
+| T4 | A repeated checkout or action taking effect twice | Idempotency key at checkout; the order's state machine refuses a repeated action (409) | service tests; real-stack journey (repeat is "not allowed now") | none known |
+| T5 | Events altered or injected by whoever reaches the events Redis | Authentication on Redis in the deployed design (not built) | none | **Open: register 127.** Locally Redis has no password |
+| T6 | Query injection into Cosmos | Parameterized SDK queries only (NFR 3.4) | code review; no scan | No dynamic or static scan has been run (item 129 step 4) |
+
+### Repudiation and information disclosure
+
+| # | Threat | Control | Evidence | Left |
+|---|---|---|---|---|
+| R1 | A token, cookie, idempotency key or e-mail in a log or a trace | Logs name events, not values; the collector drops URL queries | tests that the token is never logged (BFF, package); slice-1 capture (NFR 3.6) | Checked on the code paths tested, not by a scan of real logs under load |
+| R2 | Error text that reveals internals | Fixed client-safe messages; the BFF maps every downstream failure to a generic error | BFF tests for 5xx and for unknown codes | none known |
+| R3 | One vendor reading another's orders or stream | The stream is opened with the token's vendor, never one the caller names; the web route strips the customer id | ordering and BFF tests; the real-stack journey for a second vendor | The channel carries the customer id in the clear on the events Redis (register 127) |
+| R4 | A customer's data in a vendor's view | The vendor read model does not name the customer | schema and mapping tests | none known |
+| R5 | A cached private response | `private, no-store` on authenticated and API responses | browser and BFF tests of the headers | Public pages are cacheable by design |
+| R6 | Who did what (an action by a vendor) is not recorded | The services log the action and the order carries the actor of a cancellation | service tests | There is no audit log of vendor actions as a feature; the events are the record |
+
+### Denial of service
+
+| # | Threat | Control | Evidence | Left |
+|---|---|---|---|---|
+| D1 | Many streams from one vendor or login | 5 per vendor, 5 per login, 500 per process and per BFF | tests at each layer | Never approached under real load (item 129 step 3) |
+| D2 | A client that never reads or never finishes sending | Write timeout, silence limit, body read before a stream is counted, request timeouts | tests for each | none known |
+| D3 | A flood of requests, logins or junk cookies | Per-address and per-login rate limits (`WI-RATE-001`); BFF backstop | package, BFF and browser tests | Counts are per process; numbers are starting values; not load tested |
+| D4 | A large or deeply nested GraphQL operation, many aliases, a batch | Body limit 64 KB at the BFF and the web route | tests of the body limit | **Gap, register 135:** no depth, alias or cost limit; introspection is on |
+| D5 | Many screens reconnecting together after a restart | Backoff with randomness in the live feed | unit tests of the feed | Never tried at scale |
+| D6 | A slow or failing service holding the BFF's requests | Bounded timeouts; a generic error | BFF tests (slow ordering) | none known |
+
+### Elevation of privilege and the browser as a victim
+
+| # | Threat | Control | Evidence | Left |
+|---|---|---|---|---|
+| E1 | A customer calling a vendor action | The service checks the role; the BFF maps 403 to FORBIDDEN | BFF test; real-stack journey | none known |
+| E2 | A stream outliving a revoked role | The stream ends at the token's expiry; the web route ends it when the session ends | package and ordering tests | **Accepted by the lead:** up to the token lifetime (review round 2) |
+| E3 | Clickjacking: the queue display framed in another site, tricking a vendor into pressing Accept or Decline | None. The apps set no `X-Frame-Options` and no `frame-ancestors` | none | **Gap, register 134.** More serious since the vendor actions exist |
+| E4 | Script injection in the page (XSS) reading the page or sending requests as the user | React escapes by default; the page holds no token (so a script cannot steal one); a search of both apps and the session package finds no `dangerouslySetInnerHTML` | the "nothing readable in the page" browser test | **Gap, register 134:** no `Content-Security-Policy`, so a script that did run could call the API as the logged-in vendor |
+| E5 | Other missing headers (`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS in the cloud) | The login callback sets `Referrer-Policy` and `no-store` | the package test that the callback sets `Referrer-Policy` | **Gap, register 134** |
+| E6 | A malicious dependency | `graphql-sse` was reviewed by hand and pinned exactly; lockfiles committed | the review record | No audit or SBOM yet (`WI-SEC-004`) |
+| E7 | Test hooks enabled outside tests | `ENABLE_TEST_HOOKS` is inert in production by configuration | tests of the hook | Relies on the operator not setting it; no deployed check |
+| E8 | A secret committed | `gitleaks` over the full history before every push | the scan record | A secret in an image or a pipeline variable is not scanned |
+
+## What the findings change
+
+Two new gaps: **no browser hardening headers (register 134)** and **no GraphQL cost limits (register 135)**. Neither was found by a test; both were found by writing the table and looking for the control. The order of risk, in the agent's judgment: clickjacking and the missing CSP (a vendor's action buttons are now live), then GraphQL cost limits (the BFF is reachable without a token for public queries), then the unauthenticated, cleartext events Redis (known, tied to the deployed design).
+
+## What this model is not
+
+Not independent, not exhaustive, and not a penetration test. It was written by the agent that wrote the code, from the same understanding that wrote the controls, so it shares that agent's blind spots. The lead's review and an outside review are the checks that would not share them (register item 129; the statement of what has been reviewed is `docs/governance/review-statement.md`, when written).
