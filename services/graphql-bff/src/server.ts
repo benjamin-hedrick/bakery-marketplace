@@ -18,6 +18,7 @@ import { createOrderingClient, type OrderingClient } from './ordering-client.ts'
 import { ClientError, DownstreamError, internalError } from './errors.ts';
 import { rootValue, subscriptionRoot, type Context } from './resolvers.ts';
 import { createOtlpExporter, type SpanExporter } from './otlp.ts';
+import { connectionAddress, createTokenBucketLimiter, DEFAULT_PER_MINUTE } from './rate-limit.ts';
 import { startTrace, toTraceparent } from './trace.ts';
 
 const schema = buildSchema(readFileSync(fileURLToPath(new URL('../schema/schema.graphql', import.meta.url)), 'utf8'));
@@ -67,6 +68,7 @@ export function createServer(
   const log = deps.log ?? jsonLogger;
   const exportSpan = deps.exporter ?? createOtlpExporter(config.otlpEndpoint);
   const maxStreams = config.maxStreams ?? 500;
+  const limiter = createTokenBucketLimiter(config.rateLimitPerMinute ?? DEFAULT_PER_MINUTE);
   let openStreams = 0;
   // A place among the streams this instance holds is taken when a subscription is about to be established (its body has been read and it is a
   // valid subscription), not when the request arrives: the library reads the body first, so counting at arrival would let anyone who sends a body
@@ -139,6 +141,21 @@ export function createServer(
 
     if (req.url === '/healthz') return send(200, { ok: true });
     if (req.url !== '/graphql' || req.method !== 'POST') return send(404, { errors: [{ message: 'Not found' }] });
+
+    // The coarse backstop (register item 128): checked before the body is read or anything is called.
+    const turn = limiter.take(connectionAddress(req.socket));
+    if (!turn.allowed) {
+      log.info({ msg: 'graphql request refused: rate limit', traceId: trace.traceId });
+      res.setHeader('retry-after', String(turn.retryAfterSeconds));
+      return send(429, {
+        errors: [
+          {
+            message: 'Too many requests. Please wait a moment and try again.',
+            extensions: { code: 'RATE_LIMITED' },
+          },
+        ],
+      });
+    }
 
     if (headerValue(req.headers.accept) === EVENT_STREAM) {
       // The library reads the whole request body before anything else, so the size is bounded here: a length is required and must be small.
