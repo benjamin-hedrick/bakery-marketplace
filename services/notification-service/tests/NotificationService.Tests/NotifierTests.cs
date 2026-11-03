@@ -72,7 +72,7 @@ public sealed class OrderEventNotifierTests
     }
 
     private OrderEventNotifier Notifier(IContactDirectory directory, ICacheProvider cache) =>
-        new(directory, new PlainMessageComposer(), _sender, new SentLedger(cache), _log);
+        new(directory, new TemplateMessageComposer(), _sender, new SentLedger(cache), _log);
 
     private static DomainEventEnvelope<OrderConfirmedPayload> Confirmed(string orderId, string? customerId) =>
         new(Guid.NewGuid(), "OrderConfirmed", 1, DateTimeOffset.UtcNow, "Order", orderId, 2, new OrderConfirmedPayload(orderId, CustomerId: customerId));

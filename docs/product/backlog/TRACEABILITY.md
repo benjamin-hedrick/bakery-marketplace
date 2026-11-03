@@ -43,6 +43,7 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | Done | *none* | *none* |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | *none* |
+| [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | In review | *none* | *none* |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | Done | *none* | *none* |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | Done | *none* | `runbook-event-broker-2026-10-30.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | Done | *none* | *none* |

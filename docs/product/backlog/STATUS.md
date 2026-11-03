@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 8 |
+| In review | 9 |
 | Built | 1 |
-| Ready | 11 |
+| Ready | 10 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 1 |
@@ -110,7 +110,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | EPIC-PM-ARTIFACTS | Done | evidence: `docs/process/branching-strategy.md` |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
-| [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | Ready | evidence: none yet |
+| [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/sla.md` |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/evidence/runbook-event-broker-2026-10-30.md`; the runbook is `docs/operations/runbooks/event-broker-unavailable-during-checkout.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
