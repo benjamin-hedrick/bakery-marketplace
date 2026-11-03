@@ -15,7 +15,8 @@ npm run build              # relay-compiler + next build
 npm run mock               # terminal 1: mock GraphQL on :4000
 ENABLE_TEST_HOOKS=1 npx next start -p 3000    # terminal 2 (production build)
 npm run test:isolation     # 200 concurrent SSR requests, two fixtures
-npm run test:e2e           # Playwright (starts the servers itself if they are not running)
+npm run test:e2e           # Playwright (starts the servers itself if they are not running); Chromium only
+BROWSERS=all npm run test:e2e   # also Firefox, WebKit and two phone profiles (npx playwright install firefox webkit first; docs/evidence/cross-browser/)
 ```
 
 On first use run `npx playwright install chromium`.
