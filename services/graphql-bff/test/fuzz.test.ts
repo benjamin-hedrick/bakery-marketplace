@@ -465,13 +465,18 @@ describe('the /graphql route with generated requests', () => {
       headers: { 'content-type': 'application/json' },
       body,
     });
-    const json = (await res.json()) as { data?: Record<string, unknown>; errors?: { message: string }[] };
+    const json = (await res.json()) as {
+      data?: Record<string, unknown>;
+      errors?: { message: string; extensions?: { code?: string } }[];
+    };
     console.log(`alias request: status ${res.status}, ${json.errors?.length ?? 0} errors`);
     const calls = downstream.filter((d) => d.includes('pickup-windows')).length - before;
-    // Recorded, not asserted as a limit: with no cost limit, one request under 64 KB asks for this many downstream calls.
+    // Before register item 135 was fixed this request made 57 downstream calls, 56 of them at once, and then failed. It is now refused by validation.
     console.log(
-      `fuzz /graphql: one ${body.length}-byte request with ${parts.length} aliases made ${calls} calls to ordering (at most ${peak} at once) and returned ${Object.keys(json.data ?? {}).length} fields`,
+      `fuzz /graphql: one ${body.length}-byte request with ${parts.length} aliases made ${calls} calls to ordering and was answered ${JSON.stringify(json.errors?.[0]?.extensions)}`,
     );
+    assert.equal(calls, 0);
+    assert.equal(json.errors?.[0]?.extensions?.code, 'OPERATION_TOO_COMPLEX');
     assert.ok(res.status < 500);
   });
 });

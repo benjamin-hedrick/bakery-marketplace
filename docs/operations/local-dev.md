@@ -253,5 +253,7 @@ The web apps and the BFF limit how fast a caller may act. Locally the defaults a
 | `TRUSTED_PROXY_HOPS` | 0 | web apps: how many proxies add to `X-Forwarded-For`; 0 ignores the header. Behind a proxy with 0, everyone shares the proxy's address |
 | `BFF_RATE_LIMIT_PER_MINUTE` | 600 | BFF: `/graphql` per source address (in practice the web app's server) |
 
+The BFF also limits the size of an operation (register item 135): `BFF_MAX_QUERY_DEPTH` (default 10), `BFF_MAX_ROOT_FIELDS` (8, each is a call to a service) and `BFF_MAX_FIELDS` (200), each a whole number from 1 to 99999, and `BFF_DISABLE_INTROSPECTION=1` refuses schema introspection (on by default; a deployed environment is expected to refuse it, the lead decides). The web apps set browser hardening headers in their `next.config.js` (register item 134); nothing to configure.
+
 A value that is not a whole number from 1 to 100000 (0 to 100000 for the hops) stops the web app or the BFF from starting, and the message names the variable. A refusal is `429` with `Retry-After`; a refused login goes to the error page with a sentence. The counts are per process.
 
