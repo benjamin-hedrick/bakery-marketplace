@@ -7,6 +7,10 @@ name: Login, restart without login, logout
 - assertVisible:
     id: login-button
 - runFlow: subflows/login.yaml
+# Who is signed in, from the token's name claim (display only).
+- assertVisible:
+    id: signed-in-as
+- assertVisible: Signed in as Alice Customer
 - assertVisible: Country Sourdough
 - assertVisible: Low stock
 - assertVisible: Sold out
@@ -17,6 +21,8 @@ name: Login, restart without login, logout
     id: listings
 - assertNotVisible:
     id: login-button
+# The name comes back with the renewed session too.
+- assertVisible: Signed in as Alice Customer
 # Logout returns to the login screen, and a restart does not bring the session back.
 - tapOn:
     id: sign-out

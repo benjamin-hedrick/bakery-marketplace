@@ -1,0 +1,44 @@
+# WI-MOB-002: a customer with no saved allergy profile. The cart still says what an item contains (or that the bakery flagged nothing), checkout says the order
+# was not checked against any allergies, never says nothing conflicts, asks for no acknowledgement, and tells the bakery nothing.
+appId: com.bakerymarketplace.mobile
+name: With no allergy profile the order is not checked, and the app says so
+---
+- runScript: scripts/set-profile.js
+- launchApp:
+    clearState: true
+- runFlow: subflows/login.yaml
+# An item with flagged allergens: what it contains is shown even without a profile.
+- tapOn:
+    id: listing-Almond Croissant
+- tapOn:
+    id: add-to-order
+- assertVisible: ".*Contains.*tree nuts.*"
+- tapOn:
+    id: back
+- tapOn:
+    id: back
+# An item the bakery flagged nothing on says exactly that: never "free of" anything.
+- tapOn:
+    id: listing-Oat Milk Latte
+- tapOn:
+    id: add-to-order
+- assertVisible: No allergens flagged by the bakery
+- tapOn:
+    id: to-checkout
+- assertVisible:
+    id: no-profile
+- assertVisible: ".*not checked against your allergies.*"
+- assertNotVisible:
+    id: conflict-0
+- assertNotVisible:
+    id: acknowledge
+- assertNotVisible:
+    id: tell-bakery
+- assertVisible:
+    id: place-order
+    enabled: true
+- tapOn:
+    id: place-order
+- assertVisible:
+    id: order-headline
+- runScript: scripts/assert-last-order-allergens.js

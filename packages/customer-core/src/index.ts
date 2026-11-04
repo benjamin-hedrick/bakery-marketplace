@@ -7,3 +7,5 @@ export * from './dietText.ts';
 export * from './orderText.ts';
 export * from './tagFilter.ts';
 export * from './money.ts';
+export * from './identity.ts';
+export * from './allergenCheck.ts';

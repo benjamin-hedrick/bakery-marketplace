@@ -2,7 +2,7 @@ import { cartCount } from '@bakery/customer-core';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { BackHandler, Platform, StatusBar as NativeStatusBar, Text, View } from 'react-native';
-import { restoreSession, signOut, useAuthState } from './src/auth/session';
+import { restoreSession, signOut, useAuthState, useSignedInName } from './src/auth/session';
 import { cartStore, useCart } from './src/cart';
 import { CartScreen } from './src/screens/CartScreen';
 import { CheckoutScreen } from './src/screens/CheckoutScreen';
@@ -34,6 +34,7 @@ const TITLES: Record<Route['name'], string> = {
 export default function App() {
   const auth = useAuthState();
   const cart = useCart();
+  const name = useSignedInName();
   const [stack, setStack] = useState<Route[]>([{ name: 'listings' }]);
   const route = stack[stack.length - 1]!;
 
@@ -81,6 +82,18 @@ export default function App() {
           <Button label="Sign out" testID="sign-out" kind="plain" compact onPress={() => void signOut()} />
         </View>
       </View>
+      {name ? (
+        <Text
+          style={[
+            styles.muted,
+            { paddingHorizontal: 12, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: colors.line },
+          ]}
+          testID="signed-in-as"
+          numberOfLines={1}
+        >
+          {`Signed in as ${name}`}
+        </Text>
+      ) : null}
       {route.name === 'listings' && <ListingsScreen onOpen={(id) => push({ name: 'detail', id })} />}
       {route.name === 'detail' && <DetailScreen id={route.id} onAdded={() => push({ name: 'cart' })} />}
       {route.name === 'cart' && (

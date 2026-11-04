@@ -43,6 +43,30 @@ export function Button(props: {
   );
 }
 
+/** A tick box: a row with a square that shows a check mark, announced as a checkbox with its state. */
+export function Checkbox(props: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  testID: string;
+}) {
+  return (
+    <Pressable
+      testID={props.testID}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: props.checked }}
+      accessibilityLabel={props.label}
+      onPress={() => props.onChange(!props.checked)}
+      style={styles.checkboxRow}
+    >
+      <View style={[styles.checkboxBox, props.checked && { backgroundColor: colors.accent }]}>
+        {props.checked ? <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>✓</Text> : null}
+      </View>
+      <Text style={[styles.text, { flex: 1 }]}>{props.label}</Text>
+    </Pressable>
+  );
+}
+
 export function Loading() {
   return (
     <View style={styles.center} testID="loading">
@@ -81,5 +105,16 @@ export const styles = StyleSheet.create({
   primary: { backgroundColor: colors.accent },
   plain: { borderWidth: 1, borderColor: colors.accent, backgroundColor: '#fff' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
+  checkboxBox: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
   notice: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 12, backgroundColor: '#fff', gap: 8 },
 });

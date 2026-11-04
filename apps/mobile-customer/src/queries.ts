@@ -1,3 +1,5 @@
+import type { ConflictView } from '@bakery/customer-core';
+
 // The operations the app sends. The schema is services/graphql-bff/schema/schema.graphql, the same contract the web app uses.
 export interface Money {
   cents: number;
@@ -73,4 +75,30 @@ export interface OrderData {
 export const LINE_NAME = `query LineName($id: ID!) { listing(id: $id) { name modifiers { id name } } }`;
 export interface LineNameData {
   listing: { name: string; modifiers: { id: string; name: string }[] } | null;
+}
+
+// ---- allergens (WI-MOB-002): the registry's labels, what each listing contains, the caller's profile and the check of a cart against it ----
+export const ALLERGEN_TAGS = `query AllergenTags { tags(kind: ALLERGEN) { id label } }`;
+export interface AllergenTagsData {
+  tags: { id: string; label: string }[];
+}
+
+export const LISTING_ALLERGENS = `query ListingAllergens($id: ID!) { listing(id: $id) { id allergenFlags modifiers { id allergens } } }`;
+export interface ListingAllergensData {
+  listing: { id: string; allergenFlags: string[]; modifiers: { id: string; allergens: string[] }[] } | null;
+}
+
+export const PROFILE = `query Profile { preferences { allergies avoid prefer } }`;
+export interface ProfileData {
+  preferences: { allergies: string[]; avoid: string[]; prefer: string[] };
+}
+
+export const CART_CHECK = `query CartCheck($lines: [CartLineInput!]!) { cartCheck(lines: $lines) {
+  listingId found conflicts { allergenId severity source optionIds } } }`;
+export interface CartCheckData {
+  cartCheck: {
+    listingId: string;
+    found: boolean;
+    conflicts: ConflictView[];
+  }[];
 }

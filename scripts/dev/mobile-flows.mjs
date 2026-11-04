@@ -11,9 +11,10 @@
 // finds them at their usual places when JAVA_HOME and ANDROID_HOME are not set; docs/operations/scripts.md). The app is built WITH the
 // declined-payment switch (EXPO_PUBLIC_TEST_HOOKS=1) and the BFF started with ENABLE_TEST_HOOKS=1: a test setup, never a demo.
 // Results: artifacts/mobile/maestro-junit.xml and the debug output under artifacts/mobile/maestro-debug.
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
+import { startFlowControl } from '../lib/flow-control.mjs';
 import { createStack, ports } from '../lib/local-stack.mjs';
 import * as mobile from '../lib/mobile.mjs';
 
@@ -26,10 +27,12 @@ const isWin = process.platform === 'win32';
 
 const stack = createStack({ label: 'mobile', outDir: 'artifacts/mobile', distDir: '.next-mobile' });
 let bootedEmulator = false;
+let flowControl = null;
 let stopping = false;
 function teardown() {
   if (stopping) return;
   stopping = true;
+  flowControl?.close();
   if (keep) return log('--keep: the stack (and the emulator, if booted here) are left running');
   stack.stopAll();
   stack.down();
@@ -47,6 +50,8 @@ try {
   stack.up();
   await stack.startServices({ testHooks: true });
   mobile.reversePorts(log);
+  // The flows' setup steps (a customer's allergen profile, the newest order, taking the BFF away) call this from Maestro's JavaScript.
+  flowControl = startFlowControl({ stack, log });
   if (!noBuild) mobile.buildApp(log, { testHooks: true });
   mobile.installApp(log);
 
@@ -55,21 +60,26 @@ try {
   );
   if (flows.length === 0) throw new Error('no flow matched');
   log(`running ${flows.length} flow(s): ${flows.join(', ')}`);
-  const result = spawnSync(
-    path.join(mobile.maestroBin, isWin ? 'maestro.bat' : 'maestro'),
-    [
-      'test',
-      '--format',
-      'junit',
-      '--output',
-      path.join(mobile.out, 'maestro-junit.xml'),
-      '--debug-output',
-      path.join(mobile.out, 'maestro-debug'),
-      ...flows.map((f) => path.join('.maestro', f)),
-    ],
-    { cwd: mobile.appDir, env: mobile.env, shell: isWin, stdio: 'inherit' },
-  );
-  code = result.status ?? 1;
+  // Asynchronous on purpose: the flow-control server above runs in this process and must keep answering while Maestro runs.
+  const exitCode = await new Promise((resolve) => {
+    const child = spawn(
+      path.join(mobile.maestroBin, isWin ? 'maestro.bat' : 'maestro'),
+      [
+        'test',
+        '--format',
+        'junit',
+        '--output',
+        path.join(mobile.out, 'maestro-junit.xml'),
+        '--debug-output',
+        path.join(mobile.out, 'maestro-debug'),
+        ...flows.map((f) => path.join('.maestro', f)),
+      ],
+      { cwd: mobile.appDir, env: mobile.env, shell: isWin, stdio: 'inherit' },
+    );
+    child.on('error', () => resolve(1));
+    child.on('exit', (c) => resolve(c ?? 1));
+  });
+  code = exitCode;
   log(
     code === 0
       ? 'every flow passed'
