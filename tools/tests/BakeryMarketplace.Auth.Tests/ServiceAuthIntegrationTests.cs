@@ -106,7 +106,9 @@ public class ServiceAuthIntegrationTests : IAsyncLifetime
     {
         var form = new Dictionary<string, string>
         {
-            ["grant_type"] = "client_credentials", ["client_id"] = clientId, ["client_secret"] = secret,
+            ["grant_type"] = "client_credentials",
+            ["client_id"] = clientId,
+            ["client_secret"] = secret,
         };
         if (scope is not null) form["scope"] = scope;
         var response = await _issuer.PostAsync("/token", new FormUrlEncodedContent(form));
@@ -120,13 +122,19 @@ public class ServiceAuthIntegrationTests : IAsyncLifetime
         var challenge = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
         var authorize = await _issuer.PostAsync("/authorize/submit", new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["userId"] = userId, ["redirect_uri"] = "http://localhost/cb", ["state"] = "s",
-            ["code_challenge"] = challenge, ["code_challenge_method"] = "S256",
+            ["userId"] = userId,
+            ["redirect_uri"] = "http://localhost/cb",
+            ["state"] = "s",
+            ["code_challenge"] = challenge,
+            ["code_challenge_method"] = "S256",
         }));
         var code = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(authorize.Headers.Location!.Query)["code"].ToString();
         var token = await _issuer.PostAsync("/token", new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["grant_type"] = "authorization_code", ["code"] = code, ["redirect_uri"] = "http://localhost/cb", ["code_verifier"] = verifier,
+            ["grant_type"] = "authorization_code",
+            ["code"] = code,
+            ["redirect_uri"] = "http://localhost/cb",
+            ["code_verifier"] = verifier,
         }));
         token.EnsureSuccessStatusCode();
         return JsonNode.Parse(await token.Content.ReadAsStringAsync())!["access_token"]!.ToString();

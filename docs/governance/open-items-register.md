@@ -784,10 +784,10 @@ ADR-0022 accepted; the nine allergens and labels approved; caps 12 per listing a
 
 **142. Order allergens stay on the event stream as long as `OrderPlaced` does**
 Type: Data retention · Source: `WI-ORD-009` build (2026-11-04) · Hat: Architect, Security
-Status: Open
+Status: Resolved 2026-11-04 (confirmed by the lead: no extra retention rule; the stream's own trimming applies)
 `OrderPlaced` carries the allergens the customer chose for the order, and the Redis stream keeps its payloads (`Events:MaxStreamLength` 100000), so they live as long as the event. The only consumers are the vendor read model (this order's vendor) and the notification service (which does not read or print them). The data is order-scoped and customer-chosen, like the lines of the order, and is never the customer's profile. Proposed: no extra rule; the stream's own trimming applies. Confirm, or shorten the stream retention for this event, before anything is deployed. The same data also sits on the order and the vendor read model for as long as those are kept (`PRIV-001`, deferred).
 
 **143. Public browse, with or without a tag filter, reads every published listing of every verified vendor and filters in memory**
 Type: Scaling limit · Source: `WI-TAG-003` build (2026-11-04) · Hat: Architect
-Status: Open
+Status: Accepted 2026-11-04 (the lead agrees: fine at seed volume; revisit before real volume)
 `ListingService.BrowseAsync` reads one partition per verified vendor and orders, filters and pages in memory (its own comment says so, and the personalized browse does the same). A tag filter adds one cheap pass over what was already read, so it does not change the cost class, but the cost grows with the number of listings and vendors, and a filter makes the read no cheaper. Fine at the seed volume (a handful of listings). Before real volume: a query by tag in Cosmos (an array-contains on the listing's tags) or a search index (`SRCH-*`), with the visibility and window rules kept in the catalog.

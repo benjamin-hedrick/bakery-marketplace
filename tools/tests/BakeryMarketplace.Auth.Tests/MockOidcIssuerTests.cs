@@ -111,7 +111,7 @@ public class MockOidcIssuerTests
     {
         using var server = CreateServer();
         using var client = server.CreateClient();
-        
+
         // 1. Setup PKCE
         var codeVerifier = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
         using var sha256 = SHA256.Create();
@@ -151,7 +151,7 @@ public class MockOidcIssuerTests
 
         var responseString = await tokenResponse.Content.ReadAsStringAsync();
         var json = JsonNode.Parse(responseString);
-        
+
         Assert.NotNull(json);
         Assert.NotNull(json["access_token"]);
     }
@@ -161,7 +161,7 @@ public class MockOidcIssuerTests
     {
         using var server = CreateServer();
         using var client = server.CreateClient();
-        
+
         var codeVerifier = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
         using var sha256 = SHA256.Create();
         var codeChallenge = Base64UrlEncoder.Encode(sha256.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier)));
