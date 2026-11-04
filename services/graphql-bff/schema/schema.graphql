@@ -20,6 +20,19 @@ type Query {
   without one, FORBIDDEN for another role). A customer who never saved one has two empty lists.
   """
   preferences: Preferences!
+  """
+  The public listings with what in each conflicts with the caller's allergen profile (WI-SRCH-001), in the same order and with the same paging as
+  `listings`. hideConflicts leaves out listings whose item itself contains an allergen of the profile (a conflict only through an optional add-on
+  does not hide it). Needs a customer's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another role). Private to the caller.
+  """
+  personalizedListings(first: Int = 20, after: String, hideConflicts: Boolean = false): PersonalizedListingConnection!
+  "One public listing with the caller's conflicts, for the item and every option. Null when it does not exist or is not public."
+  personalizedListing(id: ID!): PersonalizedListing
+  """
+  Checks a cart against the caller's profile: for each line (in order) the conflicts of the item and of the options chosen on that line, and only
+  those. At most 50 lines of at most 20 options (BAD_INPUT otherwise). A line whose listing is not public is found: false, not an error.
+  """
+  cartCheck(lines: [CartLineInput!]!): [CartLineCheck!]!
   "The tags the catalog offers today, optionally of one kind (ADR-0022). Public. Hidden tags and tags outside their window are not in it."
   tags(kind: TagKind): [Tag!]!
   "The pickup windows checkout accepts right now. Public."
@@ -221,6 +234,65 @@ When live updates are unavailable the subscription fails and the screen keeps po
 type Subscription {
   "The vendor's order whenever it changes, whole (the same shape the list returns). Nothing is replayed: list first, then apply these."
   vendorOrderChanged: VendorOrder!
+}
+
+enum ConflictSeverity {
+  "An allergen the customer must avoid."
+  ALLERGY
+  "An allergen the customer would rather avoid."
+  AVOID
+}
+
+enum ConflictSource {
+  "The listing itself is marked with the allergen."
+  ITEM
+  "Only some options of the listing are; see optionIds."
+  OPTION
+}
+
+"""
+One allergen of the caller's profile found on a listing. No conflict is an empty list and never means the listing is safe: a bakery's flags may be
+incomplete, and the product must not say otherwise.
+"""
+type Conflict {
+  "An allergen id from the tag registry (the `tags` query)."
+  allergenId: ID!
+  severity: ConflictSeverity!
+  source: ConflictSource!
+  "For an OPTION conflict, the options (their raw ids) that contain the allergen; empty for ITEM."
+  optionIds: [ID!]!
+}
+
+type PersonalizedListing {
+  listing: Listing!
+  conflicts: [Conflict!]!
+}
+
+type PersonalizedListingEdge {
+  cursor: String!
+  node: PersonalizedListing!
+}
+
+type PersonalizedListingConnection {
+  edges: [PersonalizedListingEdge!]!
+  pageInfo: PageInfo!
+}
+
+input CartLineInput {
+  "A Listing global id."
+  listingId: ID!
+  "The raw ids of the options chosen on this line."
+  optionIds: [ID!]!
+}
+
+type CartLineCheck {
+  "The Listing global id that was sent."
+  listingId: ID!
+  "False when the listing does not exist or is not public; its conflicts are then empty."
+  found: Boolean!
+  "Option ids the listing does not have; they count for nothing."
+  unknownOptionIds: [ID!]!
+  conflicts: [Conflict!]!
 }
 
 "The caller's allergen profile. Both lists hold allergen ids from the tag registry (the `tags` query); an allergen is in at most one list."

@@ -55,10 +55,12 @@ public sealed class ListingService
     /// <summary>
     /// Published listings of verified vendors, ordered by id. <paramref name="after"/> is the id of the last item of the
     /// previous page. The repository contract is single-partition, so this reads one partition per verified vendor;
-    /// fine at first-slice scale, to be revisited if the vendor count grows.
+    /// fine at first-slice scale, to be revisited if the vendor count grows. <paramref name="include"/>, when given, narrows the listings
+    /// <b>before</b> paging, so a filtered page is still full and the cursor still means "after this id" (the personalized browse uses it to
+    /// hide conflicting items).
     /// </summary>
     public async Task<(IReadOnlyList<ListingDocument> Items, string? NextCursor)> BrowseAsync(
-        int limit, string? after, CancellationToken ct = default)
+        int limit, string? after, CancellationToken ct = default, Func<ListingDocument, bool>? include = null)
     {
         var all = new List<ListingDocument>();
         foreach (var vendorId in await _vendors.VerifiedVendorIdsAsync(ct))
@@ -70,7 +72,7 @@ public sealed class ListingService
             }
         }
 
-        var ordered = all.OrderBy(l => l.Id, StringComparer.Ordinal)
+        var ordered = all.Where(l => include is null || include(l)).OrderBy(l => l.Id, StringComparer.Ordinal)
             .Where(l => after is null || string.CompareOrdinal(l.Id, after) > 0)
             .Take(limit + 1)
             .ToList();

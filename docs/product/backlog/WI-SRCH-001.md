@@ -1,4 +1,12 @@
-> **Status:** Ready
+> **Status:** In review · built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the rule, its wording and the two defaults below (this is the safety rule)
+
+> **Outcome note (2026-11-04):** built in three steps. (1) The rule, `ConflictMatcher` (pure; exact id match; `allergy` before `avoid`, then allergen id, then the item before its options; an allergen in both lists counts as the serious one; a stored flag that is not an allergen id never matches and is never guessed at). (2) The catalog endpoints, all Customer role, all `private, no-store`: `GET /catalog/listings/for-me` (same listings, order and cursor as the public list, each wrapped as `{ listing, conflicts }`; `hideConflicts` filters **before** paging through a new optional filter on `ListingService.BrowseAsync`), `GET /catalog/listings/for-me/{id}`, and `POST /catalog/preferences/check` (at most 50 lines of 20 options, 64 KB body, read with a limit; a listing that is not public is `found: false`, unknown option ids are named and count for nothing). (3) The BFF: `personalizedListings`, `personalizedListing` and `cartCheck`, mapping only (a cart over the limits is BAD_INPUT before anything is sent; a listing id that does not decode is a line that was not found).
+>
+> **Verified (local):** 10 rule tests and 21 endpoint tests (catalog 227 passed, 7 skipped without the emulator); 16 BFF tests (198 in all); 3 real-stack journeys on the seeded catalog (the almond croissant's item and option conflicts, the walnut muffin conflicting only through an add-on, the sourdough's sesame only when the seeds are chosen; hiding keeps the muffin and removes the croissant and the dairy items; a vendor token FORBIDDEN, no token UNAUTHENTICATED, the public list still anonymous), `skeleton-smoke.mjs --containers` 37 passed. Mutation checks, each failing the intended test only: the cart counting every option; hiding on option-only conflicts; hiding after paging; any role allowed; `avoid` outranking `allergy`.
+>
+> **Changes from the original plan:** the answer is wrapped (`{ listing, conflicts }`) so the public listing shape is reused as it is; the cart check always asks the catalog, even for an empty cart, because the catalog is what checks the caller's role (found by the real-stack journey: an empty cart had been answered without asking, so a vendor token got an empty list instead of FORBIDDEN); the framework logs the request URL, so `hideConflicts=true` can appear in a log line (a view setting, not an allergen); the privacy tests therefore look for allergen ids and the word `allergy`.
+>
+> **Not done / limits:** a listing stored before the allergen list was closed can hold a value that is not an id, and it can never match (it is shown by the public view and never flagged here); the cart check probes each verified vendor's partition for a listing, as the public detail does (known limitation of id-only addressing); no web screen yet (`CUST-006`, `CUST-008`); another customer's conflicts were not tried on the real stack (one mock customer; the catalog tests cover it).
 
 ```
 WI ID:               SRCH-001
@@ -7,7 +15,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-SEARCH
 Shared with epic(s):  EPIC-PREFERENCES
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 M
 ```
 
@@ -51,4 +59,4 @@ Yes, with the lead's review: this is the safety rule, and its wording and defaul
 **Data touched**: none new
 
 **Open Points (working)**
-- [ ] The default for `hideConflicts` (off, as before) and the item-only rule for hiding are decisions made here, for the lead to confirm when it is visible in `CUST-006`.
+- [ ] The default for `hideConflicts` (off, as before) and the item-only rule for hiding are decisions made here, for the lead to confirm when it is visible in `CUST-006`. Built as written: both severities hide at the item level; an option-only conflict never hides.
