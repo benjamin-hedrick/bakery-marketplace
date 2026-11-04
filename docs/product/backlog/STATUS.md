@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 9 |
+| In review | 10 |
 | Built | 1 |
-| Ready | 10 |
+| Ready | 9 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 1 |
@@ -84,7 +84,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer` (`/orders/{id}`); `docs/evidence/slice-1/findings.md`. The order history list was split out into `WI-CUST-007` |
 | [CUST-005](WI-CUST-005.md) | Preferences / dietary profile UI | EPIC-WEB-CUSTOMER | Ready |  |
 | [CUST-006](WI-CUST-006.md) | Personalized dietary-safety highlighting on browse | EPIC-WEB-CUSTOMER | Ready |  |
-| [CUST-007](WI-CUST-007.md) | Customer order history list | EPIC-WEB-CUSTOMER | Ready |  |
+| [CUST-007](WI-CUST-007.md) | Customer order history list | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/order-history` (2026-11-04); the page, the BFF query and the ordering endpoint pass their tests and the real-stack journeys (29 passed), nothing is deployed; waiting for the lead's review |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
@@ -189,7 +189,7 @@ Accepted: 20 · Superseded: 1
 
 ## Open-items register
 
-138 numbered items in `docs/governance/open-items-register.md` (highest number 138).
+139 numbered items in `docs/governance/open-items-register.md` (highest number 139).
 
 | Type | Count |
 |---|---|
@@ -262,6 +262,7 @@ Accepted: 20 · Superseded: 1
 | Known limitation (race) | 1 |
 | Defect (security: unauthenticated denial of service) | 1 |
 | Design weakness | 1 |
+| Scaling limit and verification gap | 1 |
 
 | Item status | Count |
 |---|---|
@@ -269,7 +270,7 @@ Accepted: 20 · Superseded: 1
 | Resolved | 45 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 55 |
+| Open | 56 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |

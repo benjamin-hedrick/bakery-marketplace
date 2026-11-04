@@ -31,6 +31,8 @@ The public-readiness pass is done except the settings that need the repository t
 
 **Notifications built (2026-11-03, branch `feature/slice-notifications`, not yet pushed or reviewed):** `NOT-001` and `NOT-002` are In review, with `ICacheProvider.GetManyAsync` and `IEventSubscriber.SubscribeBatchAsync` added to `tools/`. Local only: no real provider. Also on the branch: the service in the Compose `apps` profile, run against a real-checkout smoke (66 notifications, no errors), a contract test of the event names against ordering, and one trace span per batch (seen in the local Aspire dashboard). Allergy and low-stock templates wait for their events (register 138).
 
+**Order history built (2026-11-04, branch `feature/order-history`, stacked on `feature/slice-notifications`, not yet pushed or reviewed):** `WI-CUST-007` is In review: `GET /ordering/orders` for the calling customer, the BFF `orders` connection, and `/orders` in the customer app with a header link; checked in the browser against the mock BFF and on the real stack (register 139 lists what was not).
+
 **Product order agreed with the lead (2026-11-02):** after the quality work, notifications on order events (`NOT-001`, `NOT-002`; built, above), then the customer's order history (`WI-CUST-007`) and personalization, then a mobile spike (`WI-QA-003`). Vendor onboarding (seeded data and the mock identity stay), the admin console and a real payment (design only) come last or are not built for the demo. The deployed dev environment, Azure and Entra stay a separate, parallel track.
 
 **Next, in this order (set 2026-10-31):**
