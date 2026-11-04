@@ -25,10 +25,10 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | Done | *none* | *none* |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | Done | *none* | `baseline-2026-10-30.md` |
-| [CUST-005](WI-CUST-005.md) | Allergen profile page | In review | `preferences.spec.ts`, `profile-page.spec.ts` | `status-check-experiment-2026-10-30.md` |
-| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | In review | `personalized.spec.ts`, `profile-page.spec.ts`, `conflictText.test.ts` | `status-check-experiment-2026-10-30.md` |
-| [CUST-007](WI-CUST-007.md) | Customer order history list | In review | `order-history.spec.ts`, `order-history.spec.ts`, `customer-orders.test.ts` and 1 more | `baseline-2026-10-30.md`, `status-check-experiment-2026-10-30.md` |
-| [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | In review | `checkout-allergens.spec.ts`, `checkout-allergens.spec.ts`, `cartAllergens.test.ts` | *none* |
+| [CUST-005](WI-CUST-005.md) | Allergen profile page | In review | `preferences.spec.ts`, `profile-page.spec.ts` | `ai-usage-2026-11-04.md`, `status-check-experiment-2026-10-30.md` |
+| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | In review | `personalized.spec.ts`, `profile-page.spec.ts`, `conflictText.test.ts` | `ai-usage-2026-11-04.md`, `status-check-experiment-2026-10-30.md` |
+| [CUST-007](WI-CUST-007.md) | Customer order history list | In review | `order-history.spec.ts`, `order-history.spec.ts`, `customer-orders.test.ts` and 1 more | `ai-usage-2026-11-04.md`, `baseline-2026-10-30.md`, `status-check-experiment-2026-10-30.md` |
+| [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | In review | `checkout-allergens.spec.ts`, `checkout-allergens.spec.ts`, `cartAllergens.test.ts` | `ai-usage-2026-11-04.md` |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |
@@ -46,7 +46,7 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | Done | *none* | *none* |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | Done | *none* | *none* |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
-| [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `README.md`, `ai-usage-2026-11-03.md` |
+| [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `README.md`, `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | In review | *none* | `README.md`, `ai-usage-2026-11-03.md` |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | Done | *none* | *none* |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | Done | *none* | `runbook-event-broker-2026-10-30.md` |
@@ -59,14 +59,14 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | Done | `CosmosOrderStoreTests.cs`, `OrderPersistenceTests.cs` | *none* |
 | [ORD-007](WI-ORD-007.md) | Order action endpoints (confirm, decline, start, ready, complete, cancel) | Done | `OrderActionApiTests.cs`, `OrderActionTests.cs` | *none* |
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | Done | `journey.spec.ts`, `stack.spec.ts`, `vendor-queue.spec.ts` and 2 more | *none* |
-| [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | In review | `order-allergens.spec.ts`, `order-allergens.test.ts`, `OrderAllergenApiTests.cs` and 1 more | *none* |
+| [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | In review | `order-allergens.spec.ts`, `order-allergens.test.ts`, `OrderAllergenApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | Done | *none* | `README.md`, `findings.md`, `findings.md` |
 | [PORT-002](WI-PORT-002.md) | Walking skeleton: Next.js SSR → GraphQL BFF → C# API | Done | `walking-skeleton.spec.ts` | `README.md`, `findings.md`, `findings.md` |
 | [PORT-003](WI-PORT-003.md) | Quality and CI baseline (Azure Pipelines) | Done | *none* | `README.md`, `findings.md`, `findings.md` and 2 more |
 | [PORT-005](WI-PORT-005.md) | Verify trace propagation and safe logs | Done | `TracingTests.cs` | `README.md`, `findings.md`, `findings.md` and 2 more |
 | [PORT-006](WI-PORT-006.md) | Reconcile existing artifacts with ADR-0012 to ADR-0016 | Done | *none* | `baseline-2026-10-30.md` |
 | [PORT-007](WI-PORT-007.md) | First-slice domain/API contract and GraphQL mapping | Done | *none* | *none* |
-| [PREF-001](WI-PREF-001.md) | The customer's allergen profile (allergies and avoid) | In review | `preferences.spec.ts`, `CosmosPreferenceTests.cs`, `PreferenceApiTests.cs` and 1 more | *none* |
+| [PREF-001](WI-PREF-001.md) | The customer's allergen profile (allergies and avoid) | In review | `preferences.spec.ts`, `CosmosPreferenceTests.cs`, `PreferenceApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [PROD-001](WI-PROD-001.md) | Draft personas / Jobs-to-be-Done | Done | *none* | *none* |
 | [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | In review | *none* | *none* |
 | [QA-001](WI-QA-001.md) | Test strategy and guides | Done | `accessibility.spec.ts` | `status-check-experiment-2026-10-30.md` |
@@ -75,15 +75,15 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | Done | `queue.spec.ts` | `ai-usage-2026-11-01.md` |
 | [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | Done | `vendor-live.spec.ts`, `live.spec.ts`, `graphql-stream.test.ts` and 6 more | `README.md`, `graphql-sse-review-2026-11-02.md`, `real-stack-2026-11-02.md` and 3 more |
 | [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | In review | `vendor-actions.spec.ts`, `actions.spec.ts`, `queue.spec.ts` and 1 more | `real-stack-2026-11-02.md`, `ai-usage-2026-11-02-b.md` |
-| [QUE-005](WI-QUE-005.md) | Allergens on the vendor's order card | In review | `queue-allergens.spec.ts`, `allergens.spec.ts`, `allergens.test.ts` | *none* |
+| [QUE-005](WI-QUE-005.md) | Allergens on the vendor's order card | In review | `queue-allergens.spec.ts`, `allergens.spec.ts`, `allergens.test.ts` | `ai-usage-2026-11-04.md` |
 | [RATE-001](WI-RATE-001.md) | First rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128) | In review | `rate-limit.spec.ts`, `rate-limit.test.ts`, `rate-limit.test.ts` | `run-2026-11-02.md`, `load-soak-2026-11-03.md`, `ai-usage-2026-11-02-b.md` |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | Built | *none* | `baseline-2026-10-30.md` |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | Done | *none* | *none* |
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | In review | `security-headers.spec.ts`, `security-headers.spec.ts`, `fuzz.test.ts` and 3 more | `fuzz-2026-11-02.md`, `load-soak-2026-11-03.md`, `zap-2026-11-03.md` and 1 more |
-| [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | In review | `personalized.spec.ts`, `ConflictMatcherTests.cs`, `PersonalizedListingApiTests.cs` and 1 more | *none* |
-| [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | In review | `tags.spec.ts`, `TagApiTests.cs`, `TagRegistryTests.cs` and 1 more | *none* |
-| [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | In review | `tags.spec.ts`, `listing-tags.spec.ts`, `TagAssignmentApiTests.cs` and 2 more | *none* |
-| [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | In review | `tag-filter.spec.ts`, `listing-tags.spec.ts`, `tagFilter.test.ts` and 2 more | *none* |
-| [TAG-004](WI-TAG-004.md) | Diet tags in the customer's profile ("prefer") | In review | `diets.spec.ts`, `diet-preferences.spec.ts`, `dietText.test.ts` and 2 more | *none* |
+| [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | In review | `personalized.spec.ts`, `ConflictMatcherTests.cs`, `PersonalizedListingApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
+| [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | In review | `tags.spec.ts`, `TagApiTests.cs`, `TagRegistryTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
+| [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | In review | `tags.spec.ts`, `listing-tags.spec.ts`, `TagAssignmentApiTests.cs` and 2 more | `ai-usage-2026-11-04.md` |
+| [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | In review | `tag-filter.spec.ts`, `listing-tags.spec.ts`, `tagFilter.test.ts` and 2 more | `ai-usage-2026-11-04.md` |
+| [TAG-004](WI-TAG-004.md) | Diet tags in the customer's profile ("prefer") | In review | `diets.spec.ts`, `diet-preferences.spec.ts`, `dietText.test.ts` and 2 more | `ai-usage-2026-11-04.md` |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | Done | `DomainEventPayloadsTests.cs` | *none* |
 | [TOOL-002](WI-TOOL-002.md) | Structured logging + correlation-ID helper (tools/BakeryMarketplace.Logging) | Done | *none* | *none* |
