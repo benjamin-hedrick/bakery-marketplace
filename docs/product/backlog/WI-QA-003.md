@@ -1,5 +1,7 @@
 > **Status:** Deferred · trigger: the lead decides to run the experiments
 
+> **Mobile spike (2026-11-04, row T-35 decided; the AI-assisted testing experiment, T-34, stays deferred):** Maestro 2.12.1 was installed locally (JDK 17, Android SDK, an `android-35` Pixel 7 emulator; WHPX acceleration works on this Windows 11 Home machine). **Run:** one Maestro web flow (open the customer app, log in, the user name shows) **passed** against the real web app on the mock BFF and fake issuer; Maestro marks web support as Beta. The emulator booted in about 85 s and `adb` sees it. **Not run yet:** a flow against an Expo app on the emulator (comes with `WI-MOB-001`). **Decision (the lead):** build a thin Expo client, Android only, local only, with login, browse, cart, checkout and order status, tested with Maestro flows (`WI-MOB-001`, sign-in in ADR-0023). Maestro runs only locally, not in the Azure pipeline. Maestro's cloud (paid) is not used. Playwright stays the tool for the web apps.
+
 ```
 WI ID:               QA-003
 Title:                Planned experiments: AI-assisted testing and the mobile question

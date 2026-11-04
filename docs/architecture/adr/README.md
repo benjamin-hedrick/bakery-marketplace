@@ -16,7 +16,7 @@ For the order in which the decisions were made and changed, see [the decision ti
 | Caching | 0002, 0014 | 0002 (the server cache), then 0014 (three layers) |
 | Events | 0003, 0021 | 0003 (the backbone), then 0021 (pushing changes to the vendor queue screen) |
 | Data | 0004, 0017, 0022 | 0004, then 0017 (the stock counter and reservation records), then 0022 (tags: kinds, the registry, allergens) |
-| Identity and authorization | 0006, 0018, 0019 | 0006 (users; read "Entra External ID" for "Azure AD B2C"), then 0018 (service callers), then 0019 (browser sessions) |
+| Identity and authorization | 0006, 0018, 0019, 0023 | 0006 (users; read "Entra External ID" for "Azure AD B2C"), then 0018 (service callers), then 0019 (browser sessions) |
 | Secrets, CI and delivery | 0007, 0015, 0020 | 0007, then 0015 (Azure Pipelines amends the CI secret storage), then 0020 (deployment pipeline, environments and configuration) |
 | Observability | 0016 | |
 | Payments | 0005 | |
@@ -48,6 +48,7 @@ For the order in which the decisions were made and changed, see [the decision ti
 | [0020](0020-deployment-pipeline-and-environments.md) | Build once, promote by digest, configure at deploy time; two stacks; gated infrastructure and application stages; a second, never-run UAT/Prod pipeline | Accepted (2026-10-31) |
 | [0021](0021-live-updates-to-the-vendor-queue.md) | Push as a nudge over a stream (GraphQL subscription over SSE, Redis Pub/Sub fan-out) layered on polling, which stays | Accepted (2026-11-02) |
 | [0022](0022-tags.md) | Tags: a catalog-owned registry of kinds and tags (allergen, diet, occasion, season, theme), assigned to listings and options; visibility and windows enforced by the catalog | Accepted |
+| [0023](0023-native-app-sign-in.md) | Native app sign-in: Authorization Code with PKCE in the system browser, a private-use redirect scheme, the refresh token in the Android Keystore; the BFF and services are unchanged | Proposed |
 
 ## What has been built, against these decisions
 
