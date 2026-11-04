@@ -40,8 +40,19 @@ const reply = (res: http.ServerResponse, code: number, body: unknown) => {
   res.writeHead(code, { 'content-type': 'application/json' });
   res.end(JSON.stringify(body));
 };
+const seenQueries: string[] = [];
 const catalog = http.createServer((req, res) => {
   const path = new URL(req.url ?? '/', 'http://x').pathname;
+  seenQueries.push(new URL(req.url ?? '/', 'http://x').search);
+  // WI-TAG-003: the catalog refuses any tag that is not public and active (here: only "vegan" and "local" are) with one answer.
+  const wanted = new URL(req.url ?? '/', 'http://x').searchParams.getAll('tag');
+  if (path === '/catalog/listings' && wanted.some((t) => !['vegan', 'local'].includes(t))) {
+    return reply(res, 422, {
+      code: 'validation_failed',
+      message: 'The listing is invalid.',
+      errors: { 'tag[0]': ['That is not a tag you can filter by.'] },
+    });
+  }
   if (path === '/catalog/listings/listing-1') return reply(res, 200, withTags);
   if (path === '/catalog/listings/listing-2') return reply(res, 200, withoutTags);
   if (path === '/catalog/listings') return reply(res, 200, { items: [withTags, withoutTags], nextCursor: null });
@@ -126,5 +137,36 @@ describe('Listing.tags and Modifier.tags', () => {
 
     assert.deepEqual(body.data.listing.allergenFlags, ['gluten']);
     assert.ok(!body.data.listing.tags.some((t: { kind: string }) => t.kind === 'ALLERGEN'));
+  });
+});
+
+describe('listings(tags: ...) (WI-TAG-003)', () => {
+  test('each tag is passed to the catalog as its own tag parameter, and the answer is the catalog’s', async () => {
+    seenQueries.length = 0;
+
+    const body = await gql(`{ listings(first: 5, tags: ["vegan", "local"]) { edges { node { name } } } }`);
+
+    assert.equal(body.errors, undefined);
+    assert.equal(body.data.listings.edges.length, 2);
+    assert.match(seenQueries.at(-1)!, /limit=5/);
+    assert.deepEqual([...new URLSearchParams(seenQueries.at(-1)!).getAll('tag')], ['vegan', 'local']);
+  });
+
+  test('no tags, null and an empty list send no tag parameter', async () => {
+    for (const arg of ['', ', tags: null', ', tags: []']) {
+      seenQueries.length = 0;
+      await gql(`{ listings(first: 5${arg}) { edges { node { name } } } }`);
+      assert.equal(new URLSearchParams(seenQueries.at(-1)!).has('tag'), false);
+    }
+  });
+
+  test('a tag the catalog refuses is one BAD_INPUT in the BFF’s own words, the same for any reason', async () => {
+    const body = await gql(`{ listings(tags: ["staff-pick"]) { edges { node { name } } } }`);
+    const other = await gql(`{ listings(tags: ["nonsense"]) { edges { node { name } } } }`);
+
+    assert.equal(body.errors?.[0]?.extensions?.code, 'BAD_INPUT');
+    assert.equal(body.errors?.[0]?.message, 'One of those tags cannot be used to filter the listings.');
+    assert.deepEqual(other.errors?.[0]?.message, body.errors?.[0]?.message);
+    assert.doesNotMatch(JSON.stringify(body), /staff-pick|filter by/); // nothing of the catalog's wording or the id
   });
 });

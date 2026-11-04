@@ -1,4 +1,10 @@
-> **Status:** Ready
+> **Status:** In review · built and run locally on `feature/slice-personalization-web` (2026-11-04); the real-stack journey is written but not yet run (register 140)
+
+> **Outcome note (2026-11-04):** built in three steps. (1) The catalog: `GET /catalog/listings?tag=a&tag=b` returns the published listings that carry **all** the tags on the listing itself (the vendor's or the platform's; a tag on an option does not select the listing), narrowing before paging so pages are full and the cursor still means "after this id". `TagFilter` accepts an id only if it is public, not retired, inside its window today and not an allergen; every other id (unknown, hidden, retired, out of window, allergen) is a 422 `validation_failed` with the same words at `tag[i]`, so a hidden tag cannot be found by asking (a test compares the two bodies word for word). More than `TagOptions.MaxFilterTags` (10, a setting) is refused. Ids are matched without regard to case and repeats are ignored. The cache headers equal the unfiltered browse's (none are set by either). (2) The BFF: `listings(first, after, tags: [ID!])`; a 422 from the catalog is one `BAD_INPUT` in the BFF's own words for every reason. (3) The home page reads `?tag=` on the server (`parseTagQuery` keeps the address tidy: lower case, the shape of an id, at most 10, no repeats), shows the tags the catalog shows today as filter chips that are plain links (selected ones say so and remove themselves; allergens are never offered), says "No listings match these tags" with a way to clear, and sends an address with a refused tag back to the whole list instead of an error. The customer's own conflict marks still lie over a filtered list.
+>
+> **Verified (local):** 19 catalog API tests (one tag, two, option-only, a public platform tag, case and repeats, each refusal and the identical words, the window at both edges, paging with a filter, the limit, cache headers, a retired tag on a listing); catalog 267 passed, 7 skipped without the emulator; 3 BFF tests (212 in all); 7 unit tests and 9 browser tests in the customer app (58 unit and 122 browser tests in all, passing). Mutation checks, each failing the intended test: "all" changed to "any"; the allergen refusal removed. **Not run:** the two real-stack journeys in `tests/skeleton/listing-tags.spec.ts` (see register 140).
+>
+> **Changes from the original plan:** an allergen id is refused as a filter (the spec said a public, active tag): allergens are not in a listing's tags, so a filter on one would match nothing and read as "nothing contains it", which the product must never say; the filter limit is a setting like the caps; the page's refusal path is a redirect to the unfiltered page. **Not done / limits:** the browse still reads every published listing and filters in memory, as before (register 143); "any of" filters and counts stay with `TAG-005`.
 
 ```
 WI ID:               TAG-003
@@ -7,7 +13,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-TAGS
 Shared with epic(s):  EPIC-SEARCH, EPIC-WEB-CUSTOMER
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 S
 ```
 
@@ -42,4 +48,4 @@ See `docs/process/definition-of-done.md`.
 Yes.
 
 **Open Points (working)**
-- [ ] The browse reads and filters in memory, as the vendor list does; check the cost with the seed volume and note it in the register if it grows with listings.
+- [x] The browse reads and filters in memory, as the vendor list does: recorded as register 143 (no change in cost class; a filter adds one pass over what is already read).

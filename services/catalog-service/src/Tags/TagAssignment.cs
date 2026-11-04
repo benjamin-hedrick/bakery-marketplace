@@ -15,6 +15,9 @@ public sealed class TagOptions
 
     /// <summary>The most tags one option may carry.</summary>
     public int MaxPerOption { get; set; } = DefaultMaxPerOption;
+
+    /// <summary>The most tags a public browse may be narrowed by at once (WI-TAG-003).</summary>
+    public int MaxFilterTags { get; set; } = 10;
 }
 
 /// <summary>A tag on a listing or an option as a response shows it. <see cref="Active"/> is only sent to the owning vendor, who also sees tags that are not showing today.</summary>

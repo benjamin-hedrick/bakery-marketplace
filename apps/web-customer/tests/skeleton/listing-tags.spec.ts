@@ -66,3 +66,40 @@ test('the browser shows the chips on the server-rendered browse page', async ({ 
   await expect(sourdough.getByTestId('tag').filter({ hasText: 'Local favourite' })).toHaveCount(1);
   await expect(page.locator('body')).not.toContainText('Hidden test tag');
 });
+
+// WI-TAG-003: the home page narrowed by a tag, through the real catalog and BFF.
+
+const FILTERED = `query($tags: [ID!]) { listings(first: 50, tags: $tags) { edges { node { id name } } } }`;
+
+test('the BFF narrows the seeded listings by a tag, by two tags, and an unusable tag is refused the same way for any reason', async ({
+  request,
+}) => {
+  const ask = async (tags: string[]) =>
+    (await request.post(`${BFF}/graphql`, { data: { query: FILTERED, variables: { tags } } })).json();
+  const namesOf = (body: { data: { listings: { edges: { node: { name: string } }[] } } }) =>
+    body.data.listings.edges.map((e) => e.node.name);
+
+  expect(await namesOf(await ask(['vegan']))).toEqual(['Country Sourdough']);
+  expect(await namesOf(await ask(['vegan', 'local-favourite']))).toEqual(['Country Sourdough']);
+  expect(await namesOf(await ask(['vegan', 'birthday']))).toEqual([]); // no listing carries both
+
+  const hidden = await ask(['test-hidden']);
+  const unknown = await ask(['no-such-tag']);
+  const allergen = await ask(['dairy']);
+  for (const body of [hidden, unknown, allergen]) {
+    expect(body.errors[0].extensions.code).toBe('BAD_INPUT');
+    expect(body.errors[0].message).toBe('One of those tags cannot be used to filter the listings.');
+  }
+});
+
+test('the browser filters the server-rendered home page by a tag, and a refused tag leads back to the whole list', async ({
+  page,
+}) => {
+  await page.goto('/?tag=vegan');
+  await expect(page.getByTestId('listing')).toHaveCount(1);
+  await expect(page.getByTestId('listing')).toContainText('Country Sourdough');
+
+  await page.goto('/?tag=test-hidden');
+  await expect(page).toHaveURL(/localhost:\d+\/$/);
+  expect(await page.getByTestId('listing').count()).toBeGreaterThan(1);
+});

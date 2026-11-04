@@ -14,7 +14,7 @@ import http from 'node:http';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildSchema, graphql, GraphQLError } from 'graphql';
-import { fixtures } from './fixtures.mjs';
+import { fixtures, TAGS } from './fixtures.mjs';
 
 const schema = buildSchema(
   readFileSync(fileURLToPath(new URL('../../../services/graphql-bff/schema/schema.graphql', import.meta.url)), 'utf8'),
@@ -199,8 +199,10 @@ const needCustomer = (ctx) => {
   if (!hasBearer(ctx)) throw unauthenticated();
 };
 
+// The public registry as the catalog serves it: the allergens, then the other tags that are showing today (WI-TAG-002).
 function tags({ kind }) {
-  return !kind || kind === 'ALLERGEN' ? ALLERGENS : [];
+  const all = [...ALLERGENS, ...Object.values(TAGS)];
+  return kind ? all.filter((t) => t.kind === kind) : all;
 }
 function preferences(_args, ctx) {
   needCustomer(ctx);
@@ -284,8 +286,17 @@ function personalizedListing({ id }, ctx) {
 
 function rootFor(fixture) {
   return {
-    listings: () => {
-      const edges = data(fixture).map((node) => ({ cursor: node.id, node }));
+    listings: ({ tags: wanted }) => {
+      // WI-TAG-003: only the tags the registry shows (and never an allergen) may filter; one answer for any other id, as the real BFF gives.
+      const ids = wanted ?? [];
+      if (ids.length > 10 || ids.some((id) => !TAGS[id])) {
+        throw new GraphQLError('One of those tags cannot be used to filter the listings.', {
+          extensions: { code: 'BAD_INPUT' },
+        });
+      }
+      const edges = data(fixture)
+        .filter((l) => ids.every((id) => (l.tags ?? []).some((t) => t.id === id)))
+        .map((node) => ({ cursor: node.id, node }));
       return { edges, pageInfo: { hasNextPage: false, endCursor: edges.at(-1)?.cursor ?? null } };
     },
     listing: ({ id }) => data(fixture).find((l) => l.id === id) ?? null,

@@ -17,10 +17,15 @@ public static class ListingEndpoints
         var group = app.MapGroup("/catalog/listings");
 
         // Public reads (first-slice contract D-4): anonymous, Published listings of Verified vendors only.
-        group.MapGet("/", async (int? limit, string? after, ListingService svc, TagProjector tags, CancellationToken ct) =>
+        // ?tag=a&tag=b narrows to the listings that carry ALL the tags on the listing itself (WI-TAG-003). The cache headers are the unfiltered browse's.
+        group.MapGet("/", async (
+            int? limit, string? after, string[]? tag, ListingService svc, TagProjector tags,
+            ITagRegistry registry, TimeProvider time, TagOptions limits, CancellationToken ct) =>
         {
             var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
-            var (items, next) = await svc.BrowseAsync(size, after, ct);
+            var (filter, filterErrors) = TagFilter.Parse(tag, registry, time, limits);
+            if (filterErrors.Count > 0) return ToError(new ListingResult(ListingOutcome.Invalid, Errors: filterErrors));
+            var (items, next) = await svc.BrowseAsync(size, after, ct, filter.Count == 0 ? null : l => TagFilter.Matches(l, filter));
             return Results.Ok(new ListingPage(items.Select(l => ListingDto.From(l, tags)).ToList(), next));
         }).AllowAnonymous();
 

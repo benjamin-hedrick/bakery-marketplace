@@ -413,9 +413,17 @@ export const rootValue = {
     );
   },
   vendorOrderAction,
-  async listings(args: { first?: number; after?: string | null }, ctx: Context) {
+  async listings(args: { first?: number; after?: string | null; tags?: string[] | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
-    const page = await ctx.catalog.list({ limit: first, after: args.after ?? undefined }, ctx.trace);
+    const page = await ctx.catalog
+      .list({ limit: first, after: args.after ?? undefined, tags: args.tags ?? undefined }, ctx.trace)
+      .catch((e: unknown) => {
+        // The catalog refused a tag to filter by (unknown, hidden, retired, out of window, an allergen, too many): one answer for all of them, from the BFF's own words.
+        if (e instanceof DownstreamError && e.status === 422) {
+          throw new ClientError('BAD_INPUT', 'One of those tags cannot be used to filter the listings.');
+        }
+        throw e;
+      });
     const edges = page.items.map((l) => ({ cursor: l.id, node: toListing(l) }));
     return {
       edges,
