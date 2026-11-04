@@ -62,6 +62,7 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [PORT-005](WI-PORT-005.md) | Verify trace propagation and safe logs | Done | `TracingTests.cs` | `README.md`, `findings.md`, `findings.md` and 2 more |
 | [PORT-006](WI-PORT-006.md) | Reconcile existing artifacts with ADR-0012 to ADR-0016 | Done | *none* | `baseline-2026-10-30.md` |
 | [PORT-007](WI-PORT-007.md) | First-slice domain/API contract and GraphQL mapping | Done | *none* | *none* |
+| [PREF-001](WI-PREF-001.md) | The customer's allergen profile (allergies and avoid) | In review | `preferences.spec.ts`, `CosmosPreferenceTests.cs`, `PreferenceApiTests.cs` and 1 more | *none* |
 | [PROD-001](WI-PROD-001.md) | Draft personas / Jobs-to-be-Done | Done | *none* | *none* |
 | [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | In review | *none* | *none* |
 | [QA-001](WI-QA-001.md) | Test strategy and guides | Done | `accessibility.spec.ts` | `status-check-experiment-2026-10-30.md` |

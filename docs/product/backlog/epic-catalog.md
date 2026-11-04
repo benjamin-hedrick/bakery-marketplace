@@ -33,7 +33,7 @@ Scope: Search & Discovery · Primary hat(s): Architect, Digital PM · Status: se
 
 ### EPIC-PREFERENCES — Preferences & Dietary Safety
 Scope: Preferences & Dietary Safety · Primary hat(s): Architect, Digital PM · Status: see [STATUS.md](STATUS.md)
-- ✅ PREF-001 (Service Implementation) — **Rewritten 2026-11-04, Ready**, see `WI-PREF-001.md` — the customer's allergen profile (allergies and avoid; the customer is the token's subject)
+- 🔶 PREF-001 (Service Implementation) — **In review 2026-11-04** (rewritten the same day), see `WI-PREF-001.md` — the customer's allergen profile (allergies and avoid; the customer is the token's subject)
 - ⛔ PREF-002 (Integration) — **SUPERSEDED 2026-11-04** by `WI-PREF-001`, `WI-SRCH-001` and `WI-ORD-009`, see `WI-PREF-002.md` — no profile snapshot event; allergens travel on the order instead
 
 ### EPIC-TAGS — Tags (context on listings and options) — see `EPIC-TAGS.md` (added 2026-11-04)

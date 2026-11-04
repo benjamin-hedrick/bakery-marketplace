@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 11 |
+| In review | 12 |
 | Built | 1 |
-| Ready | 13 |
+| Ready | 12 |
 | Proposed | 5 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -134,7 +134,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [PORT-005](WI-PORT-005.md) | Verify trace propagation and safe logs | EPIC-PORTFOLIO-SLICE | Done | evidence: `docs/evidence/WI-PORT-005/findings.md`; follow-ups remain open as register items 36, 37 and 42 |
 | [PORT-006](WI-PORT-006.md) | Reconcile existing artifacts with ADR-0012 to ADR-0016 | EPIC-PORTFOLIO-SLICE | Done | evidence: `docs/history/review-2026-10/closing-record.md` (pass 2: every tracked document read and reconciled; steps 0 to 11 of the edit plan done); the open findings are in `docs/product/backlog/gap-catalog/` |
 | [PORT-007](WI-PORT-007.md) | First-slice domain/API contract and GraphQL mapping | EPIC-PORTFOLIO-SLICE | Done | evidence: the Outcome note under this banner |
-| [PREF-001](WI-PREF-001.md) | The customer's allergen profile (allergies and avoid) | EPIC-PREFERENCES | Ready |  |
+| [PREF-001](WI-PREF-001.md) | The customer's allergen profile (allergies and avoid) | EPIC-PREFERENCES | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the abuse cases and of the data handling (NFR 3.7) |
 | [PREF-002](WI-PREF-002.md) | Publish Preference Snapshot via Open Host Service (Search + Ordering) | EPIC-PREFERENCES | Superseded |  by `WI-PREF-001`, `WI-SRCH-001` and `WI-ORD-009` |
 | [PROD-001](WI-PROD-001.md) | Draft personas / Jobs-to-be-Done | EPIC-PRODUCT-STRATEGY | Done | evidence: `docs/product/personas.md` |
 | [PROD-002](WI-PROD-002.md) | Competitive scan | EPIC-PRODUCT-STRATEGY | Proposed | decision: the lead sets the scope (which comparable products, how deep) |

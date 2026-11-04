@@ -222,6 +222,17 @@ resource "azurerm_cosmosdb_sql_container" "vendor_orders" {
   partition_key_version = 2
 }
 
+# Customers' allergen profiles (WI-PREF-001, ADR-0004): quasi-health data (NFR 3.7), so its own container with one partition per customer, never
+# shared with listings or orders.
+resource "azurerm_cosmosdb_sql_container" "preferences" {
+  name                  = "preferences"
+  resource_group_name   = local.rg
+  account_name          = azurerm_cosmosdb_account.cosmos.name
+  database_name         = azurerm_cosmosdb_sql_database.bakery.name
+  partition_key_paths   = ["/customerId"]
+  partition_key_version = 2
+}
+
 # ---- The apps ---------------------------------------------------------------------------------------------------------------------------
 # Redis for the event backbone: internal only, no persistence, torn down with the environment (chosen by the lead on 2026-10-31).
 resource "azurerm_container_app" "redis" {

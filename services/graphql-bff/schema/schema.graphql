@@ -15,6 +15,11 @@ type Query {
   node(id: ID!): Node
   listings(first: Int = 20, after: String): ListingConnection!
   listing(id: ID!): Listing
+  """
+  The caller's own allergen profile (WI-PREF-001): quasi-health data, private to the caller. Needs a customer's bearer token (UNAUTHENTICATED
+  without one, FORBIDDEN for another role). A customer who never saved one has two empty lists.
+  """
+  preferences: Preferences!
   "The tags the catalog offers today, optionally of one kind (ADR-0022). Public. Hidden tags and tags outside their window are not in it."
   tags(kind: TagKind): [Tag!]!
   "The pickup windows checkout accepts right now. Public."
@@ -218,7 +223,37 @@ type Subscription {
   vendorOrderChanged: VendorOrder!
 }
 
+"The caller's allergen profile. Both lists hold allergen ids from the tag registry (the `tags` query); an allergen is in at most one list."
+type Preferences {
+  "Allergens the customer must avoid (serious)."
+  allergies: [ID!]!
+  "Allergens the customer would rather avoid (a preference)."
+  avoid: [ID!]!
+}
+
+input SavePreferencesInput {
+  allergies: [ID!]!
+  avoid: [ID!]!
+}
+
+union SavePreferencesPayload = SavePreferencesSuccess | SavePreferencesRejected
+
+type SavePreferencesSuccess {
+  preferences: Preferences!
+}
+
+"An expected refusal (an id that is not on offer, a duplicate, an allergen in both lists). The message is fixed client-safe text; the fields say which list to fix."
+type SavePreferencesRejected {
+  message: String!
+  fields: [FieldProblem!]!
+}
+
 type Mutation {
+  """
+  Replaces the caller's allergen profile (WI-PREF-001). Needs a customer's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another
+  role). Expected refusals come back as SavePreferencesRejected, not as errors. Saving two empty lists clears the profile.
+  """
+  savePreferences(input: SavePreferencesInput!): SavePreferencesPayload!
   """
   A vendor's action on one of their own orders (WI-QUE-004). Needs a vendor's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another
   role). Ordering-service decides whether the order is the caller's and whether its status allows the action; expected refusals come back as
