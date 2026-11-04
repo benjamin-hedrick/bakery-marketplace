@@ -7,6 +7,7 @@
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using CatalogService.Domain;
+using CatalogService.Preferences;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
@@ -40,14 +41,17 @@ internal static class SeedProgram
         var cosmos = new CosmosClient(cosmosConnection, new CosmosClientOptions { ConnectionMode = ConnectionMode.Gateway, LimitToEndpoint = true });
         var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId") { DefaultTimeToLive = -1 });
+        // The same container, with the same partition key, that catalog-service creates for customers' saved allergen profiles (its Program.cs).
+        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("preferences", "/customerId"));
 
         var redis = await ConnectionMultiplexer.ConnectAsync(config["Redis:ConnectionString"] ?? "localhost:6379");
         var seeder = new Seeder(
             new CosmosRepository<ListingDocument>(cosmos, database, "catalog"),
-            new RedisStreamsEventTransport(redis));
+            new RedisStreamsEventTransport(redis),
+            new CosmosRepository<PreferenceProfileDocument>(cosmos, database, "preferences"));
 
         var result = await seeder.SeedAsync();
-        Console.WriteLine($"Listings created: {result.ListingsCreated}, already present: {result.ListingsUnchanged}; VendorVerified events published: {result.VendorEventsPublished}.");
+        Console.WriteLine($"Listings created: {result.ListingsCreated}, already present: {result.ListingsUnchanged}; VendorVerified events published: {result.VendorEventsPublished}; customer profiles created: {result.ProfilesCreated}, already present: {result.ProfilesUnchanged}.");
         Console.WriteLine("Start catalog-service afterwards (or leave it running): it applies VendorVerified from the stream, after which GET /catalog/listings returns the published listings.");
         return 0;
     }
