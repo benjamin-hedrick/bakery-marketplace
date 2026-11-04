@@ -38,7 +38,7 @@ Scope: Preferences & Dietary Safety · Primary hat(s): Architect, Digital PM · 
 
 ### EPIC-TAGS — Tags (context on listings and options) — see `EPIC-TAGS.md` (added 2026-11-04)
 Scope: Catalog & Customization, Search & Discovery, Preferences & Dietary Safety · Primary hat(s): Engineering/Build, Architect · Status: see [STATUS.md](STATUS.md)
-- ✅ TAG-001 (Service Implementation) — **Ready**, see `WI-TAG-001.md` — the tag registry and the closed allergen list (ADR-0022)
+- 🔶 TAG-001 (Service Implementation) — **In review 2026-11-04**, see `WI-TAG-001.md` — the tag registry and the closed allergen list (ADR-0022)
 - ✅ TAG-002 (Service Implementation) — **Ready**, see `WI-TAG-002.md` — tags on listings and options, vendor assignment, visibility and windows
 - ✅ TAG-003 (Service Implementation) — **Ready**, see `WI-TAG-003.md` — filter the public browse by tag
 - ⚪ TAG-004 (Service Implementation) — **Proposed**, see `WI-TAG-004.md` — diet tags in the customer's profile ("prefer")

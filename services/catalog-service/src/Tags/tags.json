@@ -1,0 +1,13 @@
+{
+  "tags": [
+    { "id": "dairy",     "kind": "allergen", "label": "Milk (dairy)",                 "sortOrder": 10 },
+    { "id": "egg",       "kind": "allergen", "label": "Eggs",                         "sortOrder": 20 },
+    { "id": "fish",      "kind": "allergen", "label": "Fish",                         "sortOrder": 30 },
+    { "id": "shellfish", "kind": "allergen", "label": "Shellfish",                    "sortOrder": 40 },
+    { "id": "tree-nut",  "kind": "allergen", "label": "Tree nuts",                    "sortOrder": 50 },
+    { "id": "peanut",    "kind": "allergen", "label": "Peanuts",                      "sortOrder": 60 },
+    { "id": "gluten",    "kind": "allergen", "label": "Gluten (wheat, rye, barley)",  "sortOrder": 70 },
+    { "id": "soy",       "kind": "allergen", "label": "Soy",                          "sortOrder": 80 },
+    { "id": "sesame",    "kind": "allergen", "label": "Sesame",                       "sortOrder": 90 }
+  ]
+}

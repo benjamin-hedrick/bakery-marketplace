@@ -1,4 +1,12 @@
-> **Status:** Ready
+> **Status:** In review · built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review, the allergen list (open point) and ADR-0022's acceptance
+
+> **Outcome note (2026-11-04):** built in three steps. (1) The registry (`CatalogService.Tags`): `TagKind`, `TagDefinition`, `ITagRegistry`, `TagRegistry` (parses and validates `Tags/tags.json`, embedded; a bad file stops the start naming the entry; unknown fields are refused so a typo cannot make a hidden tag public), the nine allergens, and `GET /catalog/tags`. (2) The closed list on listings: `ListingValidator.ValidateAllergens` on `allergenFlags` and each option's `allergens`, applied on create and update; reads never reject. (3) The BFF `tags(kind)` query. The seed needed no change.
+>
+> **Verified (local):** 37 new catalog tests (catalog 174 in all, 4 skipped without the emulator): every registry-file error case, the window edges with a fake clock (both ends included, UTC), hidden, retired and out-of-window tags absent and no visibility field exposed, the kind filter, the closed list on create and update (`tree-nuts`, `nuts`, `tree nut`, `milk`, `vegan` refused; `Tree-Nut ` accepted as `tree-nut`), an old stored value still readable and corrected on its next update, the seed listings passing the validator; 6 BFF tests (170 in all); 2 real-stack journeys (the allergen list through the BFF from the real catalog container in order and without a login; every allergen flag of the seeded listings is a registry id), `skeleton-smoke.mjs --containers` 31 passed. Mutation checks: the closed-list check removed failed 8 tests; the window and visibility rule removed failed 4.
+>
+> **Changes from the original plan:** the cache header is `public, max-age=300`, set on the tags endpoint, because the public listing endpoints send no cache header of their own today; the response has an `items` list and no visibility or assignment fields. The BFF `tags` result is not yet used by the web app (`CUST-005` and `TAG-002` do).
+>
+> **Not done / limits:** the listing validation was not run against Cosmos (it is the same code path as the in-memory host; the 4 emulator tests skip when the emulator is not up); the data-model and glossary documents were updated, but the contract's preferences section still describes a design not yet built (`PREF-001`).
 
 ```
 WI ID:               TAG-001
@@ -7,7 +15,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-TAGS
 Shared with epic(s):  EPIC-PREFERENCES (the allergen list is what the profile and the order record refer to)
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 M
 ```
 
@@ -28,11 +36,11 @@ Allergen flags are free text today (`tree-nut` in the seed; a customer will type
 **Requirements / Acceptance Criteria**
 - **The registry** is a data file embedded in the catalog service, read through `ITagRegistry`. An entry has `id`, `kind`, `label`, `visibility` (`public` | `hidden`), `assignableBy` (`vendor` | `platform`), optional `activeFrom` and `activeTo` (UTC dates), optional `sortOrder`, and a `retired` flag. The file is validated when the service starts, and a bad file stops the start with a message naming the entry: ids are unique across all kinds and match `[a-z0-9-]{1,40}`; the kind is one of the closed set in code (`allergen`, `diet`, `occasion`, `season`, `theme`); `activeFrom` is not after `activeTo`; a `hidden` tag is `assignableBy: platform`.
 - **The allergen entries** (kind `allergen`, public, vendor-assignable): `dairy`, `egg`, `fish`, `shellfish`, `tree-nut`, `peanut`, `gluten`, `soy`, `sesame`, with customer-facing labels (for example "Tree nuts", "Gluten (wheat, rye, barley)").
-- **`GET /catalog/tags`** is anonymous and returns the public tags that are active now (id, kind, label, sort order), optionally narrowed by `kind`. It carries the same cache headers as the public listing endpoints. Hidden tags, retired tags and tags outside their window are absent.
+- **`GET /catalog/tags`** is anonymous and returns the public tags that are active now (id, kind, label, sort order), optionally narrowed by `kind`. It is cacheable (ADR-0014): `Cache-Control: public, max-age=300`. Hidden tags, retired tags and tags outside their window are absent.
 - **Closed list on listings.** On create and update, every value in `allergenFlags` and in each option's `allergens` (after the existing trim and lower-case) must be an allergen id in the registry, else 422 `validation_failed` naming the field and the value and listing the allowed ids. Reads never reject: a stored listing with an old value is returned as it is, and its next update must correct it.
 - **BFF:** `tags(kind: TagKind): [Tag!]!` (public; `Tag { id label kind }`), mapped from the catalog with no rules of its own; the schema file is the contract.
 - **Docs:** `data-model-api-contracts.md` and the glossary gain the registry, the kinds and `GET /catalog/tags`; ADR-0022's status is the lead's to move to Accepted.
-- **Tests:** registry validation (every bad-file case above); the endpoint (hidden, retired and out-of-window tags absent, with a fake clock; kind filter; anonymous); listing create and update accepting each allergen id and refusing `tree-nuts` and `nuts`, and accepting `Tree-Nut ` as `tree-nut` (the existing trim and lower-case still apply); option allergens refused the same way; a stored listing with an old value still readable; BFF mapping tests. The seed loads without a validation error.
+- **Tests:** registry validation (every bad-file case above); the endpoint (hidden, retired and out-of-window tags absent, with a fake clock; kind filter; anonymous; cacheable); listing create and update accepting each allergen id and refusing `tree-nuts` and `nuts`, and accepting `Tree-Nut ` as `tree-nut` (the existing trim and lower-case still apply); option allergens refused the same way; a stored listing with an old value still readable; BFF mapping tests. The seed loads without a validation error.
 
 **Dependencies**
 - Blocks: `TAG-002`, `PREF-001`, `SRCH-001`, `CUST-005`, `ORD-009`.

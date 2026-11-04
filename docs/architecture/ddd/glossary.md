@@ -18,14 +18,17 @@
 |---|---|
 | **Listing** | A sellable item owned by a Shop or Independent Vendor |
 | **Modifier** | A customization option on a Listing (e.g., milk type, size, add-in) |
-| **Allergy Flag** | A tag on a Listing or Modifier indicating the presence of a specific allergen |
+| **Allergy Flag** | An allergen tag on a Listing or Modifier indicating the presence of a specific allergen; the value is an id from the closed allergen list of the Tag Registry (ADR-0022) |
+| **Tag** | A stable-id label from the Tag Registry attached to a Listing or Modifier: an allergen, a diet claim, or a descriptive tag (occasion, season, theme). What a tag may claim depends on its kind (ADR-0022) |
+| **Tag Kind** | The closed set that gives a tag its meaning: `allergen` (a warning; absence means unknown, never safe), `diet` (the vendor's claim; absence means not marked), `occasion`, `season`, `theme` (descriptive) |
+| **Tag Registry** | The catalog-owned list of tags with their kind, visibility (public or hidden), who may assign them (vendor or platform) and optional active window; versioned data now (`GET /catalog/tags` serves the public part) |
 
 ## Preferences & Dietary Safety
 
 | Term | Definition |
 |---|---|
-| **Preference Profile** | A Customer's stored dietary preferences and allergies |
-| **Preference Snapshot** | The published, point-in-time view of a Preference Profile shared with Search and Ordering via Open Host Service |
+| **Preference Profile** | A Customer's stored allergens to avoid: `allergies` (serious) and `avoid` (a preference), both ids from the allergen list (`WI-PREF-001`, rewritten 2026-11-04); diet preferences follow with `WI-TAG-004` |
+| **Preference Snapshot** | Historical, not built: the published copy of a profile for Search and Ordering. Dropped 2026-11-04 (`WI-PREF-002` superseded): Search reads the profile in-process, and the allergens a customer tells a bakery travel on the order (`WI-ORD-009`) |
 
 ## Ordering & Fulfillment
 

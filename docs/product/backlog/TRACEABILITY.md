@@ -74,5 +74,6 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | Built | *none* | `baseline-2026-10-30.md` |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | Done | *none* | *none* |
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | In review | `security-headers.spec.ts`, `security-headers.spec.ts`, `fuzz.test.ts` and 3 more | `fuzz-2026-11-02.md`, `load-soak-2026-11-03.md`, `zap-2026-11-03.md` and 1 more |
+| [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | In review | `TagApiTests.cs`, `TagRegistryTests.cs`, `tags.test.ts` | *none* |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | Done | `DomainEventPayloadsTests.cs` | *none* |
 | [TOOL-002](WI-TOOL-002.md) | Structured logging + correlation-ID helper (tools/BakeryMarketplace.Logging) | Done | *none* | *none* |

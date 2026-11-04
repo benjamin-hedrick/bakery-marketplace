@@ -26,7 +26,17 @@ export interface CatalogPage {
   nextCursor: string | null;
 }
 
+/** REST shape of the public tag registry (ADR-0022): the tags a response may carry today. */
+export interface CatalogTag {
+  id: string;
+  kind: string;
+  label: string;
+  sortOrder: number;
+}
+
 export interface CatalogClient {
+  /** The public tags active today, optionally of one kind (lower case, as the catalog names it). */
+  tags(kind: string | undefined, trace: TraceContext): Promise<CatalogTag[]>;
   list(args: { limit: number; after?: string | undefined }, trace: TraceContext): Promise<CatalogPage>;
   /** Null when the listing does not exist or is not public (404). */
   get(id: string, trace: TraceContext): Promise<CatalogListing | null>;
@@ -49,6 +59,11 @@ export function createCatalogClient(
   }
 
   return {
+    async tags(kind, trace) {
+      const res = await request(`/catalog/tags${kind ? `?${new URLSearchParams({ kind })}` : ''}`, trace);
+      if (!res.ok) throw new DownstreamError(`catalog tags returned ${res.status}`, res.status);
+      return (await parse<{ items: CatalogTag[] }>(res)).items;
+    },
     async list({ limit, after }, trace) {
       const qs = new URLSearchParams({ limit: String(limit) });
       if (after) qs.set('after', after);

@@ -310,6 +310,10 @@ export const rootValue = {
     const l = await ctx.catalog.get(serviceId, ctx.trace);
     return l ? toListing(l) : null;
   },
+  async tags(args: { kind?: string | null }, ctx: Context) {
+    const tags = await ctx.catalog.tags(args.kind ? args.kind.toLowerCase() : undefined, ctx.trace);
+    return tags.map((t) => ({ id: t.id, kind: t.kind.toUpperCase(), label: t.label }));
+  },
   async pickupWindows(args: { vendorId: string }, ctx: Context) {
     // Public data: the caller's token is deliberately not sent.
     const windows = await ctx.ordering.pickupWindows(args.vendorId, ctx.trace);
