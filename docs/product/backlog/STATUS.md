@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-104 specs.
+106 specs.
 
 | Status | Count |
 |---|---|
@@ -14,7 +14,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In progress | 5 |
 | In review | 22 |
 | Built | 1 |
-| Ready | 4 |
+| Ready | 6 |
 | Proposed | 4 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -45,7 +45,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PORTFOLIO-SLICE | 6 of 7 | PORT-001, PORT-002, PORT-003, PORT-004, PORT-005, PORT-006, PORT-007 |
 | EPIC-PREFERENCES | 0 of 1 | PREF-001, PREF-002 |
 | EPIC-PRODUCT-STRATEGY | 1 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
-| EPIC-QUALITY-EVIDENCE | 1 of 3 | QA-001, QA-002, QA-003 |
+| EPIC-QUALITY-EVIDENCE | 1 of 4 | MOB-003, QA-001, QA-002, QA-003 |
 | EPIC-QUEUE-DISPLAY | 3 of 5 | QUE-001, QUE-002, QUE-003, QUE-004, QUE-005 |
 | EPIC-RATE-LIMITING | 0 of 1 | RATE-001 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
@@ -54,7 +54,7 @@ Superseded and obsolete items are not counted.
 | EPIC-SHARED-TOOLING | 2 of 2 | TOOL-001, TOOL-002 |
 | EPIC-TAGS | 0 of 5 | TAG-001, TAG-002, TAG-003, TAG-004, TAG-005 |
 | EPIC-VENDOR-ONBOARDING | 0 of 2 | VEN-001, VEN-002 |
-| EPIC-WEB-CUSTOMER | 3 of 8 | CUST-002, CUST-003, CUST-004, CUST-005, CUST-006, CUST-007, CUST-008, MOB-001, WEB-001 |
+| EPIC-WEB-CUSTOMER | 3 of 9 | CUST-002, CUST-003, CUST-004, CUST-005, CUST-006, CUST-007, CUST-008, MOB-001, MOB-002, WEB-001 |
 
 Epics with no spec yet are listed, with their planned items, in `epic-catalog.md`.
 
@@ -111,6 +111,8 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | EPIC-PM-ARTIFACTS | Done | evidence: `docs/management/stakeholder-communications-plan.md` |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | EPIC-PM-ARTIFACTS | Done | evidence: `docs/process/branching-strategy.md` |
 | [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | EPIC-WEB-CUSTOMER | In review | built and run locally 2026-11-04 (four Maestro flows pass on the emulator, `docs/evidence/WI-MOB-001/`); waiting for the lead's review of the auth changes (the issuer redirect rule, the token handling in the app) and decision on pushing; ADR-0023 accepted 2026-11-04 |
+| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery) | EPIC-WEB-CUSTOMER | Ready | written 2026-11-04 at the lead's request (register 146); depends on `WI-MOB-001` (built, In review) and reuses `CUST-008`'s rules |
+| [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | EPIC-QUALITY-EVIDENCE | Ready | written 2026-11-04 at the lead's request; depends on `WI-MOB-001` (built, In review) |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |

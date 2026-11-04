@@ -9,7 +9,9 @@ Shared with epic(s):  EPIC-QUALITY-EVIDENCE
 Hat/Owner:            Engineering/Build
 Status:               In review
 Size:                 L
+Verification class:   V3 + J (tokens and a sign-in flow on a device; a journey across the app, the BFF and ordering). Classes are proposed in `docs/process/verification-policy.md`.
 ```
+ADRs and NFRs affected: ADR-0023 (this item builds it), ADR-0006 and ADR-0008 (the services still validate the token and ownership), ADR-0013 (the app is a client of the BFF, which adds no rules), ADR-0014 (no order or cart data kept on the device), ADR-0019 (the refresh grant); NFR 3.7 (dietary data) is not touched until `MOB-002`.
 
 **Context / Why**
 The repo has no mobile client and no Maestro flow (gap `T-35`; the biggest hole against the "mobile testing" goal). The spike (`WI-QA-003`, 2026-11-04) showed that Maestro 2.12.1 runs against the web app (Beta) and an Android emulator runs here. The lead decided: build a thin Expo client, Android only, local only, with login, browse, cart and checkout, and order status.
@@ -43,7 +45,7 @@ Yes for the app and the flows; the issuer rule and the token handling are review
 
 **Open Points (working)**
 - [x] Allergen acknowledgement in the cart: not built, the BFF does not require it to place an order; follow-up in register 146.
-- [ ] How the app is started in the demo script (`scripts/dev/demo.mjs`), if at all: not done; the app runs through `scripts/dev/mobile-flows.mjs` and `apps/mobile-customer/README.md`.
+- [x] How the app is started for a demo: a separate script, `scripts/dev/mobile-demo.mjs` (emulator, stack without the test hook, a non-test build), decided by the lead 2026-11-04; `scripts/dev/demo.mjs` stays the web demo. Indexed in `docs/operations/scripts.md`.
 
 **As built (2026-11-04)**
 - `apps/mobile-customer`: Expo SDK 58, React Native 0.88, TypeScript, Android only. Login, menu with stock, item with options, order (cart), checkout (pickup window optional, idempotency key per content, a rejection spends the key), order status (polled every 5 s), logout. Plain `fetch` to the BFF (`src/api.ts`), no Relay.
@@ -56,4 +58,5 @@ Yes for the app and the flows; the issuer rule and the token handling are review
 - **The debug build embeds its bundle** instead of loading it from Metro (register 147), through `apps/mobile-customer/plugins/withEmbeddedBundle.js`.
 - **The decline switch is a build option** (`EXPO_PUBLIC_TEST_HOOKS=1`), not a debug-build feature, so the embedded-bundle build can have it.
 - **A network failure does not log the customer out** (the refresh token is deleted only when the issuer refuses it).
-- Not done: the allergen acknowledgement (register 146), the demo-script start, a repeat run for flakiness.
+- **A mobile demo script was added** (`scripts/dev/mobile-demo.mjs`) and the emulator, build and install helpers moved to `scripts/lib/mobile.mjs`, shared by the flows, the demo and the stack script.
+- Not done: the allergen acknowledgement (`WI-MOB-002`, register 146), the session-path tests and flows (`WI-MOB-003`), a repeat run for flakiness.

@@ -37,6 +37,10 @@ reports a failing flow with a non-zero exit. The assertion was corrected, not lo
 Login, menu, detail, cart, a declined and then a real order, restart without login, sign-out; screenshots were read during the session and are not kept.
 The real issuer container answered 200 for the app's redirect scheme and 400 for an unregistered one (`com.evil.app:/cb`).
 
+## The mobile demo (`scripts/dev/mobile-demo.mjs`), run 2026-11-04
+
+Started from a cold state, it booted the emulator with its window, started the stack with **no** test hook, built a **non-test** APK, installed it with cleared app data and opened it on the login screen, then waited. A one-off Maestro check (not kept in the repository) then logged in as Alice, added Country Sourdough, went to checkout and asserted the "Test: decline the payment" switch is **absent**, placed an order, and saw the order page. Stopping it (the `artifacts/mobile/STOP` file) removed the containers and the emulator. This also showed that a build with the test switch off does not reuse the bundle of the build that had it on (the helper deletes the generated bundle before each build, because Gradle does not treat the environment variable as an input); the next flow run, which needs the switch, is the other half of that check: after the scripts were refactored into `scripts/lib/mobile.mjs` and the demo had been run, `node scripts/dev/mobile-flows.mjs` ran again from a cold start and **passed 4 of 4 (2 m 20 s, exit 0)**, so the test build did get its switch back. That second run's JUnit file is not kept; the first run's is.
+
 ## Not run, and what the result does not show
 
 - **Not on iOS, not on a real device, not on another Android version or image.** One emulator image, one run; no repeat run to measure flakiness (the web suite has `repeat-suite.mjs`; there is none for these flows).

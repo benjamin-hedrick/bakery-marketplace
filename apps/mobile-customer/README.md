@@ -29,6 +29,9 @@ It boots the emulator if none is running, starts the backend (test hook on), bui
 `.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order) and tears down what it started. The
 last result is recorded in `docs/evidence/WI-MOB-001/`; Maestro's own output goes to `artifacts/mobile/` (git-ignored).
 
+The demo (`node ../../scripts/dev/mobile-demo.mjs`) boots the emulator with its window, starts the backend **without** the test hook, builds a non-test
+build, installs and opens it, and waits. All scripts: `docs/operations/scripts.md`.
+
 ## Run it by hand
 
 ```
