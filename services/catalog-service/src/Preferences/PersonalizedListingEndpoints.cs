@@ -6,7 +6,7 @@ using CatalogService.Tags;
 namespace CatalogService.Preferences;
 
 /// <summary>A public listing together with what in it conflicts with the calling customer's profile. No conflicts is an empty list, never "safe".</summary>
-public sealed record PersonalizedListingDto(ListingDto Listing, IReadOnlyList<Conflict> Conflicts);
+public sealed record PersonalizedListingDto(ListingDto Listing, IReadOnlyList<Conflict> Conflicts, IReadOnlyList<DietMatch> DietMatches);
 
 public sealed record PersonalizedListingPage(IReadOnlyList<PersonalizedListingDto> Items, string? NextCursor);
 
@@ -27,23 +27,25 @@ public static class PersonalizedListingEndpoints
         // before paging, so a page is still full and the cursor is still "after this id".
         group.MapGet("/", async (
             int? limit, string? after, bool? hideConflicts, ClaimsPrincipal user, HttpContext http,
-            ListingService listings, IPreferenceReader reader, TagProjector tags, CancellationToken ct) =>
+            ListingService listings, IPreferenceReader reader, TagProjector tags, ITagRegistry registry, TimeProvider time, CancellationToken ct) =>
         {
             var customerId = SubjectOf(user);
             if (customerId is null) return Results.Unauthorized();
 
             http.Response.Headers.CacheControl = "private, no-store";
+            var today = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
             var profile = await reader.GetAsync(customerId, ct);
             var size = Math.Clamp(limit ?? ListingEndpoints.DefaultPageSize, 1, ListingEndpoints.MaxPageSize);
             Func<Domain.ListingDocument, bool>? include = hideConflicts == true ? l => !ConflictMatcher.ItemConflicts(l, profile) : null;
 
             var (items, next) = await listings.BrowseAsync(size, after, ct, include);
             return Results.Ok(new PersonalizedListingPage(
-                items.Select(l => new PersonalizedListingDto(ListingDto.From(l, tags), ConflictMatcher.For(l, profile))).ToList(), next));
+                items.Select(l => new PersonalizedListingDto(ListingDto.From(l, tags), ConflictMatcher.For(l, profile), DietMatcher.For(l, profile, registry, today))).ToList(), next));
         });
 
         group.MapGet("/{id}", async (
-            string id, ClaimsPrincipal user, HttpContext http, ListingService listings, IPreferenceReader reader, TagProjector tags, CancellationToken ct) =>
+            string id, ClaimsPrincipal user, HttpContext http, ListingService listings, IPreferenceReader reader, TagProjector tags,
+            ITagRegistry registry, TimeProvider time, CancellationToken ct) =>
         {
             var customerId = SubjectOf(user);
             if (customerId is null) return Results.Unauthorized();
@@ -54,7 +56,9 @@ public static class PersonalizedListingEndpoints
                 return Results.Json(new ApiError("not_found", "Listing not found."), statusCode: StatusCodes.Status404NotFound);
 
             var profile = await reader.GetAsync(customerId, ct);
-            return Results.Ok(new PersonalizedListingDto(ListingDto.From(listing, tags), ConflictMatcher.For(listing, profile)));
+            return Results.Ok(new PersonalizedListingDto(
+                ListingDto.From(listing, tags), ConflictMatcher.For(listing, profile),
+                DietMatcher.For(listing, profile, registry, DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime))));
         });
 
         return app;

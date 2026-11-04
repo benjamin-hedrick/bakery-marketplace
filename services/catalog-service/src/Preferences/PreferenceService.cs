@@ -4,7 +4,10 @@ using CatalogService.Tags;
 namespace CatalogService.Preferences;
 
 /// <summary>The body of <c>PUT /catalog/preferences</c>. Both lists are required: a missing one must not clear a profile by accident.</summary>
-public sealed record PreferencesRequest(List<string?>? Allergies, List<string?>? Avoid);
+/// <summary>
+/// <c>Prefer</c> (WI-TAG-004) is optional: a request without it leaves the stored list as it was, so a client that does not know about diets cannot clear it.
+/// </summary>
+public sealed record PreferencesRequest(List<string?>? Allergies, List<string?>? Avoid, List<string?>? Prefer = null);
 
 public enum PreferenceOutcome { Saved, Invalid }
 
@@ -19,7 +22,7 @@ public sealed class PreferenceService(IRepository<PreferenceProfileDocument> pro
     public async Task<PreferenceProfile> GetAsync(string customerId, CancellationToken ct = default)
     {
         var doc = await profiles.GetAsync(customerId, customerId, ct);
-        return doc is null ? PreferenceProfile.Empty : new PreferenceProfile(doc.Allergies, doc.Avoid, doc.UpdatedAt);
+        return doc is null ? PreferenceProfile.Empty : new PreferenceProfile(doc.Allergies, doc.Avoid, doc.UpdatedAt, doc.Prefer);
     }
 
     /// <summary>Replaces the profile (creating it on the first save). An empty pair of lists clears it.</summary>
@@ -29,15 +32,19 @@ public sealed class PreferenceService(IRepository<PreferenceProfileDocument> pro
         var errors = Validate(request, DateOnly.FromDateTime(now.UtcDateTime));
         if (errors.Count > 0) return new PreferenceResult(PreferenceOutcome.Invalid, Errors: errors);
 
+        var prefer = request!.Prefer is null
+            ? (await profiles.GetAsync(customerId, customerId, ct))?.Prefer ?? []
+            : request.Prefer.Select(p => p!).ToList();
         var doc = await profiles.SaveAsync(new PreferenceProfileDocument
         {
             Id = customerId,
             CustomerId = customerId,
-            Allergies = request!.Allergies!.Select(a => a!).ToList(),
+            Allergies = request.Allergies!.Select(a => a!).ToList(),
             Avoid = request.Avoid!.Select(a => a!).ToList(),
+            Prefer = prefer,
             UpdatedAt = now,
         }, customerId, ct);
-        return new PreferenceResult(PreferenceOutcome.Saved, new PreferenceProfile(doc.Allergies, doc.Avoid, doc.UpdatedAt));
+        return new PreferenceResult(PreferenceOutcome.Saved, new PreferenceProfile(doc.Allergies, doc.Avoid, doc.UpdatedAt, doc.Prefer));
     }
 
     private Dictionary<string, string[]> Validate(PreferencesRequest? request, DateOnly today)
@@ -66,6 +73,20 @@ public sealed class PreferenceService(IRepository<PreferenceProfileDocument> pro
 
         CheckList("allergies", request?.Allergies);
         CheckList("avoid", request?.Avoid);
+
+        // Diets the customer prefers: diet tags the registry shows today. Optional, so a missing list is fine; a given one is checked like the others.
+        if (request?.Prefer is { } prefer)
+        {
+            var diets = tags.PublicOn(today, TagKind.Diet).Select(t => t.Id).ToList();
+            var dietSet = diets.ToHashSet(StringComparer.Ordinal);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var value in prefer)
+            {
+                if (value is null || !dietSet.Contains(value))
+                    Add("prefer", $"'{Trim(value)}' is not a diet in the list. Use one of: {string.Join(", ", diets)}.");
+                else if (!seen.Add(value)) Add("prefer", $"'{value}' appears more than once.");
+            }
+        }
 
         // An allergen has one choice: Allergy or Avoid, never both (the profile page offers one choice each).
         if (request?.Allergies is { } a && request.Avoid is { } v)

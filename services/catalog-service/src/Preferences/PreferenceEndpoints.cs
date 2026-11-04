@@ -1,13 +1,14 @@
 using System.Security.Claims;
 using CatalogService.Api;
 using CatalogService.Services;
+using CatalogService.Tags;
 
 namespace CatalogService.Preferences;
 
 /// <summary>The profile as returned. <c>updatedAt</c> is null for a customer who never saved one.</summary>
-public sealed record PreferencesDto(IReadOnlyList<string> Allergies, IReadOnlyList<string> Avoid, DateTimeOffset? UpdatedAt)
+public sealed record PreferencesDto(IReadOnlyList<string> Allergies, IReadOnlyList<string> Avoid, DateTimeOffset? UpdatedAt, IReadOnlyList<string> Prefer)
 {
-    public static PreferencesDto From(PreferenceProfile p) => new(p.Allergies, p.Avoid, p.UpdatedAt);
+    public static PreferencesDto From(PreferenceProfile p) => new(p.Allergies, p.Avoid, p.UpdatedAt, p.Prefer);
 }
 
 /// <summary>One cart line to check: a listing and the options the customer chose on it.</summary>
@@ -19,7 +20,8 @@ public sealed record CartCheckRequest(List<CartLineRequest?>? Lines);
 /// The check of one cart line, in the order sent. A listing that is not public is <c>found: false</c> (reported for that line, not a failure of the
 /// check); option ids the listing does not have are named in <c>unknownOptionIds</c> and count for nothing.
 /// </summary>
-public sealed record CartLineCheckDto(string ListingId, bool Found, IReadOnlyList<string> UnknownOptionIds, IReadOnlyList<Conflict> Conflicts);
+public sealed record CartLineCheckDto(
+    string ListingId, bool Found, IReadOnlyList<string> UnknownOptionIds, IReadOnlyList<Conflict> Conflicts, IReadOnlyList<DietMatch> DietMatches);
 
 /// <summary>
 /// The customer's own allergen profile (WI-PREF-001) and the check of a cart against it (WI-SRCH-001). Customer role only, and the customer is
@@ -69,7 +71,8 @@ public static class PreferenceEndpoints
         // The cart check: each line's listing and the options chosen on it against the caller's profile. Only the chosen options count, which
         // is why this is not the browse view (that one shows what a listing can contain).
         group.MapPost("/check", async (
-            ClaimsPrincipal user, HttpContext http, IPreferenceReader reader, ListingService listings, CancellationToken ct) =>
+            ClaimsPrincipal user, HttpContext http, IPreferenceReader reader, ListingService listings,
+            ITagRegistry registry, TimeProvider time, CancellationToken ct) =>
         {
             var customerId = SubjectOf(user);
             if (customerId is null) return Results.Unauthorized();
@@ -91,14 +94,15 @@ public static class PreferenceEndpoints
                 if (!found.TryGetValue(id, out var listing)) found[id] = listing = await listings.GetPublicAsync(id, ct);
                 if (listing is null)
                 {
-                    checks.Add(new CartLineCheckDto(id, false, [], []));
+                    checks.Add(new CartLineCheckDto(id, false, [], [], []));
                     continue;
                 }
 
                 var chosen = (line.OptionIds ?? []).Select(o => o!).Distinct(StringComparer.Ordinal).ToList();
                 var known = listing.Modifiers.Select(m => m.Id).ToHashSet(StringComparer.Ordinal);
                 checks.Add(new CartLineCheckDto(
-                    id, true, chosen.Where(o => !known.Contains(o)).ToList(), ConflictMatcher.For(listing, profile, chosen)));
+                    id, true, chosen.Where(o => !known.Contains(o)).ToList(), ConflictMatcher.For(listing, profile, chosen),
+                    DietMatcher.For(listing, profile, registry, DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime), chosen)));
             }
             return Results.Ok(new { lines = checks });
         });

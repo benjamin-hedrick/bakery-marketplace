@@ -6,6 +6,7 @@ import type { usePersonalizationOneQuery } from '../__generated__/usePersonaliza
 import type { usePersonalizationProfileQuery } from '../__generated__/usePersonalizationProfileQuery.graphql';
 import { hasItemConflict, marksFor, type ConflictView, type Mark } from '../lib/conflictText';
 import { useSession } from '../lib/session';
+import type { DietNote } from '../lib/dietText.ts';
 
 // WI-CUST-006: the customer's own conflicts, laid over the public page after the login. The server-rendered page never knows them. A logged-out
 // customer, or one with an empty profile, makes no personalized request: the profile is asked first (a small answer) and only a non-empty one
@@ -16,13 +17,14 @@ const profileQuery = graphql`
     preferences {
       allergies
       avoid
+      prefer
     }
   }
 `;
 
 const listQuery = graphql`
   query usePersonalizationListQuery {
-    tags(kind: ALLERGEN) {
+    tags {
       id
       label
     }
@@ -42,6 +44,12 @@ const listQuery = graphql`
             source
             optionIds
           }
+          dietMatches {
+            tagId
+            marked
+            itemMarked
+            optionIdsNotMarked
+          }
         }
       }
     }
@@ -50,7 +58,7 @@ const listQuery = graphql`
 
 const oneQuery = graphql`
   query usePersonalizationOneQuery($id: ID!) {
-    tags(kind: ALLERGEN) {
+    tags {
       id
       label
     }
@@ -68,6 +76,12 @@ const oneQuery = graphql`
         source
         optionIds
       }
+      dietMatches {
+        tagId
+        marked
+        itemMarked
+        optionIdsNotMarked
+      }
     }
   }
 `;
@@ -76,6 +90,8 @@ const oneQuery = graphql`
 export interface ListingMarks {
   marks: Mark[];
   itemConflict: boolean;
+  /** How the listing stands against each diet the customer prefers (WI-TAG-004): the bakery's claim, never a finding. */
+  diets: DietNote[];
 }
 
 export type Personalization = ReadonlyMap<string, ListingMarks>;
@@ -86,9 +102,25 @@ function build(
   labels: ReadonlyMap<string, string>,
   listing: { id: string; modifiers: readonly { id: string; name: string }[] },
   conflicts: readonly ConflictView[],
+  dietMatches: readonly {
+    tagId: string;
+    marked: boolean;
+    itemMarked: boolean;
+    optionIdsNotMarked: readonly string[];
+  }[],
 ): ListingMarks {
   const optionNames = new Map(listing.modifiers.map((m) => [m.id, m.name]));
-  return { marks: marksFor(conflicts, labels, optionNames), itemConflict: hasItemConflict(conflicts) };
+  return {
+    marks: marksFor(conflicts, labels, optionNames),
+    itemConflict: hasItemConflict(conflicts),
+    diets: dietMatches.map((m) => ({
+      tagId: m.tagId,
+      label: labels.get(m.tagId) ?? m.tagId,
+      marked: m.marked,
+      itemMarked: m.itemMarked,
+      optionNames: m.optionIdsNotMarked.map((id) => optionNames.get(id) ?? 'An option'),
+    })),
+  };
 }
 
 /**
@@ -107,7 +139,12 @@ function usePersonalized<T>(key: string, load: (environment: Environment) => Pro
     fetchQuery<usePersonalizationProfileQuery>(environment, profileQuery, {}, { fetchPolicy: 'network-only' })
       .toPromise()
       .then((profile) => {
-        if (!profile || (profile.preferences.allergies.length === 0 && profile.preferences.avoid.length === 0))
+        if (
+          !profile ||
+          (profile.preferences.allergies.length === 0 &&
+            profile.preferences.avoid.length === 0 &&
+            profile.preferences.prefer.length === 0)
+        )
           return null;
         return load(environment);
       })
@@ -139,7 +176,10 @@ export function usePersonalizedList(): Personalization | null {
     if (!data) return null;
     const labels = new Map(data.tags.map((t) => [t.id, t.label]));
     return new Map(
-      data.personalizedListings.edges.map(({ node }) => [node.listing.id, build(labels, node.listing, node.conflicts)]),
+      data.personalizedListings.edges.map(({ node }) => [
+        node.listing.id,
+        build(labels, node.listing, node.conflicts, node.dietMatches),
+      ]),
     );
   });
 }
@@ -155,6 +195,11 @@ export function usePersonalizedListing(id: string): ListingMarks | null {
     ).toPromise();
     if (!data?.personalizedListing) return null;
     const labels = new Map(data.tags.map((t) => [t.id, t.label]));
-    return build(labels, data.personalizedListing.listing, data.personalizedListing.conflicts);
+    return build(
+      labels,
+      data.personalizedListing.listing,
+      data.personalizedListing.conflicts,
+      data.personalizedListing.dietMatches,
+    );
   });
 }

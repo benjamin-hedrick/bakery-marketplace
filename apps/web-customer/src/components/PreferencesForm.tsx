@@ -11,9 +11,14 @@ const profileQuery = graphql`
       id
       label
     }
+    diets: tags(kind: DIET) {
+      id
+      label
+    }
     preferences {
       allergies
       avoid
+      prefer
     }
   }
 `;
@@ -26,6 +31,7 @@ const saveMutation = graphql`
         preferences {
           allergies
           avoid
+          prefer
         }
       }
       ... on SavePreferencesRejected {
@@ -43,7 +49,15 @@ type Choice = 'none' | 'avoid' | 'allergy';
 type Choices = Readonly<Record<string, Choice>>;
 type Allergen = { id: string; label: string };
 type Load =
-  { state: 'loading' } | { state: 'failed' } | { state: 'ready'; allergens: readonly Allergen[]; saved: Choices };
+  | { state: 'loading' }
+  | { state: 'failed' }
+  | {
+      state: 'ready';
+      allergens: readonly Allergen[];
+      diets: readonly Allergen[];
+      saved: Choices;
+      savedPrefer: readonly string[];
+    };
 type Outcome =
   { kind: 'saved' } | { kind: 'rejected'; message: string } | { kind: 'error'; reference?: string | undefined };
 
@@ -66,6 +80,7 @@ export function PreferencesForm() {
   const [commit, saving] = useMutation<PreferencesFormMutation>(saveMutation);
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [choices, setChoices] = useState<Choices>({});
+  const [prefer, setPrefer] = useState<readonly string[]>([]);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 
   const read = useCallback(() => {
@@ -76,8 +91,15 @@ export function PreferencesForm() {
         const saved: Record<string, Choice> = {};
         data.preferences.avoid.forEach((id) => (saved[id] = 'avoid'));
         data.preferences.allergies.forEach((id) => (saved[id] = 'allergy'));
-        setLoad({ state: 'ready', allergens: data.tags.map(({ id, label }) => ({ id, label })), saved });
+        setLoad({
+          state: 'ready',
+          allergens: data.tags.map(({ id, label }) => ({ id, label })),
+          diets: data.diets.map(({ id, label }) => ({ id, label })),
+          saved,
+          savedPrefer: data.preferences.prefer,
+        });
         setChoices(saved);
+        setPrefer(data.preferences.prefer);
       })
       .catch((error: unknown) => {
         // An ended login is handled by the login gate (the session is already cleared).
@@ -105,21 +127,36 @@ export function PreferencesForm() {
     );
   }
 
-  const { allergens, saved } = load;
-  const dirty = !same(choices, saved);
+  const { allergens, diets, saved, savedPrefer } = load;
+  const samePrefer = prefer.length === savedPrefer.length && prefer.every((id) => savedPrefer.includes(id));
+  const dirty = !same(choices, saved) || !samePrefer;
 
   function save() {
     setOutcome(null);
     const ids = (wanted: Choice) => allergens.map((a) => a.id).filter((id) => (choices[id] ?? 'none') === wanted);
     commit({
-      variables: { input: { allergies: ids('allergy'), avoid: ids('avoid') } },
+      // Diets are the registry's order, so what is saved does not depend on the order they were ticked in.
+      variables: {
+        input: {
+          allergies: ids('allergy'),
+          avoid: ids('avoid'),
+          prefer: diets.map((d) => d.id).filter((id) => prefer.includes(id)),
+        },
+      },
       onCompleted: ({ savePreferences: result }) => {
         if (result.__typename === 'SavePreferencesSuccess') {
           const next: Record<string, Choice> = {};
           result.preferences.avoid.forEach((id) => (next[id] = 'avoid'));
           result.preferences.allergies.forEach((id) => (next[id] = 'allergy'));
-          setLoad({ state: 'ready', allergens, saved: next });
+          setLoad({
+            state: 'ready',
+            allergens,
+            diets,
+            saved: next,
+            savedPrefer: result.preferences.prefer,
+          });
           setChoices(next);
+          setPrefer(result.preferences.prefer);
           setOutcome({ kind: 'saved' });
         } else if (result.__typename === 'SavePreferencesRejected') {
           setOutcome({ kind: 'rejected', message: result.message });
@@ -167,6 +204,28 @@ export function PreferencesForm() {
           ))}
         </fieldset>
       ))}
+      {diets.length > 0 ? (
+        <fieldset data-testid="diet-group">
+          <legend>Diets you prefer</legend>
+          <p data-testid="diet-note">
+            Diets are the bakery&apos;s own claims. We show which items the bakery has marked for them. An item that is
+            not marked is not necessarily unsuitable, so ask the bakery when it matters.
+          </p>
+          {diets.map((diet) => (
+            <label key={diet.id}>
+              <input
+                type="checkbox"
+                checked={prefer.includes(diet.id)}
+                onChange={(e) => {
+                  setOutcome(null);
+                  setPrefer(e.target.checked ? [...prefer, diet.id] : prefer.filter((id) => id !== diet.id));
+                }}
+              />{' '}
+              {diet.label}{' '}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
       <button type="submit" disabled={saving}>
         {saving ? 'Saving…' : 'Save my choices'}
       </button>

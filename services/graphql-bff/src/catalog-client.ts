@@ -42,6 +42,8 @@ export interface CatalogTag {
 export interface CatalogPreferences {
   allergies: string[];
   avoid: string[];
+  /** Preferred diet tag ids (WI-TAG-004); absent from a catalog that does not know diets yet. */
+  prefer?: string[];
   updatedAt: string | null;
 }
 
@@ -55,9 +57,18 @@ export interface CatalogConflict {
   source: string;
   optionIds: string[];
 }
+/** How a listing stands against one preferred diet (WI-TAG-004): the bakery's claim. */
+export interface CatalogDietMatch {
+  tagId: string;
+  marked: boolean;
+  itemMarked: boolean;
+  optionIdsNotMarked: string[];
+}
 export interface CatalogPersonalizedListing {
   listing: CatalogListing;
   conflicts: CatalogConflict[];
+  /** Absent from a catalog that does not know diets yet. */
+  dietMatches?: CatalogDietMatch[];
 }
 export interface CatalogPersonalizedPage {
   items: CatalogPersonalizedListing[];
@@ -68,6 +79,7 @@ export interface CatalogCartLineCheck {
   found: boolean;
   unknownOptionIds: string[];
   conflicts: CatalogConflict[];
+  dietMatches?: CatalogDietMatch[];
 }
 
 export interface CatalogClient {
@@ -95,7 +107,7 @@ export interface CatalogClient {
   getPreferences(authorization: string, trace: TraceContext): Promise<CatalogPreferences>;
   /** Replaces the caller's profile. A 422 (an id the catalog does not offer, an overlap) is `rejected`; a 401 or 403 is a {@link DownstreamError}. */
   savePreferences(
-    body: { allergies: string[]; avoid: string[] },
+    body: { allergies: string[]; avoid: string[]; prefer?: string[] },
     authorization: string,
     trace: TraceContext,
   ): Promise<SavePreferencesResult>;

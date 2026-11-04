@@ -192,7 +192,7 @@ const ALLERGENS = [
   ['soy', 'Soy'],
   ['sesame', 'Sesame'],
 ].map(([id, label]) => ({ id, kind: 'ALLERGEN', label }));
-let profile = { allergies: [], avoid: [] }; // the one mock customer's profile
+let profile = { allergies: [], avoid: [], prefer: [] }; // the one mock customer's profile
 let preferenceReads = 0; // how many personalized queries came in, so a test can see the browser did not ask needlessly
 
 const needCustomer = (ctx) => {
@@ -224,7 +224,22 @@ function savePreferences({ input }, ctx) {
       fields: [{ field: 'allergies', message: 'Choose each allergen only once.' }],
     };
   }
-  profile = { allergies: [...input.allergies], avoid: [...input.avoid] };
+  // Diets (WI-TAG-004): optional; left out, the stored list stays. Only diet tags the registry shows may be preferred.
+  const dietIds = Object.values(TAGS)
+    .filter((t) => t.kind === 'DIET')
+    .map((t) => t.id);
+  if (input.prefer && input.prefer.some((id) => !dietIds.includes(id))) {
+    return {
+      __typename: 'SavePreferencesRejected',
+      message: 'Your diet choices could not be saved as entered.',
+      fields: [{ field: 'prefer', message: 'That is not a diet in the list.' }],
+    };
+  }
+  profile = {
+    allergies: [...input.allergies],
+    avoid: [...input.avoid],
+    prefer: input.prefer ? [...input.prefer] : profile.prefer,
+  };
   return { __typename: 'SavePreferencesSuccess', preferences: profile };
 }
 
@@ -245,6 +260,24 @@ function conflictsOf(l) {
   return out.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'ALLERGY' ? -1 : 1));
 }
 
+// How a listing stands against the diets the customer prefers (WI-TAG-004): marked only if the item and every chosen option carry the tag. With no options
+// chosen (browse, detail) it is marked when the item is, and every option without the tag is named.
+function dietMatchesOf(l, chosen = null) {
+  return (profile.prefer ?? []).map((tagId) => {
+    const itemMarked = (l.tags ?? []).some((t) => t.id === tagId);
+    const notMarked = l.modifiers
+      .filter((m) => chosen === null || chosen.has(m.id))
+      .filter((m) => !(m.tags ?? []).some((t) => t.id === tagId))
+      .map((m) => m.id);
+    return {
+      tagId,
+      marked: itemMarked && (chosen === null || notMarked.length === 0),
+      itemMarked,
+      optionIdsNotMarked: notMarked,
+    };
+  });
+}
+
 // The cart check, as the real BFF answers it: for each line the conflicts of the item and of the options chosen on that line, and only those.
 function cartCheck({ lines }, ctx) {
   needCustomer(ctx);
@@ -256,13 +289,20 @@ function cartCheck({ lines }, ctx) {
   preferenceReads++;
   return lines.map((line) => {
     const listing = data(ctx.fixture).find((l) => l.id === line.listingId);
-    if (!listing) return { listingId: line.listingId, found: false, unknownOptionIds: [], conflicts: [] };
+    if (!listing)
+      return { listingId: line.listingId, found: false, unknownOptionIds: [], conflicts: [], dietMatches: [] };
     const chosen = new Set(line.optionIds);
     const conflicts = conflictsOf(listing)
       .map((c) => (c.source === 'OPTION' ? { ...c, optionIds: c.optionIds.filter((id) => chosen.has(id)) } : c))
       .filter((c) => c.source !== 'OPTION' || c.optionIds.length > 0);
     const unknownOptionIds = line.optionIds.filter((id) => !listing.modifiers.some((m) => m.id === id));
-    return { listingId: line.listingId, found: true, unknownOptionIds, conflicts };
+    return {
+      listingId: line.listingId,
+      found: true,
+      unknownOptionIds,
+      conflicts,
+      dietMatches: dietMatchesOf(listing, chosen),
+    };
   });
 }
 
@@ -270,7 +310,7 @@ function personalizedListings({ hideConflicts }, ctx) {
   needCustomer(ctx);
   preferenceReads++;
   const items = data(ctx.fixture)
-    .map((listing) => ({ listing, conflicts: conflictsOf(listing) }))
+    .map((listing) => ({ listing, conflicts: conflictsOf(listing), dietMatches: dietMatchesOf(listing) }))
     .filter((p) => !(hideConflicts && p.conflicts.some((c) => c.source === 'ITEM')));
   return {
     edges: items.map((node) => ({ cursor: node.listing.id, node })),
@@ -281,7 +321,7 @@ function personalizedListing({ id }, ctx) {
   needCustomer(ctx);
   preferenceReads++;
   const listing = data(ctx.fixture).find((l) => l.id === id);
-  return listing ? { listing, conflicts: conflictsOf(listing) } : null;
+  return listing ? { listing, conflicts: conflictsOf(listing), dietMatches: dietMatchesOf(listing) } : null;
 }
 
 function rootFor(fixture) {
@@ -351,13 +391,14 @@ const server = http.createServer(async (req, res) => {
       });
     }
     if (control.resetPreferences) {
-      profile = { allergies: [], avoid: [] };
+      profile = { allergies: [], avoid: [], prefer: [] };
       preferenceReads = 0;
     }
     if (control.preferences)
       profile = {
         allergies: [...(control.preferences.allergies ?? [])],
         avoid: [...(control.preferences.avoid ?? [])],
+        prefer: [...(control.preferences.prefer ?? [])],
       };
     return send(200, { revision, orders: orders.size, preferenceReads });
   }

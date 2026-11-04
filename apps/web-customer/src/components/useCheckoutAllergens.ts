@@ -17,7 +17,7 @@ import { useSession } from '../lib/session';
 
 const tagsQuery = graphql`
   query useCheckoutAllergensTagsQuery {
-    tags(kind: ALLERGEN) {
+    tags {
       id
       label
     }
@@ -42,6 +42,7 @@ const profileQuery = graphql`
     preferences {
       allergies
       avoid
+      prefer
     }
   }
 `;
@@ -57,6 +58,12 @@ const checkQuery = graphql`
         source
         optionIds
       }
+      dietMatches {
+        tagId
+        marked
+        itemMarked
+        optionIdsNotMarked
+      }
     }
   }
 `;
@@ -68,9 +75,25 @@ export interface LineConflict {
   conflict: ConflictView;
 }
 
+/** What the cart check answered: the allergen conflicts, and the diet matches. */
+export interface CartCheckResult {
+  conflicts: readonly LineConflict[];
+  diets: readonly LineDiet[];
+}
+
 export interface Profile {
   allergies: readonly string[];
   avoid: readonly string[];
+  prefer: readonly string[];
+}
+
+/** How a cart line, with the options chosen on it, stands against one preferred diet (WI-TAG-004): the bakery's claim. */
+export interface LineDiet {
+  lineIndex: number;
+  tagId: string;
+  marked: boolean;
+  itemMarked: boolean;
+  optionIdsNotMarked: readonly string[];
 }
 
 export interface CheckoutAllergens {
@@ -84,7 +107,7 @@ export interface CheckoutAllergens {
    */
   profile: Part<Profile | null>;
   /** The conflicts of the cart's lines with the profile, when there is a profile to check against. */
-  check: Part<readonly LineConflict[]> | { state: 'idle' };
+  check: Part<CartCheckResult> | { state: 'idle' };
 }
 
 const isForbidden = (e: unknown) => e instanceof GraphQLRequestError && e.codes.includes('FORBIDDEN');
@@ -178,7 +201,9 @@ export function useCheckoutAllergens(cart: Cart): CheckoutAllergens {
         setProfile({
           state: 'ready',
           value:
-            p && (p.allergies.length > 0 || p.avoid.length > 0) ? { allergies: p.allergies, avoid: p.avoid } : null,
+            p && (p.allergies.length > 0 || p.avoid.length > 0 || p.prefer.length > 0)
+              ? { allergies: p.allergies, avoid: p.avoid, prefer: p.prefer }
+              : null,
         });
       })
       .catch((e: unknown) => {
@@ -206,11 +231,13 @@ export function useCheckoutAllergens(cart: Cart): CheckoutAllergens {
         if (cancelled) return;
         const found = data?.cartCheck ?? [];
         const conflicts: LineConflict[] = [];
+        const diets: LineDiet[] = [];
         // The check answers line by line, in the order asked.
-        found.forEach((line, lineIndex) =>
-          line.conflicts.forEach((conflict) => conflicts.push({ lineIndex, conflict })),
-        );
-        setCheck({ key: linesKey, part: { state: 'ready', value: conflicts } });
+        found.forEach((line, lineIndex) => {
+          line.conflicts.forEach((conflict) => conflicts.push({ lineIndex, conflict }));
+          line.dietMatches.forEach((m) => diets.push({ lineIndex, ...m }));
+        });
+        setCheck({ key: linesKey, part: { state: 'ready', value: { conflicts, diets } } });
       })
       .catch((e: unknown) => {
         if (!cancelled && !(e instanceof UnauthenticatedError)) setCheck({ key: linesKey, part: { state: 'failed' } });

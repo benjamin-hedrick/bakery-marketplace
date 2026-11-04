@@ -1,4 +1,4 @@
-> **Status:** 0 of 5 items done (TAG-001 In review, TAG-002 and TAG-003 Ready, TAG-004 Proposed, TAG-005 Deferred)
+> **Status:** 0 of 5 items done (TAG-001 In review, TAG-002, TAG-003 and TAG-004 In review, TAG-005 Deferred)
 
 ```
 Epic ID:            EPIC-TAGS
@@ -13,7 +13,7 @@ Constituent work items:
   - WI-TAG-003 (Service Implementation — filter the public browse by tag)
   - WI-TAG-004 (Service Implementation — diet tags in the customer's profile) — Proposed
   - WI-TAG-005 (Service Implementation — seasonal and themed surfaces, administrator editing) — Deferred
-Status:              0 of 5 items done (TAG-001 In review, TAG-002 and TAG-003 Ready, TAG-004 Proposed, TAG-005 Deferred)
+Status:              0 of 5 items done (TAG-001 In review, TAG-002, TAG-003 and TAG-004 In review, TAG-005 Deferred)
 ```
 
 > **Added 2026-11-04** after the lead asked for a general mechanism instead of dietary preferences alone ("design for the general use and implement iteratively"). The personalization items (`PREF-001`, `SRCH-001`, `CUST-005`, `CUST-006`, `CUST-008`, `ORD-009`, `QUE-005`) depend on `TAG-001` only.
