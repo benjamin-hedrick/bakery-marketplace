@@ -176,13 +176,13 @@ The same four application images the cloud dev environment will use can run in C
 
 ```
 node scripts/dev/init-env.mjs                                  # the ordering client secret; Compose refuses to start `ordering` without it
-COMPOSE_PARALLEL_LIMIT=1 docker compose --profile apps up -d --build   # catalog :5200, ordering :5300, graphql-bff :4100, web :3000
+COMPOSE_PARALLEL_LIMIT=1 docker compose --profile apps up -d --build   # catalog :5200, ordering :5300, notification :5400, graphql-bff :4100, web :3000
 dotnet run --project tools/BakeryMarketplace.Seed             # then seed, as for host processes
 node scripts/ci/skeleton-smoke.mjs --containers [--keep]      # the whole stack in containers plus the Playwright journeys; tears down unless --keep
 docker compose --profile apps down                            # removes them
 ```
 
-Images: `services/Dockerfile.dotnet` (catalog and ordering; one recipe, build arguments choose the project), `services/graphql-bff/Dockerfile`, `apps/web-customer/Dockerfile` (no build argument: `GRAPHQL_URL` is read at run time by the `/api/graphql` route). They hold no secret: configuration is environment variables (the Cosmos key in the Compose file is the emulator's published key). All four run as a non-root user (checked with `id` in each image). The `apps` services run in the `Development` environment on purpose, because only there do the services accept the plain-http mock issuer.
+Images: `services/Dockerfile.dotnet` (catalog, ordering and notification; one recipe, build arguments choose the project), `services/graphql-bff/Dockerfile`, `apps/web-customer/Dockerfile` (no build argument: `GRAPHQL_URL` is read at run time by the `/api/graphql` route). They hold no secret: configuration is environment variables (the Cosmos key in the Compose file is the emulator's published key). All of them run as a non-root user (checked with `id` in each image). The `apps` services run in the `Development` environment on purpose, because only there do the services accept the plain-http mock issuer.
 
 Two details of the container network. The issuer string in tokens must be one name, but a container reaches the mock issuer as `mock-oidc` and the browser as `localhost`: the mock issuer is given `MockOidc__Issuer=http://localhost:5100`, and the services fetch metadata from `Auth__MetadataAddress=http://mock-oidc:5100/...` while still validating tokens against `Auth__Authority=http://localhost:5100`. And ordering sends its client secret to `http://mock-oidc:5100/token`, which is plain http to a non-loopback host; the library refuses that unless the host opts in, and ordering opts in only when `ASPNETCORE_ENVIRONMENT=Development` (`allowInsecureTokenEndpoint`, never read from configuration).
 
@@ -257,3 +257,5 @@ The BFF also limits the size of an operation (register item 135): `BFF_MAX_QUERY
 
 A value that is not a whole number from 1 to 100000 (0 to 100000 for the hops) stops the web app or the BFF from starting, and the message names the variable. A refusal is `429` with `Retry-After`; a refused login goes to the error page with a sentence. The counts are per process.
 
+
+**Notification service in the `apps` profile (checked 2026-11-03):** the `notification` container (port 5400) consumes the order events from the same Redis Streams under its own consumer group and "sends" through the log sender (no provider). During a run of `skeleton-smoke.mjs --containers --keep` (27 tests passed) it logged 66 produced notifications (OrderPlaced 31, OrderCancelled 21, OrderConfirmed 8, and 2 each of PreparationStarted, ReadyForFulfillment and Completed) with no errors. Events from earlier test runs whose customers are not in the seeded contacts were skipped with a warning, as designed. Not checked: a fresh stream with no backlog, or a restart mid-batch.
