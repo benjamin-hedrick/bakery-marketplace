@@ -14,7 +14,8 @@ the issuer refuses it (`src/auth/session.ts`). A network failure never deletes i
 ## Prerequisites (Windows, one time)
 
 JDK 17 (`JAVA_HOME`), the Android SDK (`ANDROID_HOME`, platform-tools on `PATH`), the AVD `bakery_pixel`, Maestro 2.12.x, Docker, the .NET SDK and
-Node >= 24. How they were installed is in `docs/evidence/WI-QA-003/` and `docs/operations/local-dev.md`.
+Node >= 24. The runner finds JDK 17, the SDK and Maestro at their usual Windows places when `JAVA_HOME` and `ANDROID_HOME` are not set. Chrome on a fresh
+emulator image shows a first-run screen once; the login subflow dismisses it.
 
 ## The Maestro flows (one command)
 
@@ -32,16 +33,19 @@ last result is recorded in `docs/evidence/WI-MOB-001/`; Maestro's own output goe
 
 ```
 npm ci                                       # here, and in ../../packages/customer-core
-node ../../scripts/dev/mobile-stack.mjs      # the backend stack (test hooks ON) + adb reverse 5100 and 4100; Enter stops it
+node ../../scripts/dev/mobile-stack.mjs      # the backend stack (test hook on) + adb reverse 5100 and 4100; Enter stops it
 emulator -avd bakery_pixel -no-snapshot -no-boot-anim -gpu swiftshader_indirect -memory 2048
-npx expo run:android                         # prebuilds android/ (git-ignored), builds the debug app, installs it, starts Metro
+EXPO_PUBLIC_TEST_HOOKS=1 npx expo prebuild --platform android --no-install   # generates android/ (git-ignored)
+cd android && EXPO_PUBLIC_TEST_HOOKS=1 ./gradlew app:assembleDebug -PreactNativeArchitectures=x86_64   # .\gradlew.bat on Windows
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The app reaches the host's issuer (`http://localhost:5100`) and BFF (`http://localhost:4100`) through `adb reverse`, so the issuer URL equals
-the `iss` the services expect. Cleartext http exists only in the debug manifests Expo generates. In a debug build the checkout screen shows a
-"Test: decline the payment" switch, which sends the BFF's test header (the BFF honours it only when started with `ENABLE_TEST_HOOKS=1`).
+The debug APK carries its own JavaScript bundle (`plugins/withEmbeddedBundle.js`, register 147), so no dev server is needed and a JavaScript change needs a
+new Gradle build. The app reaches the host's issuer (`http://localhost:5100`) and BFF (`http://localhost:4100`) through `adb reverse`, so the issuer URL
+equals the `iss` the services expect. Cleartext http exists only in the debug manifests Expo generates; no release build has been made.
 
-Log in as any customer on the issuer's page (for example Alice Customer).
+The checkout screen shows a "Test: decline the payment" switch only in a build made with `EXPO_PUBLIC_TEST_HOOKS=1`; it sends the BFF's test header,
+which the BFF honours only when started with `ENABLE_TEST_HOOKS=1`. Log in as Alice Customer on the issuer's page.
 
 ## Checks
 

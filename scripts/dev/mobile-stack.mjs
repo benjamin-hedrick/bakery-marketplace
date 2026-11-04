@@ -15,6 +15,9 @@ import path from 'node:path';
 import { createStack, ports } from '../lib/local-stack.mjs';
 
 const keep = process.argv.includes('--keep');
+// adb is found at the SDK's usual place when it is not on PATH (it is not for a process started without the user's shell profile).
+const sdk = process.env.ANDROID_HOME ?? path.join(process.env.LOCALAPPDATA ?? '', 'Android', 'Sdk');
+process.env.PATH = [path.join(sdk, 'platform-tools'), process.env.PATH].join(path.delimiter);
 const stack = createStack({ label: 'mobile', outDir: 'artifacts/mobile', distDir: '.next-mobile' });
 
 const portInUse = (port) =>
