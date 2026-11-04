@@ -91,7 +91,7 @@ export interface WindowInput {
 }
 
 /** The checkout request: ids, options and quantities only. There is no price, total, customer or status to send (ADR-0013). */
-export function toPlaceOrderInput(cart: Cart, pickupWindow: WindowInput | null) {
+export function toPlaceOrderInput(cart: Cart, pickupWindow: WindowInput | null, allergens: readonly string[] = []) {
   if (cart.vendorId === null || cart.lines.length === 0) throw new Error('There is nothing to order.');
   return {
     vendorId: cart.vendorId,
@@ -101,6 +101,8 @@ export function toPlaceOrderInput(cart: Cart, pickupWindow: WindowInput | null) 
       quantity: l.quantity,
     })),
     pickupWindow,
+    // Only when the customer chose to tell the bakery (WI-CUST-008); nothing is sent for an empty choice.
+    ...(allergens.length > 0 ? { allergens: [...new Set(allergens)].sort() } : {}),
   };
 }
 
@@ -108,11 +110,12 @@ export function toPlaceOrderInput(cart: Cart, pickupWindow: WindowInput | null) 
  * Identifies the content of a checkout. An idempotency key is tied to one content (the same key with different content is refused,
  * first-slice contract D-6), so a new key is needed exactly when this changes. Prices are deliberately not part of it.
  */
-export function fingerprint(cart: Cart, pickupWindow: WindowInput | null): string {
+export function fingerprint(cart: Cart, pickupWindow: WindowInput | null, allergens: readonly string[] = []): string {
   return JSON.stringify([
     cart.vendorId,
     cart.lines.map((l) => [l.listingId, l.modifiers.map((m) => m.id).sort(), l.quantity]),
     pickupWindow ? [pickupWindow.start, pickupWindow.end] : null,
+    [...new Set(allergens)].sort(), // ordering includes them in what makes a checkout "the same"
   ]);
 }
 
