@@ -154,6 +154,8 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4328 OTEL_EXPORTER_OTLP_PROT
 # plus Jaeger (UI http://localhost:16686): OTEL_COLLECTOR_CONFIG=local-jaeger.yaml docker compose --profile tracing --profile collector --profile jaeger up -d aspire-dashboard otel-collector jaeger
 ```
 
+The `apps` containers (catalog, ordering, notification) export when `APPS_OTLP_ENDPOINT` is set in the shell that runs Compose, to an address reachable on the container network: start the dashboard first and use `APPS_OTLP_ENDPOINT=http://aspire-dashboard:18889` (OTLP/gRPC; the host ports above are for services on the host). Checked 2026-11-03: with the dashboard up, `skeleton-smoke.mjs --containers --keep` (27 tests) showed `catalog-service`, `ordering-service` and `notification-service` in the dashboard; each notification batch is one `process batch <EventType>` span on its own trace, tagged `messaging.batch.message_count` and linked to the publisher's request (`POST /ordering/checkout`, `.../decline`), and the dashboard reported no ingestion errors. Not checked: Jaeger, the collector's safety processor on these spans, and the BFF and web containers (they do not get `APPS_OTLP_ENDPOINT`).
+
 Services export only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Traces are kept in memory and lost when the dashboard restarts. The dashboard has no password locally, so it is bound to 127.0.0.1.
 The Next.js server exports a client span for its call to the BFF (also given `OTEL_EXPORTER_OTLP_ENDPOINT`), so a page load shows web-customer → graphql-bff → catalog-service. Gaps: the BFF exports one span per successful GraphQL request (not for 400/404); the page render itself has no span; no log export, traces only.
 
