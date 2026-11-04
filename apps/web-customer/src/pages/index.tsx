@@ -7,7 +7,7 @@ import {
   GraphQLRequestError,
   snapshotRecords,
 } from '../lib/relay/environment';
-import { parseTagQuery } from '../lib/tagFilter';
+import { parseTagQuery } from '@bakery/customer-core';
 
 // The public listing page, optionally narrowed by ?tag=a&tag=b (WI-TAG-003). Still anonymous and rendered on the server; a tag the catalog refuses (unknown,
 // hidden, retired, out of its window, an allergen) leads back to the unfiltered page rather than to an error.

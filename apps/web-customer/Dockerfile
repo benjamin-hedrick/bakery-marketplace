@@ -9,6 +9,8 @@ WORKDIR /repo
 COPY packages/web-session/package.json packages/web-session/package-lock.json packages/web-session/
 RUN cd packages/web-session && npm ci
 COPY packages/web-session packages/web-session
+# The shared customer logic (WI-MOB-001) is plain TypeScript with no dependencies at run time.
+COPY packages/customer-core packages/customer-core
 COPY apps/web-customer/package.json apps/web-customer/package-lock.json apps/web-customer/
 RUN cd apps/web-customer && npm ci
 COPY apps/web-customer apps/web-customer
@@ -20,6 +22,7 @@ ENV NODE_ENV=production
 WORKDIR /repo/apps/web-customer
 COPY --from=build /repo/apps/web-customer ./
 COPY --from=build /repo/packages/web-session /repo/packages/web-session
+COPY --from=build /repo/packages/customer-core /repo/packages/customer-core
 COPY --from=build /repo/services/graphql-bff/schema /repo/services/graphql-bff/schema
 EXPOSE 3000
 USER node

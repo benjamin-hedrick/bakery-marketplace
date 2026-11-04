@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { graphql, useRelayEnvironment } from 'react-relay';
 import { fetchQuery } from 'relay-runtime';
 import type { OrderHistoryQuery, OrderHistoryQuery$data } from '../__generated__/OrderHistoryQuery.graphql';
-import { formatMoney } from '../lib/money';
-import { HEADLINES, referenceOf, when } from '../lib/orderText';
+import { formatMoney } from '@bakery/customer-core';
+import { HEADLINES, referenceOf, when } from '@bakery/customer-core';
 
 const PAGE_SIZE = 10;
 

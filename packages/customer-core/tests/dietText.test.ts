@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dietCartText, dietListText, dietOptionWarnings, type DietNote } from '../../src/lib/dietText.ts';
+import { dietCartText, dietListText, dietOptionWarnings, type DietNote } from '../src/dietText.ts';
 
 // WI-TAG-004: a diet is the bakery's claim. The wording says what the bakery has marked, never that an item is suitable, safe or free of anything, and "not marked"
 // is never worded as "not vegan".

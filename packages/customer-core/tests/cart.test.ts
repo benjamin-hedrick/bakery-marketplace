@@ -15,8 +15,8 @@ import {
   toPlaceOrderInput,
   type Cart,
   type CartLine,
-} from '../../src/lib/cart/cart.ts';
-import { createCartStore } from '../../src/lib/cart/store.ts';
+} from '../src/cart.ts';
+import { createCartStore } from '../src/store.ts';
 
 const seeds = { id: 'mod-seeds', name: 'Seed crust', priceDeltaCents: 100 };
 const sliced = { id: 'mod-sliced', name: 'Sliced', priceDeltaCents: 0 };

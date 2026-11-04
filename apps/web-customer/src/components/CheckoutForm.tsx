@@ -14,7 +14,7 @@ import {
   setQuantity,
   toPlaceOrderInput,
   type Cart,
-} from '../lib/cart/cart.ts';
+} from '@bakery/customer-core';
 import { cartStore, useCart } from '../lib/cart/useCart.ts';
 import {
   allergensToTell,
@@ -22,10 +22,10 @@ import {
   lineAllergenSentences,
   lineConflictText,
   needsAcknowledgement,
-} from '../lib/cartAllergens.ts';
-import { dietCartText } from '../lib/dietText.ts';
+} from '@bakery/customer-core';
+import { dietCartText } from '@bakery/customer-core';
 import { randomUrlSafe } from '../lib/random';
-import { formatMoney } from '../lib/money';
+import { formatMoney } from '@bakery/customer-core';
 import { GraphQLRequestError, UnauthenticatedError } from '../lib/relay/environment';
 import { useCheckoutAllergens } from './useCheckoutAllergens';
 

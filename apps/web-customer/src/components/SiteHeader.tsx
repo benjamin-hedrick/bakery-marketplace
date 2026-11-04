@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { cartCount } from '../lib/cart/cart.ts';
+import { cartCount } from '@bakery/customer-core';
 import { useCart } from '../lib/cart/useCart.ts';
 import { logout, startLogin, useSession } from '../lib/session';
 

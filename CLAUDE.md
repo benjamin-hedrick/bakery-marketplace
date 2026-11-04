@@ -29,7 +29,6 @@ Frontend proof (`apps/web-customer`, Node 25.9.0 was used; exact LTS pin is stil
 ```
 npm ci
 npm run typecheck        # relay-compiler, then tsc
-npm run test:unit        # the cart library, Node test runner (the login code is in packages/web-session)
 npm run build            # relay-compiler + next build
 npm run mock             # mock GraphQL on :4000
 ENABLE_TEST_HOOKS=1 npx next start -p 3000
@@ -39,6 +38,8 @@ npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/
 ```
 
 GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (221 tests, no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `ENABLE_TEST_HOOKS=1` forwards the declined-payment test hook and must never be set outside tests). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
+
+Shared customer package (`packages/customer-core`, `WI-MOB-001`; the cart, checkout input, allergen and diet wording, plain TypeScript used by web-customer and later the Android app; run `npm ci` here before in the app): `npm ci`, `npm run typecheck`, `npm test` (66 tests, no Docker needed).
 
 Session package (`packages/web-session`, `WI-AUTH-007`, used by both web apps since 2026-11-02; run `npm ci` here before in an app): `npm ci`, `npm run typecheck`, `npm test` (172 tests; the 13 Redis store tests run only with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and Redis up, and are skipped otherwise). The apps' browser tests use its fake issuer (`npm run mock-issuer`) and need no Redis; the real-stack login needs the cache Redis (`docker compose --profile with-redis up -d`).
 

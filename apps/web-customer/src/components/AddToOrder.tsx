@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { useState } from 'react';
-import { addLine, lineTotalCents, MAX_QUANTITY, type CartLine } from '../lib/cart/cart.ts';
+import { addLine, lineTotalCents, MAX_QUANTITY, type CartLine } from '@bakery/customer-core';
 import { cartStore } from '../lib/cart/useCart.ts';
-import { formatMoney } from '../lib/money';
+import { formatMoney } from '@bakery/customer-core';
 import { ConflictMarks } from './ConflictMarks';
 import { TagChips, type TagView } from './TagChips';
 import { canOrder, type StockStatus } from './StockBadge';
-import type { Mark } from '../lib/conflictText';
+import type { Mark } from '@bakery/customer-core';
 
 interface Money {
   cents: number;

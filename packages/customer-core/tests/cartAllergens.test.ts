@@ -6,9 +6,9 @@ import {
   lineAllergenSentences,
   lineConflictText,
   needsAcknowledgement,
-} from '../../src/lib/cartAllergens.ts';
-import { fingerprint, toPlaceOrderInput, type Cart } from '../../src/lib/cart/cart.ts';
-import type { ConflictView } from '../../src/lib/conflictText.ts';
+} from '../src/cartAllergens.ts';
+import { fingerprint, toPlaceOrderInput, type Cart } from '../src/cart.ts';
+import type { ConflictView } from '../src/conflictText.ts';
 
 // WI-CUST-008: the words and rules of allergens in the cart and at checkout, and what the checkout request does with the customer's choice.
 
