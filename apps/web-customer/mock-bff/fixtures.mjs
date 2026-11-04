@@ -59,7 +59,7 @@ export const fixtures = {
       ['gluten'],
       { status: 'IN_STOCK', maxPerOrder: 4 },
       ['vegan', 'local-favourite'],
-      { 'mod-seeds': ['vegan'] },
+      { 'mod-seeds': ['vegan'] }, // "Sliced" carries no diet tag, so choosing it removes the sourdough's vegan claim
     ),
     listing(
       'listing-croissant-001',

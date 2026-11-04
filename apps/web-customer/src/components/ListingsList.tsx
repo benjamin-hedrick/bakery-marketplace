@@ -5,6 +5,7 @@ import type { ListingsList_query$key } from '../__generated__/ListingsList_query
 import { formatMoney } from '../lib/money';
 import { ConflictMarks } from './ConflictMarks';
 import { filterHref, toggleTag } from '../lib/tagFilter';
+import { dietListText } from '../lib/dietText.ts';
 import { TagChips } from './TagChips';
 import { StockBadge } from './StockBadge';
 import { usePersonalizedList } from './usePersonalization';
@@ -55,10 +56,20 @@ export function ListingsList({
   // The customer's own conflicts, laid over the public list after the login; null (nothing changes) for everyone else. Hiding is done here, instantly.
   const personalization = usePersonalizedList();
   const [hide, setHide] = useState(false);
+  // Off by default, like the allergen switch: a preference for a diet never hides anything unless the customer asks (WI-TAG-004).
+  const [onlyMarked, setOnlyMarked] = useState(false);
   const all = data.listings.edges;
   // The tags a customer can narrow by: what the catalog shows today, without allergens (they are not tags; ADR-0022).
   const filterable = data.tags.filter((t) => t.kind !== 'ALLERGEN');
-  const shown = personalization && hide ? all.filter(({ node }) => !personalization.get(node.id)?.itemConflict) : all;
+  const hasDiets = personalization !== null && [...personalization.values()].some((m) => m.diets.length > 0);
+  const shown = personalization
+    ? all.filter(({ node }) => {
+        const marks = personalization.get(node.id);
+        if (hide && marks?.itemConflict) return false;
+        if (onlyMarked && marks?.diets.some((d) => !d.marked)) return false;
+        return true;
+      })
+    : all;
   const hiddenCount = all.length - shown.length;
 
   return (
@@ -111,8 +122,14 @@ export function ListingsList({
             <input type="checkbox" checked={hide} onChange={(e) => setHide(e.target.checked)} /> Hide items that list an
             allergen from my profile
           </label>
+          {hasDiets ? (
+            <label>
+              <input type="checkbox" checked={onlyMarked} onChange={(e) => setOnlyMarked(e.target.checked)} /> Show only
+              items the bakery has marked for my diets
+            </label>
+          ) : null}
           <p role="status" data-testid="hidden-count">
-            {hide ? `${hiddenCount} ${hiddenCount === 1 ? 'item' : 'items'} hidden.` : ''}
+            {hide || onlyMarked ? `${hiddenCount} ${hiddenCount === 1 ? 'item' : 'items'} hidden.` : ''}
           </p>
         </div>
       ) : null}
@@ -139,6 +156,13 @@ export function ListingsList({
               {node.allergenFlags.length ? ` · contains ${node.allergenFlags.join(', ')}` : ''}
             </small>
             <TagChips tags={node.tags} />
+            {personalization?.get(node.id)?.diets.map((d) => (
+              // Quiet and in words: the bakery's claim, or that it has not made one. Never styled like an allergen mark.
+              <small key={d.tagId} className="diet-note" data-testid="diet-note" data-marked={d.marked}>
+                {' '}
+                {dietListText(d)}.
+              </small>
+            ))}
           </li>
         ))}
       </ul>

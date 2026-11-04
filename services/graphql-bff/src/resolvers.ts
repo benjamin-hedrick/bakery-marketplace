@@ -2,6 +2,7 @@ import type {
   CatalogCartLineCheck,
   CatalogClient,
   CatalogConflict,
+  CatalogDietMatch,
   CatalogListing,
   CatalogTag,
   CatalogPersonalizedListing,
@@ -309,12 +310,36 @@ async function vendorOrderAction(args: { input: { orderId: string; action: strin
   return actionRejected('NOT_ALLOWED_NOW', 'That cannot be done to this order now. It has changed.', current ?? null);
 }
 
-const toPreferences = (p: { allergies: string[]; avoid: string[] }) => ({ allergies: p.allergies, avoid: p.avoid });
+const toPreferences = (p: { allergies: string[]; avoid: string[]; prefer?: string[] }) => ({
+  allergies: p.allergies,
+  avoid: p.avoid,
+  prefer: p.prefer ?? [],
+});
+
+const toDietMatches = (matches: CatalogDietMatch[] | undefined) =>
+  (matches ?? []).map((m) => ({
+    tagId: m.tagId,
+    marked: m.marked,
+    itemMarked: m.itemMarked,
+    optionIdsNotMarked: m.optionIdsNotMarked,
+  }));
 
 /** The profile is quasi-health data: it is passed through and never logged, and a refusal's text is the BFF's own. */
-async function savePreferences(args: { input: { allergies: string[]; avoid: string[] } }, ctx: Context) {
+async function savePreferences(
+  args: { input: { allergies: string[]; avoid: string[]; prefer?: string[] | null } },
+  ctx: Context,
+) {
   const result = await customerCall(ctx, (authorization) =>
-    ctx.catalog.savePreferences({ allergies: args.input.allergies, avoid: args.input.avoid }, authorization, ctx.trace),
+    ctx.catalog.savePreferences(
+      {
+        allergies: args.input.allergies,
+        avoid: args.input.avoid,
+        // Left out when not given, so the catalog keeps the stored list (a client that does not know about diets cannot clear it).
+        ...(args.input.prefer ? { prefer: args.input.prefer } : {}),
+      },
+      authorization,
+      ctx.trace,
+    ),
   );
   if (result.kind === 'saved') {
     return { __typename: 'SavePreferencesSuccess', preferences: toPreferences(result.preferences) };
@@ -341,6 +366,7 @@ const toConflicts = (conflicts: CatalogConflict[]) =>
 const toPersonalized = (p: CatalogPersonalizedListing) => ({
   listing: toListing(p.listing),
   conflicts: toConflicts(p.conflicts),
+  dietMatches: toDietMatches(p.dietMatches),
 });
 
 const MAX_CART_LINES = 50;
@@ -366,13 +392,15 @@ async function cartCheck(args: { lines: { listingId: string; optionIds: string[]
 
   let next = 0;
   return args.lines.map((line, i) => {
-    if (decoded[i] === null) return { listingId: line.listingId, found: false, unknownOptionIds: [], conflicts: [] };
+    if (decoded[i] === null)
+      return { listingId: line.listingId, found: false, unknownOptionIds: [], conflicts: [], dietMatches: [] };
     const answer = answers[next++] as CatalogCartLineCheck;
     return {
       listingId: line.listingId,
       found: answer.found,
       unknownOptionIds: answer.unknownOptionIds,
       conflicts: toConflicts(answer.conflicts),
+      dietMatches: toDietMatches(answer.dietMatches),
     };
   });
 }

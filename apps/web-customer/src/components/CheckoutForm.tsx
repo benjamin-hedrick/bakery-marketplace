@@ -23,6 +23,7 @@ import {
   lineConflictText,
   needsAcknowledgement,
 } from '../lib/cartAllergens.ts';
+import { dietCartText } from '../lib/dietText.ts';
 import { randomUrlSafe } from '../lib/random';
 import { formatMoney } from '../lib/money';
 import { GraphQLRequestError, UnauthenticatedError } from '../lib/relay/environment';
@@ -104,7 +105,8 @@ export function CheckoutForm() {
   const [unticked, setUnticked] = useState<ReadonlySet<string>>(new Set());
   const [ackFor, setAckFor] = useState<string | null>(null);
   const profile = info.profile.state === 'ready' ? info.profile.value : null;
-  const lineConflicts = info.check.state === 'ready' ? info.check.value : [];
+  const lineConflicts = info.check.state === 'ready' ? info.check.value.conflicts : [];
+  const lineDiets = info.check.state === 'ready' ? info.check.value.diets : [];
   const ackKey = allergyConflictKey(lineConflicts);
   const mustAcknowledge = needsAcknowledgement(lineConflicts);
   const acknowledged = ackFor === ackKey;
@@ -327,6 +329,28 @@ export function CheckoutForm() {
                         <strong>{m.heading}:</strong> {m.line}.
                       </li>
                     );
+                  })}
+                </ul>
+              ) : null}
+              {/* The diets the customer prefers (WI-TAG-004): the bakery's claim, a quiet note, never a reason to block. */}
+              {lineDiets.some((d) => !d.marked) ? (
+                <ul data-testid="diet-notes" className="diet-notes">
+                  {lineDiets.map((d) => {
+                    const line = cart.lines[d.lineIndex];
+                    if (!line) return null;
+                    const names = new Map(line.modifiers.map((o) => [o.id, o.name]));
+                    const text = dietCartText(line.name, {
+                      tagId: d.tagId,
+                      label: info.labels.get(d.tagId) ?? d.tagId,
+                      marked: d.marked,
+                      itemMarked: d.itemMarked,
+                      optionNames: d.optionIdsNotMarked.map((id) => names.get(id) ?? 'An option'),
+                    });
+                    return text ? (
+                      <li key={`${d.lineIndex}:${d.tagId}`} className="diet-note" data-testid="diet-note">
+                        {text}.
+                      </li>
+                    ) : null;
                   })}
                 </ul>
               ) : null}

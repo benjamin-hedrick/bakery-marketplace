@@ -72,6 +72,13 @@ public static class SeedData
         ["listing-cookies-001"] = ["birthday"],
     };
 
+    // Option tags (WI-TAG-004): the seed crust carries the vegan tag, "Sliced" deliberately does not, so a customer who prefers vegan sees the rule both ways on
+    // the sourdough (the claim holds with the seed crust, and not with Sliced, because the bakery has not marked that option).
+    private static readonly IReadOnlyDictionary<string, string[]> OptionTags = new Dictionary<string, string[]>
+    {
+        ["mod-seeds"] = ["vegan"],
+    };
+
     private static readonly IReadOnlyDictionary<string, string[]> PlatformTags = new Dictionary<string, string[]>
     {
         ["listing-croissant-001"] = ["test-hidden"],
@@ -84,6 +91,11 @@ public static class SeedData
         {
             if (VendorTags.TryGetValue(listing.Id, out var tags)) listing.Tags = tags.ToList();
             if (PlatformTags.TryGetValue(listing.Id, out var platform)) listing.PlatformTags = platform.ToList();
+            if (listing.Id == "listing-sourdough-001")
+            {
+                foreach (var option in listing.Modifiers)
+                    if (OptionTags.TryGetValue(option.Id, out var optionTags)) option.Tags = optionTags.ToList();
+            }
             if (!Stock.TryGetValue(listing.Id, out var stock)) continue;
             listing.AvailableQuantity = stock.Quantity;
             listing.MaxPerOrder = stock.MaxPerOrder;

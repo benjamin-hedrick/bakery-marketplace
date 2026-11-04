@@ -19,13 +19,20 @@ public sealed class PreferenceProfileDocument
     /// <summary>Allergens the customer would rather avoid (a preference).</summary>
     [JsonProperty("avoid")] public List<string> Avoid { get; set; } = new();
 
+    /// <summary>Diet tags (registry, kind diet) the customer prefers (WI-TAG-004). A profile stored before this existed has none.</summary>
+    [JsonProperty("prefer")] public List<string> Prefer { get; set; } = new();
+
     [JsonProperty("updatedAt")] public DateTimeOffset UpdatedAt { get; set; }
 }
 
 /// <summary>The profile as the rest of the catalog sees it. A customer who never saved one has two empty lists.</summary>
-public sealed record PreferenceProfile(IReadOnlyList<string> Allergies, IReadOnlyList<string> Avoid, DateTimeOffset? UpdatedAt)
+public sealed record PreferenceProfile(
+    IReadOnlyList<string> Allergies, IReadOnlyList<string> Avoid, DateTimeOffset? UpdatedAt, IReadOnlyList<string>? PreferDiets = null)
 {
     public static readonly PreferenceProfile Empty = new([], [], null);
+
+    /// <summary>The diet tags the customer prefers (never null).</summary>
+    public IReadOnlyList<string> Prefer => PreferDiets ?? [];
 }
 
 /// <summary>

@@ -5,6 +5,7 @@ import type { ListingDetailQuery } from '../__generated__/ListingDetailQuery.gra
 import { formatMoney } from '../lib/money';
 import { AddToOrder } from './AddToOrder';
 import { ConflictMarks } from './ConflictMarks';
+import { dietListText, dietOptionWarnings } from '../lib/dietText.ts';
 import { TagChips } from './TagChips';
 import { StockBadge } from './StockBadge';
 import { usePersonalizedListing } from './usePersonalization';
@@ -86,6 +87,21 @@ export function ListingDetail({ id }: { id: string }) {
       {personal ? (
         <section aria-label="Your allergens" data-testid="personal-detail">
           <ConflictMarks marks={itemMarks} />
+          {personal.diets.length > 0 ? (
+            <ul className="diet-notes" data-testid="diet-notes">
+              {personal.diets.map((d) => (
+                <li key={d.tagId} className="diet-note" data-testid="diet-note" data-marked={d.marked}>
+                  {dietListText(d)}.
+                  {dietOptionWarnings(d).map((w) => (
+                    <span key={w} data-testid="diet-option-note">
+                      {' '}
+                      {w}.
+                    </span>
+                  ))}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <p data-testid="personal-reminder">
             Marked from what the bakery has listed. An item or option without a mark is not guaranteed free of your
             allergens, so check with the bakery when it matters.

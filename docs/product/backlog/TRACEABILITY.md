@@ -84,5 +84,6 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | In review | `tags.spec.ts`, `TagApiTests.cs`, `TagRegistryTests.cs` and 1 more | *none* |
 | [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | In review | `tags.spec.ts`, `listing-tags.spec.ts`, `TagAssignmentApiTests.cs` and 2 more | *none* |
 | [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | In review | `tag-filter.spec.ts`, `listing-tags.spec.ts`, `tagFilter.test.ts` and 2 more | *none* |
+| [TAG-004](WI-TAG-004.md) | Diet tags in the customer's profile ("prefer") | In review | `diets.spec.ts`, `diet-preferences.spec.ts`, `dietText.test.ts` and 2 more | *none* |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | Done | `DomainEventPayloadsTests.cs` | *none* |
 | [TOOL-002](WI-TOOL-002.md) | Structured logging + correlation-ID helper (tools/BakeryMarketplace.Logging) | Done | *none* | *none* |

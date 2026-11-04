@@ -288,6 +288,24 @@ type Conflict {
 type PersonalizedListing {
   listing: Listing!
   conflicts: [Conflict!]!
+  "How the listing stands against each diet the caller prefers (WI-TAG-004). Empty when they prefer none."
+  dietMatches: [DietMatch!]!
+}
+
+"""
+How a listing stands against one diet the caller prefers. It is the bakery's claim and never a finding: not marked does not mean not vegan. A configured item is
+marked for a diet only if the item carries the tag and every chosen option does too (ADR-0022 amendment 2026-11-04); with no options chosen (browse, detail) it is
+marked when the item is, and optionIdsNotMarked names the options that would remove the claim.
+"""
+type DietMatch {
+  "A diet tag id from the registry (the `tags` query)."
+  tagId: ID!
+  "Whether the bakery has marked the listing, as configured, for the diet."
+  marked: Boolean!
+  "Whether the listing itself carries the tag."
+  itemMarked: Boolean!
+  "Options that do not carry the tag: every option for browse and detail, only the chosen ones for a cart check."
+  optionIdsNotMarked: [ID!]!
 }
 
 type PersonalizedListingEdge {
@@ -315,6 +333,8 @@ type CartLineCheck {
   "Option ids the listing does not have; they count for nothing."
   unknownOptionIds: [ID!]!
   conflicts: [Conflict!]!
+  "How the line, with the options chosen on it, stands against the diets the caller prefers (WI-TAG-004)."
+  dietMatches: [DietMatch!]!
 }
 
 "The caller's allergen profile. Both lists hold allergen ids from the tag registry (the `tags` query); an allergen is in at most one list."
@@ -323,11 +343,15 @@ type Preferences {
   allergies: [ID!]!
   "Allergens the customer would rather avoid (a preference)."
   avoid: [ID!]!
+  "Diet tag ids the customer prefers (WI-TAG-004): the bakery's claims they would like to see. Not allergens; a preference never hides anything unless they ask."
+  prefer: [ID!]!
 }
 
 input SavePreferencesInput {
   allergies: [ID!]!
   avoid: [ID!]!
+  "Optional: left out, the stored list stays as it was."
+  prefer: [ID!]
 }
 
 union SavePreferencesPayload = SavePreferencesSuccess | SavePreferencesRejected
