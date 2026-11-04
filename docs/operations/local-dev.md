@@ -20,7 +20,7 @@ node scripts/dev/init-env.mjs
 docker compose up -d --build
 node scripts/dev/check-env.mjs --wait 180        # exit 0 when all three are up
 
-# 3. Seed 7 listings and mark both vendors verified
+# 3. Seed 7 listings, mark both vendors verified, and save the allergen profiles of the seeded customers (see "Seeded customers" below)
 export COSMOS_KEY="$(node -e "console.log(require('fs').readFileSync('scripts/lib/local-stack.mjs','utf8').match(/EMULATOR_KEY =\s*'([^']+)'/)[1])")"   # the emulator's published fixed key
 export COSMOS_CS="AccountEndpoint=http://localhost:8081/;AccountKey=${COSMOS_KEY}"
 Cosmos__ConnectionString="$COSMOS_CS" dotnet run --project tools/BakeryMarketplace.Seed
@@ -56,7 +56,19 @@ curl -s -X POST localhost:4100/graphql -H 'content-type: application/json' \
   -d '{"query":"{ listings(first: 3) { edges { node { name price { cents currency } stock { status } } } } }"}'
 ```
 
-**Use it:** open http://localhost:3000, press Log in, choose "Login as Alice Customer (Customer)" (the mock issuer lists its users on its own page), open a listing, add it to the order, go to checkout, optionally pick a pickup time, and press "Place test order". A banner says no payment is taken. A plain order (no option, no pickup time) confirms by itself; one with an option or a pickup time stays "Order received" until a vendor acts. A reload keeps you logged in: the session is on the web app's server behind an HttpOnly cookie (ADR-0019).
+**Use it:** open http://localhost:3000, press Log in, choose "Login as Alice Customer (Customer)" (the mock issuer lists its users on its own page; the other customers are in "Seeded customers" below), open a listing, add it to the order, go to checkout, optionally pick a pickup time, and press "Place test order". A banner says no payment is taken. A plain order (no option, no pickup time) confirms by itself; one with an option or a pickup time stays "Order received" until a vendor acts. A reload keeps you logged in: the session is on the web app's server behind an HttpOnly cookie (ADR-0019).
+
+**Seeded customers.** Test state is seed data, not something a test changes at run time (`CLAUDE.md`, working conventions). The mock issuer has five customers; the seed tool (`tools/BakeryMarketplace.Seed`, `SeedData.CustomerProfiles`) writes a saved allergen profile for four of them into the catalog's `preferences` container, keyed by the customer id (the token's `sub`). Alice never saved one. Written only when absent, so a profile you change by hand survives a re-seed; `docker compose down` resets everything.
+
+| Login as (name on the issuer's page) | Customer id | Saved profile | What it is there to show |
+|---|---|---|---|
+| Alice Customer | `user-customer-1` | none | the customer who never saved a profile: the order is not checked and the app says so |
+| Nora (tree-nut allergy) | `user-customer-treenut` | allergy: tree nuts | warnings on the Almond Croissant for the item and for its "Extra almonds" option; the acknowledgement; "tell the bakery" |
+| Sam (sesame allergy) | `user-customer-sesame` | allergy: sesame | an allergy that only an **option** carries: Country Sourdough is clean until "Add seeds" is chosen |
+| Dana (avoids dairy) | `user-customer-avoiddairy` | avoid: dairy | a preference, not an allergy: shown as a note on any dairy item (the Lemon Loaf, the Almond Croissant, the cookies), nothing to acknowledge, nothing to tell the bakery |
+| Max (dairy and tree-nut allergies, avoids gluten) | `user-customer-several` | allergies: dairy, tree nuts; avoid: gluten | several at once; the customer chooses which allergies are told to the bakery |
+
+The identities are rows in `BakeryMarketplace.Auth`'s `MockUsers` (identity only, no logic); the deployed dev issuer, which lists customers only, lists all five. A catalog test (`SeedCustomerProfilesTests`) keeps the two lists in step and checks that each profile produces its case under the catalog's real conflict rules.
 
 **Run the journeys against this stack:** `cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run test:skeleton` (21 tests; they sign in as the mock users and place real orders). Two of them use the declined-payment hook, so the BFF must have been started with `ENABLE_TEST_HOOKS=1` (step 6); that is how it was started for the run recorded below.
 
