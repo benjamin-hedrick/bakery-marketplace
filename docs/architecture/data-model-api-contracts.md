@@ -166,18 +166,24 @@ Listing {
 ```
 PreferenceProfile {
   id, customerId,
-  allergies: [], dietaryPreferences: [],
+  allergies: [], avoid: [],      // allergen ids from the tag registry (ADR-0022); dietaryPreferences moved to WI-TAG-004
   updatedAt
 }
 ```
+*Designed 2026-11-04 (`WI-PREF-001`, not yet built); the earlier shape had two free-text arrays.*
+
+**Tag registry** (not a container): the catalog's tags are versioned data embedded in the service (ADR-0022, `WI-TAG-001`). An entry has `id` (a stable slug), `kind` (`allergen`, `diet`, `occasion`, `season`, `theme`), `label`, `visibility` (`public` or `hidden`), `assignableBy` (`vendor` or `platform`), optional `activeFrom` and `activeTo` (UTC dates), `sortOrder` and `retired`. `allergenFlags` and each modifier's `allergens` on a listing hold allergen ids and are validated against the registry as a closed list.
 
 ### Events
 
 - **Consumes**: `VendorVerified`, `VendorSuspended` (from `admin-service`) — gates whether a vendor's listings can be `Published`; `ListingApproved`, `ListingRejected` (from `admin-service`) — moderation outcome for a submitted listing
 - **Publishes**: `ListingPublished` (consumed by `admin-service`'s moderation read-model), `ListingSponsored` (published even though Search consumes it in-process, per ADR-0009's modular monolith rule — the interface boundary is real even co-located), `PreferenceSnapshotPublished` (added by `WI-PREF-002.md`, Batch 5, 2026-09-13 — Open Host Service publication of a Preference Snapshot to Search (in-process, same modular-monolith rule as `ListingSponsored`) and to `ordering-service` (cross-service, over the real event backbone))
 
+> **2026-11-04:** `PreferenceSnapshotPublished` is dropped (`WI-PREF-002` superseded): catalog neither publishes nor consumes it here, and ordering does not consume it (see `ordering-service` below). Allergens a customer chooses to tell a bakery travel on the order (`WI-ORD-009`).
+
 ### API endpoints
 
+- `GET /catalog/tags?kind=` — the public tag registry: tags that are public, not retired and inside their window today (anonymous, `public, max-age=300`; ADR-0022, built by `WI-TAG-001`)
 - `GET /catalog/listings` — search/browse, filtered by dietary preference, blends sponsored placement
 - `GET /catalog/listings/{id}`
 *(First slice, D-4: both reads are anonymous and return `Published` listings of verified vendors only.)*
@@ -185,8 +191,9 @@ PreferenceProfile {
 - `PUT /catalog/listings/{id}` — Vendor role + resource-ownership check (ADR-0006)
 - `POST /catalog/stock/reservations` and `DELETE /catalog/stock/reservations/{orderId}?vendorId=` — service-to-service only: an app-only token with the `Stock.Reserve` role (ADR-0018); atomic reserve and release of an order's stock; not routed through API Management (ADR-0017, `WI-CAT-006`, 2026-10-28)
 - `POST /catalog/listings/{id}/stock/adjust` — Vendor role + ownership; atomic increment or decrement of a limited-stock listing; `409` when it would go below zero or the listing is made to order (added 2026-10-28, `WI-CAT-005`)
-- `GET /catalog/preferences/{customerId}` — Customer role + resource-ownership check
-- `PUT /catalog/preferences/{customerId}` — Customer role + resource-ownership check; implicitly creates the profile on first write (`WI-PREF-001.md`)
+- `GET /catalog/preferences` — Customer role; the customer is the token's subject, there is no customer id in the path (designed 2026-11-04, `WI-PREF-001`)
+- `PUT /catalog/preferences` — Customer role, same rule; replaces the profile and creates it on first write (`WI-PREF-001`)
+- *(listings in the vendor API: `allergenFlags` and option `allergens` are a closed list of allergen ids since `WI-TAG-001`; an unknown value is a 422 naming the allowed ids)*
 
 ---
 
@@ -237,6 +244,8 @@ Payout { id, vendorId, orderId, grossAmount, commission, netAmount, stripeTransf
 
 - **Publishes**: `OrderPlaced`, `OrderCustomized`, `PickupWindowScheduled`, `OrderReadyForPickup`, `OrderCompleted`, `ReviewSubmitted`, `PayoutReconciled` (all per glossary — the last two named during the event-storming exercise, `docs/architecture/ddd/event-storming.md`)
 - **Consumes**: its own published events, to populate `order-status-readmodel`; `PreferenceSnapshotPublished` (from `catalog-service`, added by `WI-PREF-002.md` — stored per-`customerId` for future checkout-time use; the actual consumption logic, e.g. an allergy warning at checkout, is out of scope of `PREF-002` and not yet built)
+
+> **2026-11-04:** the `PreferenceSnapshotPublished` consumption above is dropped with `WI-PREF-002` (superseded); ordering holds no copy of a customer's profile. `OrderPlaced` gains an additive `Allergens` field instead (`WI-ORD-009`).
 
 ### API endpoints
 

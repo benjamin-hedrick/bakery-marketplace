@@ -5,6 +5,7 @@ using BakeryMarketplace.Logging;
 using CatalogService.Api;
 using CatalogService.Domain;
 using CatalogService.Services;
+using CatalogService.Tags;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Azure.Cosmos;
 using StackExchange.Redis;
@@ -98,6 +99,8 @@ else
 }
 
 builder.Services.AddSingleton(TimeProvider.System);
+// The tag registry (ADR-0022) is data shipped with the service; a bad file stops the start here, naming the entry.
+builder.Services.AddSingleton<ITagRegistry>(TagRegistry.LoadEmbedded());
 builder.Services.AddSingleton<VendorStatusStore>();
 builder.Services.Configure<CatalogOutboxOptions>(builder.Configuration.GetSection("Outbox"));
 builder.Services.AddSingleton<ListingEventPublisher>();
@@ -114,6 +117,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
+app.MapTagEndpoints();
 app.MapListingEndpoints();
 app.MapStockReservationEndpoints();
 

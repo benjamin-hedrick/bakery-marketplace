@@ -20,7 +20,8 @@ public static partial class ListingValidator
     [GeneratedRegex("^[a-z0-9][a-z0-9-]{0,63}$")]
     private static partial Regex IdPattern();
 
-    public static Dictionary<string, string[]> Validate(ListingRequest request, bool statusRequired)
+    /// <param name="allergenIds">The allergen ids a vendor may use (the tag registry, ADR-0022). Allergen flags are a closed list.</param>
+    public static Dictionary<string, string[]> Validate(ListingRequest request, bool statusRequired, IReadOnlyList<string> allergenIds)
     {
         var errors = new Dictionary<string, List<string>>();
         void Add(string field, string message)
@@ -59,9 +60,11 @@ public static partial class ListingValidator
             if (m.PriceDeltaCents is null || m.PriceDeltaCents < 0 || m.PriceDeltaCents > MaxPriceCents)
                 Add($"{key}.priceDeltaCents", $"Modifier price delta must be between 0 and {MaxPriceCents} cents.");
             ValidateFlags($"{key}.allergens", m.Allergens, Add);
+            ValidateAllergens($"{key}.allergens", m.Allergens, allergenIds, Add);
         }
 
         ValidateFlags("allergenFlags", request.AllergenFlags, Add);
+        ValidateAllergens("allergenFlags", request.AllergenFlags, allergenIds, Add);
         ValidateStock(request.Stock, Add);
 
         if (request.Status is null) { if (statusRequired) Add("status", "Status is required."); }
@@ -100,6 +103,19 @@ public static partial class ListingValidator
             .Where(f => f.Length > 0)
             .Distinct(StringComparer.Ordinal)
             .ToList();
+
+    /// <summary>
+    /// Allergens are a closed list: every value, once trimmed and lower-cased as it will be stored, must be an allergen id of the registry. A value
+    /// that is not one is named, with the ids that are allowed, so a vendor can correct it ("nuts" and "tree nuts" would never match "tree-nut").
+    /// Values that already failed the structural check are not reported twice.
+    /// </summary>
+    private static void ValidateAllergens(string field, List<string>? flags, IReadOnlyList<string> allowed, Action<string, string> add)
+    {
+        if (flags is null) return;
+        var known = new HashSet<string>(allowed, StringComparer.Ordinal);
+        foreach (var value in NormalizeFlags(flags.Where(f => f is not null && f.Trim().Length is > 0 and <= MaxFlagLength)).Where(v => !known.Contains(v)))
+            add(field, $"'{value}' is not a known allergen. Use one of: {string.Join(", ", allowed)}.");
+    }
 
     private static void ValidateFlags(string field, List<string>? flags, Action<string, string> add)
     {

@@ -3,6 +3,7 @@ using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
 using CatalogService.Api;
 using CatalogService.Domain;
+using CatalogService.Tags;
 
 namespace CatalogService.Services;
 
@@ -28,6 +29,7 @@ public sealed class ListingService
     private readonly ListingEventPublisher _events;
     private readonly TimeProvider _time;
     private readonly ILogger<ListingService> _logger;
+    private readonly ITagRegistry _tags;
 
     /// <summary>Re-reads and retries a conditional save this many times before reporting a conflict.</summary>
     public const int MaxSaveAttempts = 20;
@@ -37,13 +39,15 @@ public sealed class ListingService
         VendorStatusStore vendors,
         ListingEventPublisher events,
         TimeProvider time,
-        ILogger<ListingService> logger)
+        ILogger<ListingService> logger,
+        ITagRegistry? tags = null)
     {
         _listings = listings;
         _vendors = vendors;
         _events = events;
         _time = time;
         _logger = logger;
+        _tags = tags ?? TagRegistry.LoadEmbedded();
     }
 
     // ---- public reads (anonymous) -------------------------------------------------------------
@@ -126,7 +130,7 @@ public sealed class ListingService
 
     public async Task<ListingResult> CreateAsync(string vendorId, ListingRequest request, CancellationToken ct = default)
     {
-        var errors = ListingValidator.Validate(request, statusRequired: false);
+        var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         var status = request.Status ?? ListingStatuses.Draft;
@@ -152,7 +156,7 @@ public sealed class ListingService
     public async Task<ListingResult> UpdateAsync(
         ListingDocument existing, ListingRequest request, CancellationToken ct = default)
     {
-        var errors = ListingValidator.Validate(request, statusRequired: false);
+        var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         for (var attempt = 0; attempt < MaxSaveAttempts; attempt++)
