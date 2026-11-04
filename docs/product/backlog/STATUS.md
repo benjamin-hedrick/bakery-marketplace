@@ -110,7 +110,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [MGMT-006](WI-MGMT-006.md) | Hypothetical team structure and hiring plan | EPIC-PM-ARTIFACTS | Deferred | trigger: the lead decides to add management artifacts to the portfolio (deferred 2026-10-30) |
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | EPIC-PM-ARTIFACTS | Done | evidence: `docs/management/stakeholder-communications-plan.md` |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | EPIC-PM-ARTIFACTS | Done | evidence: `docs/process/branching-strategy.md` |
-| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | EPIC-WEB-CUSTOMER | Ready | written 2026-11-04 after the Maestro/Android spike; waits for the lead to accept ADR-0023 (sign-in) before any auth code |
+| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | EPIC-WEB-CUSTOMER | Ready | written 2026-11-04 after the Maestro/Android spike; ADR-0023 (sign-in) accepted by the lead 2026-11-04; the build starts now that the personalization PR is merged |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
@@ -195,9 +195,9 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0020](../../architecture/adr/0020-deployment-pipeline-and-environments.md) | Deployment pipeline, environments and configuration | Accepted | Accepted (2026-10-31) |
 | [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Accepted | Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age... |
 | [0022](../../architecture/adr/0022-tags.md) | Tags (a catalog-owned registry of kinds and tags, assigned to listings and options) | Accepted | Accepted (2026-11-04, approved by the lead; drafted the same day as Proposed). Drafted from the lead's deci... |
-| [0023](../../architecture/adr/0023-native-app-sign-in.md) | Native App Sign-In: Authorization Code with PKCE in the System Browser, Tokens on the Device | Proposed | Proposed (2026-11-04). The lead chose this option (A) over a dev-only shortcut on 2026-11-04 and must accep... |
+| [0023](../../architecture/adr/0023-native-app-sign-in.md) | Native App Sign-In: Authorization Code with PKCE in the System Browser, Tokens on the Device | Accepted | Accepted (2026-11-04) by the lead, who chose option A over a dev-only shortcut and accepted the text. It ch... |
 
-Accepted: 21 · Superseded: 1 · Proposed: 1
+Accepted: 22 · Superseded: 1
 
 ## Open-items register
 

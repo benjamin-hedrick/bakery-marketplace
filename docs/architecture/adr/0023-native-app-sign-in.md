@@ -1,6 +1,6 @@
 # ADR-0023: Native App Sign-In: Authorization Code with PKCE in the System Browser, Tokens on the Device
 
-**Status:** Proposed (2026-11-04). The lead chose this option (A) over a dev-only shortcut on 2026-11-04 and must accept the text, because it changes the mock issuer's redirect rule and adds a token store on a device (auth logic). It extends ADR-0006 (token validation stays in every service) and ADR-0019 (browser sessions; the refresh grant is reused). It does not change either decision text.
+**Status:** Accepted (2026-11-04) by the lead, who chose option A over a dev-only shortcut and accepted the text. It changes the mock issuer's redirect rule and adds a token store on a device (auth logic). It extends ADR-0006 (token validation stays in every service) and ADR-0019 (browser sessions; the refresh grant is reused). It does not change either decision text.
 
 ## Context
 
@@ -31,4 +31,4 @@ What already holds:
 
 ## What has been built, against these decisions
 
-Nothing yet (proposed).
+Nothing yet (accepted 2026-11-04, build starting with `WI-MOB-001`).
