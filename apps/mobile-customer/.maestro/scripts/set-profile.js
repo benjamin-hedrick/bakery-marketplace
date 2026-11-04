@@ -4,7 +4,7 @@ var list = function (value) {
   return typeof value === 'undefined' || value === '' ? [] : value.split(',');
 };
 var response = http.post('http://127.0.0.1:4199/profile', {
-  headers: { 'content-type': 'application/json' },
+  headers: { 'content-type': 'application/json', 'x-flow-control': '1' },
   body: JSON.stringify({
     allergies: list(typeof ALLERGIES === 'undefined' ? undefined : ALLERGIES),
     avoid: list(typeof AVOID === 'undefined' ? undefined : AVOID),

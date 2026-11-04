@@ -8,6 +8,12 @@
 // It is test tooling, local only: it listens on 127.0.0.1, and it signs in as the mock issuer's customer Alice the way the app does (authorization code,
 // PKCE S256, the public client bakery-mobile and the app's registered redirect address), so it needs no new endpoint or secret on the issuer. The token is
 // held in a variable for one request and never logged or returned. It changes no auth logic.
+//
+// Who may call it: only a local, non-browser client that sends the header `x-flow-control: 1` (Maestro's scripts do). It has no password, so it refuses, with
+// 403 and before doing anything, any request that carries an `Origin` header (a web page in a browser always sends one cross-origin, and a "simple" cross-origin
+// POST needs no preflight), any request without the custom header (a browser cannot add one cross-origin without a preflight, which this server never
+// answers), and any request whose `Host` is not 127.0.0.1 on its own port (DNS rebinding). Another program running as the same user on this machine can still call
+// it while a run lasts; that is the limit of a loopback server with no secret.
 import { createHash, randomBytes } from 'node:crypto';
 import http from 'node:http';
 
@@ -121,6 +127,16 @@ export function startFlowControl({
       res.writeHead(status, { 'content-type': 'application/json' });
       res.end(JSON.stringify(body));
     };
+    // Before anything else: not from a browser page, from a client that knows the header, addressed to this server by its own name.
+    const expectedHost = `127.0.0.1:${server.address().port}`;
+    if (
+      req.headers.origin !== undefined ||
+      req.headers['x-flow-control'] !== '1' ||
+      req.headers.host !== expectedHost
+    ) {
+      log(`flow control: refused ${req.method} ${req.url} (not a flow's call)`);
+      return send(403, { error: 'refused' });
+    }
     try {
       if (req.method === 'POST' && req.url === '/profile') {
         const body = await readJson(req);
@@ -158,5 +174,5 @@ export function startFlowControl({
   });
   server.listen(port, '127.0.0.1');
   log(`flow control listening on 127.0.0.1:${port}`);
-  return { close: () => server.close() };
+  return { server, close: () => server.close() };
 }
