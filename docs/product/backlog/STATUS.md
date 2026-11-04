@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-95 specs.
+103 specs.
 
 | Status | Count |
 |---|---|
@@ -14,10 +14,10 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In progress | 5 |
 | In review | 10 |
 | Built | 1 |
-| Ready | 9 |
-| Proposed | 4 |
-| Deferred | 11 |
-| Superseded | 1 |
+| Ready | 14 |
+| Proposed | 5 |
+| Deferred | 12 |
+| Superseded | 2 |
 
 ## Epics (derived from the specs)
 
@@ -40,20 +40,21 @@ Superseded and obsolete items are not counted.
 | EPIC-LOCAL-DEV | 3 of 4 | DEMO-001, DEV-001, DEV-002, DEV-004 |
 | EPIC-NOTIFICATIONS | 0 of 2 | NOT-001, NOT-002 |
 | EPIC-OPS-ARTIFACTS | 3 of 3 | OPS-001, OPS-002, OPS-003 |
-| EPIC-ORDERING | 7 of 8 | ORD-001, ORD-002, ORD-003, ORD-004, ORD-005, ORD-006, ORD-007, ORD-008 |
+| EPIC-ORDERING | 7 of 9 | ORD-001, ORD-002, ORD-003, ORD-004, ORD-005, ORD-006, ORD-007, ORD-008, ORD-009 |
 | EPIC-PM-ARTIFACTS | 4 of 8 | MGMT-001, MGMT-002, MGMT-003, MGMT-004, MGMT-005, MGMT-006, MGMT-007, MGMT-008 |
 | EPIC-PORTFOLIO-SLICE | 6 of 7 | PORT-001, PORT-002, PORT-003, PORT-004, PORT-005, PORT-006, PORT-007 |
-| EPIC-PREFERENCES | 0 of 2 | PREF-001, PREF-002 |
+| EPIC-PREFERENCES | 0 of 1 | PREF-001, PREF-002 |
 | EPIC-PRODUCT-STRATEGY | 1 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
 | EPIC-QUALITY-EVIDENCE | 1 of 3 | QA-001, QA-002, QA-003 |
-| EPIC-QUEUE-DISPLAY | 3 of 4 | QUE-001, QUE-002, QUE-003, QUE-004 |
+| EPIC-QUEUE-DISPLAY | 3 of 5 | QUE-001, QUE-002, QUE-003, QUE-004, QUE-005 |
 | EPIC-RATE-LIMITING | 0 of 1 | RATE-001 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
 | EPIC-SEARCH | 0 of 1 | SRCH-001 |
 | EPIC-SECRETS | 1 of 2 | SEC-001, SEC-003 |
 | EPIC-SHARED-TOOLING | 2 of 2 | TOOL-001, TOOL-002 |
+| EPIC-TAGS | 0 of 5 | TAG-001, TAG-002, TAG-003, TAG-004, TAG-005 |
 | EPIC-VENDOR-ONBOARDING | 0 of 2 | VEN-001, VEN-002 |
-| EPIC-WEB-CUSTOMER | 3 of 6 | CUST-002, CUST-003, CUST-004, CUST-005, CUST-006, CUST-007, WEB-001 |
+| EPIC-WEB-CUSTOMER | 3 of 7 | CUST-002, CUST-003, CUST-004, CUST-005, CUST-006, CUST-007, CUST-008, WEB-001 |
 
 Epics with no spec yet are listed, with their planned items, in `epic-catalog.md`.
 
@@ -82,9 +83,10 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer` (`/orders/{id}`); `docs/evidence/slice-1/findings.md`. The order history list was split out into `WI-CUST-007` |
-| [CUST-005](WI-CUST-005.md) | Preferences / dietary profile UI | EPIC-WEB-CUSTOMER | Ready |  |
-| [CUST-006](WI-CUST-006.md) | Personalized dietary-safety highlighting on browse | EPIC-WEB-CUSTOMER | Ready |  |
+| [CUST-005](WI-CUST-005.md) | Allergen profile page | EPIC-WEB-CUSTOMER | Ready |  |
+| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | EPIC-WEB-CUSTOMER | Ready |  |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/order-history` (2026-11-04); the page, the BFF query and the ordering endpoint pass their tests and the real-stack journeys (29 passed), nothing is deployed; waiting for the lead's review |
+| [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | EPIC-WEB-CUSTOMER | Ready |  |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
@@ -122,6 +124,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-007](WI-ORD-007.md) | Order action endpoints (confirm, decline, start, ready, complete, cancel) | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
+| [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | EPIC-ORDERING | Ready |  |
 | [PLAN-001](WI-PLAN-001.md) | Prioritization pass over the backlog | EPIC-BACKLOG-PLANNING | Proposed | decision: which method (MoSCoW or RICE) and who sets the weights |
 | [PLAN-002](WI-PLAN-002.md) | Sprint plan (first 2 to 3 sprints) | EPIC-BACKLOG-PLANNING | Deferred | trigger: sprint-style boundaries become useful (more contributors, or a time-boxed demo); deferred 2026-10-30 |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | EPIC-PORTFOLIO-SLICE | Done | evidence: merged `6175e05`; `docs/evidence/WI-PORT-001/findings.md` |
@@ -131,8 +134,8 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [PORT-005](WI-PORT-005.md) | Verify trace propagation and safe logs | EPIC-PORTFOLIO-SLICE | Done | evidence: `docs/evidence/WI-PORT-005/findings.md`; follow-ups remain open as register items 36, 37 and 42 |
 | [PORT-006](WI-PORT-006.md) | Reconcile existing artifacts with ADR-0012 to ADR-0016 | EPIC-PORTFOLIO-SLICE | Done | evidence: `docs/history/review-2026-10/closing-record.md` (pass 2: every tracked document read and reconciled; steps 0 to 11 of the edit plan done); the open findings are in `docs/product/backlog/gap-catalog/` |
 | [PORT-007](WI-PORT-007.md) | First-slice domain/API contract and GraphQL mapping | EPIC-PORTFOLIO-SLICE | Done | evidence: the Outcome note under this banner |
-| [PREF-001](WI-PREF-001.md) | Preference Profile CRUD | EPIC-PREFERENCES | Ready |  |
-| [PREF-002](WI-PREF-002.md) | Publish Preference Snapshot via Open Host Service (Search + Ordering) | EPIC-PREFERENCES | Ready |  |
+| [PREF-001](WI-PREF-001.md) | The customer's allergen profile (allergies and avoid) | EPIC-PREFERENCES | Ready |  |
+| [PREF-002](WI-PREF-002.md) | Publish Preference Snapshot via Open Host Service (Search + Ordering) | EPIC-PREFERENCES | Superseded |  by `WI-PREF-001`, `WI-SRCH-001` and `WI-ORD-009` |
 | [PROD-001](WI-PROD-001.md) | Draft personas / Jobs-to-be-Done | EPIC-PRODUCT-STRATEGY | Done | evidence: `docs/product/personas.md` |
 | [PROD-002](WI-PROD-002.md) | Competitive scan | EPIC-PRODUCT-STRATEGY | Proposed | decision: the lead sets the scope (which comparable products, how deep) |
 | [PROD-003](WI-PROD-003.md) | Monetization model | EPIC-PRODUCT-STRATEGY | Proposed | decision: the commission percentage and ad revenue split are business assumptions the lead sets |
@@ -144,13 +147,19 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `apps/web-queue-display` |
 | [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-003/` (the real-stack run and the first-pass security review, the `graphql-sse` review); approved by the lead on 2026-11-02 after a review round |
 | [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | EPIC-QUEUE-DISPLAY | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-004/` |
+| [QUE-005](WI-QUE-005.md) | Allergens on the vendor's order card | EPIC-QUEUE-DISPLAY | Ready |  |
 | [RATE-001](WI-RATE-001.md) | First rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128) | EPIC-RATE-LIMITING | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-RATE-001/` |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
 | [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | EPIC-CI-CD | Deferred | trigger: with the public-readiness pass (register item 93) or when a deployment stage is added |
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In review | evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/` (fuzz, soak, ZAP), `docs/governance/review-statement.md`; steps 1 to 5 are done · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below) |
-| [SRCH-001](WI-SRCH-001.md) | Search/filter by dietary preference (consumes Preference Snapshot) | EPIC-SEARCH | Ready |  |
+| [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | EPIC-SEARCH | Ready |  |
+| [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | EPIC-TAGS | Ready |  |
+| [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | Ready |  |
+| [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | EPIC-TAGS | Ready |  |
+| [TAG-004](WI-TAG-004.md) | Diet tags in the customer's profile ("prefer") | EPIC-TAGS | Proposed | decision: the lead, on how a chosen option changes a diet claim and on whether "prefer" is wanted in the first demo |
+| [TAG-005](WI-TAG-005.md) | Seasonal and themed surfaces, and administrator editing of the registry | EPIC-TAGS | Deferred | revisit when the administrator service and console exist, or when the lead asks for collections |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.EventSchemas` and its tests |
 | [TOOL-002](WI-TOOL-002.md) | Structured logging + correlation-ID helper (tools/BakeryMarketplace.Logging) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.Logging` and `tools/tests/BakeryMarketplace.Logging.Tests` |
 | [VEN-001](WI-VEN-001.md) | Vendor profile + application (VendorType: Shop \| Independent) | EPIC-VENDOR-ONBOARDING | Ready |  |

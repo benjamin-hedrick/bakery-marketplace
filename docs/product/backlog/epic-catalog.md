@@ -27,14 +27,22 @@ Scope: Catalog · Primary hat(s): Architect, Engineering/Build · Status: see [S
 
 ### EPIC-SEARCH — Search & Discovery
 Scope: Search & Discovery · Primary hat(s): Architect, Digital PM · Status: see [STATUS.md](STATUS.md)
-- ✅ SRCH-001 (Service Implementation) — **Detailed, Ready for agents**, see `WI-SRCH-001.md` — dietary-preference filtering, consumes `PREF-002`'s Preference Snapshot in-process; flags conflicts by default, `hideConflicts` opt-in
+- ✅ SRCH-001 (Service Implementation) — **Rewritten 2026-11-04, Ready**, see `WI-SRCH-001.md` — matching listings and carts against the customer's allergen profile (customer-only endpoints; the public browse is unchanged)
 - 🟢 SRCH-002 (Integration) — Blend sponsored placement into results (Partnership relationship w/ Advertising, per bounded context map)
 - ⚪ SRCH-003 (Service Implementation) — Ranking logic, organic vs. sponsored
 
 ### EPIC-PREFERENCES — Preferences & Dietary Safety
 Scope: Preferences & Dietary Safety · Primary hat(s): Architect, Digital PM · Status: see [STATUS.md](STATUS.md)
-- ✅ PREF-001 (Service Implementation) — **Detailed, Ready for agents**, see `WI-PREF-001.md` — Preference Profile CRUD
-- ✅ PREF-002 (Integration) — **Detailed, Ready for agents**, see `WI-PREF-002.md` — Publish Preference Snapshot via Open Host Service (per bounded context map) to Search + Ordering; named a new event (`PreferenceSnapshotPublished`) while detailing, added to `glossary.md`/`data-model-api-contracts.md` in the same pass
+- ✅ PREF-001 (Service Implementation) — **Rewritten 2026-11-04, Ready**, see `WI-PREF-001.md` — the customer's allergen profile (allergies and avoid; the customer is the token's subject)
+- ⛔ PREF-002 (Integration) — **SUPERSEDED 2026-11-04** by `WI-PREF-001`, `WI-SRCH-001` and `WI-ORD-009`, see `WI-PREF-002.md` — no profile snapshot event; allergens travel on the order instead
+
+### EPIC-TAGS — Tags (context on listings and options) — see `EPIC-TAGS.md` (added 2026-11-04)
+Scope: Catalog & Customization, Search & Discovery, Preferences & Dietary Safety · Primary hat(s): Engineering/Build, Architect · Status: see [STATUS.md](STATUS.md)
+- ✅ TAG-001 (Service Implementation) — **Ready**, see `WI-TAG-001.md` — the tag registry and the closed allergen list (ADR-0022)
+- ✅ TAG-002 (Service Implementation) — **Ready**, see `WI-TAG-002.md` — tags on listings and options, vendor assignment, visibility and windows
+- ✅ TAG-003 (Service Implementation) — **Ready**, see `WI-TAG-003.md` — filter the public browse by tag
+- ⚪ TAG-004 (Service Implementation) — **Proposed**, see `WI-TAG-004.md` — diet tags in the customer's profile ("prefer")
+- ⚪ TAG-005 (Service Implementation) — **Deferred**, see `WI-TAG-005.md` — seasonal and themed surfaces, administrator editing
 
 ### EPIC-ORDERING — Ordering & Fulfillment (pickup v1)
 Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build · Status: see [STATUS.md](STATUS.md)
@@ -46,6 +54,7 @@ Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build ·
 - ✅ ORD-006 (Integration) — **Detailed, Ready for agents**, see `WI-ORD-006.md` — Consumes `Repository<T>` for Cosmos-backed persistence (EPIC-DATA-STORE)
 - ✅ ORD-007 (Service Implementation) — **Built 2026-10-28, merged to main**, see `WI-ORD-007.md` — order action endpoints (vendor confirm, decline, start, ready, complete, cancel; customer cancel)
 - ✅ ORD-008 (Service Implementation) — **Built 2026-10-28, merged to main**, see `WI-ORD-008.md` — automatic confirmation of orders with no options and no requested pickup window
+- ✅ ORD-009 (Service Implementation) — **Ready — added 2026-11-04**, see `WI-ORD-009.md` — allergens recorded on the order (chosen at checkout, shown to the vendor)
 
 ### EPIC-QUEUE-DISPLAY — Live Order-Queue Display
 Scope: Ordering & Fulfillment (read-side) · Primary hat(s): Architect, Engineering/Build · Status: see [STATUS.md](STATUS.md)
@@ -53,6 +62,7 @@ Scope: Ordering & Fulfillment (read-side) · Primary hat(s): Architect, Engineer
 - ✅ QUE-002 (Service Implementation) — **Detailed, Ready**, see `WI-QUE-002.md` — polling-based live UI (5–10s interval), real-time push (WebSockets/SignalR) explicitly named as a v2 candidate; shares `WEB-001`'s scaffold/auth pattern rather than a second bespoke frontend. **ADJUSTED 2026-10-26**: Next.js (client-rendered) via BFF, builds on `PORT-002`'s scaffold
 - ✅ QUE-003 (Service Implementation) — **Done 2026-11-02**, see `WI-QUE-003.md` — live updates to the vendor queue by push over a stream, polling kept as the fallback (ADR-0021); run on the real local stack (a customer's order on the vendor's screen about 170 ms after the request); approved by the lead after a review round
 - 🔶 QUE-004 (Frontend) — **In review 2026-11-02**, see `WI-QUE-004.md` — the vendor's actions in the queue display (accept, decline, start preparing, mark ready, hand over) through a BFF mutation; vendor cancel after confirmation is out of scope
+- ✅ QUE-005 (Service Implementation) — **Ready — added 2026-11-04**, see `WI-QUE-005.md` — allergens on the vendor's order card
 
 ### EPIC-WEB-CUSTOMER — Customer-Facing Web App
 Scope: Catalog & Customization, Preferences & Dietary Safety, Ordering & Fulfillment (customer-facing UI only — backend logic lives in catalog-service/ordering-service) · Primary hat(s): Engineering/Build, Architect · Status: see [STATUS.md](STATUS.md)
@@ -60,8 +70,9 @@ Scope: Catalog & Customization, Preferences & Dietary Safety, Ordering & Fulfill
 - ✅ CUST-002 (Service Implementation) — **Detailed, Ready**, see `WI-CUST-002.md` — listing browse/detail view, allergy flags/modifiers surfaced prominently per vision principle 1. **ADJUSTED 2026-10-26**: SSR Next.js page via BFF/Relay; blocked by `PORT-002`/`PORT-007` instead of `WEB-001`
 - ✅ CUST-003 (Service Implementation) — **Built 2026-10-28, merged to main** (checkout UI; real-stack journey is `S1-07`), see `WI-CUST-003.md` — cart/checkout UI against `ORD-001`'s stubbed payment step, with an unmissable demo/test-mode banner. **ADJUSTED 2026-10-26**: client-rendered, GraphQL mutation per `PORT-007`; blocked by `PORT-002`/`PORT-007`
 - ✅ CUST-004 (Service Implementation) — **Done 2026-10-28, merged to main** (order status page; rewritten as-built 2026-10-30), see `WI-CUST-004.md` — order confirmation + order status view. The order history list was split out as `CUST-007` (2026-10-30). **ADJUSTED 2026-10-26**: client-rendered via BFF; blocked by `PORT-002`/`PORT-007`
-- ✅ CUST-005 (Service Implementation) — **Detailed, Ready — added 2026-09-14 (Batch 6, M4)**, see `WI-CUST-005.md` — preferences/dietary-profile UI, shared with `EPIC-PREFERENCES`. **ADJUSTED 2026-10-26**: client-rendered via BFF; blocked by `PORT-002`
-- ✅ CUST-006 (Service Implementation) — **Detailed, Ready — added 2026-09-14 (Batch 6, M4)**, see `WI-CUST-006.md` — personalized allergen highlighting + hide-conflicts toggle on `CUST-002`'s browse view, shared with `EPIC-SEARCH`. **ADJUSTED 2026-10-26**: via BFF; personalized responses `private, no-store` (ADR-0014)
+- ✅ CUST-005 (Service Implementation) — **Rewritten 2026-11-04, Ready**, see `WI-CUST-005.md` — the allergen profile page (Not set, Avoid, Allergy for each allergen in the registry)
+- ✅ CUST-006 (Service Implementation) — **Rewritten 2026-11-04, Ready**, see `WI-CUST-006.md` — allergen conflicts on browse and detail, laid over the public page after login
+- ✅ CUST-008 (Service Implementation) — **Ready — added 2026-11-04**, see `WI-CUST-008.md` — allergens in the cart and at checkout: show them, warn, and tell the bakery
 - ⚪ CUST-007 (Service Implementation) — **Detailed, Ready — added 2026-10-30**, see `WI-CUST-007.md` — customer order history list (`orders` query in ordering-service and the BFF, and a page); split out of `CUST-004`, register item 80.
 
 See `EPIC-WEB-CUSTOMER.md` for the full epic record.

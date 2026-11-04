@@ -2,51 +2,47 @@
 
 ```
 WI ID:               CUST-005
-Title:                Preferences / dietary profile UI
+Title:                Allergen profile page
 Type:                 Service Implementation
 Epic:                 EPIC-WEB-CUSTOMER
-Shared with epic(s):  EPIC-PREFERENCES (backend logic and data live in PREF-001)
+Shared with epic(s):  EPIC-PREFERENCES
 Hat/Owner:            Engineering/Build
 Status:               Ready
 Size:                 S
 ```
 
-> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements are retained. **Implementation changes**: a client-rendered Next.js page (authenticated); preference reads and writes go through the GraphQL BFF (ADR-0012/0013). Dietary data is quasi-health data: never logged or traced (ADR-0016), never shared-cached (ADR-0014). **Dependencies change**: blocked by `WI-PORT-002` instead of `WI-WEB-001`. See `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
-
+> **Rewritten 2026-11-04.** Git keeps the original (free-text tags for allergies and dietary preferences). What changed: the page edits the allergen profile of `PREF-001` through the BFF, as a list of the registry's allergens with one choice each (Not set, Avoid, Allergy), not free text; diet preferences are `TAG-004`.
 
 **Context / Why**
-`PREF-001` gives every customer a real `PreferenceProfile`, but nothing in `EPIC-WEB-CUSTOMER` lets a customer actually view or edit it through the browser — the only way to set preferences today is a direct API call. This is the gap `docs/product/demo-milestones.md`'s M4 names explicitly: the backend data existing isn't the same as a real customer being able to use it.
+A profile that can only be set by an API call is not usable. The page is where a customer tells the product which allergens matter. It must be easy to find (vision principle 1) and honest about what the product knows.
 
 **Inputs / References**
-- *Decisions*: `docs/architecture/data-model-api-contracts.md` (`GET`/`PUT /catalog/preferences/{customerId}`), vision principle 1 (dietary safety surfaced prominently, not buried)
-- *Interfaces*: `WI-WEB-001`'s scaffold/auth wrapper, `PREF-001`'s endpoints
-- *Environment/tooling*: not applicable beyond `WEB-001`
-- *Test/chaos methodology*: not applicable
-- *Business context*: `docs/architecture/ddd/glossary.md` (Preference Profile)
+- *Decisions*: ADR-0022, ADR-0012 and ADR-0019 (client-rendered behind the login), ADR-0014, NFR 3.7, vision principle 1.
+- *Interfaces*: the BFF `tags(kind: ALLERGEN)`, `preferences` and `savePreferences` (`TAG-001`, `PREF-001`), `RequireLogin`, the header.
 
 **You do not need to know about**
-- How the snapshot gets published or consumed elsewhere (`PREF-002`, `SRCH-001`) — this item only reads/writes the profile itself, same boundary `PREF-001` already draws
+- How conflicts are computed or drawn (`SRCH-001`, `CUST-006`, `CUST-008`).
 
 **Out of scope**
-- Does not implement any dietary-filtering behavior on the browse view — that's `CUST-006`, a separate item consuming `SRCH-001`
-- Does not implement a controlled allergen taxonomy/autocomplete — free-text entry for v1, matching `PREF-001`'s own free-form string-array shape
+- Diet preferences; a profile for anyone but the logged-in customer; deleting the account or its data.
 
 **Requirements / Acceptance Criteria**
-- A dedicated, easy-to-find page (not buried in a settings submenu) for viewing/editing the current customer's `allergies[]` and `dietaryPreferences[]`, against `GET`/`PUT /catalog/preferences/{customerId}`
-- Free-text entry for both fields (tag-style add/remove, not a single text blob) — matches `PREF-001`'s array shape directly, no client-side reformatting
-- A customer with no existing profile sees an empty, immediately-editable form, not an error state (consistent with `PREF-001`'s own "implicitly created on first `PUT`" behavior)
-- Saved changes are confirmed visibly (a success indicator), and a failed save is distinguishable from a successful one — no silent failures
+- A page `/preferences` behind the login, linked from the header ("Allergies") so it is not buried in a menu, listing every allergen from the registry with three choices each: **Not set**, **Avoid** (a preference) and **Allergy** (serious). One allergen has one choice, so the two lists cannot overlap.
+- Short, plain wording under the title: *Bakeries mark what their items contain. An item that is not marked is not guaranteed free of anything, so check with the bakery when it matters.* The page never says "safe".
+- A new customer sees every allergen as Not set and can save at once; saving shows a visible confirmation, and a failed save is distinguishable from a successful one and keeps the choices on the screen. Clearing every choice and saving clears the profile.
+- The page is rendered in the browser only (no profile data in the server HTML), the request is network-only and private, and logging out drops what the page learned.
+- Accessible: each allergen is a labelled group of radio buttons; state is never conveyed by colour alone.
+- **Tests:** against the mock BFF (a new customer, setting each choice, saving, a failed save, a reload showing what was saved, logout clearing the page, no profile data in the server HTML) and on the real stack (set an allergy and see it come back; a vendor login is refused).
 
 **Dependencies**
-- Blocks: none directly, though it's what makes `CUST-006`'s personalization actually demonstrable end-to-end with real, browser-entered data rather than only seed data
-- Blocked by: `WI-WEB-001`, `PREF-001`
-- Can be worked in parallel with: `SRCH-001`, `CUST-006` (the UI itself doesn't depend on either — a customer can set preferences via this page before `SRCH-001`/`CUST-006` exist to consume them)
+- Blocks: `CUST-006`, `CUST-008` (they are more useful with real browser-entered data).
+- Blocked by: `PREF-001`, `TAG-001`.
 
 **Definition of Done**
 See `docs/process/definition-of-done.md`.
 
 **AI-agent suitability**
-Yes. Fully specified by the existing API contract; no business judgment call remains.
+Yes.
 
 **Open Points (working)**
 *(none currently)*

@@ -2,51 +2,46 @@
 
 ```
 WI ID:               CUST-006
-Title:                Personalized dietary-safety highlighting on browse
+Title:                Allergen conflicts on browse and detail
 Type:                 Service Implementation
 Epic:                 EPIC-WEB-CUSTOMER
-Shared with epic(s):  EPIC-SEARCH (consumes SRCH-001's personalized query)
+Shared with epic(s):  EPIC-SEARCH
 Hat/Owner:            Engineering/Build
 Status:               Ready
 Size:                 S
 ```
 
-> **Reconciliation note (2026-10-26) — ADJUSTED.** Requirements are retained. **Implementation changes**: built on `CUST-002`'s Next.js/Relay browse view. Personalized results come through the GraphQL BFF using the caller's token, so personalized responses are `private, no-store` and must not reuse the public SSR listing cache (ADR-0014). See `reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.
-
+> **Rewritten 2026-11-04.** Git keeps the original. What changed: conflicts come from `SRCH-001`'s customer-only endpoints through the BFF and are laid over the public, anonymous page after login (the server render and its cache are unchanged, ADR-0014); there are two severities (`allergy`, `avoid`); the wording never says an item is safe or "matches".
 
 **Context / Why**
-`CUST-002` already shows generic allergen flags/modifiers on every listing, but nothing personalizes that to the logged-in customer's own preferences — the actual "impossible to miss" promise from vision principle 1 (Dana's persona in `docs/product/personas.md`) isn't real until a customer's *own* conflicts are visibly distinguished from everyone else's generic flags. `SRCH-001` computes this; this item is where it actually becomes visible.
+`CUST-002` shows an item's generic allergen flags to everyone. The promise of vision principle 1 (Dana: "impossible to miss") is not real until a customer's **own** conflicts are visibly different from the generic flags.
 
 **Inputs / References**
-- *Decisions*: vision principle 1, `docs/product/personas.md` (Dana's JTBD: "allergy information... impossible to miss... without a phone call to double-check")
-- *Interfaces*: `SRCH-001`'s `personalize`/`hideConflicts` query parameters, `CUST-002`'s existing browse view (this item extends it, doesn't replace it)
-- *Environment/tooling*: not applicable beyond `WEB-001`/`CUST-002`
-- *Test/chaos methodology*: not applicable
-- *Business context*: `docs/architecture/ddd/glossary.md` (Allergy Flag, Preference Snapshot)
+- *Decisions*: ADR-0022 (the wording rules), ADR-0014, ADR-0012, NFR 3.7, `docs/product/personas.md`.
+- *Interfaces*: the BFF `personalizedListings` and `personalizedListing` (`SRCH-001`), the home page and detail page components.
 
 **You do not need to know about**
-- `SRCH-001`'s matching logic internals (case-insensitivity, modifier-level matching) — this item only needs to render whatever `matchesPreferences`/`conflictingAllergens` the API returns
+- The matching rule's internals (`SRCH-001`); how the profile is set (`CUST-005`).
 
 **Out of scope**
-- Does not modify `CUST-002`'s core browse/detail behavior for a logged-out or preferences-less customer — falls back to `CUST-002`'s existing generic (non-personalized) display exactly as already built
-- Does not implement `CUST-005` itself — this item assumes a preference profile already exists (via `CUST-005` or seed data), it doesn't create one
+- The cart and checkout (`CUST-008`); diet preferences (`TAG-004`); changing anything for a logged-out customer or one without a profile.
 
 **Requirements / Acceptance Criteria**
-- The browse view calls `GET /catalog/listings` with `personalize=true` whenever the viewer is an authenticated customer with a non-empty preference profile
-- A listing where `matchesPreferences: false` is visibly, unmistakably marked as conflicting (not a subtle icon easy to miss — matches `CUST-002`'s own existing "not a secondary tab or collapsed section" bar), naming the specific `conflictingAllergens` inline
-- A toggle (default off) lets the customer switch to `hideConflicts=true` for a strictly-filtered view; toggling is instant, no page reload
-- A logged-out customer, or one with an empty preference profile, sees `CUST-002`'s existing generic (non-personalized) view unchanged — this item is additive, not a behavior change for that case
+- The server-rendered public page is unchanged. After login, when the customer's profile is non-empty, the page asks for the personalized list (network-only, private) and lays the conflicts over the listings by id. A logged-out customer, or one without a profile, sees today's page and the browser makes no personalized request that it does not need.
+- A listing with an `allergy` conflict is marked unmistakably and names the allergens inline ("Contains tree nuts, which you listed as an allergy"); an `avoid` conflict is marked more quietly ("Contains dairy, which you avoid"). A conflict that comes only through an option says which option ("Add walnuts contains tree nuts"). Marks use text and an icon, never colour alone, and are part of the item's accessible name.
+- A toggle, off by default, hides listings whose **item** conflicts (as `SRCH-001`); switching it is instant, without a reload, and says how many are hidden. The detail page shows the item's and every option's conflicts.
+- The wording never says an item is safe, free of an allergen, or "matches". A listing without a conflict looks as it does today, plus the page-level reminder that unmarked is not guaranteed.
+- **Tests:** against the mock BFF (each severity, an option-only conflict, the toggle, a logged-out customer and an empty profile seeing no change, the server HTML unchanged) and on the real stack (the seed's almond croissant against a tree-nut allergy, the sourdough's sesame option); accessibility smoke of the marked list.
 
 **Dependencies**
-- Blocks: none
-- Blocked by: `SRCH-001`, `CUST-002` (already built/detailed)
-- Can be worked in parallel with: `CUST-005` (soft — more useful once real preference data exists via `CUST-005`, but not a hard blocker; seed data alone is enough to demo this item)
+- Blocks: none.
+- Blocked by: `SRCH-001`; `CUST-005` is soft (the seed can supply a profile for the demo).
 
 **Definition of Done**
 See `docs/process/definition-of-done.md`.
 
 **AI-agent suitability**
-Yes. Fully specified by `SRCH-001`'s API contract and `CUST-002`'s existing display conventions; no open judgment calls beyond what `SRCH-001` already resolved.
+Yes.
 
 **Open Points (working)**
 *(none currently)*
