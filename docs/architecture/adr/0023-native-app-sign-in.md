@@ -33,7 +33,7 @@ What already holds:
 
 Built and run locally on 2026-11-04 (`WI-MOB-001`, evidence in `docs/evidence/WI-MOB-001/`); nothing is deployed and the app has never run against a real identity provider.
 
-- **1 (system browser, PKCE S256, random state):** built (`apps/mobile-customer/src/auth/`, `expo-web-browser` opens Chrome Custom Tabs; the app checks `state`). Run: the four Maestro flows log in through the real issuer container.
+- **1 (system browser, PKCE S256, random state):** built (`apps/mobile-customer/src/auth/`, `expo-web-browser` opens Chrome Custom Tabs; the app checks `state`). Run: the Maestro flows log in through the real issuer container.
 - **2 (public client `bakery-mobile`, scope `openid offline_access`):** built; the mock issuer treats a client with no secret as public, as before.
 - **3 (redirect address):** built. `ValidateRedirectUri` accepts a private-use scheme with a dot, exact match, no fragment, credentials or wildcard; tested in `MockOidcAuthorizeHardeningTests` (unregistered, prefix, case, fragment, `//` form and non-dotted schemes refused). The address is registered through `MockOidc__RedirectUris__2` in `docker-compose.yml`, not in `DefaultRedirectUris`; the live container answered 200 for it and 400 for an unregistered scheme. The lead has not yet reviewed this auth change in a PR.
 - **4 (tokens on the device):** built. Access token in memory only; refresh token in the Keystore through `expo-secure-store`; deleted on sign-out or when the issuer refuses it. A network failure keeps it (a choice made in the build, not in this ADR). Run: restart without login, and sign-out followed by a restart. Not run: a refresh the issuer refuses, expiry of the access token.
