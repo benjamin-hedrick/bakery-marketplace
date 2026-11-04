@@ -82,6 +82,7 @@ const toOrder = (o: OrderingOrder) => ({
   })),
   total: money(o.totalCents, o.currency),
   pickupWindow: o.pickupWindow ? { start: o.pickupWindow.start, end: o.pickupWindow.end } : null,
+  allergens: o.allergens ?? [],
   createdAt: o.createdAt,
 });
 
@@ -101,6 +102,7 @@ const toVendorOrder = (o: OrderingVendorOrder) => ({
   })),
   pickupWindow: o.pickupWindow ? { start: o.pickupWindow.start, end: o.pickupWindow.end } : null,
   pickupInstructions: o.pickupInstructions,
+  allergens: o.allergens ?? [],
   automatic: o.automatic,
   placedAt: o.placedAt,
   updatedAt: o.updatedAt,
@@ -170,6 +172,7 @@ interface PlaceOrderInput {
   vendorId: string;
   lineItems: { listingId: string; modifierIds: string[]; quantity: number }[];
   pickupWindow?: { start: string; end: string } | null;
+  allergens?: string[] | null;
 }
 
 // Expected failures, by the error code ordering-service returns. The client sees the BFF's own fixed text, never ordering's (first-slice
@@ -233,6 +236,8 @@ async function placeOrder(args: { input: PlaceOrderInput }, ctx: Context) {
       vendorId: input.vendorId,
       lineItems,
       pickupWindow: input.pickupWindow ? { start: input.pickupWindow.start, end: input.pickupWindow.end } : null,
+      // Passed through as the customer sent them: ordering-service checks them against the registry (WI-ORD-009). Omitted when none, so the body is as before.
+      ...(input.allergens && input.allergens.length > 0 ? { allergens: input.allergens } : {}),
     },
     ctx.authorization,
     input.idempotencyKey,

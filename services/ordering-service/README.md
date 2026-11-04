@@ -6,13 +6,13 @@ Checkout, pickup scheduling, the order lifecycle, and publishing order events.
 
 ## Endpoints
 
-| Method | Path | Who |
-|---|---|---|
-| POST | `/ordering/checkout` | Customer (needs an `Idempotency-Key` header) |
-| GET | `/ordering/orders/{id}` | The order's customer |
-| GET | `/ordering/pickup-windows` | Anonymous |
-| POST | `/ordering/orders/{id}/confirm`, `decline`, `start-preparation`, `ready`, `complete` | Vendor who owns the order |
-| POST | `/ordering/orders/{id}/cancel` | Customer or vendor, per the lifecycle rules |
-| GET | `/health` | Anonymous |
+| Method | Path                                                                                 | Who                                          |
+| ------ | ------------------------------------------------------------------------------------ | -------------------------------------------- |
+| POST   | `/ordering/checkout`                                                                 | Customer (needs an `Idempotency-Key` header) |
+| GET    | `/ordering/orders/{id}`                                                              | The order's customer                         |
+| GET    | `/ordering/pickup-windows`                                                           | Anonymous                                    |
+| POST   | `/ordering/orders/{id}/confirm`, `decline`, `start-preparation`, `ready`, `complete` | Vendor who owns the order                    |
+| POST   | `/ordering/orders/{id}/cancel`                                                       | Customer or vendor, per the lifecycle rules  |
+| GET    | `/health`                                                                            | Anonymous                                    |
 
 Run it, with the rest of the stack: `docs/operations/local-dev.md` ("Run slice 1"). Tests: `dotnet test services/ordering-service/tests/OrderingService.Tests`. The lifecycle is `docs/architecture/order-lifecycle.md`; the components are in `docs/architecture/c4/component-services.md`; the request path is `docs/architecture/request-path.md`.

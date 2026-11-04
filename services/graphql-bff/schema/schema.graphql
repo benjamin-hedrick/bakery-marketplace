@@ -130,6 +130,11 @@ type Order implements Node {
   total: Money!
   "Null when the customer did not request a window (it is optional, D-3)."
   pickupWindow: PickupWindow
+  """
+  The allergens the customer chose to tell the bakery about for this order (ids from the `tags` registry; the screens map them to labels). Fixed once the
+  order is placed. Empty when none were chosen, and for orders placed before this existed.
+  """
+  allergens: [String!]!
   createdAt: DateTime!
 }
 
@@ -180,6 +185,11 @@ type VendorOrder implements Node {
   "The window the customer asked for, or the scheduled one once confirmed. Null when none was requested."
   pickupWindow: PickupWindow
   pickupInstructions: String
+  """
+  The allergens the customer chose to tell the bakery about for this order (ids from the `tags` registry; the screen maps them to labels), for any
+  special handling, a label or separate staging. Only the vendor who has the order can read them.
+  """
+  allergens: [String!]!
   "True when checkout confirmed the order by rule, so it never needed the vendor's decision."
   automatic: Boolean!
   placedAt: DateTime
@@ -344,6 +354,11 @@ input PlaceOrderInput {
   lineItems: [LineItemInput!]!
   "Optional (D-3). An order with no options and no window confirms itself."
   pickupWindow: PickupWindowInput
+  """
+  Optional (WI-ORD-009): the allergens the customer chooses to tell the bakery about for this order, as ids from the `tags` registry. Ordering-service
+  checks them against the registry (not against the customer's profile); the BFF validates nothing itself.
+  """
+  allergens: [String!]
 }
 
 input LineItemInput {

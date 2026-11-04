@@ -775,10 +775,15 @@ Status: Open
 **140. Real-stack journeys for `CUST-005` and `CUST-006` are written but have not run**
 Type: Verification gap · Source: `CUST-005`/`CUST-006` build (2026-11-04) · Hat: QA
 Status: Open
-`tests/skeleton/profile-page.spec.ts` (set an allergy in the browser, see the seeded croissant and sourdough marked, hide, clear, a vendor login refused) was not run: the `skeleton-smoke.mjs` run was stopped by the system for low memory (WSL), and the local stack was shut down at the lead's request. Both specs say so. Next step: run `node scripts/ci/skeleton-smoke.mjs --containers` (`COMPOSE_PARALLEL_LIMIT=1`) when memory allows, fix what it finds, then remove the "Not run" notes.
+`tests/skeleton/profile-page.spec.ts` (set an allergy in the browser, see the seeded croissant and sourdough marked, hide, clear, a vendor login refused) was not run: the `skeleton-smoke.mjs` run was stopped by the system for low memory (WSL), and the local stack was shut down at the lead's request. Both specs say so, and so does `WI-ORD-009` (`tests/skeleton/order-allergens.spec.ts`). Next step: run `node scripts/ci/skeleton-smoke.mjs --containers` (`COMPOSE_PARALLEL_LIMIT=1`) when memory allows, fix what it finds, then remove the "Not run" notes.
 
 **141. Decisions of 2026-11-04 (the lead)**
 Type: Decision record · Source: session with the lead · Hat: Product
 Status: Resolved 2026-11-04
 ADR-0022 accepted; the nine allergens and labels approved; caps 12 per listing and 6 per option approved, all to be easy to adjust or extend (data, one setting). The cart acknowledgement **blocks with a confirm-and-override** (`CUST-008`). Browsing is unfiltered by default and allergen items stay selectable and customizable. Order allergens are carried by `OrderPlaced` and shown to the vendor through Ready until handover (`ORD-009`, `QUE-005`), so the bakery can label or stage the order; retention on the stream is left to the stream's own trimming (proposed, to confirm).
+
+**142. Order allergens stay on the event stream as long as `OrderPlaced` does**
+Type: Data retention · Source: `WI-ORD-009` build (2026-11-04) · Hat: Architect, Security
+Status: Open
+`OrderPlaced` carries the allergens the customer chose for the order, and the Redis stream keeps its payloads (`Events:MaxStreamLength` 100000), so they live as long as the event. The only consumers are the vendor read model (this order's vendor) and the notification service (which does not read or print them). The data is order-scoped and customer-chosen, like the lines of the order, and is never the customer's profile. Proposed: no extra rule; the stream's own trimming applies. Confirm, or shorten the stream retention for this event, before anything is deployed. The same data also sits on the order and the vendor read model for as long as those are kept (`PRIV-001`, deferred).
 

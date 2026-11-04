@@ -32,6 +32,10 @@ internal sealed class FakeCatalogServer : IAsyncDisposable
 
     public volatile object? ListBody;
 
+    /// <summary>The allergen ids the registry offers (ADR-0022); <see cref="TagsStatus"/> scripts a failure.</summary>
+    public volatile string[] AllergenIds = ["dairy", "egg", "fish", "shellfish", "tree-nut", "peanut", "gluten", "soy", "sesame"];
+    public volatile int TagsStatus;
+
     public volatile int ListingStatus; // 0 = normal, otherwise this HTTP status for every listing read
     public volatile int ReserveStatus; // 0 = normal, otherwise this HTTP status for reserve
     public volatile int TokenStatus; // 0 = normal, otherwise this HTTP status from the token endpoint
@@ -75,6 +79,11 @@ internal sealed class FakeCatalogServer : IAsyncDisposable
             if (ListingStatus != 0) return Results.StatusCode(ListingStatus);
             return Listings.TryGetValue(id, out var listing) ? Results.Json(listing, JsonOptions) : Results.Json(new { code = "not_found" }, statusCode: 404);
         });
+
+        _app.MapGet("/catalog/tags", () =>
+            TagsStatus != 0
+                ? Results.StatusCode(TagsStatus)
+                : Results.Json(new { items = AllergenIds.Select((id, i) => new { id, kind = "allergen", label = id, sortOrder = i * 10 }).ToList() }, JsonOptions));
 
         _app.MapPost("/catalog/stock/reservations", async (HttpContext ctx) =>
         {

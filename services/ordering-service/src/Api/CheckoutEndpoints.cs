@@ -26,14 +26,15 @@ public sealed record OrderDto(
     PickupWindowDto? PickupWindow,
     long SequenceNumber,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<string> Allergens)
 {
     public static OrderDto From(Order o) => new(
         o.Id, o.CustomerId, o.VendorId,
         o.Lines.Select(l => new OrderLineDto(l.ListingId, l.ModifierIds, l.Quantity, l.UnitPriceCents, l.LineCents)).ToList(),
         o.TotalCents, o.Currency, o.Status.ToString(), o.FulfillmentType.ToString(),
         o.Fulfillment?.Pickup is { } p ? new PickupWindowDto(p.WindowStart, p.WindowEnd) : null,
-        o.SequenceNumber, o.CreatedAt, o.UpdatedAt);
+        o.SequenceNumber, o.CreatedAt, o.UpdatedAt, o.Allergens);
 }
 
 /// <summary>One page of the customer's orders, and the cursor of the next page (null on the last).</summary>

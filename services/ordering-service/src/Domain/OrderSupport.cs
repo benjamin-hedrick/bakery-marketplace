@@ -97,4 +97,5 @@ public sealed record OrderSnapshot(
     DateTimeOffset UpdatedAt,
     OrderCancelActor? CancelledBy,
     OrderCancelReason? CancelReason,
-    IReadOnlyList<OrderLine> Lines);
+    IReadOnlyList<OrderLine> Lines,
+    IReadOnlyList<string>? Allergens = null);

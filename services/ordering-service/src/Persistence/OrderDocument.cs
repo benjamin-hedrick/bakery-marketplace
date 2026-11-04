@@ -28,6 +28,9 @@ public sealed class OrderDocument : IETagged
     [JsonProperty("pickup", NullValueHandling = NullValueHandling.Ignore)] public PickupDocument? Pickup { get; set; }
     [JsonProperty("delivery", NullValueHandling = NullValueHandling.Ignore)] public DeliveryDocument? Delivery { get; set; }
 
+    /// <summary>The allergens the customer told the bakery about for this order (registry ids, sorted). Omitted when there are none, so older orders read as having none (WI-ORD-009).</summary>
+    [JsonProperty("allergens", NullValueHandling = NullValueHandling.Ignore)] public List<string>? Allergens { get; set; }
+
     [JsonProperty("lines")] public List<OrderLineDocument> Lines { get; set; } = new();
 
     /// <summary>Integer cents, USD (D-1). Stored for readability and queries; the lines are authoritative.</summary>
@@ -105,6 +108,7 @@ public sealed class OrderDocument : IETagged
             UpdatedAt = s.UpdatedAt,
             CancelledBy = s.CancelledBy,
             CancelReason = s.CancelReason,
+            Allergens = s.Allergens is { Count: > 0 } a ? a.ToList() : null,
             IdempotencyKey = idempotencyKey,
             RequestFingerprint = requestFingerprint,
         };
@@ -123,7 +127,7 @@ public sealed class OrderDocument : IETagged
 
         return Order.Restore(new OrderSnapshot(
             Id, CustomerId, VendorId, FulfillmentType, fulfillment, Status, SequenceNumber, CreatedAt, UpdatedAt, CancelledBy, CancelReason,
-            Lines.Select(l => new OrderLine(l.ListingId, l.ModifierIds, l.Quantity, l.UnitPriceCents)).ToList()));
+            Lines.Select(l => new OrderLine(l.ListingId, l.ModifierIds, l.Quantity, l.UnitPriceCents)).ToList(), Allergens));
     }
 }
 

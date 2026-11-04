@@ -26,6 +26,8 @@ export interface OrderingOrder {
   sequenceNumber: number;
   createdAt: string;
   updatedAt: string;
+  /** Registry allergen ids the customer chose for this order (WI-ORD-009); absent from an older ordering-service. */
+  allergens?: string[];
 }
 
 export interface OrderingOrderPage {
@@ -58,6 +60,8 @@ export interface OrderingVendorOrder {
   pickupInstructions: string | null;
   /** The highest event sequence applied to the order (see the schema's VendorOrder.sequence). */
   lastSequence: number;
+  /** Registry allergen ids the customer chose for this order (WI-ORD-009); absent from an older ordering-service. */
+  allergens?: string[];
 }
 export interface OrderingVendorOrderPage {
   items: OrderingVendorOrder[];
@@ -69,6 +73,7 @@ export interface CheckoutBody {
   vendorId: string;
   lineItems: { listingId: string; modifierIds: string[]; quantity: number }[];
   pickupWindow: { start: string; end: string } | null;
+  allergens?: string[];
 }
 
 /** The stable error body of ordering-service (ApiError). */

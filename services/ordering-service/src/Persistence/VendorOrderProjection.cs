@@ -33,6 +33,8 @@ public sealed class VendorOrderProjection(
                 Quantity = l.Quantity,
             }).ToList();
             d.PlacedAt = e.OccurredAt;
+            // Set once: a repeat or a late copy of the event never changes what the customer chose (WI-ORD-009).
+            if (d.Allergens is null && e.Payload.Allergens is { Count: > 0 } allergens) d.Allergens = allergens.ToList();
             ApplyFulfillment(d, e.Payload.FulfillmentType, e.Payload.Details);
         }, ct);
 
