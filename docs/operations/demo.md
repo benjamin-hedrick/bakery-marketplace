@@ -1,18 +1,18 @@
 # Demo: run slice 1 and show it
 
-> **Status:** Current · written and run 2026-10-30 on Windows 11 with Docker Desktop (`scripts/dev/demo.mjs`, 87 s from start to a stopped stack with the web build; screenshots by `scripts/dev/capture-journey.mjs`). Nothing is deployed and the payment is a test stub. A run on a machine with nothing cached, and a person following this page without help, have not been done (`WI-DEMO-001`).
+> **Status:** Current · rewritten 2026-11-04 after a run on Windows 11 with Docker Desktop: `scripts/dev/demo.mjs` started the stack and printed its guide, and `scripts/dev/capture-journey.mjs` (extended the same day) walked the journey below against it and took all nine screenshots; the first checkout took 2.7 s. The demo was stopped by killing its process and running `docker compose down` by hand, so the Enter and Ctrl+C path was not exercised this time. Start-up time was not re-measured (the 87 s of 2026-10-30 predates the session Redis and the personalization pages). Nothing is deployed and the payment is a test stub. A run on a machine with nothing cached, and a person following this page without help, have not been done (`WI-DEMO-001`).
 
-What it shows: a customer browses listings with stock and allergens, chooses a quantity or an option, logs in through the local mock identity issuer, places a test order, and watches its status. Behind that: a Next.js app, a GraphQL BFF, a catalog service and an ordering service, with Cosmos, Redis Streams and the issuer in Docker. How the pieces work is in [the request path](../architecture/request-path.md); the commands for running by hand are in [local development](local-dev.md#run-slice-1).
+What it shows: a customer browses listings with stock, allergens and tags, chooses a quantity or an option, logs in through the local mock identity issuer, saves an allergen profile, sees allergy warnings on browse and a warning with a confirmation at checkout, places a test order, watches its status and finds it in the order history. Behind that: a Next.js app, a GraphQL BFF, a catalog service and an ordering service, with Cosmos, two Redis instances (domain events; sessions) and the issuer in Docker. How the pieces work is in [the request path](../architecture/request-path.md); the commands for running by hand are in [local development](local-dev.md#run-slice-1); every script is indexed in [scripts and commands](scripts.md). The Android app has its own demo, `node scripts/dev/mobile-demo.mjs` (see the app's [README](../../apps/mobile-customer/README.md)).
 
 ## Start
 
-You need Docker (running), the .NET 10 SDK, Node 24 or later and git, and `npm ci` done once in `apps/web-customer` and `services/graphql-bff`. From the repository root:
+You need Docker (running), the .NET 10 SDK, Node 24 or later and git, and `npm ci` done once in `apps/web-customer`, `services/graphql-bff`, `packages/web-session` and `packages/customer-core`. From the repository root:
 
 ```
 node scripts/dev/demo.mjs
 ```
 
-It creates the local secrets (a git-ignored `.env`), starts the three Docker containers, seeds the catalog, starts the four processes, builds the web app, warms the stack and prints a guide. The first run also builds the .NET projects. Ports 3000, 4100, 5200 and 5300 must be free; the script refuses to start otherwise. Press Enter or Ctrl+C to stop; everything is torn down and the data is lost (`--keep` leaves Docker running).
+It creates the local secrets (a git-ignored `.env`), starts the four Docker containers (Redis for events, Redis for sessions, the Cosmos emulator, the mock issuer), seeds the catalog, starts the three host services (catalog, ordering, BFF), builds and starts the web app, warms the stack and prints a guide. The first run also builds the .NET projects. Ports 3000, 4100, 5200 and 5300 must be free; the script refuses to start otherwise. Press Enter or Ctrl+C to stop; everything is torn down and the data is lost (`--keep` leaves Docker running).
 
 ## Where things run
 
@@ -29,9 +29,11 @@ flowchart LR
     I["mock-oidc issuer :5100"]
     D[("Cosmos emulator :8081")]
     R[("redis-events :6379")]
+    RC[("redis-cache :6380<br/>sessions")]
   end
   B --> W
-  B -- "login (PKCE)" --> I
+  B -- "login page" --> I
+  W -- "code exchange (PKCE), renewal" --> I
   W --> G
   G --> C
   G --> O
@@ -41,28 +43,32 @@ flowchart LR
   O --> D
   O -- "events" --> R
   C -- "events" --> R
+  W -- "login sessions" --> RC
 ```
 
-The BFF forwards the caller's token unchanged and every service validates it itself against the issuer. `scripts/dev/demo.mjs` starts everything above; `docker compose up` alone starts only the three containers; `scripts/ci/skeleton-smoke.mjs` starts the same stack and runs the browser journeys instead of waiting.
+The BFF forwards the caller's token unchanged and every service validates it itself against the issuer. `scripts/dev/demo.mjs` starts everything above; `docker compose up -d` alone starts only the three always-on containers (`--profile with-redis` adds the session Redis); `scripts/ci/skeleton-smoke.mjs` starts the same stack and runs the browser journeys instead of waiting.
 
 ## Checklist: show the journey
 
 | Step | Do | Expect |
 |---|---|---|
-| 1. Start | `node scripts/dev/demo.mjs`, wait for the guide (about 90 s with caches warm) | `http://localhost:3000`, the mock users, the steps |
-| 2. Browse | Open the URL | Six listings with price, stock and allergens: "Blueberry Oat Muffin" is sold out, "Almond Croissant" is low stock |
+| 1. Start | `node scripts/dev/demo.mjs`, wait for the guide | `http://localhost:3000`, the mock users, the steps |
+| 2. Browse | Open the URL | Six listings with price, stock, allergens and tags: "Blueberry Oat Muffin" is sold out, "Almond Croissant" is low stock. The tag chips filter the list |
 | 3. Choose | Open "Country Sourdough"; pick quantity 2 (or the sesame option) | The estimate updates; options show their allergens ("contains sesame") |
-| 4. Add | Add to order, then open "Your order" | The cart shows the line; checkout asks you to log in |
-| 5. Log in | Log in | The mock issuer's own page; choose "Login as Alice Customer (Customer)" |
-| 6. Order | Choose a pickup time if you like, then "Place test order" | The first checkout takes several seconds (7.0 s measured); later ones well under a second |
+| 4. Add | Add to order, then open "Your order" | The cart shows the line with what it contains; checkout asks you to log in |
+| 5. Log in | Log in | The mock issuer's own page; choose "Login as Alice Customer (Customer)". Her name then shows in the header |
+| 6. Order | Choose a pickup time if you like, then "Place test order" | The first checkout is slower than later ones (2.7 s on the 2026-11-04 run, 7.0 s on 2026-10-30) |
 | 7. Status | Read the order page | A plain order is "Order confirmed" by itself; an order with an option or a pickup time waits for the bakery. "Test order: no payment was taken." |
-| 8. Stop | Enter or Ctrl+C | Processes stopped, containers removed |
+| 8. Allergies | Open "Allergies", mark Tree nuts as "Allergy", save. Go back to the listings | "Almond Croissant" now carries allergy warnings, for the item and for its "Extra almonds" option. A tick box can hide items that list an allergen of your profile |
+| 9. Warn | Add "Almond Croissant" to the order, open "Your order" | An allergy warning names the line and the allergen; "Place test order" stays off until "I have read this and still want to order" is ticked; "Tell the bakery" lists Tree nuts (ticked) so the bakery sees it with the order |
+| 10. History | Open "Order history" | The order from step 6 with its status and total |
+| 11. Stop | Enter or Ctrl+C | Processes stopped, containers removed |
 
-What not to expect: there are no vendor, admin or queue screens (those apps are empty), no search, no real payment, and the look is one small stylesheet (light and dark by system setting), not a designed brand. Reloading an order page ends the login (register item 24), so the page asks again.
+What not to expect: this demo does not start the vendor's live queue screen (`apps/web-queue-display`, port 3100, which exists and is exercised by `scripts/ci/skeleton-smoke.mjs` and `scripts/dev/load-test.mjs`), so nothing here moves an order past "waiting for the bakery"; the admin app is empty; there is no free-text search and no real payment; and the look is one small stylesheet (light and dark by system setting), not a designed brand. A reload keeps the login (the session lives on the server, ADR-0019), and the allergen profile you save stays until the stack is torn down.
 
 ## Screenshots
 
-Taken by `node scripts/dev/capture-journey.mjs` against the running demo (after the styling pass of 2026-10-30, register item 97).
+Taken by `node scripts/dev/capture-journey.mjs` against the running demo (2026-11-04; the script places one order and saves an allergy profile for Alice, nothing more).
 
 | Browse | Listing |
 |---|---|
@@ -74,6 +80,14 @@ Taken by `node scripts/dev/capture-journey.mjs` against the running demo (after 
 
 ![An order confirmed, 2 × Country Sourdough, $16.00](demo/05-order.png)
 
+| Allergen profile | Warnings on browse |
+|---|---|
+| ![The Allergies page with Tree nuts set to Allergy](demo/06-preferences.png) | ![The listings with allergy warnings on Almond Croissant](demo/07-browse-conflicts.png) |
+
+| Warning and confirmation at checkout | Order history |
+|---|---|
+| ![Your order with an allergy warning, the confirmation box and Tell the bakery](demo/08-checkout-allergies.png) | ![The order history with the order just placed](demo/09-orders.png) |
+
 ## If something goes wrong
 
 | Symptom | Likely cause and what to do |
@@ -82,10 +96,12 @@ Taken by `node scripts/dev/capture-journey.mjs` against the running demo (after 
 | Stuck at the environment check | Docker is not running or is still pulling images; `docker compose ps` and `node scripts/dev/check-env.mjs --wait 180` |
 | `<name> did not become healthy` | Read `artifacts/demo/<name>.log` (catalog, ordering, bff, web) |
 | The listing page shows no listings | The seed did not run or the catalog is down; stop and start again (data is not kept) |
-| The first checkout seems stuck | It takes about 7 s the first time (service token, first priced checkout); wait |
+| The first checkout seems stuck | It is slower the first time (service token, first priced checkout; 2.7 to 7 s measured); wait |
 
 ## Measured and not measured
 
-- The script was run once from start to stop, with `--stop-after 20`: 87 s, exit 0, no containers left. The warm-up requests (issuer metadata, the home page, pickup times) all returned 200, but the first checkout still took 7.0 s afterwards: the warm-up does not cover the first priced checkout (register item 98).
+- **2026-11-04:** `demo.mjs` started the stack and printed its guide (the warm-up took 0.1 s, everything was cached), and `capture-journey.mjs` then ran all nine steps without failing: login, an order (first checkout 2.7 s, status "Order confirmed"), saving the tree-nut allergy, the warnings on browse, the warning and the unticked confirmation at checkout (the button was not clicked), and the order history. The screenshots above come from that run; the agent that took them looked at three (browse, browse with the warnings, the checkout warning) and not at the other six. Stopping was done by killing the process and `docker compose down`, not by Enter.
+- **2026-10-30:** the script was run once from start to stop, with `--stop-after 20`: 87 s, exit 0, no containers left. The first checkout then took 7.0 s even after the warm-up, which does not cover the first priced checkout (register item 98). Both numbers are one run each on one machine.
 - Docker images, NuGet packages and npm packages were already cached. A first run on a machine with nothing cached will take longer; it has not been timed (`WI-DEMO-001`).
+- Not run: the acknowledgement being ticked and the order with the allergen being placed in this demo (the browser suites and the real-stack journeys cover it), a reload keeping the login (ADR-0019 and its tests, not re-run here), the vendor's queue screen.
 - Not done: a person who did not write this following the page, and timing how long a visitor takes to find the evidence from the README (`WI-DEMO-001`, rows G-H07 and G-H09).

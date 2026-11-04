@@ -34,7 +34,7 @@ Ports: 3000 customer web, 3100 queue display, 4000 mock BFF (browser suites), 41
 |---|---|---|
 | `node scripts/dev/demo.mjs [--keep] [--stop-after N]` | The **web** slice: browse with stock, log in, add to order, place a test order, watch its status. Starts everything, warms it, prints a guide, waits for Enter. | `docs/operations/demo.md`. Ports 3000, 4100, 5200, 5300 must be free. No test hooks (never sets `ENABLE_TEST_HOOKS`). Needs `npm ci` in `apps/web-customer`, `services/graphql-bff` and `packages/web-session`. |
 | `node scripts/dev/mobile-demo.mjs [--no-build] [--keep]` | The **Android** app on the `bakery_pixel` emulator (window shown): the same journey on the phone, restart without login, sign-out. Boots the emulator, starts the stack **without** the test hook, builds and installs a **non-test** build, opens the app, waits for Enter. | First build about ten minutes. Needs JDK 17 and the Android SDK (`apps/mobile-customer/README.md`). Maestro is not needed. |
-| `node scripts/dev/capture-journey.mjs [folder]` | Screenshots of the web journey for `demo.md` against a **running** demo; places one real test order. | Needs Playwright's Chromium in `apps/web-customer`. |
+| `node scripts/dev/capture-journey.mjs [folder]` | Nine screenshots of the web journey for `demo.md` against a **running** demo, including the allergen profile, the warnings and the order history; places one real test order and saves a tree-nut allergy for Alice (nothing else). | Needs Playwright's Chromium in `apps/web-customer`. |
 
 ## 4. Tests
 

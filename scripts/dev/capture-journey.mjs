@@ -59,6 +59,34 @@ try {
   console.log(`first checkout took ${((Date.now() - t0) / 1000).toFixed(1)} s`);
   await shot('05-order.png');
   console.log(`order status: ${await page.getByTestId('order-status').innerText()}`);
+
+  // Personalization (WI-CUST-005, CUST-006, CUST-008, CUST-007): the customer's allergen profile, marks on browse, the warning and acknowledgement at checkout, and
+  // the order history. The profile is saved for Alice and stays until the stack is torn down. No second order is placed.
+  await page.goto(`${base}/preferences`);
+  const nut = page.locator('[data-testid="allergen-group"][data-allergen="tree-nut"]');
+  await visible(nut);
+  await nut.getByLabel(/Allergy/).check();
+  await page.getByRole('button', { name: 'Save my choices' }).click();
+  await visible(page.getByTestId('preferences-saved'));
+  await shot('06-preferences.png');
+
+  await page.goto(base);
+  await visible(page.getByTestId('listing').first());
+  await visible(page.getByTestId('conflict').first());
+  await shot('07-browse-conflicts.png');
+
+  await page.getByTestId('listing').filter({ hasText: 'Almond Croissant' }).getByRole('link').click();
+  await visible(page.getByRole('heading', { level: 1, name: 'Almond Croissant' }));
+  await page.getByRole('button', { name: 'Add to order' }).click();
+  await visible(page.getByTestId('cart-link'));
+  await page.getByTestId('cart-link').click();
+  await visible(page.getByTestId('conflicts'));
+  await visible(page.getByTestId('ack-needed'));
+  await shot('08-checkout-allergies.png');
+
+  await page.goto(`${base}/orders`);
+  await visible(page.getByTestId('history-order').first());
+  await shot('09-orders.png');
 } catch (e) {
   console.error(`capture failed: ${e.message}`);
   process.exitCode = 1;
