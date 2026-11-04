@@ -201,7 +201,7 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-143 numbered items in `docs/governance/open-items-register.md` (highest number 143).
+144 numbered items in `docs/governance/open-items-register.md` (highest number 144).
 
 | Type | Count |
 |---|---|
@@ -278,6 +278,7 @@ Accepted: 22 · Superseded: 1
 | Decision record | 1 |
 | Data retention | 1 |
 | Scaling limit | 1 |
+| Pipeline reliability | 1 |
 
 | Item status | Count |
 |---|---|
@@ -285,7 +286,7 @@ Accepted: 22 · Superseded: 1
 | Resolved | 48 |
 | Accepted | 6 |
 | Tracking | 12 |
-| Open | 56 |
+| Open | 57 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
