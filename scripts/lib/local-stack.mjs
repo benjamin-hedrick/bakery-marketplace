@@ -43,7 +43,11 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
   const next = path.join('node_modules', 'next', 'dist', 'bin', 'next');
   // GRAPHQL_URL is read at run time (the /api/graphql route and server rendering); NEXT_DIST_DIR keeps this build out of `.next`.
   // x-test-payment is the declined-payment hook (D-10): the API route forwards it only because it is named here, and the BFF ignores it unless ENABLE_TEST_HOOKS=1.
+  // The smoke run (and only it) logs in far faster than a person: its browser journeys each log in, and the web app limits login starts to 10 a minute per address
+  // (WI-RATE-001). The limit is raised for that run, as the mock-backed browser suites do; the demo and every other environment keep the default.
+  const smokeRates = label === 'skeleton' ? { RATE_LIMIT_LOGIN_PER_MINUTE: '1000' } : {};
   const webEnv = {
+    ...smokeRates,
     GRAPHQL_URL: bffUrl,
     NEXT_DIST_DIR: distDir,
     GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment',
@@ -152,7 +156,10 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
         'docker',
         ['compose', '--profile', 'apps', '--profile', 'with-redis', 'up', '-d', '--build'],
         {
-          env: testHooks ? { ENABLE_TEST_HOOKS: '1', GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment' } : {},
+          env: {
+            ...(testHooks ? { ENABLE_TEST_HOOKS: '1', GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment' } : {}),
+            ...smokeRates,
+          },
         },
       );
       await waitFor('catalog', `http://localhost:${ports.catalog}/health`);

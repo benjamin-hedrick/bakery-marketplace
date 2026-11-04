@@ -1,15 +1,23 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { userToken } from './support';
+import { adjustStock, quantity, userToken } from './support';
 
 // WI-CUST-005 and WI-CUST-006 on the real stack: the allergen profile page and the conflicts laid over the seeded catalog, through Next.js, the
 // GraphQL BFF, the catalog service and Cosmos. The seed has the almond croissant (tree nuts on the item and in "Extra almond", dairy on the item)
-// and the sourdough (sesame only in "Seed crust"). The mock issuer has one customer, so two customers cannot be told apart here.
+// and the sourdough (sesame only in "Add seeds"). The mock issuer has one customer, so two customers cannot be told apart here.
 // Needs the whole local stack (docs/operations/local-dev.md); node scripts/ci/skeleton-smoke.mjs starts it.
 
 const BFF = process.env.BFF_URL ?? 'http://localhost:4100';
 
 test.describe.configure({ mode: 'serial' });
+
+/** Puts a few croissants back, so the journey does not depend on what earlier runs of the same stack left (the seed has 4). */
+async function restockCroissant(request: import('@playwright/test').APIRequestContext) {
+  const vendor = await userToken('vendor-shop-001');
+  // Only when a kept stack has used the croissants up: a fresh one keeps the seed's stock, which other journeys count on.
+  if ((await quantity(request, vendor, 'listing-croissant-001')) < 2)
+    await adjustStock(request, vendor, 'listing-croissant-001', 4);
+}
 
 /** Clears the one customer's profile, so this file leaves the others as it found them. */
 async function clearProfile(request: import('@playwright/test').APIRequestContext) {
@@ -31,7 +39,10 @@ async function logIn(page: Page, who: 'Alice Customer (Customer)' | 'Corner Bake
 const group = (page: Page, allergen: string) =>
   page.locator(`[data-testid="allergen-group"][data-allergen="${allergen}"]`);
 
-test.beforeAll(async ({ request }) => clearProfile(request));
+test.beforeAll(async ({ request }) => {
+  await clearProfile(request);
+  await restockCroissant(request);
+});
 test.afterAll(async ({ request }) => clearProfile(request));
 
 test('a customer sets an allergy in the browser, it comes back after a reload, and the seeded catalog is marked from it', async ({
@@ -66,9 +77,9 @@ test('a customer sets an allergy in the browser, it comes back after a reload, a
     'Contains tree nuts, which you listed as an allergy',
   );
   await expect(croissant.locator('[data-severity="AVOID"]')).toContainText('Contains milk (dairy), which you avoid');
-  await expect(croissant).toContainText('Extra almond contains tree nuts');
+  await expect(croissant).toContainText('Extra almonds contains tree nuts');
   await expect(page.getByTestId('listing').filter({ hasText: 'Country Sourdough' })).toContainText(
-    'Seed crust contains sesame',
+    'Add seeds contains sesame',
   );
 
   // Hiding removes the items that list an allergen themselves, and only those.
@@ -81,8 +92,8 @@ test('a customer sets an allergy in the browser, it comes back after a reload, a
   await page.getByRole('checkbox', { name: /Hide items/ }).uncheck();
   await croissant.getByRole('link').click();
   await expect(page.getByTestId('personal-detail').getByTestId('conflict').first()).toContainText('Contains tree nuts');
-  await expect(page.getByText('Extra almond').locator('xpath=ancestor::label').getByTestId('conflict')).toContainText(
-    'Extra almond contains tree nuts',
+  await expect(page.locator('label').filter({ hasText: 'Extra almonds' }).getByTestId('conflict')).toContainText(
+    'Extra almonds contains tree nuts',
   );
 });
 

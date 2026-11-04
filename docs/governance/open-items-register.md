@@ -774,8 +774,9 @@ Status: Open
 
 **140. Real-stack journeys for `CUST-005` and `CUST-006` are written but have not run**
 Type: Verification gap · Source: `CUST-005`/`CUST-006` build (2026-11-04) · Hat: QA
-Status: Open
+Status: Resolved 2026-11-04
 `tests/skeleton/profile-page.spec.ts` (set an allergy in the browser, see the seeded croissant and sourdough marked, hide, clear, a vendor login refused) was not run: the `skeleton-smoke.mjs` run was stopped by the system for low memory (WSL), and the local stack was shut down at the lead's request. Both specs say so, and so do `WI-ORD-009` (`tests/skeleton/order-allergens.spec.ts`) `WI-QUE-005` (`tests/skeleton/queue-allergens.spec.ts`) `WI-CUST-008` (`tests/skeleton/checkout-allergens.spec.ts`) and `WI-TAG-002` and `WI-TAG-003` (`tests/skeleton/listing-tags.spec.ts`) and `WI-TAG-004` (`tests/skeleton/diet-preferences.spec.ts`). Next step: run `node scripts/ci/skeleton-smoke.mjs --containers` (`COMPOSE_PARALLEL_LIMIT=1`) when memory allows, fix what it finds, then remove the "Not run" notes.
+Resolved: the full `skeleton-smoke.mjs --containers` run passed on a clean stack (55 of 55). It found, and the run fixed, mistakes in the specs themselves (the seed's option names; a restock that disturbed a journey's exact stock count), and one real gap: the web app's login rate limit (10 a minute, WI-RATE-001) stopped the browser journeys once there were enough of them, so the smoke run (and only it) now raises `RATE_LIMIT_LOGIN_PER_MINUTE` (`scripts/lib/local-stack.mjs`, `docker-compose.yml`); the demo and other environments keep the default. Not exercised by the run: the new fields on the real Cosmos container beyond what the journeys read back (they did round-trip through it), and ordering's Cosmos adapter tests (need the emulator).
 
 **141. Decisions of 2026-11-04 (the lead)**
 Type: Decision record · Source: session with the lead · Hat: Product
