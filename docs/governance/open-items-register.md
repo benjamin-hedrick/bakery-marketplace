@@ -764,7 +764,8 @@ Status: Open
 **138. Allergy-warning and low-stock notifications have no source event**
 Type: Gap · Source: `NOT-001`/`NOT-002` scoping (2026-11-03) · Hat: Product
 Status: Open
-The allergy warning needs customer preference and allergy data (the personalization work), and the low-stock alert needs the catalog to publish a stock event; neither exists. `NOT-002` builds the order-lifecycle templates only. Add the two templates when their events exist. Also open: the contact lookup is seeded data; a real store and whether to batch reads are decided after measuring (`NOT-001`).
+The allergy warning needs customer preference and allergy data (the personalization work), and the low-stock alert needs the catalog to publish a stock event; neither exists. `NOT-002` builds the order-lifecycle templates only. Add the two templates when their events exist. Also open: the contact lookup is seeded data; a real store and whether to batch reads are decided after measuring (`NOT-001`)
+**Update 2026-11-04:** the allergy-warning half is **resolved by dropping it** (the lead, in the personalization scoping): the useful warning is before the order is placed (`WI-CUST-008`), and the useful message to the bakery is the allergens recorded on the order (`WI-ORD-009`, `WI-QUE-005`); `WI-PREF-002` is superseded. The low-stock alert still waits for a catalog stock event..
 
 **139. The customer's order list reads the customer's whole partition for every page, and two-customer isolation was not tried on the real stack**
 Type: Scaling limit and verification gap · Source: `WI-CUST-007` build (2026-11-04) · Hat: Architect, QA

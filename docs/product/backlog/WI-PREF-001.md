@@ -2,7 +2,7 @@
 
 ```
 WI ID:               PREF-001
-Title:                Preference Profile CRUD
+Title:                The customer's allergen profile (allergies and avoid)
 Type:                 Service Implementation
 Epic:                 EPIC-PREFERENCES
 Shared with epic(s):  none
@@ -11,43 +11,42 @@ Status:               Ready
 Size:                 S
 ```
 
+> **Rewritten 2026-11-04** (ADR-0022, the lead's decisions of the same day). Git keeps the original. What changed: the customer is the token's subject, not a path parameter (as for the order list, `WI-CUST-007`); the profile holds **allergen ids from the registry** in two lists, `allergies` (serious) and `avoid` (a preference), instead of two free-text arrays; `dietaryPreferences` moved to `TAG-004` (diet claims need diet tags on listings first); no snapshot event is published (`PREF-002` is superseded).
+
 **Context / Why**
-The Preferences & Dietary Safety bounded context exists in the glossary and vision (principle 1: dietary safety is first-class) and has a documented container shape (`data-model-api-contracts.md`'s `preferences` container), but no work item has ever implemented it. This item is the CRUD half; `PREF-002` (the Open Host Service publication to Search/Ordering) depends on this existing first.
+Personalization starts with a stored profile. A profile is a list of allergens the customer must avoid and a second list of allergens they would rather avoid, both chosen from the closed allergen list (`TAG-001`). It is quasi-health data (NFR 3.7): read and written only by its owner, never logged, never traced, never cached, never sent on the event backbone.
 
 **Inputs / References**
-- *Decisions*: ADR-0004 (`preferences` container, `customerId` partition key, Session consistency), ADR-0009 (hosted in `catalog-service`), ADR-0006 (Customer role + resource-ownership check)
-- *Interfaces*: `IRepository<T>`/`CosmosRepository<T>` (`DATA-002`), `AUTH-002`'s ownership-check pattern
-- *Environment/tooling*: local Cosmos emulator, `WI-DEV-001` (needs a real `CatalogService` project to add code to — Preferences is hosted there per ADR-0009, alongside Catalog/Search/Advertising)
-- *Test/chaos methodology*: standard unit + integration tests, no adapter/chaos pattern (domain logic, not a swappable backend)
-- *Business context*: `docs/architecture/ddd/glossary.md` (Preference Profile), vision principle 1 (dietary safety first-class — allergy/preference data must be easy to find and edit, not buried)
+- *Decisions*: ADR-0022 (ids, the closed list), ADR-0004 (`preferences` container, partition `customerId`), ADR-0009 (hosted in `catalog-service`), ADR-0006 (role plus ownership), ADR-0014 (`private, no-store`), NFR 3.7.
+- *Interfaces*: `IRepository<T>` and the in-memory and Cosmos backends as for listings, `TAG-001`'s `ITagRegistry`, the order list's endpoint pattern (`OrdersEndpoints` in ordering) for the caller's identity.
 
 **You do not need to know about**
-- How the snapshot actually gets published to Search/Ordering (`PREF-002`, separate item) — this item only owns the profile itself
-- Any other bounded context's data — Preferences reads/writes only its own `preferences` container
+- How the profile is used to match listings (`SRCH-001`) or shown (`CUST-005`, `CUST-006`).
 
 **Out of scope**
-- Does not publish a Preference Snapshot anywhere (`PREF-002`)
-- Does not implement dietary-preference filtering at query time in Search (`SRCH-001`) — this item is CRUD only, not a consumer
+- Diet preferences (`TAG-004`); a snapshot event or any copy of the profile in another service; deletion and retention policy beyond "clear it yourself" (`PRIV-001`, deferred).
 
 **Requirements / Acceptance Criteria**
-- `PreferenceProfile` document per `data-model-api-contracts.md`: `id, customerId, allergies[], dietaryPreferences[], updatedAt`
-- Endpoints per `data-model-api-contracts.md`: `GET /catalog/preferences/{customerId}` (Customer role + resource-ownership check via `AUTH-002`'s pattern), `PUT /catalog/preferences/{customerId}` (same role/ownership requirement)
-- A customer with no existing profile gets a sensible empty-profile response on `GET` (empty `allergies`/`dietaryPreferences` arrays), not a 404 — a profile is implicitly created on first `PUT`, not requiring a separate `POST`
-- `allergies`/`dietaryPreferences` are free-form string arrays for v1 (no controlled vocabulary/taxonomy) — matches how `data-model-api-contracts.md` already specifies the shape; a controlled taxonomy is a plausible v2 enhancement, not decided here
+- Document `PreferenceProfile` in the `preferences` container: `id` (= the customer id), `customerId`, `allergies` (allergen ids), `avoid` (allergen ids), `updatedAt`.
+- `GET /catalog/preferences` and `PUT /catalog/preferences`, Customer role only. The customer is always the token's subject: there is no customer id in the path or the body. A customer with no profile gets `200` with both lists empty; the first `PUT` creates it. `PUT` replaces both lists.
+- Validation: every id is a public, active, non-retired allergen in the registry; an id in both lists, a duplicate, or more than the number of allergens is a 422 `validation_failed` naming the field. Nothing is silently dropped.
+- Responses carry `Cache-Control: private, no-store`. The profile, its ids and its size are never in a log line or a span (the request body is never logged), proved by a test that captures logs and spans around a read and a write.
+- BFF: `preferences: Preferences!` and `savePreferences(input): SavePreferencesPayload!` (mapping and error mapping only; a 401 is UNAUTHENTICATED, a 403 FORBIDDEN, a 422 a typed rejection with the field).
+- **Abuse cases (acceptance criteria):** another customer's profile is unreachable (there is no way to name one); a vendor or admin token is refused (403) and no token is 401; an unknown, hidden, retired or non-allergen id is 422; an oversize body is refused; a repeat `PUT` is idempotent; nothing of the profile appears in telemetry.
+- Tests: the endpoints against the in-memory backend, the Cosmos adapter against the emulator when it is up, the BFF mapping, and the abuse cases above, each shown to fail without its property.
 
 **Dependencies**
-- Blocks: `PREF-002`, `SRCH-001` (needs a real Preference Profile to filter against)
-- Blocked by: `DATA-002`, `AUTH-002`, `DEV-001` (base .NET solution scaffold)
-- Can be worked in parallel with: `VEN-001` (no shared code or data)
+- Blocks: `SRCH-001`, `CUST-005`.
+- Blocked by: `TAG-001`.
 
 **Definition of Done**
-See `docs/process/definition-of-done.md`.
+See `docs/process/definition-of-done.md`. Item-specific: the contract document states the endpoint without a customer id.
 
 **AI-agent suitability**
-Yes. Fully specified by the existing container shape and API contract; no open judgment calls.
+Yes. The access rule is the same role-plus-subject rule the order endpoints use, so no new authentication logic is introduced; the lead's review of the abuse cases is still wanted because the data is sensitive.
 
-**Interfaces consumed**: `IRepository<T>` (`DATA-002`)
-**Events published/consumed**: none (this item raises no events — `PREF-002` is the publishing step)
+**Interfaces consumed**: `IRepository<T>`, `ITagRegistry`
+**Events published/consumed**: none
 **Data touched**: `preferences` container
 
 **Open Points (working)**
