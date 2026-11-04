@@ -39,4 +39,4 @@ Built and run locally on 2026-11-04 (`WI-MOB-001`, evidence in `docs/evidence/WI
 - **4 (tokens on the device):** built. Access token in memory only; refresh token in the Keystore through `expo-secure-store`; deleted on sign-out or when the issuer refuses it. A network failure keeps it (a choice made in the build, not in this ADR). Run: restart without login, and sign-out followed by a restart. Not run: a refresh the issuer refuses, expiry of the access token.
 - **5 (bearer to the BFF, refresh once, then the login screen; nothing cached):** built in `src/api.ts` (plain `fetch`, no Relay). The cart is not kept after sign-out or a restart. The refresh-once path is not covered by a flow.
 - **6 (local transport):** built. `adb reverse` for 5100 and 4100 (`scripts/dev/mobile-stack.mjs`); cleartext http exists only in the debug manifests Expo generates. The debug APK embeds its bundle (register 147). No release build was made.
-- **No server-side revocation:** recorded as register 145.
+- **No revocation on request (sign-out, lost device):** recorded as register 145. Reuse of a rotated refresh token does revoke the login at the mock issuer.
