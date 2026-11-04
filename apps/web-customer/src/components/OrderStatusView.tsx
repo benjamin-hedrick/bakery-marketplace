@@ -5,6 +5,7 @@ import { fetchQuery } from 'relay-runtime';
 import type { OrderLineListingQuery } from '../__generated__/OrderLineListingQuery.graphql';
 import type { OrderStatusQuery, OrderStatusQuery$data } from '../__generated__/OrderStatusQuery.graphql';
 import { formatMoney } from '../lib/money';
+import { HEADLINES, referenceOf, time, when } from '../lib/orderText';
 
 const orderQuery = graphql`
   query OrderStatusQuery($id: ID!) {
@@ -52,40 +53,7 @@ type Names = ReadonlyMap<string, { name: string; modifiers: ReadonlyMap<string, 
 type State =
   { state: 'loading' } | { state: 'failed' } | { state: 'missing' } | { state: 'ready'; order: Order; names: Names };
 
-// What each status means to the customer. The status itself comes from ordering-service and is shown as it is.
-const HEADLINES: Record<string, { headline: string; detail: string }> = {
-  PLACED: {
-    headline: 'Order received',
-    detail: 'Waiting for the bakery to confirm it. Refresh to see when it does.',
-  },
-  CONFIRMED: { headline: 'Order confirmed', detail: 'The bakery has accepted your order.' },
-  IN_PREPARATION: { headline: 'Being prepared', detail: 'The bakery has started on your order.' },
-  READY_FOR_FULFILLMENT: { headline: 'Ready for pickup', detail: 'Your order is ready.' },
-  COMPLETED: { headline: 'Picked up', detail: 'Thank you.' },
-  CANCELLED: { headline: 'Order cancelled', detail: 'This order was cancelled.' },
-  PENDING: { headline: 'Not placed yet', detail: 'This order has not been placed.' },
-};
-
 const money = (m: { cents: number; currency: string }) => formatMoney(m);
-const when = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-const time = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-
-/** A short reference a customer can read out: the end of the order's own id (the global id is an opaque string). */
-function referenceOf(globalId: string): string {
-  try {
-    const text = atob(globalId);
-    return text.slice(text.indexOf(':') + 1).slice(-8);
-  } catch {
-    return globalId.slice(-8);
-  }
-}
 
 /**
  * The order as ordering-service has it (first-slice contract section 6): the status, what was ordered, what it cost, and when to collect it.
