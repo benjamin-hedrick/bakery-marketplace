@@ -142,6 +142,18 @@ services:
       ServiceAuth__ClientSecret: ${ORDERING_CLIENT_SECRET:-} # from .env (node scripts/dev/init-env.mjs); empty makes ordering stop at start-up, naming the missing setting
     ports: ["127.0.0.1:${ORDERING_PORT:-5300}:5300"]
 
+  # NOT-001: consumes the order events from the same Redis Streams (its own consumer group) and "sends" through the log sender; no real provider.
+  notification:
+    build: { context: ., dockerfile: services/Dockerfile.dotnet, args: { PROJECT: services/notification-service/src/NotificationService.csproj, ASSEMBLY: NotificationService, PORT: "5400" } }
+    image: bakery-notification:dev
+    profiles: ["apps"]
+    depends_on: { redis-events: { condition: service_healthy } }
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Events__Backend: redis
+      Redis__ConnectionString: redis-events:6379
+    ports: ["127.0.0.1:${NOTIFICATION_PORT:-5400}:5400"]
+
   graphql-bff:
     build: { context: ., dockerfile: services/graphql-bff/Dockerfile }
     image: bakery-bff:dev
