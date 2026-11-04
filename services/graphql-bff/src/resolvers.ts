@@ -1,5 +1,11 @@
-import type { CatalogClient, CatalogListing } from './catalog-client.ts';
-import { DownstreamError, forbidden, unauthenticated } from './errors.ts';
+import type {
+  CatalogCartLineCheck,
+  CatalogClient,
+  CatalogConflict,
+  CatalogListing,
+  CatalogPersonalizedListing,
+} from './catalog-client.ts';
+import { ClientError, DownstreamError, forbidden, unauthenticated } from './errors.ts';
 import { fromGlobalId, serviceIdFor, toGlobalId } from './global-id.ts';
 import type { OrderActionName, OrderingClient, OrderingOrder, OrderingVendorOrder } from './ordering-client.ts';
 import type { TraceContext } from './trace.ts';
@@ -309,9 +315,87 @@ async function savePreferences(args: { input: { allergies: string[]; avoid: stri
   };
 }
 
+const CONFLICT_SEVERITY = { allergy: 'ALLERGY', avoid: 'AVOID' };
+const CONFLICT_SOURCE = { item: 'ITEM', option: 'OPTION' };
+
+/** A conflict as the catalog decided it, in the schema's words. An unknown severity or source is a contract violation, never guessed. */
+const toConflicts = (conflicts: CatalogConflict[]) =>
+  conflicts.map((c) => ({
+    allergenId: c.allergenId,
+    severity: enumValue('conflict severity', CONFLICT_SEVERITY, c.severity),
+    source: enumValue('conflict source', CONFLICT_SOURCE, c.source),
+    optionIds: c.optionIds,
+  }));
+
+const toPersonalized = (p: CatalogPersonalizedListing) => ({
+  listing: toListing(p.listing),
+  conflicts: toConflicts(p.conflicts),
+});
+
+const MAX_CART_LINES = 50;
+const MAX_OPTIONS_PER_LINE = 20;
+
+/** The cart against the profile. The rule is the catalog's; the BFF decodes the listing ids, keeps the order and maps the answer. */
+async function cartCheck(args: { lines: { listingId: string; optionIds: string[] }[] }, ctx: Context) {
+  if (!ctx.authorization) throw unauthenticated();
+  if (args.lines.length > MAX_CART_LINES)
+    throw new ClientError('BAD_INPUT', `A cart check takes at most ${MAX_CART_LINES} lines.`);
+  if (args.lines.some((l) => l.optionIds.length > MAX_OPTIONS_PER_LINE))
+    throw new ClientError('BAD_INPUT', `A line takes at most ${MAX_OPTIONS_PER_LINE} options.`);
+
+  // A listing id that does not decode is the caller's mistake: that line is not found, and nothing is asked about it.
+  const decoded = args.lines.map((l) => serviceIdFor('Listing', l.listingId));
+  const toSend = args.lines.flatMap((l, i) =>
+    decoded[i] === null ? [] : [{ listingId: decoded[i] as string, optionIds: l.optionIds }],
+  );
+  // Always asked, even with nothing to send: the catalog is what checks the caller's role, and that must hold for every call.
+  const answers = await customerCall(ctx, (authorization) => ctx.catalog.checkCart(toSend, authorization, ctx.trace));
+  if (answers.length !== toSend.length)
+    throw new DownstreamError('catalog returned a different number of cart lines than were sent');
+
+  let next = 0;
+  return args.lines.map((line, i) => {
+    if (decoded[i] === null) return { listingId: line.listingId, found: false, unknownOptionIds: [], conflicts: [] };
+    const answer = answers[next++] as CatalogCartLineCheck;
+    return {
+      listingId: line.listingId,
+      found: answer.found,
+      unknownOptionIds: answer.unknownOptionIds,
+      conflicts: toConflicts(answer.conflicts),
+    };
+  });
+}
+
 export const rootValue = {
   placeOrder,
   savePreferences,
+  cartCheck,
+  async personalizedListings(
+    args: { first?: number; after?: string | null; hideConflicts?: boolean | null },
+    ctx: Context,
+  ) {
+    const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
+    const page = await customerCall(ctx, (authorization) =>
+      ctx.catalog.listPersonalized(
+        { limit: first, after: args.after ?? undefined, hideConflicts: args.hideConflicts ?? false },
+        authorization,
+        ctx.trace,
+      ),
+    );
+    const edges = page.items.map((p) => ({ cursor: p.listing.id, node: toPersonalized(p) }));
+    return {
+      edges,
+      pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null },
+    };
+  },
+  async personalizedListing(args: { id: string }, ctx: Context) {
+    const serviceId = serviceIdFor('Listing', args.id);
+    if (serviceId === null) return null;
+    const found = await customerCall(ctx, (authorization) =>
+      ctx.catalog.getPersonalized(serviceId, authorization, ctx.trace),
+    );
+    return found ? toPersonalized(found) : null;
+  },
   async preferences(_args: unknown, ctx: Context) {
     return toPreferences(
       await customerCall(ctx, (authorization) => ctx.catalog.getPreferences(authorization, ctx.trace)),

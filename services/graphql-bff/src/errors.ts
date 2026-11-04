@@ -22,7 +22,7 @@ export function internalError(traceId: string): GraphQLError {
  * replaced by {@link internalError}. `UNAUTHENTICATED` means log in; `FORBIDDEN` means this role may not do this.
  */
 export class ClientError extends GraphQLError {
-  constructor(code: 'UNAUTHENTICATED' | 'FORBIDDEN', message: string) {
+  constructor(code: 'UNAUTHENTICATED' | 'FORBIDDEN' | 'BAD_INPUT', message: string) {
     super(message, { extensions: { code } });
   }
 }

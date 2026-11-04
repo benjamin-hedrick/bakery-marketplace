@@ -184,7 +184,9 @@ PreferenceProfile {
 ### API endpoints
 
 - `GET /catalog/tags?kind=` — the public tag registry: tags that are public, not retired and inside their window today (anonymous, `public, max-age=300`; ADR-0022, built by `WI-TAG-001`)
-- `GET /catalog/listings` — search/browse, filtered by dietary preference, blends sponsored placement
+- `GET /catalog/listings` — search/browse, blends sponsored placement; anonymous and cacheable, never personalized (a customer's conflicts are the separate endpoints below)
+- `GET /catalog/listings/for-me?limit=&after=&hideConflicts=` and `GET /catalog/listings/for-me/{id}` — Customer role; the public listings in the same order and paging, each as `{ listing, conflicts }` (conflicts of the caller's allergen profile: allergen id, severity `allergy` or `avoid`, source `item` or `option`, option ids); `private, no-store` (built 2026-11-04, `WI-SRCH-001`)
+- `POST /catalog/preferences/check` — Customer role; a cart's lines (listing and chosen option ids; at most 50 lines of 20 options) against the caller's profile, counting only the options chosen; `private, no-store` (built 2026-11-04, `WI-SRCH-001`)
 - `GET /catalog/listings/{id}`
 *(First slice, D-4: both reads are anonymous and return `Published` listings of verified vendors only.)*
 - `POST /catalog/listings` — Vendor role required

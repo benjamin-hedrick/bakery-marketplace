@@ -44,7 +44,46 @@ export interface CatalogPreferences {
 export type SavePreferencesResult =
   { kind: 'saved'; preferences: CatalogPreferences } | { kind: 'rejected'; errors: Record<string, string[]> };
 
+/** One allergen of the caller's profile found on a listing (WI-SRCH-001). */
+export interface CatalogConflict {
+  allergenId: string;
+  severity: string;
+  source: string;
+  optionIds: string[];
+}
+export interface CatalogPersonalizedListing {
+  listing: CatalogListing;
+  conflicts: CatalogConflict[];
+}
+export interface CatalogPersonalizedPage {
+  items: CatalogPersonalizedListing[];
+  nextCursor: string | null;
+}
+export interface CatalogCartLineCheck {
+  listingId: string;
+  found: boolean;
+  unknownOptionIds: string[];
+  conflicts: CatalogConflict[];
+}
+
 export interface CatalogClient {
+  /**
+   * The public listings with the caller's conflicts, same order and paging as {@link list}. The caller's token is forwarded unchanged and the
+   * catalog takes the customer from it. A 401 or 403 is a {@link DownstreamError} with that status.
+   */
+  listPersonalized(
+    args: { limit: number; after?: string | undefined; hideConflicts?: boolean | undefined },
+    authorization: string,
+    trace: TraceContext,
+  ): Promise<CatalogPersonalizedPage>;
+  /** One public listing with the caller's conflicts, or null (404: it does not exist or is not public). */
+  getPersonalized(id: string, authorization: string, trace: TraceContext): Promise<CatalogPersonalizedListing | null>;
+  /** The cart's lines against the caller's profile, in the order sent; only the options chosen on a line count. */
+  checkCart(
+    lines: { listingId: string; optionIds: string[] }[],
+    authorization: string,
+    trace: TraceContext,
+  ): Promise<CatalogCartLineCheck[]>;
   /**
    * The caller's own profile. The caller's token is forwarded unchanged and the catalog takes the customer from it. A 401 or 403 is a
    * {@link DownstreamError} with that status.
@@ -91,6 +130,41 @@ export function createCatalogClient(
   }
 
   return {
+    async listPersonalized({ limit, after, hideConflicts }, authorization, trace) {
+      const qs = new URLSearchParams({ limit: String(limit) });
+      if (after) qs.set('after', after);
+      if (hideConflicts) qs.set('hideConflicts', 'true');
+      const res = await request(`/catalog/listings/for-me?${qs}`, trace, { authorization });
+      if (!res.ok) {
+        await res.body?.cancel().catch(() => undefined);
+        throw new DownstreamError(`catalog personalized list returned ${res.status}`, res.status);
+      }
+      return parse<CatalogPersonalizedPage>(res);
+    },
+    async getPersonalized(id, authorization, trace) {
+      const res = await request(`/catalog/listings/for-me/${encodeURIComponent(id)}`, trace, { authorization });
+      if (res.status === 404) {
+        await res.body?.cancel().catch(() => undefined);
+        return null;
+      }
+      if (!res.ok) {
+        await res.body?.cancel().catch(() => undefined);
+        throw new DownstreamError(`catalog personalized get returned ${res.status}`, res.status);
+      }
+      return parse<CatalogPersonalizedListing>(res);
+    },
+    async checkCart(lines, authorization, trace) {
+      const res = await request('/catalog/preferences/check', trace, {
+        method: 'POST',
+        authorization,
+        body: JSON.stringify({ lines }),
+      });
+      if (!res.ok) {
+        await res.body?.cancel().catch(() => undefined);
+        throw new DownstreamError(`catalog cart check returned ${res.status}`, res.status);
+      }
+      return (await parse<{ lines: CatalogCartLineCheck[] }>(res)).lines;
+    },
     async getPreferences(authorization, trace) {
       const res = await request('/catalog/preferences', trace, { authorization });
       if (!res.ok) {

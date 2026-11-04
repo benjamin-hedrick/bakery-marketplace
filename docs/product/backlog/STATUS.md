@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 12 |
+| In review | 13 |
 | Built | 1 |
-| Ready | 12 |
+| Ready | 11 |
 | Proposed | 5 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -154,7 +154,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
 | [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | EPIC-CI-CD | Deferred | trigger: with the public-readiness pass (register item 93) or when a deployment stage is added |
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In review | evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/` (fuzz, soak, ZAP), `docs/governance/review-statement.md`; steps 1 to 5 are done · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below) |
-| [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | EPIC-SEARCH | Ready |  |
+| [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | EPIC-SEARCH | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the rule, its wording and the two defaults below (this is the safety rule) |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review, the allergen list (open point) and ADR-0022's acceptance |
 | [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | Ready |  |
 | [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | EPIC-TAGS | Ready |  |

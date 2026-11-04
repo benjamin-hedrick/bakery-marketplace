@@ -126,6 +126,7 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.MapTagEndpoints();
 app.MapPreferenceEndpoints();
+app.MapPersonalizedListingEndpoints();
 app.MapListingEndpoints();
 app.MapStockReservationEndpoints();
 

@@ -27,7 +27,7 @@ Scope: Catalog · Primary hat(s): Architect, Engineering/Build · Status: see [S
 
 ### EPIC-SEARCH — Search & Discovery
 Scope: Search & Discovery · Primary hat(s): Architect, Digital PM · Status: see [STATUS.md](STATUS.md)
-- ✅ SRCH-001 (Service Implementation) — **Rewritten 2026-11-04, Ready**, see `WI-SRCH-001.md` — matching listings and carts against the customer's allergen profile (customer-only endpoints; the public browse is unchanged)
+- 🔶 SRCH-001 (Service Implementation) — **In review 2026-11-04** (rewritten the same day), see `WI-SRCH-001.md` — matching listings and carts against the customer's allergen profile (customer-only endpoints; the public browse is unchanged)
 - 🟢 SRCH-002 (Integration) — Blend sponsored placement into results (Partnership relationship w/ Advertising, per bounded context map)
 - ⚪ SRCH-003 (Service Implementation) — Ranking logic, organic vs. sponsored
 

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -8,7 +7,6 @@ using CatalogService.Tags;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 
 namespace CatalogService.Tests;
 
@@ -30,28 +28,6 @@ public sealed class PreferenceApiTests : IDisposable
           { "id": "staff-pick", "kind": "theme", "label": "Staff pick", "visibility": "hidden", "assignableBy": "platform" }
         ] }
         """;
-
-    private sealed class CaptureProvider : ILoggerProvider
-    {
-        public List<string> Lines { get; } = [];
-        public ILogger CreateLogger(string categoryName) => new Capture(this);
-        public void Dispose() { }
-
-        private sealed class Capture(CaptureProvider owner) : ILogger
-        {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-            public bool IsEnabled(LogLevel logLevel) => true;
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-            {
-                lock (owner.Lines)
-                {
-                    owner.Lines.Add(formatter(state, exception) + (exception is null ? "" : " " + exception));
-                    if (state is IEnumerable<KeyValuePair<string, object?>> pairs)
-                        foreach (var p in pairs) owner.Lines.Add($"{p.Key}={p.Value}");
-                }
-            }
-        }
-    }
 
     private readonly CatalogFactory _factory = new();
     private readonly string _alice = $"customer-{Guid.NewGuid():N}";
@@ -292,24 +268,8 @@ public sealed class PreferenceApiTests : IDisposable
     [Fact]
     public async Task Nothing_of_a_profile_reaches_a_log_line_or_a_span()
     {
-        var logs = new CaptureProvider();
-        var spans = new List<string>();
-        using var listener = new ActivityListener
-        {
-            ShouldListenTo = _ => true,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-            ActivityStopped = a =>
-            {
-                lock (spans)
-                {
-                    spans.Add(a.DisplayName);
-                    spans.AddRange(a.TagObjects.Select(t => $"{t.Key}={t.Value}"));
-                    spans.AddRange(a.Events.SelectMany(e => e.Tags.Select(t => $"{t.Key}={t.Value}")));
-                }
-            },
-        };
-        ActivitySource.AddActivityListener(listener);
-        using var app = _factory.WithWebHostBuilder(b => b.ConfigureServices(services => services.AddLogging(l => { l.SetMinimumLevel(LogLevel.Trace); l.AddProvider(logs); })));
+        using var probe = new PrivacyProbe();
+        using var app = probe.Attach(_factory);
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _factory.Token(_alice, "Customer"));
 
@@ -318,13 +278,7 @@ public sealed class PreferenceApiTests : IDisposable
         await client.PutAsJsonAsync("/catalog/preferences", Profile(["nuts"]));       // a refusal
         await client.PutAsync("/catalog/preferences", new StringContent("{\"allergies\": [\"tree-nut\"", Encoding.UTF8, "application/json")); // malformed
 
-        string[] secrets = ["tree-nut", "sesame", "dairy", "nuts"];
-        lock (logs.Lines) Assert.All(logs.Lines, line => Assert.All(secrets, s => Assert.DoesNotContain(s, line, StringComparison.OrdinalIgnoreCase)));
-        lock (spans)
-        {
-            Assert.NotEmpty(spans); // the listener did see the requests
-            Assert.All(spans, line => Assert.All(secrets, s => Assert.DoesNotContain(s, line, StringComparison.OrdinalIgnoreCase)));
-        }
+        probe.AssertNothingOf("tree-nut", "sesame", "dairy", "nuts");
     }
 
     // ---- inside the catalog -----------------------------------------------------------------------------
