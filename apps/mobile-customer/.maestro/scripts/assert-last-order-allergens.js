@@ -1,5 +1,5 @@
 // Fails the flow unless Alice's newest order carries exactly the allergens in EXPECT (comma-separated ids; leave it out for none): what the bakery was told.
-var response = http.get('http://127.0.0.1:4199/last-order');
+var response = http.get('http://127.0.0.1:4199/last-order', { headers: { 'x-flow-control': '1' } });
 if (!response.ok) {
   throw new Error('could not read the newest order: ' + response.status + ' ' + response.body);
 }
