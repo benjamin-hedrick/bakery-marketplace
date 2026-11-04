@@ -1,6 +1,6 @@
 # Threat model: the browser, session and stream surface
 
-> **Status:** Current · written 2026-11-02 by the AI agent that wrote most of the code under review (`WI-SEC-005`, register item 129). It is a first model, not an independent one: it lists what the agent could see from the code, the tests and the documents. The services behind the BFF are covered only at their edge. Nothing here has been checked against a deployed system, because none exists.
+> **Status:** Current · written 2026-11-02 by the AI agent that wrote most of the code under review (`WI-SEC-005`, register item 129). It is a first model, not an independent one: it lists what the agent could see from the code, the tests and the documents. The services behind the BFF are covered only at their edge. Nothing here has been checked against a deployed system, because none exists. The section on the Android app was added 2026-11-04 (`WI-MOB-001`), with the same limits.
 
 ## Scope and method
 
@@ -100,6 +100,21 @@ flowchart LR
 | E6 | A malicious dependency | `graphql-sse` was reviewed by hand and pinned exactly; lockfiles committed | the review record | No audit or SBOM yet (`WI-SEC-004`) |
 | E7 | Test hooks enabled outside tests | `ENABLE_TEST_HOOKS` is inert in production by configuration | tests of the hook | Relies on the operator not setting it; no deployed check |
 | E8 | A secret committed | `gitleaks` over the full history before every push | the scan record | A secret in an image or a pipeline variable is not scanned |
+
+## The Android app (added 2026-11-04, `WI-MOB-001`, ADR-0023)
+
+A new trust boundary: a native client on a device the customer holds, signing in without a server of its own. **New asset:** the app's refresh token (it lives on the device, in the Keystore). Everything after the token reaches the BFF is the same as the browser path (S3, S5): the services validate the token and the ownership themselves. Local only: one emulator image, the mock issuer, no real device, no release build. **Not evidence of safety:** the evidence column lists tests that exist; most of the app's own token code has no automated test yet (`WI-MOB-003`).
+
+| # | Threat | Control | Evidence | Left |
+|---|---|---|---|---|
+| M1 | A lost or stolen device gives its refresh token to someone | The refresh token is stored with `expo-secure-store` (Android Keystore) and deleted on sign-out or when the issuer refuses it; the access token is kept in memory only | restart without login and sign-out then restart, both in the Maestro flows (`docs/evidence/WI-MOB-001/`) | The token works until it expires (8 h by default, renewed on use); the mock issuer cannot revoke a login on request (register 145). The Keystore protection depends on the device lock |
+| M2 | Another app on the device claims the app's redirect scheme and reads the authorization code | PKCE (S256) makes a stolen code useless without the verifier, which never leaves the app; a random `state` is checked; the system browser (Custom Tabs) is used, not a web view | the issuer's PKCE tests; the login flow passes; the app's `state` and callback checks have **no unit test** | Android lets any app declare a private-use scheme. App Links (an https redirect verified against the app) are not used. A real tenant was not tried |
+| M3 | The issuer is used to bounce a login to an address the attacker chose | The redirect must equal a registered address exactly; a non-http scheme is accepted only in reverse-domain form (with a dot) and never in the defaults | `MockOidcAuthorizeHardeningTests` (unregistered, prefix, case, fragment, `//` form, non-dotted schemes); the live container answered 200 for the app's scheme and 400 for another | The mock issuer only; a deployed dev issuer accepts the scheme only if configured. The lead's review of this change is pending |
+| M4 | Tokens end up in logs, plain storage or the cart | Tokens are not logged or written to plain storage; the cart is in memory and cleared on sign-out | a code review by the agent; nothing asserts it | **Gap:** `WI-MOB-003` adds asserts on the fakes |
+| M5 | Traffic read or changed on the network | Cleartext http exists only in the debug manifests (the emulator reaches the host through `adb reverse`); no release build was made | the manifests Expo generates (read, not tested) | A release build over https was never built or run; the mock issuer and the BFF are http locally |
+| M6 | The test switch ships: a build that can ask the BFF to decline payments | The switch is compiled in only with `EXPO_PUBLIC_TEST_HOOKS=1`; the BFF forwards the header only with `ENABLE_TEST_HOOKS=1` and ordering ignores it in Production; the demo builds without it and the BFF without the hook | the demo run of 2026-11-04 (no switch on the checkout screen, see the evidence) | A person could still build the test build and install it; nothing stops that on a device |
+| M7 | A refresh failing because the network is down signs the customer out, or a refusal is mistaken for an outage | Only a refusal by the issuer deletes the token; an unreachable issuer keeps it | the logic is written that way; **no test** | **Gap:** `WI-MOB-003` |
+| M8 | A rooted or tampered device, a modified app | Not addressed | none | Out of scope for this build (no attestation, no root detection) |
 
 ## What the findings change
 

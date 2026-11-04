@@ -75,6 +75,10 @@ Scope: Catalog & Customization, Preferences & Dietary Safety, Ordering & Fulfill
 - ✅ CUST-008 (Service Implementation) — **Ready — added 2026-11-04**, see `WI-CUST-008.md` — allergens in the cart and at checkout: show them, warn, and tell the bakery
 - ⚪ CUST-007 (Service Implementation) — **Detailed, Ready — added 2026-10-30**, see `WI-CUST-007.md` — customer order history list (`orders` query in ordering-service and the BFF, and a page); split out of `CUST-004`, register item 80.
 
+- ✅ MOB-001 (Service Implementation) — **In review 2026-11-04, built and run locally**, see `WI-MOB-001.md` — the Android customer app (Expo): sign-in with PKCE (ADR-0023), menu, cart, checkout, order status, four Maestro flows.
+- ✅ MOB-002 (Service Implementation) — **Ready — added 2026-11-04**, see `WI-MOB-002.md` — the app's allergens in the cart and at checkout (the web `CUST-008` behaviour; the profile comes from the services, no profile screen).
+- ✅ MOB-003 (Service Implementation) — **Ready — added 2026-11-04**, see `WI-MOB-003.md` — tests of the app's session logic, flows for a refused session and failed requests, cart edit flows.
+
 See `EPIC-WEB-CUSTOMER.md` for the full epic record.
 
 ### EPIC-FULFILLMENT-EXT — Delivery/Dispatch (v2, deferred)

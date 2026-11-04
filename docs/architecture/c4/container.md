@@ -15,11 +15,16 @@ flowchart LR
     classDef infra fill:#eef7ee,stroke:#3f7f3f,color:#13301a
 
     USER(["Customer<br/>(browser)"])
+    PHONE(["Customer<br/>(Android phone)"])
 
     subgraph WEB["apps/web-customer — Next.js Pages Router, :3000"]
         direction TB
         SSR["Server: renders public listing pages (SSR)<br/>forwards /api/graphql to the BFF"]
         CSR["Browser code: login (PKCE), cart in sessionStorage,<br/>checkout and order pages (client-rendered),<br/>access token held in memory only"]
+    end
+
+    subgraph APP["apps/mobile-customer — Expo (React Native), Android only, local only (WI-MOB-001)"]
+        MOB["App: login (PKCE, system browser),<br/>refresh token in the Keystore, access token in memory,<br/>plain fetch to the BFF with Authorization: Bearer;<br/>cart and order logic from packages/customer-core"]
     end
 
     BFF["services/graphql-bff — Node/TypeScript, :4100<br/>GraphQL schema, Relay global ids,<br/>error mapping; no business rules"]
@@ -47,6 +52,9 @@ flowchart LR
 
     SEED["tools/BakeryMarketplace.Seed<br/>(run by hand or by the smoke script)"]
 
+    PHONE --> MOB
+    MOB -->|"login redirect (app scheme), token exchange<br/>and refresh, via adb reverse locally"| OIDC
+    MOB -->|"GraphQL, Authorization: Bearer"| BFF
     USER --> SSR
     USER --> CSR
     CSR -->|"login redirect, then token exchange"| OIDC
@@ -72,7 +80,7 @@ flowchart LR
     COLL --> ASPIRE
     COLL --> JAEGER
 
-    class SSR,CSR,BFF,CAT,ORD,OIDC,SEED built
+    class SSR,CSR,MOB,BFF,CAT,ORD,OIDC,SEED built
     class ADM,NOT,REDISCACHE scaffold
     class COSMOS,REDISEV,COLL,ASPIRE,JAEGER infra
 ```
@@ -100,6 +108,7 @@ flowchart TB
         WA["web-admin"]
         WQ["web-queue-display"]
     end
+    MOBILE["mobile-customer<br/>(Expo, Android; ADR-0023;<br/>built locally only, no store build)"]
 
     BFF["GraphQL BFF<br/>(ADR-0013)<br/>hosting undecided (register 25)"]
     APIM["Azure API Management<br/>Consumption tier (ADR-0008, amended by 0013)<br/>fast-fail JWT check, coarse routing"]
@@ -122,6 +131,7 @@ flowchart TB
     WC --> BFF
     WA --> BFF
     WQ --> BFF
+    MOBILE --> BFF
     BFF --> APIM
     APIM -->|"validated JWT, coarse routing"| CAT
     APIM --> ORD
@@ -144,7 +154,7 @@ flowchart TB
     BFF -. identity .-> ENTRA
     SVC -. spans .-> OBS
 
-    class WC,WA,WQ,BFF,APIM,CAT,ORD,ADM,NOT,ENTRA,EG,COSMOS,REDIS,KV,STRIPE,OBS planned
+    class WC,WA,WQ,MOBILE,BFF,APIM,CAT,ORD,ADM,NOT,ENTRA,EG,COSMOS,REDIS,KV,STRIPE,OBS planned
 ```
 
 **Differences from what runs today**

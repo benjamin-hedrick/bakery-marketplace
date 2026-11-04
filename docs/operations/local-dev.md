@@ -1,6 +1,6 @@
 # Local Development Environment
 
-To show the slice to someone, use the one-command demo: [Demo](demo.md).
+To show the slice to someone, use the one-command demo: [Demo](demo.md). Every script and command (start, stop, demo, test, gates) is indexed in [Scripts and commands](scripts.md).
 
 > **Status:** Current · "Run slice 1" verified 2026-10-30 by following it step by step in a fresh clone on Windows 11 (Docker Desktop). The rest was verified on 2026-10-26 to 2026-10-28 and is marked below. Nothing here is deployed; application services are not containers, so you run them on the host against the ports below.
 

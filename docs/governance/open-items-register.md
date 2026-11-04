@@ -805,7 +805,7 @@ The Android app keeps a refresh token in the Keystore (`expo-secure-store`). The
 
 **146. The mobile app has no allergen acknowledgement at the cart**
 Type: Follow-up · Source: `WI-MOB-001` (open point), `WI-CUST-008` · Hat: Engineering, Product
-Status: Open
+Status: Open · decided 2026-11-04 (the lead): it will be built, as `WI-MOB-002`; the allergen profile is persisted customer data read through the BFF, so no profile screen is part of it
 The web app asks the customer to acknowledge allergen conflicts and can tell the bakery their allergens (`cartCheck`, the `allergens` field of `placeOrder`). The Android app does not: the BFF does not require it to place an order, which was the condition the spec set for building it, and the app shows no allergen or personalization screens. The shared package already holds the rules (`cartAllergens.ts`), so a follow-up item can add the screen. "Reconciled" means a work item exists or the lead decides the app stays without it.
 
 **147. The debug build of the app could not load its JavaScript from the Metro dev server on the emulator; the bundle is embedded instead**
@@ -816,4 +816,4 @@ On the first debug build the app showed "Unable to load script" although Metro a
 **148. The mobile flows run only on the lead's machine and depend on the emulator image's state**
 Type: Test limitation · Source: `WI-MOB-001` · Hat: QA
 Status: Accepted
-Decided by the lead: Android only, local only, no CI, no Maestro cloud. The flows (`apps/mobile-customer/.maestro/`, run by `node scripts/dev/mobile-flows.mjs`) log in through Chrome Custom Tabs; Chrome's first-run screen ("Use without an account") appears once on a fresh emulator image and the login subflow dismisses it only if it shows. A different image or Chrome version may show other prompts. The app under test is a test build (decline switch on) and the BFF runs with `ENABLE_TEST_HOOKS=1`: a test setup, never a demo (`scripts/dev/mobile-stack.mjs`). The app has no accessibility or visual checks yet.
+Decided by the lead: Android only, local only, no CI, no Maestro cloud. The flows (`apps/mobile-customer/.maestro/`, run by `node scripts/dev/mobile-flows.mjs`) log in through Chrome Custom Tabs; Chrome's first-run screen ("Use without an account") appears once on a fresh emulator image and the login subflow dismisses it only if it shows. A different image or Chrome version may show other prompts. The app under test is a test build (decline switch on) and the BFF runs with `ENABLE_TEST_HOOKS=1`: a test setup, never a demo (`scripts/dev/mobile-stack.mjs`). The app has no accessibility or visual checks yet. The refused-session, expired-token and failed-request paths are not covered by a flow or a unit test: `WI-MOB-003`.

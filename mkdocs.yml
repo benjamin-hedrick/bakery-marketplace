@@ -38,6 +38,7 @@ nav:
   - Operations:
       - Local Development: operations/local-dev.md
       - Demo: operations/demo.md
+      - Scripts and Commands: operations/scripts.md
       - SLA/SLO: operations/sla.md
       - Monitoring / Alerting Plan: operations/monitoring-alerting.md
       - Runbooks: operations/runbooks/README.md

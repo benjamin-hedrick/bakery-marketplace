@@ -1,4 +1,4 @@
-> **Status:** 3 of 8 items done (CUST-005, CUST-006 and CUST-008 Ready, CUST-007 In review, MOB-001 Ready; WEB-001 is superseded and not counted)
+> **Status:** 3 of 9 items done (CUST-005, CUST-006 and CUST-008 Ready, CUST-007 In review, MOB-001 In review, MOB-002 Ready; WEB-001 is superseded and not counted)
 
 ```
 Epic ID:            EPIC-WEB-CUSTOMER
