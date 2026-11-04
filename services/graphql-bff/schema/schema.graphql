@@ -19,6 +19,8 @@ type Query {
   pickupWindows(vendorId: ID!): [PickupWindow!]!
   "The caller's own order. Null when it does not exist or is someone else's. Needs a bearer token (UNAUTHENTICATED without one)."
   order(id: ID!): Order
+  "The caller's own orders, the newest first (WI-CUST-007). Needs a customer's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another role). Pass the connection's endCursor as after to read the next page."
+  orders(first: Int = 20, after: String): OrderConnection!
   "A vendor's own orders, the most recently changed first, optionally narrowed by status. Needs a vendor's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another role)."
   vendorOrders(status: VendorOrderFilter, first: Int = 20, after: String): VendorOrderConnection!
   "One of the calling vendor's own orders. Null when it does not exist, is another vendor's, or has not reached the vendor's view yet."
@@ -91,6 +93,16 @@ type Order implements Node {
   "Null when the customer did not request a window (it is optional, D-3)."
   pickupWindow: PickupWindow
   createdAt: DateTime!
+}
+
+type OrderEdge {
+  cursor: String!
+  node: Order!
+}
+
+type OrderConnection {
+  edges: [OrderEdge!]!
+  pageInfo: PageInfo!
 }
 
 type OrderLineItem {

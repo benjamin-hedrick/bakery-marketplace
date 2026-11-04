@@ -28,6 +28,11 @@ export interface OrderingOrder {
   updatedAt: string;
 }
 
+export interface OrderingOrderPage {
+  items: OrderingOrder[];
+  nextCursor: string | null;
+}
+
 /** REST shape of the vendor order read model of ordering-service (VendorOrderDto). */
 export interface OrderingVendorOrder {
   id: string;
@@ -114,6 +119,15 @@ export interface OrderingClient {
    * forwarded unchanged: ordering-service validates it itself (ADR-0006, ADR-0008). A 401 or 403 is a {@link DownstreamError} with that status.
    */
   getOrder(id: string, authorization: string, trace: TraceContext): Promise<OrderingOrder | null>;
+  /**
+   * The caller's own orders, newest first, one page. The token is forwarded unchanged; ordering takes the customer from it. A 401 or 403 is a
+   * {@link DownstreamError} with that status.
+   */
+  listOrders(
+    query: { limit: number; after?: string | undefined },
+    authorization: string,
+    trace: TraceContext,
+  ): Promise<OrderingOrderPage>;
   /**
    * The calling vendor's orders, newest change first. `status` is `active` or an ordering status name, or absent for all. The vendor's token is
    * forwarded unchanged; ordering takes the vendor id from it. A 401 or 403 is a {@link DownstreamError} with that status.
@@ -218,6 +232,13 @@ export function createOrderingClient(
       if (res.status === 404) return null;
       if (!res.ok) throw new DownstreamError(`ordering get order returned ${res.status}`, res.status);
       return parse<OrderingOrder>(res);
+    },
+    async listOrders(query, authorization, trace) {
+      const params = new URLSearchParams({ limit: String(query.limit) });
+      if (query.after) params.set('after', query.after);
+      const res = await request(`/ordering/orders?${params}`, trace, authorization);
+      if (!res.ok) throw new DownstreamError(`ordering list orders returned ${res.status}`, res.status);
+      return parse<OrderingOrderPage>(res);
     },
     async listVendorOrders(query, authorization, trace) {
       const params = new URLSearchParams({ limit: String(query.limit) });
