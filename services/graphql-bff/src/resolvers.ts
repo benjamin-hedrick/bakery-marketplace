@@ -124,17 +124,16 @@ async function vendorCall<T>(ctx: Context, call: (authorization: string) => Prom
   }
 }
 
-/** The caller's own order. A 401 from ordering means the token was not accepted; a 403 means its role may not read orders. */
+/**
+ * A customer's own data. The token goes to ordering unchanged, which decides the role and whose data it is. A 401 from ordering means the token
+ * was not accepted; a 403 means its role is not a customer's.
+ */
+const customerCall = vendorCall;
+
+/** The caller's own order. */
 async function readOrder(serviceId: string, ctx: Context) {
-  if (!ctx.authorization) throw unauthenticated();
-  try {
-    const o = await ctx.ordering.getOrder(serviceId, ctx.authorization, ctx.trace);
-    return o ? toOrder(o) : null;
-  } catch (e) {
-    if (e instanceof DownstreamError && e.status === 401) throw unauthenticated();
-    if (e instanceof DownstreamError && e.status === 403) throw forbidden();
-    throw e;
-  }
+  const o = await customerCall(ctx, (authorization) => ctx.ordering.getOrder(serviceId, authorization, ctx.trace));
+  return o ? toOrder(o) : null;
 }
 
 async function readVendorOrder(serviceId: string, ctx: Context) {
@@ -320,6 +319,17 @@ export const rootValue = {
     const serviceId = serviceIdFor('Order', args.id);
     if (serviceId === null) return null;
     return readOrder(serviceId, ctx);
+  },
+  async orders(args: { first?: number; after?: string | null }, ctx: Context) {
+    const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
+    const page = await customerCall(ctx, (authorization) =>
+      ctx.ordering.listOrders({ limit: first, after: args.after ?? undefined }, authorization, ctx.trace),
+    );
+    const edges = page.items.map((o) => ({ cursor: o.id, node: toOrder(o) }));
+    return {
+      edges,
+      pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null },
+    };
   },
   async vendorOrders(args: { status?: string | null; first?: number; after?: string | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
