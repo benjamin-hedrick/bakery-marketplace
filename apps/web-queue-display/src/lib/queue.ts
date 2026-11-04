@@ -9,6 +9,8 @@ export interface QueueOrder {
   pickupWindow?: { start: string; end: string } | null | undefined;
   /** The highest event sequence applied to the order. A pushed change replaces what the screen holds only if this is higher. */
   sequence?: number | undefined;
+  /** The allergens the customer told the bakery about for this order (registry ids, WI-ORD-009). Empty or absent when none. */
+  allergens?: readonly string[] | undefined;
 }
 
 export interface Column<T extends QueueOrder> {
@@ -51,6 +53,19 @@ export function groupOrders<T extends QueueOrder>(orders: readonly T[]): Column<
   }
   for (const column of columns) column.orders.sort((a, b) => placedTime(a) - placedTime(b) || a.id.localeCompare(b.id));
   return columns;
+}
+
+/**
+ * What the card says about an order's allergens (WI-QUE-005), or null when the customer named none: an order without allergens says nothing, because
+ * "no allergies" would claim more than the screen knows. Labels come from the public registry; an id it does not know is shown as itself, never dropped.
+ */
+export function allergenText(
+  ids: readonly string[] | null | undefined,
+  labels: ReadonlyMap<string, string>,
+): string | null {
+  if (!ids || ids.length === 0) return null;
+  const lower = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+  return `Allergy: ${ids.map((id) => lower(labels.get(id) ?? id)).join(', ')}`;
 }
 
 /** The ids in `current` that were not in `previous`: the orders that arrived since the last answer. */

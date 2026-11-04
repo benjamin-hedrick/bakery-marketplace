@@ -20,6 +20,19 @@ const initial = () => ({
   actionMode: 'ok', // ok | conflict | notfound | forbidden | error | slow
   actionDelayMs: 0, // answer the mutation after this long (an action "in flight")
   listSnapshot: null, // when set, the list answers with this instead of the live orders (a read that is behind the stream)
+  tagsMode: 'ok', // ok | fail: the allergen registry the cards take their labels from
+  tags: [
+    ['dairy', 'Milk (dairy)'],
+    ['egg', 'Eggs'],
+    ['fish', 'Fish'],
+    ['shellfish', 'Shellfish'],
+    ['tree-nut', 'Tree nuts'],
+    ['peanut', 'Peanuts'],
+    ['gluten', 'Gluten (wheat, rye, barley)'],
+    ['soy', 'Soy'],
+    ['sesame', 'Sesame'],
+  ].map(([id, label]) => ({ id, label })),
+  tagReads: 0,
   actions: [], // each vendorOrderAction received: { action, orderId, authorization }
 });
 const state = initial();
@@ -116,7 +129,16 @@ http
 
     if (req.url === '/__state' && req.method === 'POST') {
       const next = JSON.parse(await readBody(req));
-      for (const key of ['orders', 'mode', 'streamMode', 'heartbeatMs', 'actionMode', 'actionDelayMs', 'listSnapshot'])
+      for (const key of [
+        'orders',
+        'mode',
+        'streamMode',
+        'heartbeatMs',
+        'actionMode',
+        'actionDelayMs',
+        'listSnapshot',
+        'tagsMode',
+      ])
         if (next[key] !== undefined) state[key] = next[key];
       return send(res, 200, { ok: true });
     }
@@ -129,6 +151,7 @@ http
         streamAuthorizations: state.streamAuthorizations,
         openStreams: streams.size,
         actions: state.actions,
+        tagReads: state.tagReads,
       });
     }
     if (req.url === '/__reset' && req.method === 'POST') {
@@ -139,7 +162,7 @@ http
     // Controls for the live tests.
     if (req.url === '/__push' && req.method === 'POST') {
       const { order } = JSON.parse(await readBody(req));
-      for (const s of streams) s.res.write(sse('next', { data: { vendorOrderChanged: order } }));
+      for (const s of streams) s.res.write(sse('next', { data: { vendorOrderChanged: { allergens: [], ...order } } }));
       return send(res, 200, { ok: true, streams: streams.size });
     }
     if (req.url === '/__end' && req.method === 'POST') {
@@ -155,6 +178,13 @@ http
       const { query = '', variables = {} } = JSON.parse((await readBody(req)) || '{}');
       if (req.headers.accept === 'text/event-stream' && query.includes('vendorOrderChanged'))
         return openStream(req, res);
+      // The registry is public, like the real one: no login needed, and not counted as a queue read.
+      if (query.includes('QueueBoardAllergenLabelsQuery')) {
+        state.tagReads += 1;
+        return state.tagsMode === 'fail'
+          ? send(res, 500, { error: 'boom' })
+          : send(res, 200, { data: { tags: state.tags } });
+      }
       state.requests += 1;
       state.authorizations.push(req.headers.authorization ?? null);
       if (!req.headers.authorization || state.mode === 'unauthenticated') {
@@ -167,7 +197,10 @@ http
         return send(res, 200, {
           data: {
             vendorOrders: {
-              edges: (state.listSnapshot ?? state.orders).map((node) => ({ cursor: node.id, node })),
+              edges: (state.listSnapshot ?? state.orders).map((node) => ({
+                cursor: node.id,
+                node: { allergens: [], ...node },
+              })),
               pageInfo: { hasNextPage: false, endCursor: null },
             },
           },

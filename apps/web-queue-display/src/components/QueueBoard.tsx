@@ -6,7 +6,8 @@ import { GraphQLRequestError, getBrowserEnvironment, UnauthenticatedError } from
 import { LiveFeed, type Mode } from '../lib/live-feed';
 import { openVendorOrderStream, type OrderChange } from '../lib/live-stream';
 import { OrderActions } from './OrderActions';
-import { applyChange, groupOrders, mergeFetched, newOrderIds, type QueueOrder } from '../lib/queue';
+import { allergenText, applyChange, groupOrders, mergeFetched, newOrderIds, type QueueOrder } from '../lib/queue';
+import type { QueueBoardAllergenLabelsQuery } from '../__generated__/QueueBoardAllergenLabelsQuery.graphql';
 
 // The vendor's orders that are still in progress, newest change first. The vendor acts on an order with the buttons on its card (WI-QUE-004);
 // the board itself only shows what the service says. The list is the baseline (WI-QUE-002); live changes arrive on a stream and are applied on top by their sequence numbers (WI-QUE-003, ADR-0021).
@@ -28,6 +29,7 @@ const queueQuery = graphql`
             end
           }
           pickupInstructions
+          allergens
           lines {
             listingId
             listingName
@@ -39,6 +41,16 @@ const queueQuery = graphql`
           }
         }
       }
+    }
+  }
+`;
+
+// The registry's labels for the allergens (public, read once per screen). If it cannot be read the cards show the ids.
+const allergenLabelsQuery = graphql`
+  query QueueBoardAllergenLabelsQuery {
+    tags(kind: ALLERGEN) {
+      id
+      label
     }
   }
 `;
@@ -71,6 +83,7 @@ export function QueueBoard() {
   const seen = useRef<Set<string> | null>(null); // null until the first answer: what is on the screen at the start is not "new"
   const held = useRef<Orders>([]); // what the screen shows now, for applying a pushed change on top of it
   const feed = useRef<LiveFeed<OrderChange> | null>(null);
+  const [labels, setLabels] = useState<ReadonlyMap<string, string>>(new Map());
   const pushedAt = useRef<Map<string, number>>(new Map()); // when a push last said something about an order (the merge of a fetched list needs it)
 
   /** Puts a list of orders on the screen and marks the ones that were not there before (from the list or from the stream alike). */
@@ -140,6 +153,14 @@ export function QueueBoard() {
     },
     [show],
   );
+
+  // The allergen labels, once. A failure leaves the map empty and the cards show the ids: a missing label must never hide an allergen.
+  useEffect(() => {
+    fetchQuery<QueueBoardAllergenLabelsQuery>(getBrowserEnvironment(), allergenLabelsQuery, {})
+      .toPromise()
+      .then((data) => setLabels(new Map((data?.tags ?? []).map((t) => [t.id, t.label]))))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const live = new LiveFeed<OrderChange>({
@@ -224,44 +245,54 @@ export function QueueBoard() {
               {column.title} <span className="count">({column.orders.length})</span>
             </h2>
             <ul>
-              {column.orders.map((o) => (
-                <li
-                  key={o.id}
-                  className={fresh.has(o.id) ? 'order new' : 'order'}
-                  data-testid="queue-order"
-                  data-reference={o.reference}
-                >
-                  <div className="order-head">
-                    <strong data-testid="reference">{o.reference}</strong>
-                    {fresh.has(o.id) ? (
-                      <span className="badge" data-testid="new-badge">
-                        New
-                      </span>
+              {column.orders.map((o) => {
+                const allergies = allergenText(o.allergens, labels);
+                return (
+                  <li
+                    key={o.id}
+                    className={fresh.has(o.id) ? 'order new' : 'order'}
+                    data-testid="queue-order"
+                    data-reference={o.reference}
+                    {...(allergies ? { 'aria-label': `Order ${o.reference}. ${allergies}` } : {})}
+                  >
+                    <div className="order-head">
+                      <strong data-testid="reference">{o.reference}</strong>
+                      {fresh.has(o.id) ? (
+                        <span className="badge" data-testid="new-badge">
+                          New
+                        </span>
+                      ) : null}
+                      {windowText(o.pickupWindow) ? (
+                        <span data-testid="window">Pickup {windowText(o.pickupWindow)}</span>
+                      ) : null}
+                    </div>
+                    <ul className="lines">
+                      {o.lines.map((l, i) => (
+                        <li key={`${l.listingId}-${i}`}>
+                          {l.quantity} × {l.listingName ?? l.listingId}
+                          {l.modifiers.length > 0 ? (
+                            <span className="options"> ({l.modifiers.map((m) => m.name ?? m.id).join(', ')})</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                    {allergies ? (
+                      <p className="allergens" data-testid="allergens">
+                        <span aria-hidden="true">⚠ </span>
+                        <strong>{allergies}</strong>
+                      </p>
                     ) : null}
-                    {windowText(o.pickupWindow) ? (
-                      <span data-testid="window">Pickup {windowText(o.pickupWindow)}</span>
-                    ) : null}
-                  </div>
-                  <ul className="lines">
-                    {o.lines.map((l, i) => (
-                      <li key={`${l.listingId}-${i}`}>
-                        {l.quantity} × {l.listingName ?? l.listingId}
-                        {l.modifiers.length > 0 ? (
-                          <span className="options"> ({l.modifiers.map((m) => m.name ?? m.id).join(', ')})</span>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                  {o.pickupInstructions ? <p className="instructions">{o.pickupInstructions}</p> : null}
-                  <OrderActions
-                    orderId={o.id}
-                    reference={o.reference}
-                    status={o.status}
-                    onSettled={() => void refresh()}
-                    onAnnounce={setAnnouncement}
-                  />
-                </li>
-              ))}
+                    {o.pickupInstructions ? <p className="instructions">{o.pickupInstructions}</p> : null}
+                    <OrderActions
+                      orderId={o.id}
+                      reference={o.reference}
+                      status={o.status}
+                      onSettled={() => void refresh()}
+                      onAnnounce={setAnnouncement}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ))}

@@ -1,4 +1,10 @@
-> **Status:** Ready
+> **Status:** In review · built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journey written but not yet run (register 140)
+
+> **Outcome note (2026-11-04):** built as specified. The queue board's list query and the live subscription both ask for `allergens` (a pushed order replaces a listed one, so the two carry the same fields; TypeScript checks it). The labels come from one `tags(kind: ALLERGEN)` read per screen; if it fails the cards show the ids. A card with allergens shows a bold line with a warning icon, `Allergy: tree nuts, sesame`, and an accessible name `Order ABC123. Allergy: tree nuts, sesame`; a card without allergens is exactly as before (it never says "no allergies"). Per the lead's decision (2026-11-04) the allergens stay on the card through every active status including Ready, so the bakery can label or stage the order; nothing is logged by the screen.
+>
+> **Verified (local):** 5 unit tests of the wording and the stream merge (38 in all), 7 browser tests against the mock BFF (with and without allergens, the accessible name, one registry read, an unknown id, an unreadable registry, an order arriving by the stream and moving to Ready, axe smoke; 60 in the suite, all passing); a mutation check (unknown ids dropped) failed the intended unit test. **Not run:** `tests/skeleton/queue-allergens.spec.ts` on the real stack (see register 140).
+>
+> **Changes from the original plan:** none to the design. **Not done / limits:** the real-stack check that another vendor's screen does not show the order is covered at the API in `order-allergens.spec.ts` (the mock issuer has one vendor login).
 
 ```
 WI ID:               QUE-005
@@ -7,7 +13,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-QUEUE-DISPLAY
 Shared with epic(s):  EPIC-PREFERENCES
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 S
 ```
 
