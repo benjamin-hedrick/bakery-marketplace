@@ -1,4 +1,5 @@
 using CatalogService.Domain;
+using CatalogService.Preferences;
 
 namespace BakeryMarketplace.Seed;
 
@@ -20,6 +21,28 @@ public static class SeedData
         [ShopVendorId] = "Shop",
         [IndependentVendorId] = "Independent",
     };
+
+    // Customers with a saved allergen profile (WI-MOB-002). The ids are the ones the mock identity gives these customers (BakeryMarketplace.Auth, MockUsers); a catalog test
+    // keeps the two lists in step. Alice (user-customer-1) has no profile on purpose: she is the customer who never saved one. Allergen ids are the tag registry's.
+    public const string TreeNutAllergyCustomerId = "user-customer-treenut";
+    public const string SesameAllergyCustomerId = "user-customer-sesame";
+    public const string AvoidsDairyCustomerId = "user-customer-avoiddairy";
+    public const string SeveralCustomerId = "user-customer-several";
+
+    /// <summary>
+    /// The saved profiles of the seeded customers, one case each: a serious allergy on the item and on an option (tree nut), a serious allergy that only an
+    /// option carries (sesame, on the sourdough's "Add seeds"), a preference only (avoids dairy: shown, never needs an acknowledgement), and several at once.
+    /// </summary>
+    public static IReadOnlyList<PreferenceProfileDocument> CustomerProfiles() =>
+    [
+        Profile(TreeNutAllergyCustomerId, allergies: ["tree-nut"], avoid: []),
+        Profile(SesameAllergyCustomerId, allergies: ["sesame"], avoid: []),
+        Profile(AvoidsDairyCustomerId, allergies: [], avoid: ["dairy"]),
+        Profile(SeveralCustomerId, allergies: ["dairy", "tree-nut"], avoid: ["gluten"]),
+    ];
+
+    private static PreferenceProfileDocument Profile(string customerId, string[] allergies, string[] avoid) =>
+        new() { Id = customerId, CustomerId = customerId, Allergies = allergies.ToList(), Avoid = avoid.ToList(), Prefer = [], UpdatedAt = Stamp };
 
     private static ListingDocument[] BaseListings() => new[]
     {
