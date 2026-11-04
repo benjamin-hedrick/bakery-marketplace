@@ -96,6 +96,45 @@ public sealed class RedisBatchDeliveryTests : IDisposable
     }
 
     [RedisFact]
+    public async Task ABatchRunsInOneNewTraceLinkedToEachPublishersTrace()
+    {
+        using var listener = new System.Diagnostics.ActivityListener
+        {
+            ShouldListenTo = source => source.Name == EventTracing.ActivitySourceName,
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
+                System.Diagnostics.ActivitySamplingResult.AllData,
+        };
+        System.Diagnostics.ActivitySource.AddActivityListener(listener);
+
+        var type = NewEventType();
+        var transport = Transport();
+        string[] traceparents =
+        [
+            "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+            "00-1af7651916cd43dd8448eb211c80319c-c7ad6b7169203331-01",
+            "not-a-traceparent",
+        ];
+        foreach (var (tp, n) in traceparents.Select((t, i) => (t, i)))
+            await transport.PublishAsync(Envelope(type, $"m{n}") with { Traceparent = tp });
+
+        System.Diagnostics.Activity? seen = null;
+        await transport.SubscribeBatchAsync<string>(type, (_, _) =>
+        {
+            seen = System.Diagnostics.Activity.Current;
+            return Task.FromResult<IReadOnlyCollection<Guid>>([]);
+        });
+
+        await Eventually(() => seen is not null);
+        Assert.NotNull(seen);
+        Assert.Equal(System.Diagnostics.ActivityKind.Consumer, seen!.Kind);
+        Assert.Null(seen.ParentId);
+        Assert.Equal(2, seen.Links.Count());   // the malformed one is ignored, not an error
+        Assert.Contains(seen.Links, l => l.Context.TraceId.ToHexString() == "0af7651916cd43dd8448eb211c80319c");
+        Assert.Contains(seen.Links, l => l.Context.TraceId.ToHexString() == "1af7651916cd43dd8448eb211c80319c");
+        Assert.Contains(seen.TagObjects, t => t.Key == "messaging.batch.message_count" && (int)t.Value! == 3);
+    }
+
+    [RedisFact]
     public async Task AHandlerThatThrowsFailsTheWholeBatchAndIsDeadLetteredAtTheMaximum()
     {
         var type = NewEventType();
