@@ -5,6 +5,7 @@
 //   `x-place-order: ...`  scripts placeOrder: `rejected:<CODE>`, `shortfall`, `internal`, `unauthenticated`, `slow` (default: really place it)
 //   `x-test-payment: decline`  the D-10 hook, as the real BFF forwards it
 //   POST /__control {"revision": n} shifts every price by n cents so refetches are observable.
+//   POST /__control {"resetOrders": true, "seedOrders": n} forgets the orders placed so far and adds n completed ones (the order history).
 // Like the real BFF, placeOrder and order need a bearer token. Orders are kept in memory and an idempotency key returns the same order.
 import http from 'node:http';
 import { readFileSync } from 'node:fs';
@@ -149,6 +150,22 @@ function readOrder({ id }, ctx) {
   return found ? toOrder(found) : null;
 }
 
+// The customer's orders, newest first, paged by position (the cursor is the index of the next order). Like the real BFF it needs a bearer token.
+function listOrders({ first = 20, after }, ctx) {
+  if (!hasBearer(ctx)) throw unauthenticated();
+  const all = [...orders.values()].reverse(); // placed later = newer
+  const start = after ? Number(after) : 0;
+  const page = all.slice(start, start + first);
+  const next = start + page.length;
+  return {
+    edges: page.map((o) => ({ cursor: o.id, node: toOrder(o) })),
+    pageInfo: {
+      hasNextPage: next < all.length,
+      endCursor: next < all.length ? String(next) : (page.at(-1)?.id ?? null),
+    },
+  };
+}
+
 function rootFor(fixture) {
   return {
     listings: () => {
@@ -162,6 +179,7 @@ function rootFor(fixture) {
         : (data(fixture).find((l) => l.id === args.id) ?? null),
     pickupWindows: () => WINDOWS,
     order: readOrder,
+    orders: listOrders,
     placeOrder,
   };
 }
@@ -180,8 +198,26 @@ const server = http.createServer(async (req, res) => {
   const raw = Buffer.concat(chunks).toString('utf8');
 
   if (req.url === '/__control' && req.method === 'POST') {
-    revision = Number(JSON.parse(raw || '{}').revision ?? 0);
-    return send(200, { revision });
+    const control = JSON.parse(raw || '{}');
+    revision = Number(control.revision ?? 0);
+    if (control.resetOrders) {
+      orders.clear();
+      keys.clear();
+    }
+    // seedOrders: n adds n completed orders (oldest first), so a test can see paging and the empty history.
+    for (let i = 0; i < Number(control.seedOrders ?? 0); i++) {
+      const id = `order-mock-seed-${++orderSeq}`;
+      orders.set(id, {
+        id,
+        vendorId: 'vendor-shop-001',
+        lineItems: [{ listingId: globalId('Listing', 'listing-1'), modifierIds: [], quantity: 1, price: money(800) }],
+        totalCents: 800,
+        pickupWindow: null,
+        status: 'COMPLETED',
+        createdAt: new Date(Date.UTC(2026, 0, 1, 12, i)).toISOString(),
+      });
+    }
+    return send(200, { revision, orders: orders.size });
   }
   // What the BFF was sent as Authorization, in order, so a test can see what the web app's server put on the call (ADR-0019).
   if (req.url === '/__seen' && req.method === 'GET') return send(200, { authorizations: seenAuthorizations });

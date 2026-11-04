@@ -23,6 +23,9 @@ export function SiteHeader() {
         ) : null}
         {session.status === 'user' ? (
           <>
+            <Link href="/orders" data-testid="orders-link">
+              Order history
+            </Link>{' '}
             <span data-testid="user-name">{session.user.name ?? session.user.subject}</span>{' '}
             <button type="button" onClick={() => void logout()}>
               Log out
