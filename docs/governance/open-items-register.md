@@ -765,3 +765,8 @@ Status: Open
 Type: Gap · Source: `NOT-001`/`NOT-002` scoping (2026-11-03) · Hat: Product
 Status: Open
 The allergy warning needs customer preference and allergy data (the personalization work), and the low-stock alert needs the catalog to publish a stock event; neither exists. `NOT-002` builds the order-lifecycle templates only. Add the two templates when their events exist. Also open: the contact lookup is seeded data; a real store and whether to batch reads are decided after measuring (`NOT-001`).
+
+**139. The customer's order list reads the customer's whole partition for every page, and two-customer isolation was not tried on the real stack**
+Type: Scaling limit and verification gap · Source: `WI-CUST-007` build (2026-11-04) · Hat: Architect, QA
+Status: Open
+`OrderStore.ListForCustomerAsync` reads every order of the customer and orders and pages them in memory, as the vendor list does (the reason is in `VendorOrderReader`: do not rely on the store query to order a composite cursor). A customer with a few hundred orders costs a few hundred small documents per page; revisit with a store-side ordering when that is no longer true. Also: the mock issuer has one customer, so "another customer's orders never appear" is proved by the ordering API tests (in-memory repository, partition and filter both mutation-checked), not on Cosmos with two customers. A second mock customer would close that.

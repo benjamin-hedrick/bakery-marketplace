@@ -245,7 +245,7 @@ Payout { id, vendorId, orderId, grossAmount, commission, netAmount, stripeTransf
 - `POST /ordering/checkout` — triggers Stripe destination charge (ADR-0005)
 - `POST /ordering/orders/{id}/confirm`, `/decline`, `/start-preparation`, `/ready`, `/complete`, `/cancel` — order actions by the owning Vendor (and `/cancel` by the owning Customer); see `order-lifecycle.md` (added 2026-10-28, draft)
 - `GET /ordering/orders/{id}` — Customer (own) or Vendor (own, via read-model) role + ownership
-- `GET /ordering/orders?customerId=` — customer's own orders, queries `orders` directly (same partition key)
+- `GET /ordering/orders?limit=&after=` — customer's own orders, newest first, cursor-paged, queries `orders` directly in the customer's partition; the customer is the token's subject, there is no `customerId` parameter (built 2026-11-04, `WI-CUST-007`)
 - `GET /ordering/orders?vendorId=` — **served from `order-status-readmodel`, not `orders`** — this is the endpoint the live queue display calls
 - `POST /ordering/reviews` — Customer role, must reference a `Completed` order they placed
 - `GET /ordering/reviews?vendorId=` — public
