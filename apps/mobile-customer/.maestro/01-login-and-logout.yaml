@@ -1,0 +1,28 @@
+# Login, the menu with stock, a restart that needs no new login (refresh token in the Keystore), and logout (the token is deleted).
+appId: com.bakerymarketplace.mobile
+name: Login, restart without login, logout
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: login-button
+- runFlow: subflows/login.yaml
+- assertVisible: Country Sourdough
+- assertVisible: Low stock
+- assertVisible: Sold out
+# A restart keeps the session: no login screen.
+- stopApp
+- launchApp
+- assertVisible:
+    id: listings
+- assertNotVisible:
+    id: login-button
+# Logout returns to the login screen, and a restart does not bring the session back.
+- tapOn:
+    id: sign-out
+- assertVisible:
+    id: login-button
+- stopApp
+- launchApp
+- assertVisible:
+    id: login-button
