@@ -19,6 +19,9 @@ public record LineItemPayload(
 /// <c>FulfillmentType</c> and <c>Details</c> (the requested pickup window and instructions) were added 2026-11-01 (additive, optional): an
 /// order waits for the vendor exactly when it has a modifier or a requested window, so the vendor's decision needs the window at placement,
 /// not only after confirmation. They are absent when no window was requested.
+/// <c>Allergens</c> (registry allergen ids, sorted) were added 2026-11-04 (additive, optional; WI-ORD-009): the allergens the customer chose to tell the
+/// bakery about for this order. Absent (null) when none were chosen, so an order without them has the payload it always had. Only the vendor read
+/// model consumes it; no notification prints it.
 /// </summary>
 public record OrderPlacedPayload(
     string OrderId,
@@ -28,7 +31,8 @@ public record OrderPlacedPayload(
     long? TotalCents = null,
     string? Currency = null,
     FulfillmentType? FulfillmentType = null,
-    FulfillmentDetails? Details = null
+    FulfillmentDetails? Details = null,
+    IReadOnlyList<string>? Allergens = null
 );
 
 public record OrderCustomizedPayload(

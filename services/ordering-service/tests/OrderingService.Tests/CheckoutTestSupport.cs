@@ -83,6 +83,19 @@ internal sealed class FakeCatalog : ICatalogGateway
         return Listings.GetValueOrDefault(listingId);
     }
 
+    /// <summary>The allergens the fake registry offers (the closed list of ADR-0022).</summary>
+    public HashSet<string> Allergens { get; } = ["dairy", "egg", "fish", "shellfish", "tree-nut", "peanut", "gluten", "soy", "sesame"];
+    public int AllergenReads;
+    public bool AllergenReadsFail { get; set; }
+
+    public async Task<IReadOnlyCollection<string>> GetAllergenIdsAsync(CancellationToken ct = default)
+    {
+        await Task.Yield();
+        Interlocked.Increment(ref AllergenReads);
+        if (AllergenReadsFail) throw new DownstreamUnavailableException("scripted outage");
+        return Allergens.ToList();
+    }
+
     public async Task<StockReservationOutcome> ReserveAsync(
         string orderId, string vendorId, IReadOnlyList<(string ListingId, int Quantity)> lines, CancellationToken ct = default)
     {
@@ -187,6 +200,8 @@ internal sealed class CheckoutFixture
     public RecordingEvents Events { get; } = new();
     public OutboxOptions Outbox { get; } = new();
     public CheckoutOptions CheckoutSettings { get; } = new();
+    public AllergenRegistryOptions AllergenSettings { get; } = new();
+    public AllergenRegistry Allergens { get; }
     public OutboxSignal Signal { get; } = new();
     public OrderStore Store { get; }
     public OrderEventPublisher Publisher { get; }
@@ -199,8 +214,9 @@ internal sealed class CheckoutFixture
         Store = new OrderStore(Repository);
         Publisher = new OrderEventPublisher(Events, Store, Signal, Options.Create(Outbox), Time, NullLogger<OrderEventPublisher>.Instance);
         Relay = new OutboxRelay(Store, Publisher, Signal, Options.Create(Outbox), Time, NullLogger<OutboxRelay>.Instance);
+        Allergens = new AllergenRegistry(Catalog, Options.Create(AllergenSettings), Time);
         Service = new CheckoutService(
-            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher,
+            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher, Allergens,
             Options.Create(CheckoutSettings), Time, NullLogger<CheckoutService>.Instance);
         Actions = new OrderActionService(Store, Catalog, Publisher, Time, NullLogger<OrderActionService>.Instance);
     }

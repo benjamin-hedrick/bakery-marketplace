@@ -36,6 +36,9 @@ public sealed class VendorOrderDocument : IETagged
     /// <summary>What was ordered, as ids: the vendor view turns them into names (register item 113). Absent on documents written before this existed.</summary>
     [JsonProperty("lines", NullValueHandling = NullValueHandling.Ignore)] public List<VendorOrderLineDocument>? Lines { get; set; }
 
+    /// <summary>The allergens the customer told the bakery about for this order (registry ids), from <c>OrderPlaced</c>. Absent when none (WI-ORD-009). Only this vendor reads it.</summary>
+    [JsonProperty("allergens", NullValueHandling = NullValueHandling.Ignore)] public List<string>? Allergens { get; set; }
+
     [JsonProperty("pickupInstructions", NullValueHandling = NullValueHandling.Ignore)] public string? PickupInstructions { get; set; }
 
     /// <summary>True when checkout confirmed the order by rule, so it never reached the vendor as a decision.</summary>

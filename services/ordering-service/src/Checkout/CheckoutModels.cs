@@ -10,7 +10,12 @@ public sealed record CheckoutLineRequest(string? ListingId, List<string>? Modifi
 
 public sealed record PickupWindowRequest(DateTimeOffset? Start, DateTimeOffset? End);
 
-public sealed record CheckoutRequest(string? VendorId, List<CheckoutLineRequest>? LineItems, PickupWindowRequest? PickupWindow);
+/// <summary>
+/// <c>Allergens</c> (WI-ORD-009) are the registry allergen ids the customer chose to tell the bakery about for this order. Optional; checked against the catalog's
+/// registry, never against the customer's profile (which ordering does not read).
+/// </summary>
+public sealed record CheckoutRequest(
+    string? VendorId, List<CheckoutLineRequest>? LineItems, PickupWindowRequest? PickupWindow, List<string>? Allergens = null);
 
 /// <summary>One thing wrong with a checkout request. <see cref="Field"/> names the input; <see cref="Code"/> is the stable error code.</summary>
 public sealed record CheckoutProblem(string Code, string Field, string Message);

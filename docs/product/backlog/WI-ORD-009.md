@@ -1,4 +1,12 @@
-> **Status:** Ready
+> **Status:** In review · built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journey written but not yet run (register 140); the lead's review of the privacy properties is wanted
+
+> **Outcome note (2026-11-04):** built in three steps. (1) Ordering: `CheckoutRequest.Allergens`, validated by `AllergenRegistry` (the catalog's `GET /catalog/tags?kind=allergen`, read without a credential and kept `Allergens:CacheMinutes` = 5 minutes; nothing is hard-coded, so a new allergen in the registry is accepted after at most the cache time with no change here); the order stores them sorted and distinct (`Order.SetAllergens`, only while Pending), `OrderDto.allergens`, `OrderPlacedPayload.Allergens` (null when none, so an order without them has the payload it always had), `VendorOrderDocument.allergens` set once from `OrderPlaced` and `VendorOrderDto.allergens` on the list, the single read and the live stream (the same DTO). (2) The BFF: `PlaceOrderInput.allergens`, `Order.allergens`, `VendorOrder.allergens`, passed through untouched. (3) Tests and a real-stack journey.
+>
+> **Verified (local):** 28 ordering tests at service level and 9 over HTTP (475 passed in the ordering project, 11 skipped without Redis), 7 BFF tests (205 in all). Mutation checks, each failing the intended tests only: the allergens written to the placed-order log line; allergens left out of the request fingerprint. Not run: the real-stack journey `tests/skeleton/order-allergens.spec.ts` (the system stopped the run for low memory; finish it with the next `skeleton-smoke.mjs --containers` run).
+>
+> **Lead's decision (2026-11-04):** the allergens matter to the bakery **through Ready**, when special handling (a label, a separate staging place) is done; they stay on the vendor's order through every active status. They are carried only by `OrderPlaced`: no later event repeats them, and no notification prints them.
+>
+> **Changes from the original plan:** the registry cache is an in-memory class (`AllergenRegistry`, like `ListingNameCache`) and not `ICacheProvider`: ordering has no `ICacheProvider` wired and a few-minute copy of nine ids needs no shared store; a request naming more than 50 ids is refused before the registry is read (a size guard); the fingerprint adds the allergens only when there are some, so an older checkout's repeat still matches. **Not done / limits:** an order's allergens are not on the customer's order page yet (`CUST-008` adds the control and the display); the stream retention question stays open (register 142).
 
 ```
 WI ID:               ORD-009
@@ -7,7 +15,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  EPIC-PREFERENCES, EPIC-QUEUE-DISPLAY
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 M
 ```
 
@@ -48,4 +56,4 @@ Yes; the privacy properties are acceptance criteria with tests, and the lead's r
 **Data touched**: `orders` container (a new field), the vendor read model
 
 **Open Points (working)**
-- [ ] The event stream retains `OrderPlaced` payloads (`Events:MaxStreamLength` 100000); the allergens stay there as long as the order event does. Confirm that is acceptable for order-scoped, customer-chosen data, or shorten retention (register item to be opened when built).
+- [x] (Raised as register 142.) The event stream retains `OrderPlaced` payloads (`Events:MaxStreamLength` 100000); the allergens stay there as long as the order event does. Confirm that is acceptable for order-scoped, customer-chosen data, or shorten retention (register item to be opened when built).

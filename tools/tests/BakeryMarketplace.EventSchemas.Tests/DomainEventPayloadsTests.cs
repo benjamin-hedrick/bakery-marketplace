@@ -40,6 +40,18 @@ public class DomainEventPayloadsTests
     }
 
     [Fact]
+    public void OrderPlacedPayload_AllergensAreOptional_SoOlderMessagesStillDeserializeAndNewOnesRoundTrip()
+    {
+        const string older = "{\"OrderId\":\"o-1\",\"CustomerId\":\"c-1\",\"VendorId\":\"v-1\",\"LineItems\":[]}";
+        Assert.Null(JsonSerializer.Deserialize<OrderPlacedPayload>(older)!.Allergens);
+
+        var withAllergens = new OrderPlacedPayload("o-2", "c-1", "v-1", [], Allergens: ["dairy", "tree-nut"]);
+        var back = JsonSerializer.Deserialize<OrderPlacedPayload>(JsonSerializer.Serialize(withAllergens));
+
+        Assert.Equal(["dairy", "tree-nut"], back!.Allergens);
+    }
+
+    [Fact]
     public void VendorSuspendedPayload_SerializationRoundtrip_Succeeds()
     {
         var payload = new VendorSuspendedPayload("vendor-42", "Violation of policy #4");

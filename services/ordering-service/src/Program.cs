@@ -122,6 +122,8 @@ builder.Services.AddHttpClient(CatalogGateway.PublicClientName, c => { c.BaseAdd
 builder.Services.AddHttpClient(CatalogGateway.ServiceClientName, c => { c.BaseAddress = catalogUrl; c.Timeout = catalogTimeout; }).AddServiceAuthHandler();
 builder.Services.AddSingleton<ICatalogGateway, CatalogGateway>();
 builder.Services.Configure<ListingNameOptions>(builder.Configuration.GetSection("ListingNames"));
+builder.Services.Configure<AllergenRegistryOptions>(builder.Configuration.GetSection("Allergens"));
+builder.Services.AddSingleton<AllergenRegistry>(); // the allergen ids checkout accepts, from the catalog's registry (WI-ORD-009)
 builder.Services.AddSingleton<ListingNameCache>(); // names behind the ids in the vendor order view (register item 113)
 builder.Services.AddHostedService<ListingNameRefresher>();
 builder.Services.Configure<OrphanReservationOptions>(builder.Configuration.GetSection("OrphanReservations"));

@@ -27,6 +27,7 @@ public sealed partial class CheckoutService(
     IPaymentProcessor payments,
     PickupSchedule schedule,
     OrderEventPublisher eventPublisher,
+    AllergenRegistry allergenRegistry,
     IOptions<CheckoutOptions> checkoutOptions,
     TimeProvider time,
     ILogger<CheckoutService> logger)
@@ -41,7 +42,7 @@ public sealed partial class CheckoutService(
     public async Task<CheckoutResult> CheckoutAsync(
         string customerId, string? idempotencyKey, CheckoutRequest? request, bool forcePaymentDecline, CancellationToken ct = default)
     {
-        var shape = ValidateShape(idempotencyKey, request);
+        var shape = ValidateShape(idempotencyKey, request, allergenRegistry.MaxRequestIds);
         if (shape.Count > 0) return CheckoutResult.Invalid(shape);
 
         request = request!;
@@ -52,6 +53,24 @@ public sealed partial class CheckoutService(
         // A repeat of a checkout that already finished: answer with the original order and touch nothing else.
         var existing = await orders.GetAsync(orderId, customerId, ct);
         if (existing is not null) return Repeat(existing, fingerprint);
+
+        // ---- allergens the customer chose to tell the bakery about (WI-ORD-009): checked against the catalog's registry, not the profile ----
+        IReadOnlyList<string> allergens = [];
+        if (request.Allergens is { Count: > 0 } named)
+        {
+            IReadOnlySet<string> offered;
+            try
+            {
+                offered = await allergenRegistry.IdsAsync(ct);
+            }
+            catch (DownstreamUnavailableException)
+            {
+                return Unavailable();
+            }
+            var allergenProblems = ValidateAllergens(named, offered);
+            if (allergenProblems.Count > 0) return CheckoutResult.Invalid(allergenProblems);
+            allergens = named.Distinct(StringComparer.Ordinal).OrderBy(a => a, StringComparer.Ordinal).ToList();
+        }
 
         // ---- read and price ----
         var listings = new Dictionary<string, CatalogListing?>(StringComparer.Ordinal);
@@ -85,6 +104,7 @@ public sealed partial class CheckoutService(
         // ---- build the order (the aggregate enforces the lifecycle and the D-5 limits) ----
         var order = Order.Create(orderId, customerId, vendorId, FulfillmentType.Pickup, now);
         foreach (var line in lines) order.AddLine(line, now);
+        if (allergens.Count > 0) order.SetAllergens(allergens, now);
         if (window is not null) order.SetFulfillmentDetails(FulfillmentDetails.ForPickup(window.Start, window.End), now);
         order.Place(now);
         if (checkoutOptions.Value.AutoConfirm && AutoConfirmPolicy.Qualifies(order)) order.Confirm(now, automatic: true); // WI-ORD-008
@@ -176,7 +196,7 @@ public sealed partial class CheckoutService(
         }
     }
 
-    private static List<CheckoutProblem> ValidateShape(string? idempotencyKey, CheckoutRequest? request)
+    private static List<CheckoutProblem> ValidateShape(string? idempotencyKey, CheckoutRequest? request, int maxAllergenIds)
     {
         var problems = new List<CheckoutProblem>();
         if (idempotencyKey is null || !KeyPattern().IsMatch(idempotencyKey))
@@ -210,12 +230,30 @@ public sealed partial class CheckoutService(
             }
         }
 
+        // The list is only a size-checked set of ids here; which ids are real is decided against the registry (ValidateAllergens).
+        if (request.Allergens is { } named && (named.Count > maxAllergenIds || named.Any(a => string.IsNullOrWhiteSpace(a) || a.Length > 64)))
+            problems.Add(new CheckoutProblem("validation_failed", "allergens", "Allergens must be allergen ids from the list the bakery offers."));
+
         if (request.PickupWindow is { } w)
         {
             if (w.Start is null || w.End is null)
                 problems.Add(new CheckoutProblem("validation_failed", "pickupWindow", "A pickup window needs a start and an end."));
             else if (w.End <= w.Start)
                 problems.Add(new CheckoutProblem("validation_failed", "pickupWindow", "The pickup window must end after it starts."));
+        }
+        return problems;
+    }
+
+    /// <summary>Every id must be an allergen the registry offers now; naming more than the registry holds is refused. Duplicates are fine (they are removed).</summary>
+    private static List<CheckoutProblem> ValidateAllergens(List<string> named, IReadOnlySet<string> offered)
+    {
+        var problems = new List<CheckoutProblem>();
+        if (named.Count > offered.Count)
+            problems.Add(new CheckoutProblem("validation_failed", "allergens", "More allergens were named than the bakery offers."));
+        for (var i = 0; i < named.Count; i++)
+        {
+            if (!offered.Contains(named[i]))
+                problems.Add(new CheckoutProblem("validation_failed", $"allergens[{i}]", "That is not an allergen the bakery offers."));
         }
         return problems;
     }
@@ -228,6 +266,10 @@ public sealed partial class CheckoutService(
             : "-";
         var lines = string.Join(";", r.LineItems!.Select(l =>
             $"{l.ListingId}:{l.Quantity}:{string.Join(",", (l.ModifierIds ?? []).OrderBy(m => m, StringComparer.Ordinal))}"));
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"v1|{r.VendorId}|{window}|{lines}"))).ToLowerInvariant();
+        // Allergens join the hash only when there are some, so a checkout without them keeps the fingerprint it always had (a repeat of an older order still matches).
+        var allergens = r.Allergens is { Count: > 0 } a
+            ? "|a:" + string.Join(",", a.Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal))
+            : "";
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"v1|{r.VendorId}|{window}|{lines}{allergens}"))).ToLowerInvariant();
     }
 }

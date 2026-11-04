@@ -20,6 +20,7 @@ namespace OrderingService.Domain;
 public sealed class Order
 {
     private readonly List<OrderLine> _lines = [];
+    private List<string> _allergens = [];
     private readonly List<OrderEvent> _events = [];
 
     private Order(string id, string customerId, string vendorId, FulfillmentType fulfillmentType, DateTimeOffset now)
@@ -47,6 +48,9 @@ public sealed class Order
 
     public string Currency => OrderRules.Currency;
     public IReadOnlyList<OrderLine> Lines => _lines.AsReadOnly();
+
+    /// <summary>The allergens the customer chose to tell the bakery about for this order (registry ids, sorted, distinct). Fixed once the order is placed (WI-ORD-009).</summary>
+    public IReadOnlyList<string> Allergens => _allergens.AsReadOnly();
     public long TotalCents => _lines.Sum(l => l.LineCents);
 
     public static Order Create(string id, string customerId, string vendorId, FulfillmentType fulfillmentType, DateTimeOffset now)
@@ -88,6 +92,14 @@ public sealed class Order
 
     // ---- lifecycle -----------------------------------------------------------------------------------------------------
 
+    /// <summary>Records the allergens for this order. Only while the order is Pending: after placement they cannot change. Sorted and de-duplicated here.</summary>
+    public void SetAllergens(IEnumerable<string> allergens, DateTimeOffset now)
+    {
+        RequirePending("set allergens");
+        _allergens = allergens.Distinct(StringComparer.Ordinal).OrderBy(a => a, StringComparer.Ordinal).ToList();
+        UpdatedAt = now;
+    }
+
     /// <summary>The customer places the order; it now waits for the vendor.</summary>
     public void Place(DateTimeOffset now)
     {
@@ -98,7 +110,7 @@ public sealed class Order
         Raise(OrderEventTypes.Placed, new OrderPlacedPayload(
             Id, CustomerId, VendorId,
             _lines.Select(l => new LineItemPayload(l.ListingId, l.ModifierIds, l.Quantity)).ToList(),
-            TotalCents, Currency, FulfillmentType, Fulfillment), now);
+            TotalCents, Currency, FulfillmentType, Fulfillment, _allergens.Count == 0 ? null : _allergens.ToList()), now);
     }
 
     /// <summary>
@@ -164,7 +176,7 @@ public sealed class Order
     /// <summary>The state to store. Raised-but-undequeued events are not part of it.</summary>
     public OrderSnapshot ToSnapshot() => new(
         Id, CustomerId, VendorId, FulfillmentType, Fulfillment, Status, SequenceNumber, CreatedAt, UpdatedAt,
-        CancelledBy, CancelReason, _lines.ToList());
+        CancelledBy, CancelReason, _lines.ToList(), _allergens.Count == 0 ? null : _allergens.ToList());
 
     /// <summary>
     /// Rebuilds an order from stored state, without raising events. Checks that the state is one the aggregate could have reached, so a
@@ -195,6 +207,7 @@ public sealed class Order
         }
 
         order._lines.AddRange(s.Lines);
+        order._allergens = (s.Allergens ?? []).Distinct(StringComparer.Ordinal).OrderBy(a => a, StringComparer.Ordinal).ToList();
         order.Fulfillment = s.Fulfillment;
         order.Status = s.Status;
         order.SequenceNumber = s.SequenceNumber;

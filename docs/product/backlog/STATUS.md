@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 15 |
+| In review | 16 |
 | Built | 1 |
-| Ready | 9 |
+| Ready | 8 |
 | Proposed | 5 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -124,7 +124,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-007](WI-ORD-007.md) | Order action endpoints (confirm, decline, start, ready, complete, cancel) | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
-| [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | EPIC-ORDERING | Ready |  |
+| [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | EPIC-ORDERING | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journey written but not yet run (register 140); the lead's review of the privacy properties is wanted |
 | [PLAN-001](WI-PLAN-001.md) | Prioritization pass over the backlog | EPIC-BACKLOG-PLANNING | Proposed | decision: which method (MoSCoW or RICE) and who sets the weights |
 | [PLAN-002](WI-PLAN-002.md) | Sprint plan (first 2 to 3 sprints) | EPIC-BACKLOG-PLANNING | Deferred | trigger: sprint-style boundaries become useful (more contributors, or a time-boxed demo); deferred 2026-10-30 |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | EPIC-PORTFOLIO-SLICE | Done | evidence: merged `6175e05`; `docs/evidence/WI-PORT-001/findings.md` |
@@ -199,7 +199,7 @@ Accepted: 21 · Superseded: 1
 
 ## Open-items register
 
-141 numbered items in `docs/governance/open-items-register.md` (highest number 141).
+142 numbered items in `docs/governance/open-items-register.md` (highest number 142).
 
 | Type | Count |
 |---|---|
@@ -274,6 +274,7 @@ Accepted: 21 · Superseded: 1
 | Design weakness | 1 |
 | Scaling limit and verification gap | 1 |
 | Decision record | 1 |
+| Data retention | 1 |
 
 | Item status | Count |
 |---|---|
@@ -281,7 +282,7 @@ Accepted: 21 · Superseded: 1
 | Resolved | 46 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 57 |
+| Open | 58 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |

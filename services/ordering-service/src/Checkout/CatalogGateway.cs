@@ -36,6 +36,9 @@ public interface ICatalogGateway
     /// <summary>A published listing of a verified vendor (the catalog's public view), or null when there is none.</summary>
     Task<CatalogListing?> GetListingAsync(string listingId, CancellationToken ct = default);
 
+    /// <summary>The ids of the allergens the catalog's registry offers today (public, ADR-0022). Throws <see cref="DownstreamUnavailableException"/> when it cannot say.</summary>
+    Task<IReadOnlyCollection<string>> GetAllergenIdsAsync(CancellationToken ct = default);
+
     /// <summary>Reserves stock for an order (ADR-0017). Idempotent by order id.</summary>
     Task<StockReservationOutcome> ReserveAsync(
         string orderId, string vendorId, IReadOnlyList<(string ListingId, int Quantity)> lines, CancellationToken ct = default);
@@ -67,6 +70,14 @@ public sealed class CatalogGateway(IHttpClientFactory clients, ILogger<CatalogGa
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         if (!response.IsSuccessStatusCode) throw Unavailable("listing read", response.StatusCode);
         return await Read<CatalogListing>(response, ct);
+    }
+
+    public async Task<IReadOnlyCollection<string>> GetAllergenIdsAsync(CancellationToken ct = default)
+    {
+        using var response = await SendAsync(PublicClientName, HttpMethod.Get, "/catalog/tags?kind=allergen", null, ct);
+        if (!response.IsSuccessStatusCode) throw Unavailable("allergen list", response.StatusCode);
+        var body = await Read<TagListBody>(response, ct);
+        return (body.Items ?? []).Select(t => t.Id).Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
     }
 
     public async Task<StockReservationOutcome> ReserveAsync(
@@ -146,6 +157,10 @@ public sealed class CatalogGateway(IHttpClientFactory clients, ILogger<CatalogGa
             throw new DownstreamUnavailableException("The catalog returned a body that could not be read.", e);
         }
     }
+
+    private sealed record TagListBody(List<TagItem>? Items);
+
+    private sealed record TagItem(string Id);
 
     private sealed record ListBody(List<ListItem>? Items, string? NextCursor);
 
