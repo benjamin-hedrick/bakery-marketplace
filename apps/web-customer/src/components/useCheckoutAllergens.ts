@@ -5,9 +5,9 @@ import type { useCheckoutAllergensCheckQuery } from '../__generated__/useCheckou
 import type { useCheckoutAllergensListingQuery } from '../__generated__/useCheckoutAllergensListingQuery.graphql';
 import type { useCheckoutAllergensProfileQuery } from '../__generated__/useCheckoutAllergensProfileQuery.graphql';
 import type { useCheckoutAllergensTagsQuery } from '../__generated__/useCheckoutAllergensTagsQuery.graphql';
-import type { Cart } from '../lib/cart/cart.ts';
-import type { ConflictView } from '../lib/conflictText.ts';
-import type { ListingAllergens } from '../lib/cartAllergens.ts';
+import type { Cart } from '@bakery/customer-core';
+import type { ConflictView } from '@bakery/customer-core';
+import type { ListingAllergens } from '@bakery/customer-core';
 import { GraphQLRequestError, UnauthenticatedError } from '../lib/relay/environment';
 import { useSession } from '../lib/session';
 

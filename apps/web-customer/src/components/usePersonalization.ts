@@ -4,9 +4,9 @@ import { fetchQuery } from 'relay-runtime';
 import type { usePersonalizationListQuery } from '../__generated__/usePersonalizationListQuery.graphql';
 import type { usePersonalizationOneQuery } from '../__generated__/usePersonalizationOneQuery.graphql';
 import type { usePersonalizationProfileQuery } from '../__generated__/usePersonalizationProfileQuery.graphql';
-import { hasItemConflict, marksFor, type ConflictView, type Mark } from '../lib/conflictText';
+import { hasItemConflict, marksFor, type ConflictView, type Mark } from '@bakery/customer-core';
 import { useSession } from '../lib/session';
-import type { DietNote } from '../lib/dietText.ts';
+import type { DietNote } from '@bakery/customer-core';
 
 // WI-CUST-006: the customer's own conflicts, laid over the public page after the login. The server-rendered page never knows them. A logged-out
 // customer, or one with an empty profile, makes no personalized request: the profile is asked first (a small answer) and only a non-empty one

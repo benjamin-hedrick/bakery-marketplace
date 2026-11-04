@@ -13,7 +13,6 @@
     "build": "npm run relay && next build",
     "start": "next start -p 3000",
     "typecheck": "npm run relay && tsc --noEmit",
-    "test:unit": "node --test \"tests/unit/**/*.test.ts\"",
     "test:isolation": "node scripts/ssr-isolation.mjs http://localhost:3000 200",
     "test:e2e": "playwright test",
     "test:skeleton": "playwright test -c playwright.skeleton.config.ts",
@@ -23,6 +22,7 @@
     "mock-issuer": "node ../../packages/web-session/test-support/fake-issuer.mjs"
   },
   "dependencies": {
+    "@bakery/customer-core": "file:../../packages/customer-core",
     "@bakery/web-session": "file:../../packages/web-session",
     "next": "16.4.3",
     "react": "19.3.0",

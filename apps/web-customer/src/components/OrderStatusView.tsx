@@ -4,8 +4,8 @@ import { graphql, useRelayEnvironment } from 'react-relay';
 import { fetchQuery } from 'relay-runtime';
 import type { OrderLineListingQuery } from '../__generated__/OrderLineListingQuery.graphql';
 import type { OrderStatusQuery, OrderStatusQuery$data } from '../__generated__/OrderStatusQuery.graphql';
-import { formatMoney } from '../lib/money';
-import { HEADLINES, referenceOf, time, when } from '../lib/orderText';
+import { formatMoney } from '@bakery/customer-core';
+import { HEADLINES, referenceOf, time, when } from '@bakery/customer-core';
 
 const orderQuery = graphql`
   query OrderStatusQuery($id: ID!) {

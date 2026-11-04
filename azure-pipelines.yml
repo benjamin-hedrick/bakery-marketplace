@@ -182,6 +182,9 @@ jobs:
         workingDirectory: packages/web-session
         displayName: Install the shared session package (the app links to it and it holds the Redis client)
       - script: npm ci
+        workingDirectory: packages/customer-core
+        displayName: Install the shared customer package (cart and wording, no run-time dependencies)
+      - script: npm ci
         workingDirectory: apps/web-customer
         displayName: Install
       - script: npm run format:check
@@ -193,9 +196,9 @@ jobs:
       - script: npm run typecheck
         workingDirectory: apps/web-customer
         displayName: Typecheck (runs relay-compiler first)
-      - script: npm run test:unit
-        workingDirectory: apps/web-customer
-        displayName: Unit tests (login library, Node test runner)
+      - script: npm run format:check && npm run typecheck && npm test
+        workingDirectory: packages/customer-core
+        displayName: Shared customer package - format, typecheck and unit tests (Node test runner)
       - script: npx playwright install --with-deps chromium
         workingDirectory: apps/web-customer
         displayName: Install Chromium

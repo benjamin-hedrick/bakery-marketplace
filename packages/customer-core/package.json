@@ -1,0 +1,24 @@
+{
+  "name": "@bakery/customer-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "WI-MOB-001 (ADR-0023): the customer cart, checkout input, allergen and diet wording shared by the web app and the Android app. Pure TypeScript: no React, DOM or framework",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "format": "prettier --write . --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.9",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  }
+}

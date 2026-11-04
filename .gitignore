@@ -238,8 +238,9 @@ PublishScripts/
 *.snupkg
 # The packages folder can be ignored because of Package Restore
 **/[Pp]ackages/*
-# ...except our own shared JavaScript packages (packages/web-session), which are source, not NuGet restore output
+# ...except our own shared JavaScript packages (packages/web-session, packages/customer-core), which are source, not NuGet restore output
 !/packages/web-session/
+!/packages/customer-core/
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
 # Uncomment if necessary however generally it will be regenerated when needed

@@ -1,6 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { EMPTY_CART, type Cart } from './cart.ts';
-import { createCartStore } from './store.ts';
+import { createCartStore, EMPTY_CART, type Cart } from '@bakery/customer-core';
 
 function browserStorage(): Storage | null {
   try {

@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filterHref, MAX_FILTER_TAGS, parseTagQuery, toggleTag } from '../../src/lib/tagFilter.ts';
+import { filterHref, MAX_FILTER_TAGS, parseTagQuery, toggleTag } from '../src/tagFilter.ts';
 
 // WI-TAG-003: which tags the address names and the address that adds or removes one. The catalog decides which tags may be used; this keeps the address tidy.
 

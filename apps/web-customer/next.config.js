@@ -42,9 +42,9 @@ module.exports = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
-  // The shared session package ships TypeScript source (ADR-0019).
-  transpilePackages: ['@bakery/web-session'],
-  // The package lives outside this folder (packages/web-session), and Turbopack only reads files under its root: the repository.
+  // The shared packages ship TypeScript source (ADR-0019 session; WI-MOB-001 customer cart and wording).
+  transpilePackages: ['@bakery/web-session', '@bakery/customer-core'],
+  // The package lives outside this folder (packages/*), and Turbopack only reads files under its root: the repository.
   turbopack: { root: path.join(__dirname, '..', '..') },
   // skeleton-smoke.mjs sets NEXT_DIST_DIR so its build cannot overwrite the `.next` that the mock-backed `npm run test:e2e` uses.
   distDir: process.env.NEXT_DIST_DIR || '.next',

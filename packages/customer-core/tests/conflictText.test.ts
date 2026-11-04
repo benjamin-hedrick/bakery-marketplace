@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hasItemConflict, markFor, marksFor, type ConflictView } from '../../src/lib/conflictText.ts';
+import { hasItemConflict, markFor, marksFor, type ConflictView } from '../src/conflictText.ts';
 
 // WI-CUST-006: the wording of a customer's own conflicts. The rules: say what the item contains and why it is marked, name the option when the
 // conflict comes through an option, and never claim an item is safe, free of an allergen or a match.

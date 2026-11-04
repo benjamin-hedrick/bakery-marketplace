@@ -1,4 +1,4 @@
-import type { Mark } from '../lib/conflictText';
+import type { Mark } from '@bakery/customer-core';
 
 /**
  * The marks on a listing or an option: an icon and words for the severity, never colour alone (ADR-0022). Rendered inside the element that names the
