@@ -1,13 +1,13 @@
-> **Status:** Ready · written 2026-11-04 at the lead's request (register 146); depends on `WI-MOB-001` (built, In review) and reuses `CUST-008`'s rules
+> **Status:** In review · built and run locally 2026-11-04 (7 of 7 Maestro flows pass from a cold start, `docs/evidence/WI-MOB-002/`; 14 new unit tests); waiting for the lead's review of the allergy wording (the spec names the lead as its reviewer) and of the control server's use of the sign-in flow; the lead added "Signed in as <name>" on 2026-11-04
 
 ```
 WI ID:               MOB-002
-Title:                Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery)
+Title:                Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in
 Type:                 Service Implementation
 Epic:                 EPIC-WEB-CUSTOMER
 Shared with epic(s):  EPIC-PREFERENCES, EPIC-QUALITY-EVIDENCE
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 M
 Verification class:   V2 (new screens and a changed request) + J (an allergy warning is a safety feature). Classes are proposed in `docs/process/verification-policy.md`.
 ```
@@ -33,6 +33,7 @@ Vision principle 1 puts allergy information at browse, customization and cart; `
 - **With no saved profile:** the app says it has no allergy profile to check against; it never says an item is safe or free of an allergen.
 - **If the check cannot be made** (service down, session ended): the screen says "We could not check this order against your allergies" and still lets the customer order; a session that ended goes to the login screen as elsewhere in the app.
 - **Tell the bakery:** a control, on by default when the profile has allergies, lists them for this order; the customer may untick any; the chosen ids are sent as `allergens`, and a different choice is a different checkout content (a new idempotency key via the fingerprint).
+- **Who is signed in (added by the lead, 2026-11-04):** every screen after sign-in shows "Signed in as <name>" under the header, from the token's `name` claim (the mock issuer sets it, and its id token is the access token). Display only: the app does not check the signature and decides nothing from the name (the services validate the token, ADR-0006). The name is cleaned (control characters become spaces, 80 characters at most), shown as plain text, kept in memory with the session, gone after sign-out and never stored; with no name claim nothing is shown. Unit-tested in `packages/customer-core` (`identity.test.ts`), and a flow checks it after login and after a restart.
 - **Nothing kept on the device** beyond the running session (ADR-0014, ADR-0023): the check is read fresh when the cart changes.
 - **Tests:** unit tests for any new logic in `customer-core` (the rules exist; add only what the app needs); Maestro flows on the emulator against the real stack with a **customer who has a saved tree-nut allergy**: the warning on the almond croissant, Place order disabled, the tick enables it, the order is placed and carries the allergen; a customer without a profile sees the lines' allergens and the "no profile" text; the check-failed path (BFF stopped or `cartCheck` refused) lets the order through with the message. The seeded profile is set through the BFF `savePreferences` by the flow's setup, not by a screen in the app.
 - The Maestro evidence and the register are updated in the same change; `node scripts/ci/node-gates.mjs` passes.
@@ -48,3 +49,16 @@ Yes. The wording and gating rules are in the shared package; the lead reviews th
 
 **Open Points (working)**
 - [ ] How a flow gives a test customer an allergy profile (a `savePreferences` call from a Maestro script, or a seeded mock user): decided at build time, the lead reviews. Needs a second mock user or a reset, because the profile persists in the local Cosmos for the life of the stack.
+
+**As built (2026-11-04)**
+- `apps/mobile-customer/src/allergens.ts` (the hook, the app's version of the web's `useCheckoutAllergens`: tags, each listing's allergens, the profile, the cart check; read fresh whenever the cart's items or options change, nothing stored), `CartScreen` (what each line contains), `CheckoutScreen` (warnings, acknowledgement, "no profile", "check failed", "Tell the bakery"; the allergens go into the order and into the idempotency fingerprint), `App.tsx` and `src/auth/session.ts` ("Signed in as").
+- Shared, with unit tests, in `packages/customer-core`: `displayNameFromToken` (`identity.ts`), `profileFromPreferences`, `lineConflictsFromCheck`, `cartCheckLines` (`allergenCheck.ts`); the wording and gating rules already there from `CUST-008` are reused unchanged.
+- Flows `05-allergy-warning`, `06-no-allergy-profile`, `07-allergy-check-failed` and a "Signed in as" check in `01`; `scripts/lib/flow-control.mjs` (a local server started by `scripts/dev/mobile-flows.mjs`) saves Alice's profile through the BFF, reads her newest order, and stops and starts the BFF for flow 07. Result: `docs/evidence/WI-MOB-002/`.
+
+**Changes from the original plan**
+- **"Signed in as" added** at the lead's request (see the criteria above).
+- **The acknowledgement hint sits under the checkbox, not under the button** (as on the web): the checkout screen is longer than the phone and the button is below the pickup times, so a hint next to it would not be seen.
+- **The open point is decided:** the profile is saved by the runner's control server through the BFF `savePreferences`, signed in as Alice with the app's own flow; no second mock user was needed because each flow sets its own profile and clears it.
+- **The check-failed flow takes the BFF away** instead of failing one query; the runner's control server stops and starts it.
+- **Diet matches** (`cartCheck`'s `dietMatches`, `WI-TAG-004`) are not read or shown (out of scope, as the spec says).
+- Not done: the cases listed under "Not run" in the evidence (an `AVOID`-only conflict, several allergies, unticking an allergy, an option-only conflict), any accessibility check, and the lead's review of the wording.

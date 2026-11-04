@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 22 |
+| In review | 23 |
 | Built | 1 |
-| Ready | 6 |
+| Ready | 5 |
 | Proposed | 4 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -111,7 +111,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | EPIC-PM-ARTIFACTS | Done | evidence: `docs/management/stakeholder-communications-plan.md` |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | EPIC-PM-ARTIFACTS | Done | evidence: `docs/process/branching-strategy.md` |
 | [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | EPIC-WEB-CUSTOMER | In review | built and run locally 2026-11-04 (four Maestro flows pass on the emulator, `docs/evidence/WI-MOB-001/`); waiting for the lead's review of the auth changes (the issuer redirect rule, the token handling in the app) and decision on pushing; ADR-0023 accepted 2026-11-04 |
-| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery) | EPIC-WEB-CUSTOMER | Ready | written 2026-11-04 at the lead's request (register 146); depends on `WI-MOB-001` (built, In review) and reuses `CUST-008`'s rules |
+| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | EPIC-WEB-CUSTOMER | In review | built and run locally 2026-11-04 (7 of 7 Maestro flows pass from a cold start, `docs/evidence/WI-MOB-002/`; 14 new unit tests); waiting for the lead's review of the allergy wording (the spec names the lead as its reviewer) and of the control server's use of the sign-in flow; the lead added "Signed in as <name>" on 2026-11-04 |
 | [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | EPIC-QUALITY-EVIDENCE | Ready | written 2026-11-04 at the lead's request; depends on `WI-MOB-001` (built, In review) |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
@@ -203,7 +203,7 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-148 numbered items in `docs/governance/open-items-register.md` (highest number 148).
+149 numbered items in `docs/governance/open-items-register.md` (highest number 149).
 
 | Type | Count |
 |---|---|
@@ -283,11 +283,12 @@ Accepted: 22 · Superseded: 1
 | Pipeline reliability | 1 |
 | Tooling limitation | 1 |
 | Test limitation | 1 |
+| Defect (cosmetic) | 1 |
 
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
-| Resolved | 48 |
+| Resolved | 49 |
 | Accepted | 9 |
 | Tracking | 12 |
 | Open | 58 |

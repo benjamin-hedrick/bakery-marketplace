@@ -50,7 +50,7 @@ Yes for the app and the flows; the issuer rule and the token handling are review
 **As built (2026-11-04)**
 - `apps/mobile-customer`: Expo SDK 58, React Native 0.88, TypeScript, Android only. Login, menu with stock, item with options, order (cart), checkout (pickup window optional, idempotency key per content, a rejection spends the key), order status (polled every 5 s), logout. Plain `fetch` to the BFF (`src/api.ts`), no Relay.
 - Sign-in as in ADR-0023 (its "What has been built" section lists each decision against the code). Issuer change: `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs`, registered in `docker-compose.yml`.
-- Flows: `apps/mobile-customer/.maestro/` (four flows and a login subflow), run by `node scripts/dev/mobile-flows.mjs` (boots the emulator if needed, starts the same stack as `scripts/dev/mobile-stack.mjs`, builds, installs, runs, tears down). Result: `docs/evidence/WI-MOB-001/`.
+- Flows: `apps/mobile-customer/.maestro/` (four flows and a login subflow here; `WI-MOB-002` added three allergen flows and the runner's control server), run by `node scripts/dev/mobile-flows.mjs` (boots the emulator if needed, starts the same stack as `scripts/dev/mobile-stack.mjs`, builds, installs, runs, tears down). Result: `docs/evidence/WI-MOB-001/`.
 - Gates: format and typecheck of the app and of `packages/customer-core` are in `node scripts/ci/node-gates.mjs`; the Maestro flows are not in the pipeline (register 148).
 
 **Changes from the original plan**

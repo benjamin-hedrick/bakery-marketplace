@@ -1,6 +1,6 @@
 # WI-MOB-001: Maestro flows of the Android customer app, 2026-11-04
 
-> **Status:** Snapshot · 2026-11-04 · one local run on the lead's Windows machine; not a pipeline result.
+> **Status:** Snapshot · 2026-11-04 · this is the record of the four flows of `WI-MOB-001`; the seven-flow run with the allergen flows is `docs/evidence/WI-MOB-002/` · one local run on the lead's Windows machine; not a pipeline result.
 >
 > **Current result:** the one-command run passed, 4 of 4 flows, exit code 0. Single run, single emulator image, a test build; see "Not run" below.
 
