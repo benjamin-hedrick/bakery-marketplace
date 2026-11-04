@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 17 |
+| In review | 18 |
 | Built | 1 |
-| Ready | 7 |
+| Ready | 6 |
 | Proposed | 5 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -86,7 +86,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CUST-005](WI-CUST-005.md) | Allergen profile page | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); waiting for the lead's review of the wording and the page |
 | [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys written but not yet run |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/order-history` (2026-11-04); the page, the BFF query and the ordering endpoint pass their tests and the real-stack journeys (29 passed), nothing is deployed; waiting for the lead's review |
-| [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | EPIC-WEB-CUSTOMER | Ready |  |
+| [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys written but not yet run (register 140) |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |

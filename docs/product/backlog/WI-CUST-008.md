@@ -1,4 +1,10 @@
-> **Status:** Ready
+> **Status:** In review · built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys written but not yet run (register 140)
+
+> **Outcome note (2026-11-04):** built as specified, with the lead's decision (2026-11-04) that the acknowledgement **blocks the button until the customer confirms** ("block with the ability to confirm and override"): the form's own rule only, no server-side refusal. `useCheckoutAllergens` reads, fresh from the network each time the cart's items or options change: the registry labels, each cart listing's allergens (public `listing`), the customer's profile, and (for a non-empty profile) `cartCheck`. Each line shows what the item and the chosen options contain, or "No allergens flagged by the bakery" (never "safe"); conflicts are listed by line with the severity word and icon, serious first; a serious conflict shows "I have read this and still want to order", and the button stays off (with the reason in text) until it is ticked; the tick belongs to one set of conflicts (`allergyConflictKey`) and is lost when they change. If the profile or the check cannot be read the form says "We could not check this order against your allergies", shows no reassurance, and lets the customer order. "Tell the bakery" lists the profile's allergies, ticked, with the wording "The bakery will see these allergies with your order"; what stays ticked is sent as `allergens` and is part of the idempotency fingerprint (a different choice is a different checkout and gets a new key); nothing is sent for none, and the `avoid` list is never offered or sent. The mock BFF gained `cartCheck` and order allergens.
+>
+> **Verified (local):** 14 unit tests (wording, the acknowledgement rules, what is told to the bakery, the request and its fingerprint; 51 in the app), 13 browser tests against the mock BFF (107 in the suite, all passing): lines for a customer with no profile, nothing flagged, an option named only when chosen, each severity and an option-only conflict, the gating, an avoid alone, a failed check, the control and what `placeOrder` is sent, a new key after the choice changes, axe smoke. Mutation checks, each failing the intended tests: the acknowledgement rule removed (found a weak assertion, fixed); a failed check treated as no conflicts. **Not run:** the real-stack journey `tests/skeleton/checkout-allergens.spec.ts` (see register 140).
+>
+> **Changes from the original plan:** the acknowledgement blocks (the open point, decided); the cart page reads each listing again instead of using stored allergens, because a copy kept in the browser could be older than the bakery's last edit. **Not done / limits:** the order page does not show the allergens told to the bakery yet; the line text is not refreshed while the page stays open if the bakery edits a listing; the form needs a login, so "for everyone" means every logged-in customer, with or without a profile.
 
 ```
 WI ID:               CUST-008
@@ -7,7 +13,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-WEB-CUSTOMER
 Shared with epic(s):  EPIC-PREFERENCES
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 M
 ```
 
@@ -22,7 +28,7 @@ Vision principle 1 says allergy information is surfaced at "browse, customizatio
 - How the check is computed (`SRCH-001`) or stored on the order (`ORD-009`).
 
 **Out of scope**
-- Blocking an order; a server-side refusal at checkout (the warning is advice, the customer decides); diet preferences.
+- A server-side refusal at checkout (the warning and the acknowledgement are the form's own rule, advice the customer decides on); diet preferences.
 
 **Requirements / Acceptance Criteria**
 - **For everyone** (logged in or not, with or without a profile): every cart line shows the allergens of its item and of the options chosen, from the listing data the form already reads, in the same plain words as the detail page. This closes KR1.1.
@@ -43,4 +49,4 @@ See `docs/process/definition-of-done.md`.
 Yes, with the lead's review of the wording and of letting the customer proceed when the check fails.
 
 **Open Points (working)**
-- [ ] Whether an unticked acknowledgement should block the button or only mark the form. Proposed: it blocks (a serious conflict deserves one deliberate action), and nothing else does.
+- [x] Whether an unticked acknowledgement should block the button. Decided by the lead 2026-11-04: it blocks, with the ability to confirm and override; nothing else does.

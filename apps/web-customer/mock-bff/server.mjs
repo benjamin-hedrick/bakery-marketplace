@@ -7,6 +7,7 @@
 //   POST /__control {"revision": n} shifts every price by n cents so refetches are observable.
 //   POST /__control {"resetOrders": true, "seedOrders": n} forgets the orders placed so far and adds n completed ones (the order history).
 //   POST /__control {"resetPreferences": true, "preferences": {"allergies": [...], "avoid": [...]}} clears or sets the one mock customer's allergen profile.
+//   `x-cart-check: fail` makes cartCheck fail with an internal error.
 //   `x-save-preferences: fail` makes savePreferences fail with an internal error; `rejected` answers SavePreferencesRejected.
 // Like the real BFF, placeOrder and order need a bearer token. Orders are kept in memory and an idempotency key returns the same order.
 import http from 'node:http';
@@ -80,6 +81,7 @@ function toOrder(o) {
     lineItems: o.lineItems,
     total: money(o.totalCents),
     pickupWindow: o.pickupWindow,
+    allergens: o.allergens ?? [],
     createdAt: o.createdAt,
   };
 }
@@ -105,7 +107,14 @@ async function placeOrder({ input }, ctx) {
   }
   if (ctx.testPayment === 'decline') return rejected('PAYMENT_DECLINED');
 
-  const fingerprint = JSON.stringify([input.vendorId, input.lineItems, input.pickupWindow ?? null]);
+  const known = new Set(ALLERGENS.map((a) => a.id));
+  if ((input.allergens ?? []).some((id) => !known.has(id))) {
+    return rejected('VALIDATION_FAILED', [
+      { field: 'allergens[0]', message: 'That is not an allergen the bakery offers.' },
+    ]);
+  }
+  const allergens = [...new Set(input.allergens ?? [])].sort();
+  const fingerprint = JSON.stringify([input.vendorId, input.lineItems, input.pickupWindow ?? null, allergens]);
   const prior = keys.get(input.idempotencyKey);
   if (prior) {
     return prior.fingerprint === fingerprint
@@ -137,6 +146,7 @@ async function placeOrder({ input }, ctx) {
     lineItems,
     totalCents,
     pickupWindow: input.pickupWindow ?? null,
+    allergens,
     // Mirrors WI-ORD-008 so a test can show both states without a vendor; the real-stack journey test checks the real rule.
     status: input.pickupWindow || input.lineItems.some((l) => l.modifierIds.length > 0) ? 'PLACED' : 'CONFIRMED',
     createdAt: new Date().toISOString(),
@@ -232,6 +242,27 @@ function conflictsOf(l) {
   return out.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'ALLERGY' ? -1 : 1));
 }
 
+// The cart check, as the real BFF answers it: for each line the conflicts of the item and of the options chosen on that line, and only those.
+function cartCheck({ lines }, ctx) {
+  needCustomer(ctx);
+  if (ctx.cartCheck === 'fail') {
+    throw new GraphQLError('Something went wrong. Please try again.', {
+      extensions: { code: 'INTERNAL', reference: '0123456789abcdef0123456789abcdef' },
+    });
+  }
+  preferenceReads++;
+  return lines.map((line) => {
+    const listing = data(ctx.fixture).find((l) => l.id === line.listingId);
+    if (!listing) return { listingId: line.listingId, found: false, unknownOptionIds: [], conflicts: [] };
+    const chosen = new Set(line.optionIds);
+    const conflicts = conflictsOf(listing)
+      .map((c) => (c.source === 'OPTION' ? { ...c, optionIds: c.optionIds.filter((id) => chosen.has(id)) } : c))
+      .filter((c) => c.source !== 'OPTION' || c.optionIds.length > 0);
+    const unknownOptionIds = line.optionIds.filter((id) => !listing.modifiers.some((m) => m.id === id));
+    return { listingId: line.listingId, found: true, unknownOptionIds, conflicts };
+  });
+}
+
 function personalizedListings({ hideConflicts }, ctx) {
   needCustomer(ctx);
   preferenceReads++;
@@ -267,6 +298,7 @@ function rootFor(fixture) {
     savePreferences,
     personalizedListings,
     personalizedListing,
+    cartCheck,
     order: readOrder,
     orders: listOrders,
     placeOrder,
@@ -343,6 +375,7 @@ const server = http.createServer(async (req, res) => {
       authorization: req.headers.authorization,
       scenario: req.headers['x-place-order'] ? String(req.headers['x-place-order']) : undefined,
       testPayment: decline ? 'decline' : undefined,
+      cartCheck: req.headers['x-cart-check'] ? String(req.headers['x-cart-check']) : undefined,
       savePreferences: req.headers['x-save-preferences'] ? String(req.headers['x-save-preferences']) : undefined,
     },
     typeResolver: (value) => value.__typename,

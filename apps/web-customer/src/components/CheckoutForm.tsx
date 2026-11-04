@@ -16,9 +16,17 @@ import {
   type Cart,
 } from '../lib/cart/cart.ts';
 import { cartStore, useCart } from '../lib/cart/useCart.ts';
+import {
+  allergensToTell,
+  allergyConflictKey,
+  lineAllergenSentences,
+  lineConflictText,
+  needsAcknowledgement,
+} from '../lib/cartAllergens.ts';
 import { randomUrlSafe } from '../lib/random';
 import { formatMoney } from '../lib/money';
 import { GraphQLRequestError, UnauthenticatedError } from '../lib/relay/environment';
+import { useCheckoutAllergens } from './useCheckoutAllergens';
 
 const windowsQuery = graphql`
   query CheckoutWindowsQuery($vendorId: ID!) {
@@ -90,6 +98,20 @@ export function CheckoutForm() {
   const attempt = useRef<{ key: string; fingerprint: string } | null>(null);
   const vendorId = cart.vendorId;
 
+  // Allergens (WI-CUST-008): what each line contains (for everyone), the customer's own conflicts (with a profile), the acknowledgement a serious conflict
+  // asks for, and which of the customer's allergies to tell the bakery. All advice and hints: the services decide what an order may contain.
+  const info = useCheckoutAllergens(cart);
+  const [unticked, setUnticked] = useState<ReadonlySet<string>>(new Set());
+  const [ackFor, setAckFor] = useState<string | null>(null);
+  const profile = info.profile.state === 'ready' ? info.profile.value : null;
+  const lineConflicts = info.check.state === 'ready' ? info.check.value : [];
+  const ackKey = allergyConflictKey(lineConflicts);
+  const mustAcknowledge = needsAcknowledgement(lineConflicts);
+  const acknowledged = ackFor === ackKey;
+  const checking = info.profile.state === 'loading' || info.check.state === 'loading';
+  const checkFailed = info.profile.state === 'failed' || info.check.state === 'failed';
+  const tell = profile ? allergensToTell(profile.allergies, unticked) : [];
+
   // Always from the network: the open slots change every few minutes, so a stored answer could offer one checkout would refuse.
   const fetchWindows = useCallback(() => {
     if (vendorId === null) return;
@@ -119,14 +141,15 @@ export function CheckoutForm() {
 
   function submit() {
     const pickupWindow = chosen ? { start: chosen.start, end: chosen.end } : null;
-    const content = fingerprint(cart, pickupWindow);
+    if (mustAcknowledge && !acknowledged) return; // the button is off in this case; this is the same rule for any other way in
+    const content = fingerprint(cart, pickupWindow, tell);
     if (attempt.current?.fingerprint !== content) {
       // "checkout-" first, so the key always starts with a letter or digit as ordering-service requires
       attempt.current = { key: `checkout-${randomUrlSafe(16)}`, fingerprint: content };
     }
     setProblem(null);
     commit({
-      variables: { input: { idempotencyKey: attempt.current.key, ...toPlaceOrderInput(cart, pickupWindow) } },
+      variables: { input: { idempotencyKey: attempt.current.key, ...toPlaceOrderInput(cart, pickupWindow, tell) } },
       onCompleted: ({ placeOrder }) => {
         if (placeOrder.__typename === 'PlaceOrderSuccess') {
           setPlaced(true);
@@ -177,6 +200,21 @@ export function CheckoutForm() {
               <td>
                 {line.name}
                 {line.modifiers.length ? <small> — {line.modifiers.map((m) => m.name).join(', ')}</small> : null}
+                {info.listings.state === 'ready' ? (
+                  <div>
+                    <small data-testid="line-allergens">
+                      {lineAllergenSentences(info.listings.value.get(line.listingId), line.modifiers, info.labels).join(
+                        '. ',
+                      )}
+                    </small>
+                  </div>
+                ) : info.listings.state === 'failed' ? (
+                  <div>
+                    <small data-testid="line-allergens-failed">
+                      Allergen information could not be loaded. Check with the bakery.
+                    </small>
+                  </div>
+                ) : null}
               </td>
               <td>
                 <select
@@ -258,12 +296,93 @@ export function CheckoutForm() {
         <small>A specific pickup time or a customized item waits for the bakery to confirm.</small>
       </p>
 
+      {profile || checkFailed ? (
+        <section aria-label="Your allergies" data-testid="allergy-section">
+          {checkFailed ? (
+            <p role="alert" data-testid="check-failed">
+              We could not check this order against your allergies. You can still place it; please check the allergens
+              listed above with the bakery.
+            </p>
+          ) : null}
+          {profile && info.check.state === 'ready' ? (
+            <>
+              {lineConflicts.length > 0 ? (
+                <ul data-testid="conflicts" className="conflicts">
+                  {lineConflicts.map(({ lineIndex, conflict }) => {
+                    const line = cart.lines[lineIndex];
+                    if (!line) return null;
+                    const m = lineConflictText(
+                      line.name,
+                      conflict,
+                      info.labels,
+                      new Map(line.modifiers.map((o) => [o.id, o.name])),
+                    );
+                    return (
+                      <li
+                        key={`${lineIndex}:${conflict.allergenId}:${conflict.source}`}
+                        data-testid="conflict"
+                        data-severity={m.severity}
+                      >
+                        <span aria-hidden="true">{m.severity === 'ALLERGY' ? '⚠ ' : 'ℹ '}</span>
+                        <strong>{m.heading}:</strong> {m.line}.
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+              <p data-testid="personal-reminder">
+                Marked from what the bakery has listed. An item without a mark is not guaranteed free of your allergens,
+                so check with the bakery when it matters.
+              </p>
+              {mustAcknowledge ? (
+                <p>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={acknowledged}
+                      onChange={(e) => setAckFor(e.target.checked ? ackKey : null)}
+                    />{' '}
+                    I have read this and still want to order
+                  </label>
+                </p>
+              ) : null}
+            </>
+          ) : null}
+          {profile && profile.allergies.length > 0 ? (
+            <fieldset data-testid="tell-bakery">
+              <legend>Tell the bakery</legend>
+              <p>The bakery will see these allergies with your order.</p>
+              {profile.allergies.map((id) => (
+                <label key={id}>
+                  <input
+                    type="checkbox"
+                    checked={!unticked.has(id)}
+                    onChange={(e) => {
+                      const next = new Set(unticked);
+                      if (e.target.checked) next.delete(id);
+                      else next.add(id);
+                      setUnticked(next);
+                      setProblem(null);
+                    }}
+                  />{' '}
+                  {info.labels.get(id) ?? id}{' '}
+                </label>
+              ))}
+            </fieldset>
+          ) : null}
+        </section>
+      ) : null}
+
       {problem ? <ProblemNotice problem={problem} cart={cart} onOrderChanged={() => setProblem(null)} /> : null}
 
       <p>
-        <button type="submit" disabled={inFlight}>
+        <button type="submit" disabled={inFlight || checking || (mustAcknowledge && !acknowledged)}>
           {inFlight ? 'Placing your order…' : 'Place test order'}
         </button>{' '}
+        {checking ? <small data-testid="checking">Checking this order against your allergies…</small> : null}
+        {mustAcknowledge && !acknowledged ? (
+          <small data-testid="ack-needed">Tick the box above to place this order.</small>
+        ) : null}{' '}
         <small>Test checkout: no payment is taken.</small>
       </p>
     </form>
