@@ -26,7 +26,7 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | Done | *none* | *none* |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | Done | *none* | `baseline-2026-10-30.md` |
 | [CUST-005](WI-CUST-005.md) | Allergen profile page | In review | `preferences.spec.ts`, `profile-page.spec.ts` | `ai-usage-2026-11-04.md`, `status-check-experiment-2026-10-30.md` |
-| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | In review | `personalized.spec.ts`, `profile-page.spec.ts`, `conflictText.test.ts` | `ai-usage-2026-11-04.md`, `status-check-experiment-2026-10-30.md` |
+| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | In review | `personalized.spec.ts`, `profile-page.spec.ts`, `conflictText.test.ts` | `maestro-flows-2026-11-04.md`, `ai-usage-2026-11-04.md`, `status-check-experiment-2026-10-30.md` |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | In review | `order-history.spec.ts`, `order-history.spec.ts`, `customer-orders.test.ts` and 1 more | `ai-usage-2026-11-04.md`, `baseline-2026-10-30.md`, `status-check-experiment-2026-10-30.md` |
 | [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | In review | `checkout-allergens.spec.ts`, `checkout-allergens.spec.ts`, `cartAllergens.test.ts` | `ai-usage-2026-11-04.md` |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
@@ -45,8 +45,8 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [MGMT-005](WI-MGMT-005.md) | Draft the budget / cost estimate | In review | *none* | *none* |
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | Done | *none* | *none* |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | Done | *none* | *none* |
-| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | In review | *none* | `maestro-flows-2026-11-04.md` |
-| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | *none* | `maestro-flows-2026-11-04.md` |
+| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | In review | *none* | `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` |
+| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | `identity.test.ts` | `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `README.md`, `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | In review | *none* | `README.md`, `ai-usage-2026-11-03.md` |

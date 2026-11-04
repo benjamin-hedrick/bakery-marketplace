@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="bakery_pixel" tests="7" failures="0" time="257.199" timestamp="2026-11-04T17:19:47">
+    <testcase id="Login, restart without login, logout" name="Login, restart without login, logout" classname="Login, restart without login, logout" file=".maestro\01-login-and-logout.yaml" time="35.93" timestamp="2026-11-04T17:19:47" status="SUCCESS"/>
+    <testcase id="Browse to an item's detail" name="Browse to an item's detail" classname="Browse to an item's detail" file=".maestro\02-browse-to-detail.yaml" time="23.789" timestamp="2026-11-04T17:20:23" status="SUCCESS"/>
+    <testcase id="Add to order, check out, see the order status" name="Add to order, check out, see the order status" classname="Add to order, check out, see the order status" file=".maestro\03-order-journey.yaml" time="38.295" timestamp="2026-11-04T17:20:47" status="SUCCESS"/>
+    <testcase id="A declined payment keeps the order" name="A declined payment keeps the order" classname="A declined payment keeps the order" file=".maestro\04-declined-payment.yaml" time="36.936" timestamp="2026-11-04T17:21:25" status="SUCCESS"/>
+    <testcase id="An allergy warning must be acknowledged before the order is placed" name="An allergy warning must be acknowledged before the order is placed" classname="An allergy warning must be acknowledged before the order is placed" file=".maestro\05-allergy-warning.yaml" time="46.29" timestamp="2026-11-04T17:22:02" status="SUCCESS"/>
+    <testcase id="With no allergy profile the order is not checked, and the app says so" name="With no allergy profile the order is not checked, and the app says so" classname="With no allergy profile the order is not checked, and the app says so" file=".maestro\06-no-allergy-profile.yaml" time="38.449" timestamp="2026-11-04T17:22:48" status="SUCCESS"/>
+    <testcase id="A failed allergy check is said plainly and does not block the order" name="A failed allergy check is said plainly and does not block the order" classname="A failed allergy check is said plainly and does not block the order" file=".maestro\07-allergy-check-failed.yaml" time="37.366" timestamp="2026-11-04T17:23:27" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

@@ -1,4 +1,4 @@
-> **Status:** In review · built and run locally 2026-11-04 (7 of 7 Maestro flows pass from a cold start, `docs/evidence/WI-MOB-002/`; 14 new unit tests); waiting for the lead's review of the allergy wording (the spec names the lead as its reviewer) and of the control server's use of the sign-in flow; the lead added "Signed in as <name>" on 2026-11-04
+> **Status:** In review · built and run locally 2026-11-04 (7 of 7 Maestro flows pass from a cold start, `docs/evidence/WI-MOB-002/`; 14 new unit tests); the lead approved the allergy wording on 2026-11-04; waiting for the lead's review of the control server's use of the sign-in flow (`scripts/lib/flow-control.mjs`); the lead added "Signed in as <name>" on 2026-11-04
 
 ```
 WI ID:               MOB-002
@@ -61,4 +61,5 @@ Yes. The wording and gating rules are in the shared package; the lead reviews th
 - **The open point is decided:** the profile is saved by the runner's control server through the BFF `savePreferences`, signed in as Alice with the app's own flow; no second mock user was needed because each flow sets its own profile and clears it.
 - **The check-failed flow takes the BFF away** instead of failing one query; the runner's control server stops and starts it.
 - **Diet matches** (`cartCheck`'s `dietMatches`, `WI-TAG-004`) are not read or shown (out of scope, as the spec says).
-- Not done: the cases listed under "Not run" in the evidence (an `AVOID`-only conflict, several allergies, unticking an allergy, an option-only conflict), any accessibility check, and the lead's review of the wording.
+- **The control server was hardened** after the first passing run (it refuses browser pages and any call without its header or the right Host; 8 tests; the flows re-run 7 of 7).
+- Not done: the cases listed under "Not run" in the evidence (an `AVOID`-only conflict, several allergies, unticking an allergy, an option-only conflict) and any accessibility check. The lead approved the wording on 2026-11-04.

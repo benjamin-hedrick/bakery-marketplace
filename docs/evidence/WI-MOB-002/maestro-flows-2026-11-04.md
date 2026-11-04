@@ -2,7 +2,7 @@
 
 > **Status:** Snapshot · 2026-11-04 · one local run on the lead's Windows machine, after several runs that failed; not a pipeline result.
 >
-> **Current result:** `node scripts/dev/mobile-flows.mjs` from a cold start passed **7 of 7 flows**, exit code 0, 255 s of flow time, with a fresh build of the app. The same flows failed in three earlier runs the same day for the reasons below, and none of the allergen paths has been exercised beyond what the three new flows do (see "Not run").
+> **Current result:** `node scripts/dev/mobile-flows.mjs` from a cold start passed **7 of 7 flows**, exit code 0, 255 s of flow time, with a fresh build of the app; after the control server was hardened (below) the flows were run again with the same app and passed **7 of 7** again (257 s). The same flows failed in three earlier runs the same day for the reasons below, and none of the allergen paths has been exercised beyond what the three new flows do (see "Not run").
 
 ## What ran
 
@@ -34,6 +34,13 @@ The customer's allergen profile is **not** set by a screen of the app: the flows
 
 So the passing run is the first in which every flow passed, after the tooling and the screen were changed. No flow was deliberately broken to prove it can fail; flow 05 did fail on a real assertion in run 3, and flow 03 on the login in run 1, which shows those assertions are live, not that every assertion is.
 
+## The control server, hardened after the first passing run (same day)
+
+Re-reading `scripts/lib/flow-control.mjs` showed it had no protection against a **web page in a browser**: while a run is active, a cross-origin "simple" POST needs no preflight and the server would have acted on it (stopped the BFF, rewritten Alice's mock profile). It now refuses, with 403 and before touching the issuer, the BFF or the processes, any request that carries an `Origin` header, lacks the header `x-flow-control: 1` (the Maestro scripts send it), or whose `Host` is not `127.0.0.1` on the server's own port (DNS rebinding). It still has no password, so another program running as the same user can call it while a run lasts.
+
+- **Tests:** `scripts/ci/tests/flow-control.test.mjs` (8 tests, fake issuer, BFF and stack, no emulator): the PKCE sign-in and `savePreferences` with Alice's bearer token and only the two lists, the newest order, stop and start of the BFF, and each refusal reaching nothing. With the guard replaced by `false`, 4 of the 8 fail (the four refusal tests); restored, all 8 pass. Each of the three conditions was not mutated on its own.
+- **The flows were re-run** after the change, from a cold start with `--no-build` (the app was unchanged): 7 of 7 passed, 4 m 17 s, and the run's log contains no refusal. The JUnit file is `maestro-junit-2026-11-04-hardened.xml`.
+
 ## Versions
 
 As in `docs/evidence/WI-MOB-001/maestro-flows-2026-11-04.md` (Maestro 2.12.1, `bakery_pixel` Android 35 x86_64, Expo SDK 58, React Native 0.88.1, Node 25.9.0, .NET 10, Docker 29.1.3), on the same machine.
@@ -45,5 +52,5 @@ As in `docs/evidence/WI-MOB-001/maestro-flows-2026-11-04.md` (Maestro 2.12.1, `b
 - **Nothing about accessibility:** whether a screen reader announces the warnings, the checkbox and the disabled button correctly, large text, or dark mode was not checked. The warning's colour is not the only signal (the heading "Allergy warning" and the symbol carry it), by construction rather than test.
 - **One emulator image, one machine, one passing run**, and the login page's tree problem was seen once in five runs, so a failure at the login on another run is possible. The login subflow now falls back to tapping where the first button is when the button is not in the tree; whether that fallback ran in the passing run was not checked.
 - **When the check fails nothing is told to the bakery:** with the profile unreadable the app cannot know which allergens to send, so the order carries none (the web behaves the same). Flow 07 does not assert this.
-- **Not shown to a person:** the wording of the warnings and the "no profile" text has not been reviewed by the lead (the spec names the lead as reviewer of the safety wording).
+- **The lead approved the wording** of the warnings, the "no profile" text and the rest of the allergy text on 2026-11-04, after these runs and on reading the spec and the summary; the evidence for that is the lead's statement in the session, not a recorded review of the screens. The lead's review of the control server's use of the sign-in flow is still pending.
 - Local only: not in the pipeline, the flows only work when started by `scripts/dev/mobile-flows.mjs` (the control server), the app is a test build and the BFF has its test hook on.
