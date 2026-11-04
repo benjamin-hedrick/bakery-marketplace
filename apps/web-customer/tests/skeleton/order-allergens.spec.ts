@@ -32,14 +32,23 @@ const input = (allergens?: string[]) => ({
   ...(allergens ? { allergens } : {}),
 });
 
-/** Waits for the vendor read model, which is fed by the order events a moment after checkout. */
+/**
+ * Waits for the vendor read model, which is fed by the order events a moment after checkout, until the order shows allergens. The wait is for the
+ * allergens and not merely for the order: the events can be applied out of order (the automatic confirmation before the placement), and then the
+ * order exists for a moment without the facts only `OrderPlaced` carries (register 112; the projection fills them in when that event arrives).
+ * Returns what was last read, so a failure still shows what the vendor saw.
+ */
 async function vendorAllergens(token: string, id: string): Promise<string[] | null> {
-  for (let i = 0; i < 40; i++) {
+  let last: string[] | null = null;
+  for (let i = 0; i < 80; i++) {
     const body = await gql(token, VENDOR_READ, { id });
-    if (body.data?.vendorOrder) return body.data.vendorOrder.allergens;
+    if (body.data?.vendorOrder) {
+      last = body.data.vendorOrder.allergens;
+      if (last && last.length > 0) return last;
+    }
     await new Promise((r) => setTimeout(r, 250));
   }
-  return null;
+  return last;
 }
 
 test('an order placed with allergens shows them to its customer and to the vendor who has it, and not to anyone else', async () => {
