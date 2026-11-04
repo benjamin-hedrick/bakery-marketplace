@@ -36,6 +36,9 @@ public sealed record OrderDto(
         o.SequenceNumber, o.CreatedAt, o.UpdatedAt);
 }
 
+/// <summary>One page of the customer's orders, and the cursor of the next page (null on the last).</summary>
+public sealed record OrderPage(IReadOnlyList<OrderDto> Items, string? NextCursor);
+
 public static class CheckoutEndpoints
 {
     public const string IdempotencyKeyHeader = "Idempotency-Key";
@@ -84,8 +87,29 @@ public static class CheckoutEndpoints
                 : Results.Ok(OrderDto.From(stored.Order));
         });
 
+        // The customer's own orders, newest first, one page after the cursor (WI-CUST-007). The customer is always the token's subject.
+        group.MapGet("/orders", async (int? limit, string? after, HttpContext http, OrderStore orders, CancellationToken ct) =>
+        {
+            var customerId = SubjectOf(http.User);
+            if (customerId is null) return Results.Unauthorized();
+
+            if (!OrderStore.IsValidCursor(after))
+            {
+                return Results.Json(
+                    new ApiError("validation_failed", "The request is invalid.", new Dictionary<string, string[]> { ["after"] = ["Not a cursor from a previous page."] }),
+                    statusCode: StatusCodes.Status422UnprocessableEntity);
+            }
+
+            var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
+            var (items, next) = await orders.ListForCustomerAsync(customerId, size, after, ct);
+            return Results.Ok(new OrderPage(items.Select(OrderDto.From).ToList(), next));
+        });
+
         return app;
     }
+
+    public const int DefaultPageSize = 20;
+    public const int MaxPageSize = 100;
 
     internal static string? SubjectOf(ClaimsPrincipal user) =>
         user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;

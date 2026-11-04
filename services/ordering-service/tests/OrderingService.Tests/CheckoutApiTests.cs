@@ -120,6 +120,121 @@ public sealed class CheckoutApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync($"/ordering/orders/{id}")).StatusCode);
     }
 
+    // ---- the customer's order list (WI-CUST-007) --------------------------------------------------
+
+    private async Task<string> PlaceAt(HttpClient client, int minutesAfterStart)
+    {
+        _factory.Time.Now = Seed.Now.AddMinutes(minutesAfterStart);
+        var created = await JsonOf(await PostCheckout(client, Body()));
+        return created.GetProperty("id").GetString()!;
+    }
+
+    [Fact]
+    public async Task TheListHoldsOnlyTheCallersOrders_NewestFirst()
+    {
+        var first = await PlaceAt(_customer, 0);
+        var second = await PlaceAt(_customer, 1);
+        var other = await PlaceAt(_factory.CustomerClient("customer-2"), 2);
+
+        var page = await JsonOf(await _customer.GetAsync("/ordering/orders"));
+
+        Assert.Equal([second, first], page.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetString()).ToArray());
+        Assert.DoesNotContain(page.GetProperty("items").EnumerateArray(), i => i.GetProperty("id").GetString() == other);
+        Assert.All(page.GetProperty("items").EnumerateArray(), i => Assert.Equal("customer-1", i.GetProperty("customerId").GetString()));
+        Assert.Equal(JsonValueKind.Null, page.GetProperty("nextCursor").ValueKind);
+        Assert.Equal(1800, page.GetProperty("items")[0].GetProperty("totalCents").GetInt64());
+    }
+
+    [Fact]
+    public async Task ACustomerWithNoOrdersGetsAnEmptyPage()
+    {
+        await PlaceAt(_customer, 0);
+
+        var page = await JsonOf(await _factory.CustomerClient("customer-9").GetAsync("/ordering/orders"));
+
+        Assert.Empty(page.GetProperty("items").EnumerateArray());
+        Assert.Equal(JsonValueKind.Null, page.GetProperty("nextCursor").ValueKind);
+    }
+
+    [Fact]
+    public async Task PagesFollowTheCursorWithoutRepeatsOrGaps()
+    {
+        var ids = new List<string>();
+        for (var i = 0; i < 5; i++) ids.Add(await PlaceAt(_customer, i));
+        ids.Reverse(); // newest first
+
+        var seen = new List<string>();
+        string? after = null;
+        var pages = 0;
+        do
+        {
+            var url = "/ordering/orders?limit=2" + (after is null ? "" : $"&after={Uri.EscapeDataString(after)}");
+            var page = await JsonOf(await _customer.GetAsync(url));
+            seen.AddRange(page.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetString()!));
+            after = page.GetProperty("nextCursor").GetString();
+            pages++;
+        } while (after is not null && pages < 10);
+
+        Assert.Equal(ids, seen);
+        Assert.Equal(3, pages);
+    }
+
+    [Fact]
+    public async Task OrdersPlacedAtTheSameInstantStillPageInAStableOrder()
+    {
+        for (var i = 0; i < 3; i++) await PlaceAt(_customer, 0);
+
+        var all = (await JsonOf(await _customer.GetAsync("/ordering/orders"))).GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetString()!).ToList();
+        var first = await JsonOf(await _customer.GetAsync("/ordering/orders?limit=1"));
+        var second = await JsonOf(await _customer.GetAsync($"/ordering/orders?limit=2&after={Uri.EscapeDataString(first.GetProperty("nextCursor").GetString()!)}"));
+
+        Assert.Equal(3, all.Distinct().Count());
+        Assert.Equal(all[0], first.GetProperty("items")[0].GetProperty("id").GetString());
+        Assert.Equal(all.Skip(1), second.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetString()!));
+    }
+
+    [Theory]
+    [InlineData("garbage")]
+    [InlineData(":order-1")]
+    [InlineData("123:")]
+    [InlineData("x:order-1")]
+    public async Task ACursorThatIsNotOneIsRefused(string after)
+    {
+        var response = await _customer.GetAsync($"/ordering/orders?after={Uri.EscapeDataString(after)}");
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal("validation_failed", (await JsonOf(response)).GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task ThePageSizeIsKeptWithinItsBounds()
+    {
+        for (var i = 0; i < 3; i++) await PlaceAt(_customer, i);
+
+        Assert.Single((await JsonOf(await _customer.GetAsync("/ordering/orders?limit=0"))).GetProperty("items").EnumerateArray());
+        Assert.Equal(3, (await JsonOf(await _customer.GetAsync("/ordering/orders?limit=100000"))).GetProperty("items").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task OnlyACustomerMayListOrders()
+    {
+        await PlaceAt(_customer, 0);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/ordering/orders")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientWithRole("vendor-1", "Vendor").GetAsync("/ordering/orders")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientWithRole("admin-1", "Admin").GetAsync("/ordering/orders")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ACustomerIdInTheQueryCannotShowSomeoneElsesOrders()
+    {
+        await PlaceAt(_factory.CustomerClient("customer-2"), 0);
+
+        var page = await JsonOf(await _customer.GetAsync("/ordering/orders?customerId=customer-2"));
+
+        Assert.Empty(page.GetProperty("items").EnumerateArray());
+    }
+
     // ---- idempotency over HTTP -----------------------------------------------------------------
 
     [Fact]

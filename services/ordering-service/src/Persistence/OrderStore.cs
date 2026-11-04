@@ -24,6 +24,48 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
         return document is null ? null : new StoredOrder(document.ToOrder(), document);
     }
 
+    /// <summary>A cursor is the creation time and id of the last order of the previous page, <c>{milliseconds}:{id}</c>.</summary>
+    public static bool IsValidCursor(string? after) => after is null || TryParseCursor(after, out _, out _);
+
+    private static bool TryParseCursor(string after, out long milliseconds, out string id)
+    {
+        milliseconds = 0;
+        id = "";
+        var colon = after.IndexOf(':');
+        if (colon < 1 || colon == after.Length - 1 || after.Length > 200) return false;
+        id = after[(colon + 1)..];
+        return long.TryParse(after.AsSpan(0, colon), out milliseconds);
+    }
+
+    /// <summary>
+    /// The customer's own orders, the newest first (WI-CUST-007). One partition: the customer's, so another customer's orders can never appear.
+    /// The ordering and the cursor are applied here rather than in the store query, as in <see cref="VendorOrderReader"/>, so the customer's
+    /// whole partition is read for each page; revisit with a store-side ordering when a customer can have many thousands of orders.
+    /// </summary>
+    public async Task<(IReadOnlyList<Order> Items, string? NextCursor)> ListForCustomerAsync(
+        string customerId, int limit, string? after, CancellationToken ct = default)
+    {
+        var all = new List<OrderDocument>();
+        await foreach (var d in documents.QueryAsync(customerId, q => q.Where(x => x.CustomerId == customerId), ct))
+        {
+            all.Add(d);
+        }
+
+        var ordered = all
+            .Select(d => (Ms: d.CreatedAt.ToUnixTimeMilliseconds(), Doc: d))
+            .OrderByDescending(x => x.Ms).ThenBy(x => x.Doc.Id, StringComparer.Ordinal)
+            .AsEnumerable();
+        if (after is not null && TryParseCursor(after, out var ms, out var id))
+        {
+            // Strictly after the cursor in the list's own order: older, or the same instant with a later id.
+            ordered = ordered.Where(x => x.Ms < ms || (x.Ms == ms && string.CompareOrdinal(x.Doc.Id, id) > 0));
+        }
+
+        var page = ordered.Take(limit + 1).ToList();
+        var items = page.Take(limit).ToList();
+        return (items.Select(x => x.Doc.ToOrder()).ToList(), page.Count > limit ? $"{items[^1].Ms}:{items[^1].Doc.Id}" : null);
+    }
+
     /// <summary>
     /// A vendor's own order by id, or null. The vendor does not know the customer, so the order's partition is not known. When the vendor read
     /// model has the order, it names the customer and two point reads find the order. When it does not (the order is too new for its events to
