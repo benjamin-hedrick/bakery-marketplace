@@ -50,6 +50,32 @@ public static class EventTracing
         return new ConsumerScope(activity, previous);
     }
 
+    /// <summary>
+    /// The batch form of <see cref="StartConsumer{T}"/>: one consumer activity for the whole batch, on a new trace, with a link to the
+    /// publisher's trace of each event that carries a valid <c>Traceparent</c> (a batch has no single parent). Tagged with the number of
+    /// events. Nothing is started when no one listens to <see cref="ActivitySourceName"/>.
+    /// </summary>
+    public static ConsumerScope StartBatchConsumer<T>(string eventType, IReadOnlyCollection<DomainEventEnvelope<T>> envelopes)
+    {
+        var links = new List<ActivityLink>();
+        foreach (var envelope in envelopes)
+        {
+            if (!string.IsNullOrEmpty(envelope.Traceparent) && ActivityContext.TryParse(envelope.Traceparent, null, out var publisher))
+                links.Add(new ActivityLink(publisher));
+        }
+
+        var previous = Activity.Current;
+        Activity.Current = null;
+        var activity = Source.StartActivity(
+            $"process batch {eventType}",
+            ActivityKind.Consumer,
+            parentContext: default,
+            tags: [new("messaging.batch.message_count", envelopes.Count)],
+            links: links);
+        if (activity is null) Activity.Current = previous;
+        return new ConsumerScope(activity, previous);
+    }
+
     public readonly struct ConsumerScope(Activity? activity, Activity? previous) : IDisposable
     {
         public Activity? Activity => activity;

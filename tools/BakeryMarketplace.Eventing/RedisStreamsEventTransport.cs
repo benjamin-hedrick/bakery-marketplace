@@ -258,7 +258,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
     /// <summary>
     /// Runs the batch handler once for the entries of one poll. Entries whose event id the handler returns (or all of them, if it
     /// throws) are treated as failed and follow the same retry and dead-letter path as <see cref="ProcessAsync{T}"/>; the rest are
-    /// acknowledged one by one. No per-event trace scope is started: a batch has no single parent trace.
+    /// acknowledged one by one. One consumer activity covers the batch, linked to each event's publisher trace (a batch has no single parent).
     /// </summary>
     private async Task ProcessBatchAsync<T>(
         IReadOnlyList<(StreamEntry Entry, long DeliveryCount)> deliveries, string streamKey, string groupName,
@@ -283,7 +283,9 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         IReadOnlyCollection<Guid> failedIds;
         try
         {
-            failedIds = await handler(parsed.Select(p => p.Envelope).ToList(), token);
+            var envelopes = parsed.Select(p => p.Envelope).ToList();
+            using var consumer = EventTracing.StartBatchConsumer(parsed[0].Envelope.EventType, envelopes);
+            failedIds = await handler(envelopes, token);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
