@@ -1,4 +1,4 @@
-// scripts/lib/flow-control.mjs (WI-MOB-002): the local control server the Maestro flows call. These tests use a fake issuer, a fake BFF and a fake stack, so they run
+// scripts/lib/flow-control.mjs (WI-MOB-002): the local control server the Maestro flows call (the newest order of a customer, and stopping and starting the BFF). These tests use a fake issuer, a fake BFF and a fake stack, so they run
 // without Docker or an emulator. What matters most: a request that is not a flow's own call (a browser page, a missing header, a wrong Host) is refused before it
 // reaches the issuer, the BFF or the process control.
 import assert from 'node:assert/strict';
@@ -21,7 +21,7 @@ const readBody = (req) =>
   });
 
 describe('flow control server', () => {
-  const seen = { issuer: [], bff: [], stack: [] };
+  const seen = { issuer: [], bff: [], stack: [], users: [] };
   let issuer, bff, control, base;
   let bffUp = true; // what the fake stack's stop and start do to the fake BFF's health answer
 
@@ -31,6 +31,7 @@ describe('flow control server', () => {
       seen.issuer.push(`${req.method} ${req.url}`);
       if (req.url === '/authorize/submit') {
         const form = new URLSearchParams(body);
+        seen.users.push(form.get('userId'));
         assert.equal(form.get('redirect_uri'), 'com.bakerymarketplace.mobile:/auth/callback');
         assert.equal(form.get('code_challenge_method'), 'S256');
         res.writeHead(302, {
@@ -97,27 +98,54 @@ describe('flow control server', () => {
     seen.issuer.length = 0;
     seen.bff.length = 0;
     seen.stack.length = 0;
+    seen.users.length = 0;
   };
   const flow = { 'x-flow-control': '1', 'content-type': 'application/json' };
 
-  test('saves a profile through the BFF as Alice: the PKCE sign-in, then savePreferences with her bearer token and only the two lists', async () => {
+  test('reports the newest order of the customer asked for: the PKCE sign-in as that customer, then one orders query with their bearer token', async () => {
+    reset();
+    const res = await fetch(`${base}/last-order?user=user-customer-treenut`, { headers: flow });
+    assert.equal(res.status, 200);
+    assert.deepEqual((await res.json()).allergens, ['tree-nut']);
+    assert.deepEqual(seen.users, ['user-customer-treenut']);
+    assert.deepEqual(seen.issuer, ['POST /authorize/submit', 'POST /token']);
+    const call = seen.bff.find((b) => b.query.includes('orders'));
+    assert.equal(call.auth, 'Bearer alice-token'); // the fake issuer hands out one token
+    assert.ok(!seen.bff.some((b) => b.query.includes('savePreferences')), 'nothing here writes a profile any more');
+  });
+
+  test('without a user it asks as Alice', async () => {
+    reset();
+    assert.equal((await fetch(`${base}/last-order`, { headers: flow })).status, 200);
+    assert.deepEqual(seen.users, ['user-customer-1']);
+  });
+
+  test('only customers of the mock identity can be asked for: anything else is a 400 before the issuer is reached', async () => {
+    for (const user of [
+      'user-vendor-1',
+      'vendor-shop-001',
+      'user-admin-1',
+      '../x',
+      'user-customer-',
+      'USER-CUSTOMER-1',
+      'user-customer-1;x',
+    ]) {
+      reset();
+      const res = await fetch(`${base}/last-order?user=${encodeURIComponent(user)}`, { headers: flow });
+      assert.equal(res.status, 400, user);
+      assert.deepEqual(seen.issuer, [], user);
+    }
+  });
+
+  test('the profile endpoint is gone: profiles are seed data, not something a flow sets', async () => {
     reset();
     const res = await fetch(`${base}/profile`, {
       method: 'POST',
       headers: flow,
-      body: JSON.stringify({ allergies: ['tree-nut', 7, 'dairy'], avoid: ['soy'], extra: 'ignored' }),
+      body: JSON.stringify({ allergies: ['tree-nut'], avoid: [] }),
     });
-    assert.equal(res.status, 200);
-    assert.deepEqual(seen.issuer, ['POST /authorize/submit', 'POST /token']);
-    const call = seen.bff.find((b) => b.query.includes('savePreferences'));
-    assert.equal(call.auth, 'Bearer alice-token');
-    assert.deepEqual(call.variables, { input: { allergies: ['tree-nut', 'dairy'], avoid: ['soy'] } }); // a non-string is dropped, nothing else is sent
-  });
-
-  test('reports Alice’s newest order', async () => {
-    const res = await fetch(`${base}/last-order`, { headers: flow });
-    assert.equal(res.status, 200);
-    assert.deepEqual((await res.json()).allergens, ['tree-nut']);
+    assert.equal(res.status, 404);
+    assert.deepEqual(seen.bff, []);
   });
 
   test('stops and starts the BFF process', async () => {
@@ -132,7 +160,7 @@ describe('flow control server', () => {
       reset();
       const res = await fetch(`${base}${url}`, init);
       assert.equal(res.status, 403, label);
-      assert.deepEqual(seen, { issuer: [], bff: [], stack: [] }, `${label}: nothing may have been reached`);
+      assert.deepEqual(seen, { issuer: [], bff: [], stack: [], users: [] }, `${label}: nothing may have been reached`);
     };
 
     test('a web page: a cross-origin POST carries an Origin header, even a "simple" one with no preflight', async () => {
@@ -177,7 +205,7 @@ describe('flow control server', () => {
       });
       assert.equal(res.statusCode, 403);
       res.resume();
-      assert.deepEqual(seen, { issuer: [], bff: [], stack: [] });
+      assert.deepEqual(seen, { issuer: [], bff: [], stack: [], users: [] });
     });
 
     test('a browser’s preflight is not answered with permission', async () => {
@@ -194,10 +222,8 @@ describe('flow control server', () => {
     });
   });
 
-  test('an unknown path is a 404 and a body that is not JSON is an error, not a crash', async () => {
+  test('an unknown path is a 404 and the server keeps serving', async () => {
     assert.equal((await fetch(`${base}/nope`, { headers: flow })).status, 404);
-    const bad = await fetch(`${base}/profile`, { method: 'POST', headers: flow, body: 'not json' });
-    assert.equal(bad.status, 500);
-    assert.equal((await fetch(`${base}/last-order`, { headers: flow })).status, 200); // still serving
+    assert.equal((await fetch(`${base}/last-order`, { headers: flow })).status, 200);
   });
 });

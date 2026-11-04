@@ -1,20 +1,19 @@
-# WI-MOB-002: if the allergy check cannot be made, the screen says so plainly (never "no conflicts") and still lets the customer order. The runner's flow-control
+# WI-MOB-002: Nora (a seeded tree-nut allergy); if the allergy check cannot be made, the screen says so plainly (never "no conflicts") and still lets the customer order. The runner's flow-control
 # server takes the BFF away while checkout opens and brings it back before the order is placed.
 appId: com.bakerymarketplace.mobile
 name: A failed allergy check is said plainly and does not block the order
 onFlowComplete:
   - runScript: scripts/bff-start.js
-  - runScript: scripts/set-profile.js
 ---
-- runScript:
-    file: scripts/set-profile.js
-    env:
-      ALLERGIES: tree-nut
 - launchApp:
     clearState: true
-- runFlow: subflows/login.yaml
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USER_NAME: Nora
+      USER_ROW: 1
 - tapOn:
-    id: listing-Almond Croissant
+    id: listing-Oat Milk Latte # any item will do: the check fails whatever is in the order (and the latte is made to order, so it never runs out)
 - tapOn:
     id: add-to-order
 - runScript: scripts/bff-stop.js

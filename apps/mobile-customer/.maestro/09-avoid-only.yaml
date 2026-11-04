@@ -1,0 +1,43 @@
+# WI-MOB-002: Dana, a seeded customer who only AVOIDS dairy (a preference, not an allergy). The Lemon Loaf (made to order) contains dairy, so checkout shows a note that she avoids it,
+# but it is not a serious conflict: nothing must be acknowledged, Place order is on, and there is no allergy to tell the bakery, so the order carries none.
+appId: com.bakerymarketplace.mobile
+name: A preference to avoid something is shown but needs no acknowledgement
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USER_NAME: Dana
+      USER_ROW: 3
+- assertVisible: Signed in as Dana.*
+- tapOn:
+    id: listing-Lemon Loaf
+- tapOn:
+    id: add-to-order
+- tapOn:
+    id: to-checkout
+- assertVisible:
+    id: conflict-0
+- assertVisible: ".*You avoid this.*Lemon Loaf contains milk.*which you avoid.*"
+- assertNotVisible: ".*Allergy warning.*"
+- assertNotVisible:
+    id: acknowledge
+- assertNotVisible:
+    id: ack-needed
+- assertNotVisible:
+    id: tell-bakery
+- scrollUntilVisible:
+    element:
+      id: place-order
+- assertVisible:
+    id: place-order
+    enabled: true
+- tapOn:
+    id: place-order
+- assertVisible:
+    id: order-headline
+- runScript:
+    file: scripts/assert-last-order-allergens.js
+    env:
+      USER_ID: user-customer-avoiddairy

@@ -1,18 +1,18 @@
-# WI-MOB-002: a customer with no saved allergy profile. The cart still says what an item contains (or that the bakery flagged nothing), checkout says the order
+# WI-MOB-002: Alice, the seeded customer who never saved an allergy profile. The cart still says what an item contains (or that the bakery flagged nothing), checkout says the order
 # was not checked against any allergies, never says nothing conflicts, asks for no acknowledgement, and tells the bakery nothing.
 appId: com.bakerymarketplace.mobile
 name: With no allergy profile the order is not checked, and the app says so
 ---
-- runScript: scripts/set-profile.js
 - launchApp:
     clearState: true
 - runFlow: subflows/login.yaml
-# An item with flagged allergens: what it contains is shown even without a profile.
+# An item with flagged allergens: what it contains is shown even without a profile. (The sourdough, not the croissant: every flow of a run shares one stack and
+# the croissant has only 4 units, which flows 05 and 10 use.)
 - tapOn:
-    id: listing-Almond Croissant
+    id: listing-Country Sourdough
 - tapOn:
     id: add-to-order
-- assertVisible: ".*Contains.*tree nuts.*"
+- assertVisible: ".*Contains gluten.*"
 - tapOn:
     id: back
 - tapOn:

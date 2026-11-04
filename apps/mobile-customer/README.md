@@ -25,12 +25,14 @@ node ../../scripts/dev/mobile-flows.mjs --no-build   # reuse the test build alre
 node ../../scripts/dev/mobile-flows.mjs --flow 03    # one flow
 ```
 
-It boots the emulator if none is running, starts the backend (test hook on), builds and installs the app as a test build, runs the seven flows in
-`.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order; an allergy warning that must be acknowledged; no allergy profile; a failed allergy check). The last three set up a customer's allergen profile through a small local control server that the runner starts (`scripts/lib/flow-control.mjs`), so they only work when started by the runner, not by `maestro test` alone and tears down what it started. The
+It boots the emulator if none is running, starts the backend (test hook on), builds and installs the app as a test build, runs the ten flows in
+`.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order; an allergy warning that must be acknowledged; no allergy profile; a failed allergy check; an allergy only an option carries; an avoid that needs no acknowledgement; several allergies and choosing which to tell the bakery). The allergen flows log in as seeded customers whose saved profiles are seed data (`docs/operations/local-dev.md`, "Seeded customers"). Two steps call a small local control server that the runner starts (`scripts/lib/flow-control.mjs`: read a customer's newest order, stop and start the BFF), so those flows only work when started by the runner, not by `maestro test` alone and tears down what it started. The
 last result is recorded in `docs/evidence/WI-MOB-001/`; Maestro's own output goes to `artifacts/mobile/` (git-ignored).
 
 The demo (`node ../../scripts/dev/mobile-demo.mjs`) boots the emulator with its window, starts the backend **without** the test hook, builds a non-test
 build, installs and opens it, and waits. All scripts: `docs/operations/scripts.md`.
+
+Every flow of a run shares one stack, so **stock is a budget**: the Almond Croissant has 4 units (it is the "low stock" item the rest of the repository relies on), and only flows 05 and 10, which need a tree-nut item, may buy it; the others use the made-to-order items (Oat Milk Latte, Lemon Loaf), the sourdough (12) or the cookies (24). A flow that sells out an item another flow needs fails with that item shown as "Sold out". Keep the machine awake during a run (a Windows standby of 29 minutes once appeared as a 29-minute flow).
 
 ## Run it by hand
 
