@@ -1,19 +1,18 @@
-# WI-MOB-002: a customer with a saved tree-nut allergy: the cart says what the item contains, checkout warns, Place order stays off until the warning is
-# acknowledged, and the allergy is told to the bakery with the order. The profile is saved through the BFF by the runner's flow-control server (not by a screen).
+# WI-MOB-002: Nora, a seeded customer with a saved tree-nut allergy (seed data, see tools/BakeryMarketplace.Seed): the cart says what the item contains, checkout warns, Place order stays off until the warning is
+# acknowledged, and the allergy is told to the bakery with the order.
 # The checkout screen is longer than the phone: the warning, the box and the hint are at the top, Place order is below the pickup times, so the flow scrolls.
+# Stock: this flow buys one of the Almond Croissant's 4 units; every flow of a run shares one stack, so only this flow and 10 may buy the croissant.
 appId: com.bakerymarketplace.mobile
 name: An allergy warning must be acknowledged before the order is placed
-onFlowComplete:
-  - runScript: scripts/set-profile.js
 ---
-- runScript:
-    file: scripts/set-profile.js
-    env:
-      ALLERGIES: tree-nut
 - launchApp:
     clearState: true
-- runFlow: subflows/login.yaml
-- assertVisible: Signed in as Alice Customer
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USER_NAME: Nora
+      USER_ROW: 1
+- assertVisible: Signed in as Nora.*
 - tapOn:
     id: listing-Almond Croissant
 - tapOn:
@@ -92,4 +91,5 @@ onFlowComplete:
 - runScript:
     file: scripts/assert-last-order-allergens.js
     env:
+      USER_ID: user-customer-treenut
       EXPECT: tree-nut

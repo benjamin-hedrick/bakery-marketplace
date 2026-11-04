@@ -1,13 +1,14 @@
 // A small local control server for the Maestro flows of the Android app (WI-MOB-002), started by scripts/dev/mobile-flows.mjs and by nothing else. A flow
-// cannot sign in or stop a process itself, so its setup steps call this server from Maestro's JavaScript (`http.post('http://localhost:4199/...')`):
+// cannot read a user's orders through the BFF or stop a process itself, so two steps call this server from Maestro's JavaScript (`http.get`, `http.post` on 127.0.0.1:4199):
 //
-//   POST /profile      {"allergies": [...], "avoid": [...]}   saves Alice's allergen profile through the BFF (both lists empty clears it)
-//   GET  /last-order                                           Alice's newest order as the BFF reports it (its allergens), for a flow to assert on
+//   GET  /last-order?user=<customer id>                        that customer's newest order as the BFF reports it (its allergens), for a flow to assert on
 //   POST /bff/stop     /bff/start                              takes the BFF away and brings it back (waits until it answers), for the "check failed" flow
 //
-// It is test tooling, local only: it listens on 127.0.0.1, and it signs in as the mock issuer's customer Alice the way the app does (authorization code,
-// PKCE S256, the public client bakery-mobile and the app's registered redirect address), so it needs no new endpoint or secret on the issuer. The token is
-// held in a variable for one request and never logged or returned. It changes no auth logic.
+// It is test tooling, local only, and it is on the list to be reviewed (register item 150): the lead's rule is not to build functionality only to close a gap in testing.
+// The customers' saved allergen profiles are NOT set here any more: they are seed data (tools/BakeryMarketplace.Seed, SeedData.CustomerProfiles) for customers of the mock
+// identity, and a flow logs in as the customer whose profile it needs. It listens on 127.0.0.1 and signs in as the customer asked for the way the app does
+// (authorization code, PKCE S256, the public client bakery-mobile and the app's registered redirect address), so it needs no new endpoint or secret on the issuer.
+// The token is held in a variable for one request and never logged or returned. It changes no auth logic.
 //
 // Who may call it: only a local, non-browser client that sends the header `x-flow-control: 1` (Maestro's scripts do). It has no password, so it refuses, with
 // 403 and before doing anything, any request that carries an `Origin` header (a web page in a browser always sends one cross-origin, and a "simple" cross-origin
@@ -20,10 +21,12 @@ import http from 'node:http';
 const REDIRECT = 'com.bakerymarketplace.mobile:/auth/callback';
 const CLIENT_ID = 'bakery-mobile';
 const ALICE = 'user-customer-1';
+/** Only the customers of the mock identity can be asked for; the issuer refuses any other id anyway. */
+const CUSTOMER_ID = /^user-customer-[a-z0-9-]+$/;
 const b64url = (buf) => buf.toString('base64url');
 
-/** Signs in as Alice with the app's own flow and returns an access token. */
-export async function customerToken(issuer) {
+/** Signs in as a mock customer (Alice by default) with the app's own flow and returns an access token. */
+export async function customerToken(issuer, userId = ALICE) {
   const verifier = b64url(randomBytes(48));
   const challenge = b64url(createHash('sha256').update(verifier).digest());
   const state = b64url(randomBytes(8));
@@ -32,7 +35,7 @@ export async function customerToken(issuer) {
     redirect: 'manual',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      userId: ALICE,
+      userId,
       redirect_uri: REDIRECT,
       state,
       code_challenge: challenge,
@@ -60,8 +63,6 @@ export async function customerToken(issuer) {
   return json.access_token;
 }
 
-const SAVE = `mutation Save($input: SavePreferencesInput!) { savePreferences(input: $input) { __typename
-  ... on SavePreferencesSuccess { preferences { allergies avoid } } ... on SavePreferencesRejected { message } } }`;
 const LAST = `query Last { orders(first: 1) { edges { node { id status allergens total { cents } } } } }`;
 
 async function waitFor(url, up, seconds = 60) {
@@ -89,9 +90,9 @@ export function startFlowControl({
 }) {
   const health = `${new URL(bffUrl).origin}/healthz`;
 
-  /** One GraphQL call to the BFF as Alice (a fresh token each time, held only for the call). */
-  async function bff(query, variables) {
-    const token = await customerToken(issuer);
+  /** One GraphQL call to the BFF as the given customer (a fresh token each time, held only for the call). */
+  async function bff(query, variables, userId) {
+    const token = await customerToken(issuer, userId);
     const res = await fetch(bffUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
@@ -101,26 +102,6 @@ export function startFlowControl({
     if (json.errors?.length) throw new Error(`the BFF answered an error: ${json.errors[0].message}`);
     return json.data;
   }
-
-  const readJson = (req) =>
-    new Promise((resolve, reject) => {
-      let size = 0;
-      const chunks = [];
-      req.on('data', (c) => {
-        size += c.length;
-        if (size > 10_000) {
-          reject(new Error('body too large'));
-          req.destroy();
-        } else chunks.push(c);
-      });
-      req.on('end', () => {
-        try {
-          resolve(chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {});
-        } catch {
-          reject(new Error('body is not JSON'));
-        }
-      });
-    });
 
   const server = http.createServer(async (req, res) => {
     const send = (status, body) => {
@@ -138,21 +119,13 @@ export function startFlowControl({
       return send(403, { error: 'refused' });
     }
     try {
-      if (req.method === 'POST' && req.url === '/profile') {
-        const body = await readJson(req);
-        const lists = ['allergies', 'avoid'].map((k) =>
-          Array.isArray(body[k]) ? body[k].filter((x) => typeof x === 'string') : [],
-        );
-        const data = await bff(SAVE, { input: { allergies: lists[0], avoid: lists[1] } });
-        if (data.savePreferences.__typename !== 'SavePreferencesSuccess')
-          throw new Error(data.savePreferences.message ?? 'the profile was rejected');
-        log(`profile set: allergies [${lists[0]}], avoid [${lists[1]}]`);
-        return send(200, data.savePreferences.preferences);
-      }
-      if (req.method === 'GET' && req.url === '/last-order') {
-        const data = await bff(LAST, {});
+      const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+      if (req.method === 'GET' && url.pathname === '/last-order') {
+        const user = url.searchParams.get('user') ?? ALICE;
+        if (!CUSTOMER_ID.test(user)) return send(400, { error: 'not a customer id' });
+        const data = await bff(LAST, {}, user);
         const node = data.orders.edges[0]?.node;
-        return node ? send(200, node) : send(404, { error: 'Alice has no order' });
+        return node ? send(200, node) : send(404, { error: `${user} has no order` });
       }
       if (req.method === 'POST' && req.url === '/bff/stop') {
         stack.stopOne('bff');

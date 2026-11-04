@@ -47,8 +47,9 @@ function guide() {
  Bakery marketplace, slice 1, running locally (nothing is deployed; the payment is a test stub)
 
    Open:      http://localhost:${ports.web}
-   Log in as: Alice Customer (Customer) on the login page that appears when you go to checkout.
-              The mock issuer also lists the vendor and admin users; slice 1 has no vendor or admin screens.
+   Log in as: Alice Customer (Customer) on the login page that appears when you go to checkout (she has no saved allergy profile).
+              The issuer also lists four customers with a saved allergy profile (Nora, Sam, Dana, Max: seed data, docs/operations/local-dev.md),
+              and the vendor and admin users; slice 1 has no vendor or admin screens.
    Journey:   browse -> open "Country Sourdough" -> choose quantity or an option -> Add to order
               -> Your order -> log in -> Place test order -> the order page shows its status
    Expect:    a plain order is "Order confirmed" by itself; an order with an option or a pickup time

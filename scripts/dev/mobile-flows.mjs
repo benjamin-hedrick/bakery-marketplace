@@ -11,7 +11,7 @@
 // finds them at their usual places when JAVA_HOME and ANDROID_HOME are not set; docs/operations/scripts.md). The app is built WITH the
 // declined-payment switch (EXPO_PUBLIC_TEST_HOOKS=1) and the BFF started with ENABLE_TEST_HOOKS=1: a test setup, never a demo.
 // Results: artifacts/mobile/maestro-junit.xml and the debug output under artifacts/mobile/maestro-debug.
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { startFlowControl } from '../lib/flow-control.mjs';
@@ -39,6 +39,43 @@ function teardown() {
   if (bootedEmulator) mobile.stopEmulator();
 }
 
+/** The first few lines of a message without the colour codes the checker adds (an escape character, then up to the letter m). */
+function plainText(text, lines) {
+  const ESC = String.fromCharCode(27);
+  const withoutColour = text
+    .split(ESC)
+    .map((piece, i) => (i === 0 ? piece : piece.slice(piece.indexOf('m') + 1)))
+    .join('');
+  return withoutColour
+    .split(String.fromCharCode(10))
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
+    .slice(0, lines)
+    .join(' | ');
+}
+
+/**
+ * Maestro's own syntax check of the flows to run and of every subflow, before anything is started: a YAML mistake otherwise stops the whole run after the emulator,
+ * the stack and the build are up (once, a colon in a flow's name cost a full run). Takes a few seconds a file, needs no device.
+ */
+function checkSyntax(flows) {
+  const dir = path.join(mobile.appDir, '.maestro');
+  const subflows = readdirSync(path.join(dir, 'subflows')).map((f) => path.join(dir, 'subflows', f));
+  const files = [...flows.map((f) => path.join(dir, f)), ...subflows];
+  const bad = [];
+  for (const file of files) {
+    const r = spawnSync(path.join(mobile.maestroBin, isWin ? 'maestro.bat' : 'maestro'), ['check-syntax', file], {
+      cwd: mobile.appDir,
+      env: mobile.env,
+      shell: isWin,
+      encoding: 'utf8',
+    });
+    if (r.status !== 0) bad.push(`${path.relative(mobile.appDir, file)}: ${plainText(`${r.stdout}${r.stderr}`, 3)}`);
+  }
+  if (bad.length > 0) throw new Error(`the flows do not parse: ${bad.join(' || ')}`);
+  log(`the syntax of ${files.length} flow files is fine`);
+}
+
 let code = 1;
 try {
   mobile.requireAdb();
@@ -46,6 +83,11 @@ try {
   for (const port of [ports.catalog, ports.ordering, ports.bff]) {
     if (mobile.portInUse(port)) throw new Error(`port ${port} is already in use; stop what is using it first`);
   }
+  const flows = readdirSync(path.join(mobile.appDir, '.maestro')).filter(
+    (f) => /^\d.*\.ya?ml$/.test(f) && (!only || f.startsWith(only)),
+  );
+  if (flows.length === 0) throw new Error('no flow matched');
+  checkSyntax(flows);
   bootedEmulator = await mobile.ensureEmulator(log);
   stack.up();
   await stack.startServices({ testHooks: true });
@@ -55,10 +97,6 @@ try {
   if (!noBuild) mobile.buildApp(log, { testHooks: true });
   mobile.installApp(log);
 
-  const flows = readdirSync(path.join(mobile.appDir, '.maestro')).filter(
-    (f) => /^\d.*\.ya?ml$/.test(f) && (!only || f.startsWith(only)),
-  );
-  if (flows.length === 0) throw new Error('no flow matched');
   log(`running ${flows.length} flow(s): ${flows.join(', ')}`);
   // Asynchronous on purpose: the flow-control server above runs in this process and must keep answering while Maestro runs.
   const exitCode = await new Promise((resolve) => {

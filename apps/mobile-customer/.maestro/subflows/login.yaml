@@ -1,11 +1,17 @@
-# Signs in as Alice Customer through the real mock issuer in the system browser (Custom Tabs). Chrome shows its first-run screen once per
-# emulator image; when it does, it is dismissed here.
+# Signs in through the real mock issuer in the system browser (Custom Tabs). Chrome shows its first-run screen once per emulator image; when it does, it is
+# dismissed here.
 #
-# Chrome exposes a web page's accessibility tree lazily: now and then the page's heading is in the tree but its buttons are not (seen once in seven
-# flows on 2026-11-04, "Element not found" after 20 s with the page plainly on screen). The mock issuer's page has a fixed layout, so when the button is
-# not in the tree the flow taps where the first button is (the first "Login as" button, near the top left of the page).
+# Who signs in: USER_NAME is the start of the name on the issuer's button ("Alice Customer" by default; the seeded customers are "Nora", "Sam", "Dana" and "Max"),
+# USER_ROW its position in the issuer's list (0 for Alice, 1 Nora, 2 Sam, 3 Dana, 4 Max). The customers and their saved allergen profiles are seed data
+# (tools/BakeryMarketplace.Seed, MockUsers), so a flow chooses a customer instead of changing one.
+#
+# Chrome exposes a web page's accessibility tree lazily: now and then the page's heading is in the tree but its buttons are not (seen once in five runs on
+# 2026-11-04, "Element not found" after 20 s with the page plainly on screen). The issuer's page has a fixed layout, so when the button is not in the tree the
+# flow taps where that user's button is, from USER_ROW.
 appId: com.bakerymarketplace.mobile
 ---
+- evalScript: "${output.user = (typeof USER_NAME === 'undefined') ? 'Alice Customer' : USER_NAME}"
+- evalScript: "${output.y = Math.round((19.3 + 2.22 * ((typeof USER_ROW === 'undefined') ? 0 : Number(USER_ROW))) * 10) / 10}"
 - tapOn:
     id: login-button
 - runFlow:
@@ -20,15 +26,15 @@ appId: com.bakerymarketplace.mobile
 - evalScript: ${output.tapped = false}
 - runFlow:
     when:
-      visible: Login as Alice Customer.*
+      visible: Login as ${output.user}.*
     commands:
-      - tapOn: Login as Alice Customer.*
+      - tapOn: Login as ${output.user}.*
       - evalScript: ${output.tapped = true}
 - runFlow:
     when:
       true: ${!output.tapped}
     commands:
       - tapOn:
-          point: 20%,19%
+          point: 20%,${output.y}%
 - assertVisible:
     id: listings

@@ -1,0 +1,64 @@
+# WI-MOB-002: Max, a seeded customer with several saved entries: allergies to dairy and tree nuts, and an avoid for gluten. The croissant with extra almonds gives serious
+# warnings (dairy; tree nuts for the item and for the option) and a note (gluten). "Tell the bakery" lists both allergies, ticked; Max unticks dairy, and the order
+# carries only the tree-nut allergy: what is told to the bakery is the customer's choice.
+# Stock: this flow buys one of the Almond Croissant's 4 units; every flow of a run shares one stack, so only this flow and 05 may buy the croissant.
+appId: com.bakerymarketplace.mobile
+name: With several allergies the customer chooses which are told to the bakery
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USER_NAME: Max
+      USER_ROW: 4
+- assertVisible: Signed in as Max.*
+- tapOn:
+    id: listing-Almond Croissant
+- tapOn:
+    id: option-Extra almonds.*
+- tapOn:
+    id: add-to-order
+- tapOn:
+    id: to-checkout
+- assertVisible:
+    id: conflict-0
+- assertVisible:
+    id: conflict-3
+- assertVisible: ".*Allergy warning.*Almond Croissant contains milk.*which you listed as an allergy.*"
+- assertVisible: ".*Allergy warning.*Almond Croissant contains tree nuts.*which you listed as an allergy.*"
+- assertVisible: ".*Allergy warning.*Extra almonds contains tree nuts.*"
+- assertVisible: ".*You avoid this.*Almond Croissant contains gluten.*which you avoid.*"
+- assertVisible:
+    id: ack-needed
+# Both allergies are offered, ticked.
+- scrollUntilVisible:
+    element:
+      id: tell-dairy
+- assertVisible:
+    id: tell-tree-nut
+- tapOn:
+    id: tell-dairy
+# Acknowledge, then place the order.
+- scrollUntilVisible:
+    element:
+      id: acknowledge
+    direction: UP
+- tapOn:
+    id: acknowledge
+- scrollUntilVisible:
+    element:
+      id: place-order
+- assertVisible:
+    id: place-order
+    enabled: true
+- tapOn:
+    id: place-order
+- assertVisible:
+    id: order-headline
+# Dairy was unticked: only the tree-nut allergy was told to the bakery.
+- runScript:
+    file: scripts/assert-last-order-allergens.js
+    env:
+      USER_ID: user-customer-several
+      EXPECT: tree-nut

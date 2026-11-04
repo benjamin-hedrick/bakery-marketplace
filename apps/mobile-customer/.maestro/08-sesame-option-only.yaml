@@ -1,0 +1,84 @@
+# WI-MOB-002: Sam, a seeded customer with a saved sesame allergy. The Country Sourdough itself has no sesame, only its option "Add seeds" does: so the plain loaf
+# raises no warning at all (and checkout says it checked: the reminder is there, the acknowledgement is not), and adding the seeds raises a warning that names the
+# OPTION, which must be acknowledged. The check is read again when the order's items change, so the old answer is never shown for the new order.
+appId: com.bakerymarketplace.mobile
+name: An allergy that only an option carries warns only when that option is chosen
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USER_NAME: Sam
+      USER_ROW: 2
+- assertVisible: Signed in as Sam.*
+# The plain loaf: a profile exists, nothing conflicts.
+- tapOn:
+    id: listing-Country Sourdough
+- tapOn:
+    id: add-to-order
+- tapOn:
+    id: to-checkout
+- assertVisible:
+    id: personal-reminder
+- assertVisible:
+    id: tell-sesame
+- assertNotVisible:
+    id: conflict-0
+- assertNotVisible:
+    id: acknowledge
+- assertNotVisible:
+    id: no-profile
+- scrollUntilVisible:
+    element:
+      id: place-order
+- assertVisible:
+    id: place-order
+    enabled: true
+# Back to the menu, and add the same loaf with seeds.
+- tapOn:
+    id: back
+- tapOn:
+    id: back
+- tapOn:
+    id: back
+- tapOn:
+    id: listing-Country Sourdough
+- tapOn:
+    id: option-Add seeds.*
+- tapOn:
+    id: add-to-order
+- tapOn:
+    id: to-checkout
+# Now the option conflicts: named by the option, serious, so it must be acknowledged.
+- assertVisible:
+    id: conflict-0
+- assertVisible: ".*Allergy warning.*Add seeds contains sesame, which you listed as an allergy.*"
+- assertVisible:
+    id: ack-needed
+- assertVisible:
+    id: tell-sesame
+- scrollUntilVisible:
+    element:
+      id: place-order
+- assertVisible:
+    id: place-order
+    enabled: false
+- scrollUntilVisible:
+    element:
+      id: acknowledge
+    direction: UP
+- tapOn:
+    id: acknowledge
+- scrollUntilVisible:
+    element:
+      id: place-order
+- tapOn:
+    id: place-order
+- assertVisible:
+    id: order-headline
+- runScript:
+    file: scripts/assert-last-order-allergens.js
+    env:
+      USER_ID: user-customer-sesame
+      EXPECT: sesame
