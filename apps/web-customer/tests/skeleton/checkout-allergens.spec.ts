@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { APIRequestContext } from '@playwright/test';
-import { userToken } from './support';
+import { adjustStock, quantity, userToken } from './support';
 
 // WI-CUST-008 on the real stack: the seeded almond croissant against a tree-nut allergy. The customer's profile is saved through the BFF, then in the
 // browser: the cart line says what it contains, the check names the conflict, the order cannot be placed until the customer acknowledges it, and the
@@ -10,6 +10,14 @@ import { userToken } from './support';
 const BFF = process.env.BFF_URL ?? 'http://localhost:4100';
 
 test.describe.configure({ mode: 'serial' });
+
+/** Puts a few croissants back, so the journey does not depend on what earlier runs of the same stack left (the seed has 4). */
+async function restockCroissant(request: APIRequestContext) {
+  const vendor = await userToken('vendor-shop-001');
+  // Only when a kept stack has used the croissants up: a fresh one keeps the seed's stock, which other journeys count on.
+  if ((await quantity(request, vendor, 'listing-croissant-001')) < 2)
+    await adjustStock(request, vendor, 'listing-croissant-001', 4);
+}
 
 async function saveProfile(request: APIRequestContext, allergies: string[], avoid: string[]) {
   const token = await userToken('user-customer-1');
@@ -23,6 +31,7 @@ async function saveProfile(request: APIRequestContext, allergies: string[], avoi
   expect((await res.json()).data.savePreferences.__typename).toBe('SavePreferencesSuccess');
 }
 
+test.beforeAll(async ({ request }) => restockCroissant(request));
 test.afterAll(async ({ request }) => saveProfile(request, [], [])); // leave the profile as the other files expect it
 
 test('a customer allergic to tree nuts is warned about the croissant, must acknowledge, and the bakery is told with the order', async ({
@@ -33,7 +42,7 @@ test('a customer allergic to tree nuts is warned about the croissant, must ackno
 
   await page.goto('/');
   await page.getByTestId('listing').filter({ hasText: 'Almond Croissant' }).getByRole('link').click();
-  await page.getByLabel(/Extra almond/).check();
+  await page.getByRole('checkbox', { name: /Extra almond/ }).check();
   await page.getByRole('button', { name: 'Add to order' }).click();
   await expect(page.getByTestId('add-notice')).toContainText('Added to your order');
   await page.getByTestId('cart-link').click();
@@ -44,7 +53,7 @@ test('a customer allergic to tree nuts is warned about the croissant, must ackno
 
   // What the line contains, from the real catalog's flags and registry labels.
   await expect(page.getByTestId('line-allergens')).toContainText('tree nuts');
-  await expect(page.getByTestId('line-allergens')).toContainText('Extra almond contains tree nuts');
+  await expect(page.getByTestId('line-allergens')).toContainText('Extra almonds contains tree nuts');
 
   // The real check names the conflicts and holds the button until the customer acknowledges.
   await expect(page.getByTestId('conflicts')).toContainText(
