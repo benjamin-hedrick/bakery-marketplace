@@ -87,6 +87,11 @@ run "the_cosmos_containers_match_what_the_services_expect" {
   }
 
   assert {
+    condition     = azurerm_cosmosdb_sql_container.preferences.name == "preferences" && azurerm_cosmosdb_sql_container.preferences.partition_key_paths[0] == "/customerId" && azurerm_cosmosdb_sql_container.preferences.default_ttl == null
+    error_message = "The allergen profiles must be in their own container, preferences, partitioned by /customerId, with no expiry (WI-PREF-001)."
+  }
+
+  assert {
     condition     = azurerm_cosmosdb_sql_container.catalog.default_ttl == -1 && azurerm_cosmosdb_sql_container.orders.default_ttl == null
     error_message = "The catalog container needs default_ttl = -1 so released stock reservations expire (register item 66); orders must never expire."
   }

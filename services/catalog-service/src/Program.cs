@@ -4,6 +4,7 @@ using BakeryMarketplace.Eventing;
 using BakeryMarketplace.Logging;
 using CatalogService.Api;
 using CatalogService.Domain;
+using CatalogService.Preferences;
 using CatalogService.Services;
 using CatalogService.Tags;
 using Microsoft.AspNetCore.Authorization;
@@ -59,6 +60,8 @@ if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringCompari
         var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
         // DefaultTimeToLive -1: nothing expires unless it carries its own ttl, which only released stock reservations do (register item 66).
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId") { DefaultTimeToLive = -1 });
+        // Customers' allergen profiles (WI-PREF-001): their own container, one partition per customer (ADR-0004).
+        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("preferences", "/customerId"));
     }
 
     builder.Services.AddSingleton<IRepository<ListingDocument>>(new CosmosRepository<ListingDocument>(cosmos, database, "catalog"));
@@ -66,6 +69,7 @@ if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringCompari
     // Stock reservations (ADR-0017): same container and partition as the listings they change, so one transactional batch covers both.
     builder.Services.AddSingleton<IRepository<StockReservationDocument>>(new CosmosRepository<StockReservationDocument>(cosmos, database, "catalog"));
     builder.Services.AddSingleton<IBatchFactory>(new CosmosBatchFactory(cosmos, database, "catalog"));
+    builder.Services.AddSingleton<IRepository<PreferenceProfileDocument>>(new CosmosRepository<PreferenceProfileDocument>(cosmos, database, "preferences"));
 }
 else
 {
@@ -75,6 +79,7 @@ else
     builder.Services.AddSingleton<IRepository<StockReservationDocument>>(new FakeRepository<StockReservationDocument>(d => d.Id, fakeCatalog));
     builder.Services.AddSingleton<IBatchFactory>(new FakeBatchFactory(fakeCatalog));
     builder.Services.AddSingleton<IRepository<VendorStatusDocument>>(new FakeRepository<VendorStatusDocument>(d => d.Id));
+    builder.Services.AddSingleton<IRepository<PreferenceProfileDocument>>(new FakeRepository<PreferenceProfileDocument>(d => d.Id));
 }
 
 // Events (ADR-0003). The backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory" (tests and throwaway runs). There is no
@@ -106,6 +111,8 @@ builder.Services.Configure<CatalogOutboxOptions>(builder.Configuration.GetSectio
 builder.Services.AddSingleton<ListingEventPublisher>();
 builder.Services.AddHostedService<ListingOutboxRelay>();
 builder.Services.AddSingleton<ListingService>();
+builder.Services.AddSingleton<PreferenceService>();
+builder.Services.AddSingleton<IPreferenceReader>(sp => sp.GetRequiredService<PreferenceService>());
 builder.Services.AddSingleton<StockReservationService>();
 builder.Services.AddHostedService<VendorEventSubscriptions>();
 
@@ -118,6 +125,7 @@ app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.MapTagEndpoints();
+app.MapPreferenceEndpoints();
 app.MapListingEndpoints();
 app.MapStockReservationEndpoints();
 

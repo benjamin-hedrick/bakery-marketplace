@@ -292,8 +292,31 @@ async function vendorOrderAction(args: { input: { orderId: string; action: strin
   return actionRejected('NOT_ALLOWED_NOW', 'That cannot be done to this order now. It has changed.', current ?? null);
 }
 
+const toPreferences = (p: { allergies: string[]; avoid: string[] }) => ({ allergies: p.allergies, avoid: p.avoid });
+
+/** The profile is quasi-health data: it is passed through and never logged, and a refusal's text is the BFF's own. */
+async function savePreferences(args: { input: { allergies: string[]; avoid: string[] } }, ctx: Context) {
+  const result = await customerCall(ctx, (authorization) =>
+    ctx.catalog.savePreferences({ allergies: args.input.allergies, avoid: args.input.avoid }, authorization, ctx.trace),
+  );
+  if (result.kind === 'saved') {
+    return { __typename: 'SavePreferencesSuccess', preferences: toPreferences(result.preferences) };
+  }
+  return {
+    __typename: 'SavePreferencesRejected',
+    message: 'Your allergies could not be saved as entered.',
+    fields: fieldProblems(result.errors),
+  };
+}
+
 export const rootValue = {
   placeOrder,
+  savePreferences,
+  async preferences(_args: unknown, ctx: Context) {
+    return toPreferences(
+      await customerCall(ctx, (authorization) => ctx.catalog.getPreferences(authorization, ctx.trace)),
+    );
+  },
   vendorOrderAction,
   async listings(args: { first?: number; after?: string | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);

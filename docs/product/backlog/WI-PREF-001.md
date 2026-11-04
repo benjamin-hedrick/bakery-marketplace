@@ -1,4 +1,12 @@
-> **Status:** Ready
+> **Status:** In review · built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the abuse cases and of the data handling (NFR 3.7)
+
+> **Outcome note (2026-11-04):** built in four steps. (1) The catalog: `PreferenceProfileDocument` (the `preferences` container, partition `/customerId`, one document per customer with the customer id as its id), `PreferenceService` (also the in-process `IPreferenceReader` that `SRCH-001` will use), `GET` and `PUT /catalog/preferences`. The ids must be allergens the registry offers today; a missing list, a duplicate, an unknown or hidden or retired id, and an allergen in both lists are each a 422 naming the list. (2) The container: created by the catalog at start-up in local development, and added to the dev environment's Terraform stack (checked with the mocked-provider tests; **nothing applied on Azure**). (3) The BFF: `preferences` and `savePreferences` with a typed rejection (fixed text, field problems shortened). (4) Tests and real-stack journeys.
+>
+> **Verified (local):** 22 catalog API tests and 3 Cosmos tests (catalog 196 passed, 7 skipped without the emulator; the 3 new Cosmos tests and the 4 earlier ones passed against the running emulator), 12 BFF tests (182 in all), 3 real-stack journeys (`skeleton-smoke.mjs --containers` 34 passed: save, read, replace, clear; refusals by name with nothing saved; a vendor token FORBIDDEN and no token UNAUTHENTICATED). Mutation checks, each failing the intended test only: the profile written to a log line, the profile put on a span, any role allowed, the cache header removed (catalog); the input logged by the BFF (BFF).
+>
+> **Changes from the original plan:** a body over 4 KB is refused with 413 whether or not its length is declared (the body is read with a limit, not bound by the framework); a path with a customer id (`/catalog/preferences/{id}`) is simply a 404; `updatedAt` is null for a profile that was never saved; the `avoid` list is part of the profile from the start (the original had free-text diet preferences, now `TAG-004`).
+>
+> **Not done / limits:** another customer's profile was not tried on the real stack (the mock issuer has one customer; the catalog's API tests and the Cosmos partition test cover it); no deletion or retention policy beyond saving two empty lists (`PRIV-001`, deferred); no audit of who read a profile; the profile is a plain last-write-wins save (a second tab's save replaces the first).
 
 ```
 WI ID:               PREF-001
@@ -7,7 +15,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-PREFERENCES
 Shared with epic(s):  none
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 S
 ```
 

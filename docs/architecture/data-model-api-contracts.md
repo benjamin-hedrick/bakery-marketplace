@@ -170,7 +170,7 @@ PreferenceProfile {
   updatedAt
 }
 ```
-*Designed 2026-11-04 (`WI-PREF-001`, not yet built); the earlier shape had two free-text arrays.*
+*Built 2026-11-04 (`WI-PREF-001`); the earlier shape had two free-text arrays. The container is created by the catalog in local development and by Terraform in the dev environment.*
 
 **Tag registry** (not a container): the catalog's tags are versioned data embedded in the service (ADR-0022, `WI-TAG-001`). An entry has `id` (a stable slug), `kind` (`allergen`, `diet`, `occasion`, `season`, `theme`), `label`, `visibility` (`public` or `hidden`), `assignableBy` (`vendor` or `platform`), optional `activeFrom` and `activeTo` (UTC dates), `sortOrder` and `retired`. `allergenFlags` and each modifier's `allergens` on a listing hold allergen ids and are validated against the registry as a closed list.
 
@@ -191,7 +191,7 @@ PreferenceProfile {
 - `PUT /catalog/listings/{id}` — Vendor role + resource-ownership check (ADR-0006)
 - `POST /catalog/stock/reservations` and `DELETE /catalog/stock/reservations/{orderId}?vendorId=` — service-to-service only: an app-only token with the `Stock.Reserve` role (ADR-0018); atomic reserve and release of an order's stock; not routed through API Management (ADR-0017, `WI-CAT-006`, 2026-10-28)
 - `POST /catalog/listings/{id}/stock/adjust` — Vendor role + ownership; atomic increment or decrement of a limited-stock listing; `409` when it would go below zero or the listing is made to order (added 2026-10-28, `WI-CAT-005`)
-- `GET /catalog/preferences` — Customer role; the customer is the token's subject, there is no customer id in the path (designed 2026-11-04, `WI-PREF-001`)
+- `GET /catalog/preferences` — Customer role; the customer is the token's subject, there is no customer id in the path (built 2026-11-04, `WI-PREF-001`); `private, no-store`
 - `PUT /catalog/preferences` — Customer role, same rule; replaces the profile and creates it on first write (`WI-PREF-001`)
 - *(listings in the vendor API: `allergenFlags` and option `allergens` are a closed list of allergen ids since `WI-TAG-001`; an unknown value is a 422 naming the allowed ids)*
 
