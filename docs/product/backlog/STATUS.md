@@ -84,9 +84,9 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer` (`/orders/{id}`); `docs/evidence/slice-1/findings.md`. The order history list was split out into `WI-CUST-007` |
 | [CUST-005](WI-CUST-005.md) | Allergen profile page | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); waiting for the lead's review of the wording and the page |
-| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys written but not yet run |
+| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/order-history` (2026-11-04); the page, the BFF query and the ordering endpoint pass their tests and the real-stack journeys (29 passed), nothing is deployed; waiting for the lead's review |
-| [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys written but not yet run (register 140) |
+| [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
@@ -124,7 +124,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-007](WI-ORD-007.md) | Order action endpoints (confirm, decline, start, ready, complete, cancel) | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
-| [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | EPIC-ORDERING | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journey written but not yet run (register 140); the lead's review of the privacy properties is wanted |
+| [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | EPIC-ORDERING | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04); the lead's review of the privacy properties is wanted |
 | [PLAN-001](WI-PLAN-001.md) | Prioritization pass over the backlog | EPIC-BACKLOG-PLANNING | Proposed | decision: which method (MoSCoW or RICE) and who sets the weights |
 | [PLAN-002](WI-PLAN-002.md) | Sprint plan (first 2 to 3 sprints) | EPIC-BACKLOG-PLANNING | Deferred | trigger: sprint-style boundaries become useful (more contributors, or a time-boxed demo); deferred 2026-10-30 |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | EPIC-PORTFOLIO-SLICE | Done | evidence: merged `6175e05`; `docs/evidence/WI-PORT-001/findings.md` |
@@ -147,7 +147,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `apps/web-queue-display` |
 | [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-003/` (the real-stack run and the first-pass security review, the `graphql-sse` review); approved by the lead on 2026-11-02 after a review round |
 | [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | EPIC-QUEUE-DISPLAY | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-004/` |
-| [QUE-005](WI-QUE-005.md) | Allergens on the vendor's order card | EPIC-QUEUE-DISPLAY | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journey written but not yet run (register 140) |
+| [QUE-005](WI-QUE-005.md) | Allergens on the vendor's order card | EPIC-QUEUE-DISPLAY | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
 | [RATE-001](WI-RATE-001.md) | First rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128) | EPIC-RATE-LIMITING | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-RATE-001/` |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
@@ -156,9 +156,9 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In review | evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/` (fuzz, soak, ZAP), `docs/governance/review-statement.md`; steps 1 to 5 are done · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below) |
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | EPIC-SEARCH | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the rule, its wording and the two defaults below (this is the safety rule) |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review, the allergen list (open point) and ADR-0022's acceptance |
-| [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); the real-stack journey is written but not yet run (register 140) |
-| [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); the real-stack journey is written but not yet run (register 140) |
-| [TAG-004](WI-TAG-004.md) | Diet tags in the customer's profile ("prefer") | EPIC-TAGS | In review | decided by the lead and built on `feature/slice-personalization-web` (2026-11-04); the real-stack journey is written but not yet run (register 140) |
+| [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
+| [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
+| [TAG-004](WI-TAG-004.md) | Diet tags in the customer's profile ("prefer") | EPIC-TAGS | In review | decided by the lead and built on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
 | [TAG-005](WI-TAG-005.md) | Seasonal and themed surfaces, and administrator editing of the registry | EPIC-TAGS | Deferred | revisit when the administrator service and console exist, or when the lead asks for collections |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.EventSchemas` and its tests |
 | [TOOL-002](WI-TOOL-002.md) | Structured logging + correlation-ID helper (tools/BakeryMarketplace.Logging) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.Logging` and `tools/tests/BakeryMarketplace.Logging.Tests` |
@@ -280,10 +280,10 @@ Accepted: 21 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
-| Resolved | 47 |
+| Resolved | 48 |
 | Accepted | 6 |
 | Tracking | 12 |
-| Open | 57 |
+| Open | 56 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
