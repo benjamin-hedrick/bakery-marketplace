@@ -43,7 +43,7 @@ Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config
 - **Cosmos adapter tests** (`BakeryMarketplace.Data.Tests`): they do **not** run against Cosmos. They default to `https://localhost:8081`, the emulator speaks HTTP, and they fall back to `FakeRepository`; against the real emulator 3 of 4 fail. The pipeline logs a warning saying so. The fix was named `WI-DATA-003`, which has no spec (open item #31, still open on 2026-10-30).
 - **Redis adapter tests** fall back to in-memory fakes if the connection fails, with no signal. The pipeline starts Redis, uses `127.0.0.1` (see below) and fails the job if Redis saw fewer than 50 commands during the tests.
 - **Security scanning, deployment, post-deploy smoke, contract tests beyond those in the suites above, load/chaos**: not built.
-- **Playwright**: Chromium only. Node on the agent is 24.x; the PORT-001 proof ran on 25.9.
+- **Playwright**: Chromium only. The Android app's Maestro flows are not a pipeline gate (local only, register 148); its format and typecheck are in `node scripts/ci/node-gates.mjs`. Node on the agent is 24.x; the PORT-001 proof ran on 25.9.
 - **Coverage**: none measured. Do not claim it.
 
 ## Findings that shaped the pipeline

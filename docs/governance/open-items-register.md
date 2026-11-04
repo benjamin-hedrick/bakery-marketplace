@@ -797,3 +797,23 @@ Status: Accepted 2026-11-04 (the lead agrees: fine at seed volume; revisit befor
 Type: Pipeline reliability · Source: PR 36 (`feature/slice-personalization-web`), reported by the lead · Hat: DevOps, QA
 Status: Open
 The lead reported that a check seemed hung and named the job "web-session package (real Redis)" (`azure-pipelines.yml`, job `session`: `docker compose up -d --wait redis-events`, install, format check, typecheck, `npm test`). The only log the lead could still see was the pipeline's initial YAML expansion, so the stalled sub-step is not known. **Not reproduced:** `npm test` in `packages/web-session` with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and real Redis passed 172 of 172 in 9 s and exited by itself, and `scripts/ci/linux-check.mjs` (2 CPUs, 3 minute hang timeout) passed every step. Candidates: the Redis health wait or image pull on the agent, or an agent that stalled before the job. Next steps: when it happens again, note which sub-step shows the spinner and keep its last lines; consider a `timeoutInMinutes` on the jobs so a stall fails quickly instead of hanging. Separately, the same PR failed `order-allergens.spec.ts` once (the real-stack journey read the vendor order before the allergens were applied): fixed in the test (`WI-ORD-009`, a wait for the allergens), not a product defect.
+
+**145. A native app's refresh token cannot be revoked at the issuer**
+Type: Known limitation · Source: ADR-0023 (consequences), `WI-MOB-001` · Hat: Security
+Status: Accepted · trigger: a real identity provider replaces the mock issuer for the app
+The Android app keeps a refresh token in the Keystore (`expo-secure-store`). The mock issuer has no server-side revocation, so a token on a lost device works until it expires (8 hours by default, renewed on each use) or the customer signs out on that device (which only deletes the local copy). Local only; nothing is deployed. A real tenant (Entra) can revoke a session. "Reconciled" means revocation is tested against that provider before any real device is used.
+
+**146. The mobile app has no allergen acknowledgement at the cart**
+Type: Follow-up · Source: `WI-MOB-001` (open point), `WI-CUST-008` · Hat: Engineering, Product
+Status: Open
+The web app asks the customer to acknowledge allergen conflicts and can tell the bakery their allergens (`cartCheck`, the `allergens` field of `placeOrder`). The Android app does not: the BFF does not require it to place an order, which was the condition the spec set for building it, and the app shows no allergen or personalization screens. The shared package already holds the rules (`cartAllergens.ts`), so a follow-up item can add the screen. "Reconciled" means a work item exists or the lead decides the app stays without it.
+
+**147. The debug build of the app could not load its JavaScript from the Metro dev server on the emulator; the bundle is embedded instead**
+Type: Tooling limitation · Source: `WI-MOB-001` · Hat: Engineering
+Status: Accepted · trigger: someone needs hot reload on the emulator
+On the first debug build the app showed "Unable to load script" although Metro answered on the host, `adb reverse tcp:8081 tcp:8081` was set and the bundle compiled; the cause was not found. `apps/mobile-customer/plugins/withEmbeddedBundle.js` makes the debug build carry its own bundle (`debuggableVariants = []`), which the Maestro flows need anyway (no dev server). The build type stays debug, so the cleartext http manifest stays debug-only (ADR-0023). Cost: a JavaScript change needs a Gradle build (25 to 80 s). Also found: adding `react-native-safe-area-context` breaks the CMake step on Windows (path too long), so the header uses `StatusBar.currentHeight` instead.
+
+**148. The mobile flows run only on the lead's machine and depend on the emulator image's state**
+Type: Test limitation · Source: `WI-MOB-001` · Hat: QA
+Status: Accepted
+Decided by the lead: Android only, local only, no CI, no Maestro cloud. The flows (`apps/mobile-customer/.maestro/`, run by `node scripts/dev/mobile-flows.mjs`) log in through Chrome Custom Tabs; Chrome's first-run screen ("Use without an account") appears once on a fresh emulator image and the login subflow dismisses it only if it shows. A different image or Chrome version may show other prompts. The app under test is a test build (decline switch on) and the BFF runs with `ENABLE_TEST_HOOKS=1`: a test setup, never a demo (`scripts/dev/mobile-stack.mjs`). The app has no accessibility or visual checks yet.

@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="bakery_pixel" tests="4" failures="0" time="137.857" timestamp="2026-11-04T14:46:59">
+    <testcase id="Login, restart without login, logout" name="Login, restart without login, logout" classname="Login, restart without login, logout" file=".maestro\01-login-and-logout.yaml" time="37.56" timestamp="2026-11-04T14:46:59" status="SUCCESS"/>
+    <testcase id="Browse to an item's detail" name="Browse to an item's detail" classname="Browse to an item's detail" file=".maestro\02-browse-to-detail.yaml" time="22.939" timestamp="2026-11-04T14:47:37" status="SUCCESS"/>
+    <testcase id="Add to order, check out, see the order status" name="Add to order, check out, see the order status" classname="Add to order, check out, see the order status" file=".maestro\03-order-journey.yaml" time="38.075" timestamp="2026-11-04T14:48:00" status="SUCCESS"/>
+    <testcase id="A declined payment keeps the order" name="A declined payment keeps the order" classname="A declined payment keeps the order" file=".maestro\04-declined-payment.yaml" time="39.24" timestamp="2026-11-04T14:48:38" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 21 |
+| In review | 22 |
 | Built | 1 |
-| Ready | 5 |
+| Ready | 4 |
 | Proposed | 4 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -110,7 +110,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [MGMT-006](WI-MGMT-006.md) | Hypothetical team structure and hiring plan | EPIC-PM-ARTIFACTS | Deferred | trigger: the lead decides to add management artifacts to the portfolio (deferred 2026-10-30) |
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | EPIC-PM-ARTIFACTS | Done | evidence: `docs/management/stakeholder-communications-plan.md` |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | EPIC-PM-ARTIFACTS | Done | evidence: `docs/process/branching-strategy.md` |
-| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | EPIC-WEB-CUSTOMER | Ready | written 2026-11-04 after the Maestro/Android spike; ADR-0023 (sign-in) accepted by the lead 2026-11-04; the build starts now that the personalization PR is merged |
+| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | EPIC-WEB-CUSTOMER | In review | built and run locally 2026-11-04 (four Maestro flows pass on the emulator, `docs/evidence/WI-MOB-001/`); waiting for the lead's review of the auth changes (the issuer redirect rule, the token handling in the app) and decision on pushing; ADR-0023 accepted 2026-11-04 |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
@@ -201,11 +201,11 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-144 numbered items in `docs/governance/open-items-register.md` (highest number 144).
+148 numbered items in `docs/governance/open-items-register.md` (highest number 148).
 
 | Type | Count |
 |---|---|
-| Known limitation | 10 |
+| Known limitation | 11 |
 | Verification gap | 8 |
 | Process | 8 |
 | Gap | 8 |
@@ -226,6 +226,7 @@ Accepted: 22 · Superseded: 1
 | Missing capability | 2 |
 | Missing API | 2 |
 | Missing rule | 2 |
+| Follow-up | 2 |
 | Rough edge | 2 |
 | Open decision (IAM, needs the lead's approval) | 2 |
 | Tech debt / future work | 1 |
@@ -257,7 +258,6 @@ Accepted: 22 · Superseded: 1
 | Contract follow-up | 1 |
 | Design follow-up | 1 |
 | Accepted edge case | 1 |
-| Follow-up | 1 |
 | Inconsistency | 1 |
 | Test gap (suspected bug) | 1 |
 | Defect | 1 |
@@ -279,14 +279,16 @@ Accepted: 22 · Superseded: 1
 | Data retention | 1 |
 | Scaling limit | 1 |
 | Pipeline reliability | 1 |
+| Tooling limitation | 1 |
+| Test limitation | 1 |
 
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
 | Resolved | 48 |
-| Accepted | 6 |
+| Accepted | 9 |
 | Tracking | 12 |
-| Open | 57 |
+| Open | 58 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
