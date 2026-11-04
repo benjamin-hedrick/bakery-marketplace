@@ -48,7 +48,7 @@ For the order in which the decisions were made and changed, see [the decision ti
 | [0020](0020-deployment-pipeline-and-environments.md) | Build once, promote by digest, configure at deploy time; two stacks; gated infrastructure and application stages; a second, never-run UAT/Prod pipeline | Accepted (2026-10-31) |
 | [0021](0021-live-updates-to-the-vendor-queue.md) | Push as a nudge over a stream (GraphQL subscription over SSE, Redis Pub/Sub fan-out) layered on polling, which stays | Accepted (2026-11-02) |
 | [0022](0022-tags.md) | Tags: a catalog-owned registry of kinds and tags (allergen, diet, occasion, season, theme), assigned to listings and options; visibility and windows enforced by the catalog | Accepted |
-| [0023](0023-native-app-sign-in.md) | Native app sign-in: Authorization Code with PKCE in the system browser, a private-use redirect scheme, the refresh token in the Android Keystore; the BFF and services are unchanged | Proposed |
+| [0023](0023-native-app-sign-in.md) | Native app sign-in: Authorization Code with PKCE in the system browser, a private-use redirect scheme, the refresh token in the Android Keystore; the BFF and services are unchanged | Accepted (2026-11-04) |
 
 ## What has been built, against these decisions
 

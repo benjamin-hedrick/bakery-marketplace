@@ -1,4 +1,4 @@
-> **Status:** Ready · written 2026-11-04 after the Maestro/Android spike; waits for the lead to accept ADR-0023 (sign-in) before any auth code
+> **Status:** Ready · written 2026-11-04 after the Maestro/Android spike; ADR-0023 (sign-in) accepted by the lead 2026-11-04; the build starts now that the personalization PR is merged
 
 ```
 WI ID:               MOB-001
