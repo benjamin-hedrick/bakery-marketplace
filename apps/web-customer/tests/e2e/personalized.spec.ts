@@ -121,6 +121,29 @@ test('the hide switch is off by default, hides only items that list the allergen
   await expect(page.getByTestId('hidden-count')).toHaveText('');
 });
 
+test('the “hidden” message takes no room and shows no colour until something is hidden (register 149)', async ({
+  page,
+}) => {
+  await control({ preferences: { allergies: ['tree-nut'], avoid: [] } });
+  await page.goto('/');
+  await logIn(page);
+  const hide = page.getByRole('checkbox', { name: /Hide items/ });
+  await expect(hide).toBeVisible();
+  const count = page.getByTestId('hidden-count');
+
+  // It is in the page from the start (a screen reader hears it when it fills) but empty, and drawn as nothing: no height, no background.
+  await expect(count).toHaveCount(1);
+  await expect(count).toHaveText('');
+  expect((await count.boundingBox())?.height ?? 0).toBeLessThan(1);
+  await expect(count).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+
+  // With something to say it is a message again.
+  await hide.check();
+  await expect(count).toHaveText('1 item hidden.');
+  expect((await count.boundingBox())?.height ?? 0).toBeGreaterThan(10);
+  await expect(count).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+});
+
 test('the detail page shows the item’s and each option’s conflicts', async ({ page }) => {
   await control({ preferences: { allergies: ['tree-nut'], avoid: ['dairy'] } });
   await page.goto('/');
