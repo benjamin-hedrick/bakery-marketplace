@@ -41,6 +41,7 @@ Money follows D-1: **integer cents, USD**. To avoid unit ambiguity the REST fiel
   "priceCents": 800, "currency": "USD",
   "modifiers": [ { "id": "mod-seeds", "name": "Seed crust", "priceDeltaCents": 100, "allergens": ["sesame"] } ],
   "allergenFlags": ["gluten"],
+  "tags": [{ "id": "vegan", "kind": "diet", "label": "Vegan", "sortOrder": 100 }],
   "sponsored": false, "status": "Published"
 }
 

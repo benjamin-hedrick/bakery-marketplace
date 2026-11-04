@@ -64,11 +64,26 @@ public static class SeedData
         ["listing-muffin-001"] = (0, null),
     };
 
+    // Tags (WI-TAG-002, ADR-0022): a few diet, occasion and season tags, one with a window, and one hidden platform tag that only tests look for.
+    private static readonly IReadOnlyDictionary<string, string[]> VendorTags = new Dictionary<string, string[]>
+    {
+        ["listing-sourdough-001"] = ["vegan", "local-favourite"],
+        ["listing-croissant-001"] = ["vegetarian", "autumn", "thanksgiving"],
+        ["listing-cookies-001"] = ["birthday"],
+    };
+
+    private static readonly IReadOnlyDictionary<string, string[]> PlatformTags = new Dictionary<string, string[]>
+    {
+        ["listing-croissant-001"] = ["test-hidden"],
+    };
+
     public static IReadOnlyList<ListingDocument> Listings()
     {
         var all = BaseListings();
         foreach (var listing in all)
         {
+            if (VendorTags.TryGetValue(listing.Id, out var tags)) listing.Tags = tags.ToList();
+            if (PlatformTags.TryGetValue(listing.Id, out var platform)) listing.PlatformTags = platform.ToList();
             if (!Stock.TryGetValue(listing.Id, out var stock)) continue;
             listing.AvailableQuantity = stock.Quantity;
             listing.MaxPerOrder = stock.MaxPerOrder;

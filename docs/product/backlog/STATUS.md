@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 18 |
+| In review | 19 |
 | Built | 1 |
-| Ready | 6 |
+| Ready | 5 |
 | Proposed | 5 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -156,7 +156,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In review | evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/` (fuzz, soak, ZAP), `docs/governance/review-statement.md`; steps 1 to 5 are done · steps 1 and 2 done (evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`); steps 3 to 5 to do; the lead asked for the fixes of register 134 and 135 and they are done (below) |
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | EPIC-SEARCH | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the rule, its wording and the two defaults below (this is the safety rule) |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review, the allergen list (open point) and ADR-0022's acceptance |
-| [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | Ready |  |
+| [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); the real-stack journey is written but not yet run (register 140) |
 | [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | EPIC-TAGS | Ready |  |
 | [TAG-004](WI-TAG-004.md) | Diet tags in the customer's profile ("prefer") | EPIC-TAGS | Proposed | decision: the lead, on how a chosen option changes a diet claim and on whether "prefer" is wanted in the first demo |
 | [TAG-005](WI-TAG-005.md) | Seasonal and themed surfaces, and administrator editing of the registry | EPIC-TAGS | Deferred | revisit when the administrator service and console exist, or when the lead asks for collections |

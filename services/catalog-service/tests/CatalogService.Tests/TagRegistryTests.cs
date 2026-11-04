@@ -18,7 +18,11 @@ public sealed class TagRegistryTests
         Assert.Equal(
             ["dairy", "egg", "fish", "shellfish", "tree-nut", "peanut", "gluten", "soy", "sesame"],
             registry.VendorAllergenIds);
-        Assert.All(registry.All, t => Assert.Equal(TagKind.Allergen, t.Kind));
+        Assert.Equal(9, registry.All.Count(t => t.Kind == TagKind.Allergen));
+        // The other kinds ship a few entries for the demo (WI-TAG-002): diet and occasion, one with a window, and one hidden platform tag used by tests.
+        Assert.Contains(registry.All, t => t.Kind == TagKind.Diet && t.VendorMayAssign);
+        Assert.Contains(registry.All, t => t.ActiveFrom is not null && t.ActiveTo is not null);
+        Assert.Contains(registry.All, t => t.Visibility == TagVisibility.Hidden && t.AssignableBy == TagAssigner.Platform);
     }
 
     [Theory]

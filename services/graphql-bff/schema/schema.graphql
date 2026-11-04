@@ -74,6 +74,11 @@ type Listing implements Node {
   price: Money!
   modifiers: [Modifier!]!
   allergenFlags: [String!]!
+  """
+  The listing's tags (ADR-0022): only those the catalog shows today (public and inside their window), as the catalog sent them. A diet tag is the
+  bakery's own claim, not something the product checked. Allergens are not tags.
+  """
+  tags: [Tag!]!
   stock: Stock!
 }
 
@@ -95,6 +100,8 @@ type Modifier {
   name: String!
   priceDelta: Money!
   allergens: [String!]!
+  "The option's tags (ADR-0022): only those the catalog shows today (public and inside their window). Allergens are not tags."
+  tags: [Tag!]!
 }
 
 type Money {

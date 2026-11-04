@@ -33,6 +33,7 @@ const shape = (l) => ({
   id: globalId('Listing', l.id),
   price: money(l.priceCents + revision),
   modifiers: l.modifiers.map((m) => ({ ...m, priceDelta: money(m.priceDeltaCents) })),
+  tags: l.tags ?? [],
 });
 const data = (fixture) => (fixtures[fixture] ?? fixtures.A).map(shape);
 

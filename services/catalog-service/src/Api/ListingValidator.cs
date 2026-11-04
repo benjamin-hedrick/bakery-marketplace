@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using CatalogService.Domain;
+using CatalogService.Tags;
 
 namespace CatalogService.Api;
 
@@ -21,7 +22,9 @@ public static partial class ListingValidator
     private static partial Regex IdPattern();
 
     /// <param name="allergenIds">The allergen ids a vendor may use (the tag registry, ADR-0022). Allergen flags are a closed list.</param>
-    public static Dictionary<string, string[]> Validate(ListingRequest request, bool statusRequired, IReadOnlyList<string> allergenIds)
+    /// <param name="tags">The tag registry, and <paramref name="limits"/> the caps (ADR-0022, WI-TAG-002); the tags of a request are checked against them.</param>
+    public static Dictionary<string, string[]> Validate(
+        ListingRequest request, bool statusRequired, IReadOnlyList<string> allergenIds, ITagRegistry tags, TagOptions limits)
     {
         var errors = new Dictionary<string, List<string>>();
         void Add(string field, string message)
@@ -61,10 +64,12 @@ public static partial class ListingValidator
                 Add($"{key}.priceDeltaCents", $"Modifier price delta must be between 0 and {MaxPriceCents} cents.");
             ValidateFlags($"{key}.allergens", m.Allergens, Add);
             ValidateAllergens($"{key}.allergens", m.Allergens, allergenIds, Add);
+            ValidateTags($"{key}.tags", m.Tags, limits.MaxPerOption, tags, Add);
         }
 
         ValidateFlags("allergenFlags", request.AllergenFlags, Add);
         ValidateAllergens("allergenFlags", request.AllergenFlags, allergenIds, Add);
+        ValidateTags("tags", request.Tags, limits.MaxPerListing, tags, Add);
         ValidateStock(request.Stock, Add);
 
         if (request.Status is null) { if (statusRequired) Add("status", "Status is required."); }
@@ -116,6 +121,29 @@ public static partial class ListingValidator
         foreach (var value in NormalizeFlags(flags.Where(f => f is not null && f.Trim().Length is > 0 and <= MaxFlagLength)).Where(v => !known.Contains(v)))
             add(field, $"'{value}' is not a known allergen. Use one of: {string.Join(", ", allowed)}.");
     }
+
+    /// <summary>
+    /// Tags a vendor may assign (ADR-0022 decisions 3 to 5): each id must be in the registry, of a kind other than allergen (allergens stay in their own fields),
+    /// assignable by a vendor and not retired, else it is named. Duplicates are removed before counting, and the count may not pass <paramref name="max"/>.
+    /// </summary>
+    private static void ValidateTags(string field, List<string>? requested, int max, ITagRegistry registry, Action<string, string> add)
+    {
+        if (requested is null) return;
+        var distinct = new List<string>();
+        for (var i = 0; i < requested.Count; i++)
+        {
+            var value = requested[i]?.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(value) || value.Length > MaxFlagLength) { add($"{field}[{i}]", "A tag id is required (max 40 characters)."); continue; }
+            if (registry.Find(value) is not { } tag) { add($"{field}[{i}]", $"'{value}' is not a tag the catalog offers."); continue; }
+            if (tag.Kind == TagKind.Allergen) { add($"{field}[{i}]", $"'{value}' is an allergen. Allergens go in their own field, not in tags."); continue; }
+            if (!tag.VendorMayAssign) { add($"{field}[{i}]", $"'{value}' cannot be assigned by a vendor."); continue; }
+            if (!distinct.Contains(value, StringComparer.Ordinal)) distinct.Add(value);
+        }
+        if (distinct.Count > max) add(field, $"At most {max} tags.");
+    }
+
+    /// <summary>Tag ids as they will be stored: trimmed, lower-cased, without repeats.</summary>
+    public static List<string> NormalizeTags(IEnumerable<string>? tags) => NormalizeFlags(tags);
 
     private static void ValidateFlags(string field, List<string>? flags, Action<string, string> add)
     {

@@ -3,6 +3,7 @@ import type {
   CatalogClient,
   CatalogConflict,
   CatalogListing,
+  CatalogTag,
   CatalogPersonalizedListing,
 } from './catalog-client.ts';
 import { ClientError, DownstreamError, forbidden, unauthenticated } from './errors.ts';
@@ -47,6 +48,9 @@ const ORDER_STATUS = {
   Cancelled: 'CANCELLED',
 };
 
+const toTags = (tags: CatalogTag[] | undefined) =>
+  (tags ?? []).map((t) => ({ id: t.id, kind: t.kind.toUpperCase(), label: t.label }));
+
 const toListing = (l: CatalogListing) => ({
   __typename: 'Listing',
   id: toGlobalId('Listing', l.id),
@@ -60,8 +64,10 @@ const toListing = (l: CatalogListing) => ({
     name: m.name,
     priceDelta: money(m.priceDeltaCents, l.currency),
     allergens: m.allergens,
+    tags: toTags(m.tags),
   })),
   allergenFlags: l.allergenFlags,
+  tags: toTags(l.tags),
   // A function, so a bad stock block only fails the query that asks for it.
   stock: () => ({
     status: enumValue('stock status', STOCK_STATUS, l.stock?.status ?? ''),

@@ -242,14 +242,16 @@ public sealed class TagApiTests : IDisposable
     [Fact]
     public void The_seed_listings_pass_the_listing_validator()
     {
-        var allowed = TagRegistry.LoadEmbedded().VendorAllergenIds;
+        var registry = TagRegistry.LoadEmbedded();
+        var allowed = registry.VendorAllergenIds;
 
         foreach (var l in SeedData.Listings())
         {
             var request = new ListingRequest(
                 l.Name, l.Description, l.Category, l.PriceCents,
-                l.Modifiers.Select(m => new ModifierRequest(m.Id, m.Name, m.PriceDeltaCents, m.Allergens)).ToList(), l.AllergenFlags, l.Status);
-            var errors = ListingValidator.Validate(request, statusRequired: false, allowed);
+                l.Modifiers.Select(m => new ModifierRequest(m.Id, m.Name, m.PriceDeltaCents, m.Allergens, m.Tags)).ToList(), l.AllergenFlags, l.Status,
+                Tags: l.Tags);
+            var errors = ListingValidator.Validate(request, statusRequired: false, allowed, registry, new TagOptions());
 
             Assert.True(errors.Count == 0, $"{l.Id}: {string.Join("; ", errors.SelectMany(e => e.Value))}");
         }
