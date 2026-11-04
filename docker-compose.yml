@@ -56,6 +56,11 @@ services:
       # The issuer string is the address the browser uses. Containers reach this host by its service name, so without a fixed issuer the
       # same issuer would appear under two names (the apps profile validates tokens against http://localhost:5100).
       MockOidc__Issuer: http://localhost:${MOCK_OIDC_PORT:-5100}
+      # Registered redirect URIs, compared exactly. A configured list replaces the host defaults, so the two web callbacks are repeated here;
+      # the third is the Android app's private-use scheme (WI-MOB-001, ADR-0023).
+      MockOidc__RedirectUris__0: http://localhost:3000/api/auth/callback
+      MockOidc__RedirectUris__1: http://localhost:3100/api/auth/callback
+      MockOidc__RedirectUris__2: com.bakerymarketplace.mobile:/auth/callback
     ports:
       - "127.0.0.1:${MOCK_OIDC_PORT:-5100}:5100"
 
