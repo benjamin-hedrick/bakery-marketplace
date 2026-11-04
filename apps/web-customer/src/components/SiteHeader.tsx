@@ -23,6 +23,9 @@ export function SiteHeader() {
         ) : null}
         {session.status === 'user' ? (
           <>
+            <Link href="/preferences" data-testid="preferences-link">
+              Allergies
+            </Link>{' '}
             <Link href="/orders" data-testid="orders-link">
               Order history
             </Link>{' '}

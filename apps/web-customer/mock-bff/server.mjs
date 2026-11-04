@@ -6,6 +6,8 @@
 //   `x-test-payment: decline`  the D-10 hook, as the real BFF forwards it
 //   POST /__control {"revision": n} shifts every price by n cents so refetches are observable.
 //   POST /__control {"resetOrders": true, "seedOrders": n} forgets the orders placed so far and adds n completed ones (the order history).
+//   POST /__control {"resetPreferences": true, "preferences": {"allergies": [...], "avoid": [...]}} clears or sets the one mock customer's allergen profile.
+//   `x-save-preferences: fail` makes savePreferences fail with an internal error; `rejected` answers SavePreferencesRejected.
 // Like the real BFF, placeOrder and order need a bearer token. Orders are kept in memory and an idempotency key returns the same order.
 import http from 'node:http';
 import { readFileSync } from 'node:fs';
@@ -166,6 +168,88 @@ function listOrders({ first = 20, after }, ctx) {
   };
 }
 
+// ---- allergen profile (WI-CUST-005 / WI-CUST-006) ----------------------------------------------------------------------------
+
+const ALLERGENS = [
+  ['dairy', 'Milk (dairy)'],
+  ['egg', 'Eggs'],
+  ['fish', 'Fish'],
+  ['shellfish', 'Shellfish'],
+  ['tree-nut', 'Tree nuts'],
+  ['peanut', 'Peanuts'],
+  ['gluten', 'Gluten (wheat, rye, barley)'],
+  ['soy', 'Soy'],
+  ['sesame', 'Sesame'],
+].map(([id, label]) => ({ id, kind: 'ALLERGEN', label }));
+let profile = { allergies: [], avoid: [] }; // the one mock customer's profile
+let preferenceReads = 0; // how many personalized queries came in, so a test can see the browser did not ask needlessly
+
+const needCustomer = (ctx) => {
+  if (!hasBearer(ctx)) throw unauthenticated();
+};
+
+function tags({ kind }) {
+  return !kind || kind === 'ALLERGEN' ? ALLERGENS : [];
+}
+function preferences(_args, ctx) {
+  needCustomer(ctx);
+  return profile;
+}
+function savePreferences({ input }, ctx) {
+  needCustomer(ctx);
+  if (ctx.savePreferences === 'fail') {
+    throw new GraphQLError('Something went wrong. Please try again.', {
+      extensions: { code: 'INTERNAL', reference: '0123456789abcdef0123456789abcdef' },
+    });
+  }
+  const known = new Set(ALLERGENS.map((a) => a.id));
+  const all = [...input.allergies, ...input.avoid];
+  if (ctx.savePreferences === 'rejected' || all.some((id) => !known.has(id)) || new Set(all).size !== all.length) {
+    return {
+      __typename: 'SavePreferencesRejected',
+      message: 'Your allergen choices could not be saved as entered.',
+      fields: [{ field: 'allergies', message: 'Choose each allergen only once.' }],
+    };
+  }
+  profile = { allergies: [...input.allergies], avoid: [...input.avoid] };
+  return { __typename: 'SavePreferencesSuccess', preferences: profile };
+}
+
+// The conflicts of one listing, as the real catalog reports them: the item's own flags, and separately every option that brings in an allergen
+// of the profile, even one the item already carries (allergy before avoid).
+function conflictsOf(l) {
+  const severityOf = (id) => (profile.allergies.includes(id) ? 'ALLERGY' : profile.avoid.includes(id) ? 'AVOID' : null);
+  const out = [];
+  for (const id of l.allergenFlags) {
+    const severity = severityOf(id);
+    if (severity) out.push({ allergenId: id, severity, source: 'ITEM', optionIds: [] });
+  }
+  const byAllergen = new Map();
+  for (const m of l.modifiers)
+    for (const id of m.allergens) if (severityOf(id)) byAllergen.set(id, [...(byAllergen.get(id) ?? []), m.id]);
+  for (const [id, optionIds] of byAllergen)
+    out.push({ allergenId: id, severity: severityOf(id), source: 'OPTION', optionIds });
+  return out.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'ALLERGY' ? -1 : 1));
+}
+
+function personalizedListings({ hideConflicts }, ctx) {
+  needCustomer(ctx);
+  preferenceReads++;
+  const items = data(ctx.fixture)
+    .map((listing) => ({ listing, conflicts: conflictsOf(listing) }))
+    .filter((p) => !(hideConflicts && p.conflicts.some((c) => c.source === 'ITEM')));
+  return {
+    edges: items.map((node) => ({ cursor: node.listing.id, node })),
+    pageInfo: { hasNextPage: false, endCursor: items.at(-1)?.listing.id ?? null },
+  };
+}
+function personalizedListing({ id }, ctx) {
+  needCustomer(ctx);
+  preferenceReads++;
+  const listing = data(ctx.fixture).find((l) => l.id === id);
+  return listing ? { listing, conflicts: conflictsOf(listing) } : null;
+}
+
 function rootFor(fixture) {
   return {
     listings: () => {
@@ -178,6 +262,11 @@ function rootFor(fixture) {
         ? readOrder(args, ctx)
         : (data(fixture).find((l) => l.id === args.id) ?? null),
     pickupWindows: () => WINDOWS,
+    tags,
+    preferences,
+    savePreferences,
+    personalizedListings,
+    personalizedListing,
     order: readOrder,
     orders: listOrders,
     placeOrder,
@@ -217,7 +306,16 @@ const server = http.createServer(async (req, res) => {
         createdAt: new Date(Date.UTC(2026, 0, 1, 12, i)).toISOString(),
       });
     }
-    return send(200, { revision, orders: orders.size });
+    if (control.resetPreferences) {
+      profile = { allergies: [], avoid: [] };
+      preferenceReads = 0;
+    }
+    if (control.preferences)
+      profile = {
+        allergies: [...(control.preferences.allergies ?? [])],
+        avoid: [...(control.preferences.avoid ?? [])],
+      };
+    return send(200, { revision, orders: orders.size, preferenceReads });
   }
   // What the BFF was sent as Authorization, in order, so a test can see what the web app's server put on the call (ADR-0019).
   if (req.url === '/__seen' && req.method === 'GET') return send(200, { authorizations: seenAuthorizations });
@@ -225,6 +323,7 @@ const server = http.createServer(async (req, res) => {
     seenAuthorizations.length = 0;
     return send(200, { ok: true });
   }
+  if (req.url === '/__reads' && req.method === 'GET') return send(200, { preferenceReads });
   if (req.url === '/healthz') return send(200, { ok: true });
   if (req.url !== '/graphql' || req.method !== 'POST') return send(404, { error: 'not found' });
 
@@ -244,6 +343,7 @@ const server = http.createServer(async (req, res) => {
       authorization: req.headers.authorization,
       scenario: req.headers['x-place-order'] ? String(req.headers['x-place-order']) : undefined,
       testPayment: decline ? 'decline' : undefined,
+      savePreferences: req.headers['x-save-preferences'] ? String(req.headers['x-save-preferences']) : undefined,
     },
     typeResolver: (value) => value.__typename,
   });

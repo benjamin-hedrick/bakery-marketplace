@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { addLine, lineTotalCents, MAX_QUANTITY, type CartLine } from '../lib/cart/cart.ts';
 import { cartStore } from '../lib/cart/useCart.ts';
 import { formatMoney } from '../lib/money';
+import { ConflictMarks } from './ConflictMarks';
 import { canOrder, type StockStatus } from './StockBadge';
+import type { Mark } from '../lib/conflictText';
 
 interface Money {
   cents: number;
@@ -25,7 +27,14 @@ type Notice = 'added' | 'capped' | 'other_vendor' | 'too_many_lines';
  * Choose options and a quantity and put the item in the order. These are choices and hints only: ordering-service prices the order from the
  * catalog, enforces the limits and decides whether it can be placed, so nothing here is trusted.
  */
-export function AddToOrder({ listing }: { listing: OrderableListing }) {
+export function AddToOrder({
+  listing,
+  optionMarks,
+}: {
+  listing: OrderableListing;
+  /** The customer's own conflicts by option id (WI-CUST-006); absent for everyone else. */
+  optionMarks?: ReadonlyMap<string, readonly Mark[]>;
+}) {
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -43,6 +52,12 @@ export function AddToOrder({ listing }: { listing: OrderableListing }) {
                 <li key={m.id}>
                   {m.name} (+{formatMoney(m.priceDelta)})
                   {m.allergens.length ? ` — contains ${m.allergens.join(', ')}` : ''}
+                  {optionMarks?.get(m.id) ? (
+                    <>
+                      {' '}
+                      <ConflictMarks marks={optionMarks.get(m.id)!} />
+                    </>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -105,6 +120,12 @@ export function AddToOrder({ listing }: { listing: OrderableListing }) {
                 }}
               />{' '}
               {m.name} (+{formatMoney(m.priceDelta)}){m.allergens.length ? ` — contains ${m.allergens.join(', ')}` : ''}
+              {optionMarks?.get(m.id) ? (
+                <>
+                  {' '}
+                  <ConflictMarks marks={optionMarks.get(m.id)!} />
+                </>
+              ) : null}
             </label>
           </div>
         ))}

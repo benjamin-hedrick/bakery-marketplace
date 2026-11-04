@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 13 |
+| In review | 15 |
 | Built | 1 |
-| Ready | 11 |
+| Ready | 9 |
 | Proposed | 5 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -83,8 +83,8 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer` (`/orders/{id}`); `docs/evidence/slice-1/findings.md`. The order history list was split out into `WI-CUST-007` |
-| [CUST-005](WI-CUST-005.md) | Allergen profile page | EPIC-WEB-CUSTOMER | Ready |  |
-| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | EPIC-WEB-CUSTOMER | Ready |  |
+| [CUST-005](WI-CUST-005.md) | Allergen profile page | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); waiting for the lead's review of the wording and the page |
+| [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys written but not yet run |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/order-history` (2026-11-04); the page, the BFF query and the ordering endpoint pass their tests and the real-stack journeys (29 passed), nothing is deployed; waiting for the lead's review |
 | [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | EPIC-WEB-CUSTOMER | Ready |  |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
@@ -193,20 +193,20 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0019](../../architecture/adr/0019-browser-sessions.md) | Browser Sessions: a Server-Side Session Behind an HttpOnly Cookie | Accepted | Accepted (2026-11-02) by the lead, who also approved changing the mock issuer and the auth flow, and decide... |
 | [0020](../../architecture/adr/0020-deployment-pipeline-and-environments.md) | Deployment pipeline, environments and configuration | Accepted | Accepted (2026-10-31) |
 | [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Accepted | Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age... |
-| [0022](../../architecture/adr/0022-tags.md) | Tags (a catalog-owned registry of kinds and tags, assigned to listings and options) | Proposed | Proposed (2026-11-04). Drafted from the lead's decisions of the same day: the registry is versioned data fi... |
+| [0022](../../architecture/adr/0022-tags.md) | Tags (a catalog-owned registry of kinds and tags, assigned to listings and options) | Accepted | Accepted (2026-11-04, approved by the lead; drafted the same day as Proposed). Drafted from the lead's deci... |
 
-Accepted: 20 · Superseded: 1 · Proposed: 1
+Accepted: 21 · Superseded: 1
 
 ## Open-items register
 
-139 numbered items in `docs/governance/open-items-register.md` (highest number 139).
+141 numbered items in `docs/governance/open-items-register.md` (highest number 141).
 
 | Type | Count |
 |---|---|
 | Known limitation | 10 |
+| Verification gap | 8 |
 | Process | 8 |
 | Gap | 8 |
-| Verification gap | 7 |
 | Tracking | 7 |
 | Not started | 6 |
 | Hardening | 6 |
@@ -273,14 +273,15 @@ Accepted: 20 · Superseded: 1 · Proposed: 1
 | Defect (security: unauthenticated denial of service) | 1 |
 | Design weakness | 1 |
 | Scaling limit and verification gap | 1 |
+| Decision record | 1 |
 
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
-| Resolved | 45 |
+| Resolved | 46 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 56 |
+| Open | 57 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |

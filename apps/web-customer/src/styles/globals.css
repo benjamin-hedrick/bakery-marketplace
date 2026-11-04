@@ -369,3 +369,16 @@ article[aria-label='Your order'] ul {
     padding: 0.5rem;
   }
 }
+
+/* WI-CUST-006: the customer's own conflicts. The words and the icon carry the meaning; the border and weight only add to it. */
+.conflict-marks {
+  display: inline;
+}
+.conflict-allergy {
+  font-weight: 700;
+  border-left: 4px solid currentColor;
+  padding-left: 0.4rem;
+}
+.conflict-avoid {
+  font-weight: 400;
+}

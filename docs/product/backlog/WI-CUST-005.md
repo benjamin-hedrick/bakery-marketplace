@@ -1,4 +1,10 @@
-> **Status:** Ready
+> **Status:** In review · built and run locally on `feature/slice-personalization-web` (2026-11-04); waiting for the lead's review of the wording and the page
+
+> **Outcome note (2026-11-04):** built as specified. `/preferences` is client-rendered behind `RequireLogin` (the server HTML holds no profile data and no allergen list), titled "Your allergies", linked from the header as "Allergies" for a logged-in customer. `PreferencesForm` reads `tags(kind: ALLERGEN)` and `preferences` network-only, draws one labelled group of three radios per registry allergen (the page names no allergen itself, so the lead's "easy to extend" rule holds: a tenth allergen in the registry appears without a code change), and saves the whole profile with `savePreferences`. A saved profile shows a status message; a refused save and a failed save each show a distinct "Not saved" alert and keep the choices; unsaved changes are announced. The mock BFF gained `tags`, `preferences`, `savePreferences`, `personalizedListings` and `personalizedListing` resolvers, steered by `/__control` (`resetPreferences`, `preferences`) and the `x-save-preferences` header.
+>
+> **Verified (local):** 9 browser tests against the mock BFF (new customer, each choice and a reload, one choice per allergen, clearing, a failed and a refused save, logout, no profile in the server HTML, axe smoke); a mutation check (the failed save shown as saved) failed the intended test only. **Not run:** the 3 real-stack journeys written in `tests/skeleton/profile-page.spec.ts` (the run was stopped by the system for low memory before they ran).
+>
+> **Not done / limits:** a vendor login gets the page's "could not load" state rather than a dedicated message; no unsaved-changes prompt when leaving the page; the two-customer case is not tried (one mock customer).
 
 ```
 WI ID:               CUST-005
@@ -7,7 +13,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-WEB-CUSTOMER
 Shared with epic(s):  EPIC-PREFERENCES
 Hat/Owner:            Engineering/Build
-Status:               Ready
+Status:               In review
 Size:                 S
 ```
 
