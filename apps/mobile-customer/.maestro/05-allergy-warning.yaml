@@ -1,0 +1,95 @@
+# WI-MOB-002: a customer with a saved tree-nut allergy: the cart says what the item contains, checkout warns, Place order stays off until the warning is
+# acknowledged, and the allergy is told to the bakery with the order. The profile is saved through the BFF by the runner's flow-control server (not by a screen).
+# The checkout screen is longer than the phone: the warning, the box and the hint are at the top, Place order is below the pickup times, so the flow scrolls.
+appId: com.bakerymarketplace.mobile
+name: An allergy warning must be acknowledged before the order is placed
+onFlowComplete:
+  - runScript: scripts/set-profile.js
+---
+- runScript:
+    file: scripts/set-profile.js
+    env:
+      ALLERGIES: tree-nut
+- launchApp:
+    clearState: true
+- runFlow: subflows/login.yaml
+- assertVisible: Signed in as Alice Customer
+- tapOn:
+    id: listing-Almond Croissant
+- tapOn:
+    id: option-Extra almonds.*
+- tapOn:
+    id: add-to-order
+# The cart, for everyone: what the item and the chosen option contain.
+- assertVisible:
+    id: line-allergens-0
+- assertVisible: ".*Contains.*tree nuts.*"
+- assertVisible: ".*Extra almonds contains tree nuts.*"
+- tapOn:
+    id: to-checkout
+# Checkout with a profile: a warning for the item and one for the option, the reminder, the box with its hint, and what will be told to the bakery.
+- assertVisible:
+    id: conflict-0
+- assertVisible: ".*Allergy warning.*Almond Croissant contains tree nuts, which you listed as an allergy.*"
+- assertVisible: ".*Allergy warning.*Extra almonds contains tree nuts.*"
+- assertVisible:
+    id: personal-reminder
+- assertVisible:
+    id: ack-needed
+- assertVisible:
+    id: tell-tree-nut
+# Place order is off until the box is ticked.
+- scrollUntilVisible:
+    element:
+      id: place-order
+- assertVisible:
+    id: place-order
+    enabled: false
+- scrollUntilVisible:
+    element:
+      id: acknowledge
+    direction: UP
+- tapOn:
+    id: acknowledge
+- assertNotVisible:
+    id: ack-needed
+- scrollUntilVisible:
+    element:
+      id: place-order
+- assertVisible:
+    id: place-order
+    enabled: true
+# Unticking turns it off again, and the hint comes back.
+- scrollUntilVisible:
+    element:
+      id: acknowledge
+    direction: UP
+- tapOn:
+    id: acknowledge
+- assertVisible:
+    id: ack-needed
+- scrollUntilVisible:
+    element:
+      id: place-order
+- assertVisible:
+    id: place-order
+    enabled: false
+# Tick it again and place the order.
+- scrollUntilVisible:
+    element:
+      id: acknowledge
+    direction: UP
+- tapOn:
+    id: acknowledge
+- scrollUntilVisible:
+    element:
+      id: place-order
+- tapOn:
+    id: place-order
+- assertVisible:
+    id: order-headline
+# The bakery was told: the order carries the tree-nut allergy.
+- runScript:
+    file: scripts/assert-last-order-allergens.js
+    env:
+      EXPECT: tree-nut

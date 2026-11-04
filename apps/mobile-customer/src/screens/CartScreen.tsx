@@ -1,10 +1,19 @@
-import { estimatedTotalCents, lineTotalCents, removeLine, setQuantity } from '@bakery/customer-core';
+import {
+  estimatedTotalCents,
+  lineAllergenSentences,
+  lineTotalCents,
+  removeLine,
+  setQuantity,
+} from '@bakery/customer-core';
 import { ScrollView, Text, View } from 'react-native';
+import { useCheckoutAllergens } from '../allergens';
 import { cartStore, useCart } from '../cart';
 import { Button, Notice, money, styles } from '../ui';
 
 export function CartScreen(props: { onCheckout: () => void; onBrowse: () => void }) {
   const cart = useCart();
+  // What each line contains, for everyone, read fresh from the BFF (the profile and the conflicts are checkout's).
+  const info = useCheckoutAllergens(cart, { withProfile: false });
   if (cart.lines.length === 0) {
     return (
       <View style={styles.pad}>
@@ -22,6 +31,15 @@ export function CartScreen(props: { onCheckout: () => void; onBrowse: () => void
           <Text style={styles.text}>{line.name}</Text>
           {line.modifiers.length > 0 ? (
             <Text style={styles.muted}>{line.modifiers.map((m) => m.name).join(', ')}</Text>
+          ) : null}
+          {info.listings.state === 'ready' ? (
+            <Text style={styles.muted} testID={`line-allergens-${i}`}>
+              {lineAllergenSentences(info.listings.value.get(line.listingId), line.modifiers, info.labels).join('. ')}
+            </Text>
+          ) : info.listings.state === 'failed' ? (
+            <Text style={styles.muted} testID={`line-allergens-failed-${i}`}>
+              {"We could not read this item's allergens. Please check them with the bakery."}
+            </Text>
           ) : null}
           <View style={styles.row}>
             <Button

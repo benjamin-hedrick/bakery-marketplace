@@ -1,5 +1,9 @@
 # Signs in as Alice Customer through the real mock issuer in the system browser (Custom Tabs). Chrome shows its first-run screen once per
 # emulator image; when it does, it is dismissed here.
+#
+# Chrome exposes a web page's accessibility tree lazily: now and then the page's heading is in the tree but its buttons are not (seen once in seven
+# flows on 2026-11-04, "Element not found" after 20 s with the page plainly on screen). The mock issuer's page has a fixed layout, so when the button is
+# not in the tree the flow taps where the first button is (the first "Login as" button, near the top left of the page).
 appId: com.bakerymarketplace.mobile
 ---
 - tapOn:
@@ -9,6 +13,22 @@ appId: com.bakerymarketplace.mobile
       visible: Use without an account
     commands:
       - tapOn: Use without an account
-- tapOn: Login as Alice Customer (Customer)
+- extendedWaitUntil:
+    visible: Mock OIDC Login
+    timeout: 30000
+# Exactly one of the two branches runs: the flag is set in the first, so the second never fires after the page has gone (a blind tap on the app's own screen).
+- evalScript: ${output.tapped = false}
+- runFlow:
+    when:
+      visible: Login as Alice Customer.*
+    commands:
+      - tapOn: Login as Alice Customer.*
+      - evalScript: ${output.tapped = true}
+- runFlow:
+    when:
+      true: ${!output.tapped}
+    commands:
+      - tapOn:
+          point: 20%,19%
 - assertVisible:
     id: listings

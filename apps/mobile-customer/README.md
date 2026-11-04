@@ -25,8 +25,8 @@ node ../../scripts/dev/mobile-flows.mjs --no-build   # reuse the test build alre
 node ../../scripts/dev/mobile-flows.mjs --flow 03    # one flow
 ```
 
-It boots the emulator if none is running, starts the backend (test hook on), builds and installs the app as a test build, runs the four flows in
-`.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order) and tears down what it started. The
+It boots the emulator if none is running, starts the backend (test hook on), builds and installs the app as a test build, runs the seven flows in
+`.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order; an allergy warning that must be acknowledged; no allergy profile; a failed allergy check). The last three set up a customer's allergen profile through a small local control server that the runner starts (`scripts/lib/flow-control.mjs`), so they only work when started by the runner, not by `maestro test` alone and tears down what it started. The
 last result is recorded in `docs/evidence/WI-MOB-001/`; Maestro's own output goes to `artifacts/mobile/` (git-ignored).
 
 The demo (`node ../../scripts/dev/mobile-demo.mjs`) boots the emulator with its window, starts the backend **without** the test hook, builds a non-test

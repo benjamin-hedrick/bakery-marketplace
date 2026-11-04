@@ -2,6 +2,7 @@
 // lives in the Android Keystore (expo-secure-store) and is deleted on logout or when the issuer refuses it. Nothing is logged.
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
+import { displayNameFromToken } from '@bakery/customer-core';
 import { useSyncExternalStore } from 'react';
 import { CLIENT_ID, ISSUER, REDIRECT_URI, SCOPE } from '../config';
 import { newPkce, randomUrlSafe } from './pkce';
@@ -13,12 +14,15 @@ export type AuthState = 'starting' | 'signedOut' | 'signedIn';
 
 interface Tokens {
   access_token: string;
+  id_token?: string;
   refresh_token?: string;
   expires_in?: number;
 }
 
 let state: AuthState = 'starting';
 let accessToken: string | null = null;
+// Who is signed in, for display only ("Signed in as ..."): read from the token's name claim, never used to decide anything (see customer-core identity.ts).
+let displayName: string | null = null;
 let expiresAt = 0;
 type Outcome = 'ok' | 'refused' | 'unreachable';
 let refreshing: Promise<Outcome> | null = null;
@@ -41,6 +45,17 @@ export const useAuthState = (): AuthState =>
   );
 
 /** The issuer's answer: tokens, 'refused' (it said no) or 'unreachable' (no answer, so nothing is learned about the token). */
+/** The signed-in customer's name for display, or null when the token carries none or nobody is signed in. */
+export const useSignedInName = (): string | null =>
+  useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => displayName,
+    () => displayName,
+  );
+
 async function postToken(body: Record<string, string>): Promise<Tokens | 'refused' | 'unreachable'> {
   try {
     const res = await fetch(`${ISSUER}/token`, {
@@ -58,6 +73,7 @@ async function postToken(body: Record<string, string>): Promise<Tokens | 'refuse
 
 async function accept(tokens: Tokens) {
   accessToken = tokens.access_token;
+  displayName = displayNameFromToken(tokens.id_token ?? tokens.access_token);
   expiresAt = Date.now() + (tokens.expires_in ?? 300) * 1000;
   if (tokens.refresh_token) await SecureStore.setItemAsync(REFRESH_KEY, tokens.refresh_token);
   setState('signedIn');
@@ -65,6 +81,7 @@ async function accept(tokens: Tokens) {
 
 async function endSession() {
   accessToken = null;
+  displayName = null;
   expiresAt = 0;
   await SecureStore.deleteItemAsync(REFRESH_KEY).catch(() => undefined);
   setState('signedOut');
