@@ -27,6 +27,8 @@ export interface MockOrder {
   updatedAt?: string;
   pickupWindow?: { start: string; end: string } | null;
   pickupInstructions?: string | null;
+  /** The allergens the customer named for the order (registry ids); the mock answers an empty list when a test sets none. */
+  allergens?: string[];
   lines?: {
     listingId: string;
     listingName: string | null;
@@ -69,6 +71,8 @@ export const setMock = (state: {
   actionDelayMs?: number;
   /** Makes the list answer with these orders instead of the live ones (a read that is behind the stream); null puts it back. */
   listSnapshot?: ReturnType<typeof order>[] | null;
+  /** "fail" makes the allergen registry unreadable, so the cards show ids. */
+  tagsMode?: 'ok' | 'fail';
 }) => post(`${MOCK}/__state`, state);
 
 /** Pushes one changed order to every open stream, as the BFF does when ordering reports a change. */
@@ -104,6 +108,11 @@ export async function resetAll(): Promise<void> {
 /** The vendor actions the mock BFF received, in order. */
 export async function mockActions(): Promise<{ action: string; orderId: string; authorization: string | null }[]> {
   return ((await (await fetch(`${MOCK}/__state`)).json()) as { actions: never[] }).actions;
+}
+
+/** How many times the screen asked for the allergen labels. */
+export async function tagReads(): Promise<number> {
+  return ((await (await fetch(`${MOCK}/__state`)).json()) as { tagReads: number }).tagReads;
 }
 
 export async function mockRequests(): Promise<{ requests: number; authorizations: (string | null)[] }> {

@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 16 |
+| In review | 17 |
 | Built | 1 |
-| Ready | 8 |
+| Ready | 7 |
 | Proposed | 5 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -147,7 +147,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `apps/web-queue-display` |
 | [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | EPIC-QUEUE-DISPLAY | Done | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-003/` (the real-stack run and the first-pass security review, the `graphql-sse` review); approved by the lead on 2026-11-02 after a review round |
 | [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | EPIC-QUEUE-DISPLAY | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-QUE-004/` |
-| [QUE-005](WI-QUE-005.md) | Allergens on the vendor's order card | EPIC-QUEUE-DISPLAY | Ready |  |
+| [QUE-005](WI-QUE-005.md) | Allergens on the vendor's order card | EPIC-QUEUE-DISPLAY | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journey written but not yet run (register 140) |
 | [RATE-001](WI-RATE-001.md) | First rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128) | EPIC-RATE-LIMITING | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-RATE-001/` |
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |

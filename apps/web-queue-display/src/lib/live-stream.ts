@@ -29,6 +29,7 @@ const subscription = graphql`
         end
       }
       pickupInstructions
+      allergens
       lines {
         listingId
         listingName

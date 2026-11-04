@@ -239,3 +239,11 @@ section[role='alert'] {
   flex-basis: 100%;
   margin: 0;
 }
+
+/* WI-QUE-005: the allergens of an order, where the person preparing it cannot miss them. The words and the icon carry the meaning, not the colour. */
+.allergens {
+  margin: 0.4rem 0;
+  padding: 0.3rem 0.5rem;
+  border-left: 6px solid currentColor;
+  font-weight: 700;
+}
