@@ -42,6 +42,12 @@ const steps = [
     args: ['scripts/docs/traceability.mjs', '--check'],
   },
   {
+    name: 'docs: scripts index',
+    cwd: root,
+    cmd: process.execPath,
+    args: ['scripts/docs/scripts-index.mjs', '--check'],
+  },
+  {
     name: 'docs: link check',
     cwd: root,
     cmd: process.execPath,
