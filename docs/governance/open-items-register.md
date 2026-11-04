@@ -771,3 +771,14 @@ The allergy warning needs customer preference and allergy data (the personalizat
 Type: Scaling limit and verification gap · Source: `WI-CUST-007` build (2026-11-04) · Hat: Architect, QA
 Status: Open
 `OrderStore.ListForCustomerAsync` reads every order of the customer and orders and pages them in memory, as the vendor list does (the reason is in `VendorOrderReader`: do not rely on the store query to order a composite cursor). A customer with a few hundred orders costs a few hundred small documents per page; revisit with a store-side ordering when that is no longer true. Also: the mock issuer has one customer, so "another customer's orders never appear" is proved by the ordering API tests (in-memory repository, partition and filter both mutation-checked), not on Cosmos with two customers. A second mock customer would close that.
+
+**140. Real-stack journeys for `CUST-005` and `CUST-006` are written but have not run**
+Type: Verification gap · Source: `CUST-005`/`CUST-006` build (2026-11-04) · Hat: QA
+Status: Open
+`tests/skeleton/profile-page.spec.ts` (set an allergy in the browser, see the seeded croissant and sourdough marked, hide, clear, a vendor login refused) was not run: the `skeleton-smoke.mjs` run was stopped by the system for low memory (WSL), and the local stack was shut down at the lead's request. Both specs say so. Next step: run `node scripts/ci/skeleton-smoke.mjs --containers` (`COMPOSE_PARALLEL_LIMIT=1`) when memory allows, fix what it finds, then remove the "Not run" notes.
+
+**141. Decisions of 2026-11-04 (the lead)**
+Type: Decision record · Source: session with the lead · Hat: Product
+Status: Resolved 2026-11-04
+ADR-0022 accepted; the nine allergens and labels approved; caps 12 per listing and 6 per option approved, all to be easy to adjust or extend (data, one setting). The cart acknowledgement **blocks with a confirm-and-override** (`CUST-008`). Browsing is unfiltered by default and allergen items stay selectable and customizable. Order allergens are carried by `OrderPlaced` and shown to the vendor through Ready until handover (`ORD-009`, `QUE-005`), so the bakery can label or stage the order; retention on the stream is left to the stream's own trimming (proposed, to confirm).
+
