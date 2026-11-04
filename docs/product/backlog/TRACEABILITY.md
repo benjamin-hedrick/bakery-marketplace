@@ -25,7 +25,7 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | Done | *none* | *none* |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | Done | *none* | `baseline-2026-10-30.md` |
-| [CUST-007](WI-CUST-007.md) | Customer order history list | In review | `order-history.spec.ts`, `customer-orders.test.ts`, `CheckoutApiTests.cs` | `baseline-2026-10-30.md`, `status-check-experiment-2026-10-30.md` |
+| [CUST-007](WI-CUST-007.md) | Customer order history list | In review | `order-history.spec.ts`, `order-history.spec.ts`, `customer-orders.test.ts` and 1 more | `baseline-2026-10-30.md`, `status-check-experiment-2026-10-30.md` |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |

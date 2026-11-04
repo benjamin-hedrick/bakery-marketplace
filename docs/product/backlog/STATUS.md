@@ -159,7 +159,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 
 ## Architecture decisions
 
-21 records.
+22 records.
 
 | ADR | Title | Status | Status line |
 |---|---|---|---|
@@ -184,8 +184,9 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0019](../../architecture/adr/0019-browser-sessions.md) | Browser Sessions: a Server-Side Session Behind an HttpOnly Cookie | Accepted | Accepted (2026-11-02) by the lead, who also approved changing the mock issuer and the auth flow, and decide... |
 | [0020](../../architecture/adr/0020-deployment-pipeline-and-environments.md) | Deployment pipeline, environments and configuration | Accepted | Accepted (2026-10-31) |
 | [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Accepted | Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age... |
+| [0022](../../architecture/adr/0022-tags.md) | Tags (a catalog-owned registry of kinds and tags, assigned to listings and options) | Proposed | Proposed (2026-11-04). Drafted from the lead's decisions of the same day: the registry is versioned data fi... |
 
-Accepted: 20 · Superseded: 1
+Accepted: 20 · Superseded: 1 · Proposed: 1
 
 ## Open-items register
 
