@@ -5,6 +5,7 @@ import type { ListingDetailQuery } from '../__generated__/ListingDetailQuery.gra
 import { formatMoney } from '../lib/money';
 import { AddToOrder } from './AddToOrder';
 import { ConflictMarks } from './ConflictMarks';
+import { TagChips } from './TagChips';
 import { StockBadge } from './StockBadge';
 import { usePersonalizedListing } from './usePersonalization';
 
@@ -21,6 +22,11 @@ export const listingDetailQuery = graphql`
         currency
       }
       allergenFlags
+      tags {
+        id
+        kind
+        label
+      }
       stock {
         status
         maxPerOrder
@@ -33,6 +39,11 @@ export const listingDetailQuery = graphql`
           currency
         }
         allergens
+        tags {
+          id
+          kind
+          label
+        }
       }
     }
   }
@@ -71,6 +82,7 @@ export function ListingDetail({ id }: { id: string }) {
         {listing.stock.maxPerOrder ? ` · up to ${listing.stock.maxPerOrder} per order` : ''}
       </p>
       <p>Allergens: {listing.allergenFlags.join(', ') || 'none flagged'}</p>
+      <TagChips tags={listing.tags} full />
       {personal ? (
         <section aria-label="Your allergens" data-testid="personal-detail">
           <ConflictMarks marks={itemMarks} />

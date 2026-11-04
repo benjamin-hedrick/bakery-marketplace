@@ -4,7 +4,27 @@
 
 const IN_STOCK = { status: 'IN_STOCK', maxPerOrder: null };
 
-const listing = (id, vendorId, name, category, priceCents, modifiers, allergenFlags, stock = IN_STOCK) => ({
+// The tags a catalog response carries (WI-TAG-002): id, kind and label, as the real BFF maps them.
+export const TAGS = {
+  vegan: { id: 'vegan', kind: 'DIET', label: 'Vegan' },
+  vegetarian: { id: 'vegetarian', kind: 'DIET', label: 'Vegetarian' },
+  autumn: { id: 'autumn', kind: 'SEASON', label: 'Autumn' },
+  'local-favourite': { id: 'local-favourite', kind: 'THEME', label: 'Local favourite' },
+};
+const tagsOf = (ids = []) => ids.map((id) => TAGS[id]);
+
+const listing = (
+  id,
+  vendorId,
+  name,
+  category,
+  priceCents,
+  modifiers,
+  allergenFlags,
+  stock = IN_STOCK,
+  tags = [],
+  optionTags = {},
+) => ({
   __typename: 'Listing',
   id, // the raw service id: server.mjs turns it into the Relay global id once, as the real BFF does
   vendorId,
@@ -17,8 +37,10 @@ const listing = (id, vendorId, name, category, priceCents, modifiers, allergenFl
     name: mname,
     priceDeltaCents: delta,
     allergens,
+    tags: tagsOf(optionTags[mid]),
   })),
   allergenFlags,
+  tags: tagsOf(tags),
   stock,
 });
 
@@ -36,6 +58,8 @@ export const fixtures = {
       ],
       ['gluten'],
       { status: 'IN_STOCK', maxPerOrder: 4 },
+      ['vegan', 'local-favourite'],
+      { 'mod-seeds': ['vegan'] },
     ),
     listing(
       'listing-croissant-001',
@@ -46,6 +70,7 @@ export const fixtures = {
       [['mod-extra-almond', 'Extra almond', 75, ['tree-nut']]],
       ['gluten', 'dairy', 'tree-nut'],
       { status: 'LOW', maxPerOrder: null },
+      ['vegetarian', 'autumn'],
     ),
     listing(
       'listing-latte-001',
@@ -57,6 +82,8 @@ export const fixtures = {
         ['mod-extra-shot', 'Extra shot', 75, []],
         ['mod-vanilla', 'Vanilla', 50, []],
       ],
+      [],
+      undefined,
       [],
     ),
   ],

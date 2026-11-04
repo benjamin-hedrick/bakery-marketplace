@@ -2,6 +2,7 @@ using System.Security.Claims;
 using BakeryMarketplace.Auth;
 using CatalogService.Domain;
 using CatalogService.Services;
+using CatalogService.Tags;
 using Microsoft.AspNetCore.Authorization;
 
 namespace CatalogService.Api;
@@ -16,22 +17,22 @@ public static class ListingEndpoints
         var group = app.MapGroup("/catalog/listings");
 
         // Public reads (first-slice contract D-4): anonymous, Published listings of Verified vendors only.
-        group.MapGet("/", async (int? limit, string? after, ListingService svc, CancellationToken ct) =>
+        group.MapGet("/", async (int? limit, string? after, ListingService svc, TagProjector tags, CancellationToken ct) =>
         {
             var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
             var (items, next) = await svc.BrowseAsync(size, after, ct);
-            return Results.Ok(new ListingPage(items.Select(ListingDto.From).ToList(), next));
+            return Results.Ok(new ListingPage(items.Select(l => ListingDto.From(l, tags)).ToList(), next));
         }).AllowAnonymous();
 
-        group.MapGet("/{id}", async (string id, ListingService svc, CancellationToken ct) =>
+        group.MapGet("/{id}", async (string id, ListingService svc, TagProjector tags, CancellationToken ct) =>
         {
             var listing = await svc.GetPublicAsync(id, ct);
-            return listing is null ? NotFound() : Results.Ok(ListingDto.From(listing));
+            return listing is null ? NotFound() : Results.Ok(ListingDto.From(listing, tags));
         }).AllowAnonymous();
 
         // The vendor's own listings, drafts included, with the exact quantity (register item 63). The vendor id comes from the token, and the
         // read is confined to that vendor's partition, so another vendor's listing is indistinguishable from a missing one.
-        group.MapGet("/mine", async (string? status, int? limit, string? after, ClaimsPrincipal user, ListingService svc, CancellationToken ct) =>
+        group.MapGet("/mine", async (string? status, int? limit, string? after, ClaimsPrincipal user, ListingService svc, TagProjector tags, CancellationToken ct) =>
         {
             var vendorId = SubjectOf(user);
             if (vendorId is null) return Results.Unauthorized();
@@ -40,19 +41,19 @@ public static class ListingEndpoints
 
             var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
             var (items, next) = await svc.ListOwnAsync(vendorId, status, size, after, ct);
-            return Results.Ok(new ListingPage(items.Select(ListingDto.ForOwner).ToList(), next));
+            return Results.Ok(new ListingPage(items.Select(l => ListingDto.ForOwner(l, tags)).ToList(), next));
         }).RequireAuthorization("VendorRole");
 
-        group.MapGet("/mine/{id}", async (string id, ClaimsPrincipal user, ListingService svc, CancellationToken ct) =>
+        group.MapGet("/mine/{id}", async (string id, ClaimsPrincipal user, ListingService svc, TagProjector tags, CancellationToken ct) =>
         {
             var vendorId = SubjectOf(user);
             if (vendorId is null) return Results.Unauthorized();
             var listing = await svc.GetOwnAsync(id, vendorId, ct);
-            return listing is null ? NotFound() : Results.Ok(ListingDto.ForOwner(listing));
+            return listing is null ? NotFound() : Results.Ok(ListingDto.ForOwner(listing, tags));
         }).RequireAuthorization("VendorRole");
 
         // Vendor writes: Vendor role (coarse) + resource ownership (ADR-0006). The vendor id always comes from the token.
-        group.MapPost("/", async (ListingRequest request, ClaimsPrincipal user, ListingService svc, CancellationToken ct) =>
+        group.MapPost("/", async (ListingRequest request, ClaimsPrincipal user, ListingService svc, TagProjector tags, CancellationToken ct) =>
         {
             var vendorId = SubjectOf(user);
             if (vendorId is null) return Results.Unauthorized();
@@ -60,14 +61,14 @@ public static class ListingEndpoints
             var result = await svc.CreateAsync(vendorId, request, ct);
             return result.Outcome switch
             {
-                ListingOutcome.Created => Results.Created($"/catalog/listings/{result.Listing!.Id}", ListingDto.ForOwner(result.Listing)),
+                ListingOutcome.Created => Results.Created($"/catalog/listings/{result.Listing!.Id}", ListingDto.ForOwner(result.Listing, tags)),
                 _ => ToError(result),
             };
         }).RequireAuthorization("VendorRole");
 
         group.MapPut("/{id}", async (
             string id, ListingRequest request, ClaimsPrincipal user,
-            ListingService svc, IAuthorizationService authz, CancellationToken ct) =>
+            ListingService svc, IAuthorizationService authz, TagProjector tags, CancellationToken ct) =>
         {
             var callerId = SubjectOf(user);
             if (callerId is null) return Results.Unauthorized();
@@ -82,13 +83,13 @@ public static class ListingEndpoints
             if (!auth.Succeeded) return Results.Forbid();
 
             var result = await svc.UpdateAsync(existing, request, ct);
-            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.ForOwner(result.Listing!)) : ToError(result);
+            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.ForOwner(result.Listing!, tags)) : ToError(result);
         }).RequireAuthorization("VendorRole");
 
         // Increment or decrement the quantity of a limited-stock listing (ADR-0017). Same ownership rules as an edit.
         group.MapPost("/{id}/stock/adjust", async (
             string id, StockAdjustRequest request, ClaimsPrincipal user,
-            ListingService svc, IAuthorizationService authz, CancellationToken ct) =>
+            ListingService svc, IAuthorizationService authz, TagProjector tags, CancellationToken ct) =>
         {
             var callerId = SubjectOf(user);
             if (callerId is null) return Results.Unauthorized();
@@ -104,7 +105,7 @@ public static class ListingEndpoints
             if (!auth.Succeeded) return Results.Forbid();
 
             var result = await svc.AdjustStockAsync(existing, request.Delta!.Value, ct);
-            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.ForOwner(result.Listing!)) : ToError(result);
+            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.ForOwner(result.Listing!, tags)) : ToError(result);
         }).RequireAuthorization("VendorRole");
 
         return app;

@@ -382,3 +382,20 @@ article[aria-label='Your order'] ul {
 .conflict-avoid {
   font-weight: 400;
 }
+
+/* WI-TAG-002: tags describe. They are small neutral chips, deliberately nothing like the allergen warnings (no icon, no bold, no heavy border). */
+.tag-chips {
+  display: inline;
+  margin: 0 0 0 0.4rem;
+  padding: 0;
+  list-style: none;
+}
+.tag-chip {
+  display: inline-block;
+  margin: 0 0.25rem 0 0;
+  padding: 0 0.4rem;
+  border: 1px solid #c8c8c8;
+  border-radius: 0.75rem;
+  font-size: 0.8em;
+  font-weight: 400;
+}

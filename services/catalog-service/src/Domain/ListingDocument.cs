@@ -31,6 +31,12 @@ public sealed class ListingDocument : IETagged
     [JsonProperty("modifiers")] public List<ModifierDocument> Modifiers { get; set; } = new();
     [JsonProperty("allergenFlags")] public List<string> AllergenFlags { get; set; } = new();
 
+    /// <summary>Tag ids (registry, non-allergen kinds) the vendor put on the listing (WI-TAG-002). Omitted when none.</summary>
+    [JsonProperty("tags", NullValueHandling = NullValueHandling.Ignore)] public List<string>? Tags { get; set; }
+
+    /// <summary>Tag ids the platform put on the listing. No vendor request can set or clear them (ADR-0022 decision 5). Omitted when none.</summary>
+    [JsonProperty("platformTags", NullValueHandling = NullValueHandling.Ignore)] public List<string>? PlatformTags { get; set; }
+
     /// <summary>Stored only; sponsored-slot logic belongs to Advertising (<c>ADV-*</c>).</summary>
     [JsonProperty("sponsored")] public bool Sponsored { get; set; }
 
@@ -110,4 +116,10 @@ public sealed class ModifierDocument
     [JsonProperty("name")] public string Name { get; set; } = "";
     [JsonProperty("priceDeltaCents")] public int PriceDeltaCents { get; set; }
     [JsonProperty("allergens")] public List<string> Allergens { get; set; } = new();
+
+    /// <summary>Tag ids the vendor put on the option (WI-TAG-002). Omitted when none.</summary>
+    [JsonProperty("tags", NullValueHandling = NullValueHandling.Ignore)] public List<string>? Tags { get; set; }
+
+    /// <summary>Tag ids the platform put on the option; never writable by a vendor request.</summary>
+    [JsonProperty("platformTags", NullValueHandling = NullValueHandling.Ignore)] public List<string>? PlatformTags { get; set; }
 }

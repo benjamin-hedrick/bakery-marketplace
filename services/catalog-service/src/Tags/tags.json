@@ -8,6 +8,18 @@
     { "id": "peanut",    "kind": "allergen", "label": "Peanuts",                      "sortOrder": 60 },
     { "id": "gluten",    "kind": "allergen", "label": "Gluten (wheat, rye, barley)",  "sortOrder": 70 },
     { "id": "soy",       "kind": "allergen", "label": "Soy",                          "sortOrder": 80 },
-    { "id": "sesame",    "kind": "allergen", "label": "Sesame",                       "sortOrder": 90 }
+    { "id": "sesame",    "kind": "allergen", "label": "Sesame",                       "sortOrder": 90 },
+
+    { "id": "vegan",       "kind": "diet",     "label": "Vegan",                        "sortOrder": 100 },
+    { "id": "vegetarian",  "kind": "diet",     "label": "Vegetarian",                   "sortOrder": 110 },
+
+    { "id": "thanksgiving", "kind": "occasion", "label": "Thanksgiving",                "sortOrder": 200, "activeFrom": "2026-11-01", "activeTo": "2026-11-28" },
+    { "id": "birthday",     "kind": "occasion", "label": "Birthday",                    "sortOrder": 210 },
+
+    { "id": "autumn",      "kind": "season",   "label": "Autumn",                       "sortOrder": 300, "activeFrom": "2026-09-22", "activeTo": "2026-12-20" },
+
+    { "id": "local-favourite", "kind": "theme", "label": "Local favourite",             "sortOrder": 400 },
+
+    { "id": "test-hidden", "kind": "theme",    "label": "Hidden test tag (never shown)", "sortOrder": 900, "visibility": "hidden", "assignableBy": "platform" }
   ]
 }

@@ -4,6 +4,7 @@ import { graphql, useRefetchableFragment } from 'react-relay';
 import type { ListingsList_query$key } from '../__generated__/ListingsList_query.graphql';
 import { formatMoney } from '../lib/money';
 import { ConflictMarks } from './ConflictMarks';
+import { TagChips } from './TagChips';
 import { StockBadge } from './StockBadge';
 import { usePersonalizedList } from './usePersonalization';
 
@@ -20,6 +21,11 @@ const fragment = graphql`
             currency
           }
           allergenFlags
+          tags {
+            id
+            kind
+            label
+          }
           stock {
             status
           }
@@ -83,6 +89,7 @@ export function ListingsList({ query }: { query: ListingsList_query$key }) {
               {node.category}
               {node.allergenFlags.length ? ` · contains ${node.allergenFlags.join(', ')}` : ''}
             </small>
+            <TagChips tags={node.tags} />
           </li>
         ))}
       </ul>

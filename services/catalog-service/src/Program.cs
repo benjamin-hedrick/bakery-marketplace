@@ -106,6 +106,10 @@ else
 builder.Services.AddSingleton(TimeProvider.System);
 // The tag registry (ADR-0022) is data shipped with the service; a bad file stops the start here, naming the entry.
 builder.Services.AddSingleton<ITagRegistry>(TagRegistry.LoadEmbedded());
+// The caps on tags per listing and per option (WI-TAG-002): one setting (the Tags section), so they are easy to change (ADR-0022, 2026-11-04).
+builder.Services.Configure<TagOptions>(builder.Configuration.GetSection("Tags"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<TagOptions>>().Value);
+builder.Services.AddSingleton<TagProjector>(); // which tags a response may show (public: active today; owner: all they assigned, marked)
 builder.Services.AddSingleton<VendorStatusStore>();
 builder.Services.Configure<CatalogOutboxOptions>(builder.Configuration.GetSection("Outbox"));
 builder.Services.AddSingleton<ListingEventPublisher>();

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CatalogService.Api;
 using CatalogService.Services;
+using CatalogService.Tags;
 
 namespace CatalogService.Preferences;
 
@@ -26,7 +27,7 @@ public static class PersonalizedListingEndpoints
         // before paging, so a page is still full and the cursor is still "after this id".
         group.MapGet("/", async (
             int? limit, string? after, bool? hideConflicts, ClaimsPrincipal user, HttpContext http,
-            ListingService listings, IPreferenceReader reader, CancellationToken ct) =>
+            ListingService listings, IPreferenceReader reader, TagProjector tags, CancellationToken ct) =>
         {
             var customerId = SubjectOf(user);
             if (customerId is null) return Results.Unauthorized();
@@ -38,11 +39,11 @@ public static class PersonalizedListingEndpoints
 
             var (items, next) = await listings.BrowseAsync(size, after, ct, include);
             return Results.Ok(new PersonalizedListingPage(
-                items.Select(l => new PersonalizedListingDto(ListingDto.From(l), ConflictMatcher.For(l, profile))).ToList(), next));
+                items.Select(l => new PersonalizedListingDto(ListingDto.From(l, tags), ConflictMatcher.For(l, profile))).ToList(), next));
         });
 
         group.MapGet("/{id}", async (
-            string id, ClaimsPrincipal user, HttpContext http, ListingService listings, IPreferenceReader reader, CancellationToken ct) =>
+            string id, ClaimsPrincipal user, HttpContext http, ListingService listings, IPreferenceReader reader, TagProjector tags, CancellationToken ct) =>
         {
             var customerId = SubjectOf(user);
             if (customerId is null) return Results.Unauthorized();
@@ -53,7 +54,7 @@ public static class PersonalizedListingEndpoints
                 return Results.Json(new ApiError("not_found", "Listing not found."), statusCode: StatusCodes.Status404NotFound);
 
             var profile = await reader.GetAsync(customerId, ct);
-            return Results.Ok(new PersonalizedListingDto(ListingDto.From(listing), ConflictMatcher.For(listing, profile)));
+            return Results.Ok(new PersonalizedListingDto(ListingDto.From(listing, tags), ConflictMatcher.For(listing, profile)));
         });
 
         return app;

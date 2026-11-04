@@ -82,5 +82,6 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | In review | `security-headers.spec.ts`, `security-headers.spec.ts`, `fuzz.test.ts` and 3 more | `fuzz-2026-11-02.md`, `load-soak-2026-11-03.md`, `zap-2026-11-03.md` and 1 more |
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | In review | `personalized.spec.ts`, `ConflictMatcherTests.cs`, `PersonalizedListingApiTests.cs` and 1 more | *none* |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | In review | `tags.spec.ts`, `TagApiTests.cs`, `TagRegistryTests.cs` and 1 more | *none* |
+| [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | In review | `tags.spec.ts`, `listing-tags.spec.ts`, `TagAssignmentApiTests.cs` and 2 more | *none* |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | Done | `DomainEventPayloadsTests.cs` | *none* |
 | [TOOL-002](WI-TOOL-002.md) | Structured logging + correlation-ID helper (tools/BakeryMarketplace.Logging) | Done | *none* | *none* |

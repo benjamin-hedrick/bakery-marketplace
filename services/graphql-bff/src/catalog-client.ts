@@ -7,6 +7,8 @@ export interface CatalogModifier {
   name: string;
   priceDeltaCents: number;
   allergens: string[];
+  /** Tags shown today (WI-TAG-002); absent from a catalog that does not know tags yet. */
+  tags?: CatalogTag[];
 }
 export interface CatalogListing {
   id: string;
@@ -18,6 +20,8 @@ export interface CatalogListing {
   currency: string;
   modifiers: CatalogModifier[];
   allergenFlags: string[];
+  /** Tags shown today (WI-TAG-002); absent from a catalog that does not know tags yet. */
+  tags?: CatalogTag[];
   /** The public stock block (ADR-0017): a status and the per-order maximum. Exact quantities are never in a public read. */
   stock: { status: string; maxPerOrder: number | null };
 }

@@ -4,6 +4,7 @@ import { addLine, lineTotalCents, MAX_QUANTITY, type CartLine } from '../lib/car
 import { cartStore } from '../lib/cart/useCart.ts';
 import { formatMoney } from '../lib/money';
 import { ConflictMarks } from './ConflictMarks';
+import { TagChips, type TagView } from './TagChips';
 import { canOrder, type StockStatus } from './StockBadge';
 import type { Mark } from '../lib/conflictText';
 
@@ -17,7 +18,13 @@ export interface OrderableListing {
   vendorId: string;
   name: string;
   price: Money;
-  modifiers: readonly { id: string; name: string; priceDelta: Money; allergens: readonly string[] }[];
+  modifiers: readonly {
+    id: string;
+    name: string;
+    priceDelta: Money;
+    allergens: readonly string[];
+    tags: readonly TagView[];
+  }[];
   stock: { status: StockStatus; maxPerOrder: number | null | undefined };
 }
 
@@ -52,6 +59,7 @@ export function AddToOrder({
                 <li key={m.id}>
                   {m.name} (+{formatMoney(m.priceDelta)})
                   {m.allergens.length ? ` — contains ${m.allergens.join(', ')}` : ''}
+                  <TagChips tags={m.tags} inline label={`Tags of ${m.name}`} />
                   {optionMarks?.get(m.id) ? (
                     <>
                       {' '}
@@ -120,6 +128,7 @@ export function AddToOrder({
                 }}
               />{' '}
               {m.name} (+{formatMoney(m.priceDelta)}){m.allergens.length ? ` — contains ${m.allergens.join(', ')}` : ''}
+              <TagChips tags={m.tags} inline label={`Tags of ${m.name}`} />
               {optionMarks?.get(m.id) ? (
                 <>
                   {' '}

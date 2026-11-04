@@ -30,6 +30,7 @@ public sealed class ListingService
     private readonly TimeProvider _time;
     private readonly ILogger<ListingService> _logger;
     private readonly ITagRegistry _tags;
+    private readonly TagOptions _tagLimits;
 
     /// <summary>Re-reads and retries a conditional save this many times before reporting a conflict.</summary>
     public const int MaxSaveAttempts = 20;
@@ -40,7 +41,8 @@ public sealed class ListingService
         ListingEventPublisher events,
         TimeProvider time,
         ILogger<ListingService> logger,
-        ITagRegistry? tags = null)
+        ITagRegistry? tags = null,
+        TagOptions? tagLimits = null)
     {
         _listings = listings;
         _vendors = vendors;
@@ -48,6 +50,7 @@ public sealed class ListingService
         _time = time;
         _logger = logger;
         _tags = tags ?? TagRegistry.LoadEmbedded();
+        _tagLimits = tagLimits ?? new TagOptions();
     }
 
     // ---- public reads (anonymous) -------------------------------------------------------------
@@ -132,7 +135,7 @@ public sealed class ListingService
 
     public async Task<ListingResult> CreateAsync(string vendorId, ListingRequest request, CancellationToken ct = default)
     {
-        var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds);
+        var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         var status = request.Status ?? ListingStatuses.Draft;
@@ -158,7 +161,7 @@ public sealed class ListingService
     public async Task<ListingResult> UpdateAsync(
         ListingDocument existing, ListingRequest request, CancellationToken ct = default)
     {
-        var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds);
+        var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         for (var attempt = 0; attempt < MaxSaveAttempts; attempt++)
@@ -232,6 +235,8 @@ public sealed class ListingService
 
     // ---- helpers ------------------------------------------------------------------------------
 
+    private static List<string>? NonEmpty(List<string> tags) => tags.Count == 0 ? null : tags;
+
     private static void Apply(ListingDocument doc, ListingRequest r, DateTimeOffset now)
     {
         doc.Name = r.Name!.Trim();
@@ -239,12 +244,22 @@ public sealed class ListingService
         doc.Category = r.Category!.Trim();
         doc.PriceCents = r.PriceCents!.Value;
         doc.AllergenFlags = ListingValidator.NormalizeFlags(r.AllergenFlags);
-        doc.Modifiers = (r.Modifiers ?? new()).Select(m => new ModifierDocument
+        // Tags: a request without a tags list leaves them as they were (a client that does not know about tags must not wipe them); an empty list clears
+        // the vendor's own. The platform's tags are never touched by a request (ADR-0022 decision 5).
+        if (r.Tags is not null) doc.Tags = NonEmpty(ListingValidator.NormalizeTags(r.Tags));
+        var previous = doc.Modifiers.ToDictionary(m => m.Id, StringComparer.Ordinal);
+        doc.Modifiers = (r.Modifiers ?? new()).Select(m =>
         {
-            Id = m.Id!,
-            Name = m.Name!.Trim(),
-            PriceDeltaCents = m.PriceDeltaCents!.Value,
-            Allergens = ListingValidator.NormalizeFlags(m.Allergens),
+            previous.TryGetValue(m.Id!, out var before);
+            return new ModifierDocument
+            {
+                Id = m.Id!,
+                Name = m.Name!.Trim(),
+                PriceDeltaCents = m.PriceDeltaCents!.Value,
+                Allergens = ListingValidator.NormalizeFlags(m.Allergens),
+                Tags = m.Tags is null ? before?.Tags : NonEmpty(ListingValidator.NormalizeTags(m.Tags)),
+                PlatformTags = before?.PlatformTags,
+            };
         }).ToList();
         if (r.Stock is { } stock)
         {
