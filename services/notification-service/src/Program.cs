@@ -8,6 +8,9 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Traces (ADR-0016): exported only when OTEL_EXPORTER_OTLP_ENDPOINT is set; includes the batch consumer spans of the event transport.
+builder.Services.AddBakeryTelemetry(builder.Configuration, "notification-service");
+
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:5173" };
 

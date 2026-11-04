@@ -98,9 +98,11 @@ public sealed class RedisBatchDeliveryTests : IDisposable
     [RedisFact]
     public async Task ABatchRunsInOneNewTraceLinkedToEachPublishersTrace()
     {
+        var stopped = new List<string>();
         using var listener = new System.Diagnostics.ActivityListener
         {
             ShouldListenTo = source => source.Name == EventTracing.ActivitySourceName,
+            ActivityStopped = a => { lock (stopped) stopped.Add(a.SpanId.ToHexString()); },
             Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
                 System.Diagnostics.ActivitySamplingResult.AllData,
         };
@@ -132,6 +134,9 @@ public sealed class RedisBatchDeliveryTests : IDisposable
         Assert.Contains(seen.Links, l => l.Context.TraceId.ToHexString() == "0af7651916cd43dd8448eb211c80319c");
         Assert.Contains(seen.Links, l => l.Context.TraceId.ToHexString() == "1af7651916cd43dd8448eb211c80319c");
         Assert.Contains(seen.TagObjects, t => t.Key == "messaging.batch.message_count" && (int)t.Value! == 3);
+        await Eventually(() => { lock (stopped) return stopped.Contains(seen.SpanId.ToHexString()); });
+        await Task.Delay(300);
+        lock (stopped) Assert.Equal(1, stopped.Count(id => id == seen.SpanId.ToHexString()));   // the span ends, and is exported, once
     }
 
     [RedisFact]
