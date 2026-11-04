@@ -49,7 +49,7 @@ Also run, not in the pipeline: SSR isolation (`npm run test:isolation`: 200 conc
 
 - **Load, soak, fuzz and dynamic scanning.** Planned as checkpoints (register items 128 and 129, `verification-policy.md`); none has run. One measured baseline exists ([`nfrs.md`](../architecture/nfrs.md) section 8); there is no load test and no target has been proved at scale (`WI-QA-002`).
 - **Anything deployed.** Nothing is deployed, so there are no post-deploy checks.
-- **Other browsers and real devices.** Chromium only; the cross-browser matrix is a scheduled checkpoint (`verification-policy.md` section 4) and the mobile question is an experiment (`WI-QA-003`).
+- **Other browsers and real devices.** Browsers: Chromium only by default; the cross-browser matrix is a scheduled checkpoint (`verification-policy.md` section 4). Mobile: the Android customer app has Maestro flows on an emulator, run locally with `node scripts/dev/mobile-flows.mjs` (`WI-MOB-001`, `docs/evidence/WI-MOB-001/`); no iOS, no real device, not in the pipeline (register 148).
 - **Payment.** The processor is a stub; no provider is exercised.
 - **Real identity.** The issuer is a local mock; the real provider's behaviour is not tested.
 - **The Cosmos adapters against Cosmos, in CI.** Emulator-gated tests exist and are run by hand.
