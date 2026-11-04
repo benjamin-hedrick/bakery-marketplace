@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 54 |
 | In progress | 5 |
-| In review | 19 |
+| In review | 20 |
 | Built | 1 |
-| Ready | 5 |
+| Ready | 4 |
 | Proposed | 5 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -157,7 +157,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | EPIC-SEARCH | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the rule, its wording and the two defaults below (this is the safety rule) |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review, the allergen list (open point) and ADR-0022's acceptance |
 | [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); the real-stack journey is written but not yet run (register 140) |
-| [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | EPIC-TAGS | Ready |  |
+| [TAG-003](WI-TAG-003.md) | Filter the public browse by tag | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); the real-stack journey is written but not yet run (register 140) |
 | [TAG-004](WI-TAG-004.md) | Diet tags in the customer's profile ("prefer") | EPIC-TAGS | Proposed | decision: the lead, on how a chosen option changes a diet claim and on whether "prefer" is wanted in the first demo |
 | [TAG-005](WI-TAG-005.md) | Seasonal and themed surfaces, and administrator editing of the registry | EPIC-TAGS | Deferred | revisit when the administrator service and console exist, or when the lead asks for collections |
 | [TOOL-001](WI-TOOL-001.md) | Domain event payload records (/tools/event-schemas) | EPIC-SHARED-TOOLING | Done | evidence: `tools/BakeryMarketplace.EventSchemas` and its tests |
@@ -199,7 +199,7 @@ Accepted: 21 · Superseded: 1
 
 ## Open-items register
 
-142 numbered items in `docs/governance/open-items-register.md` (highest number 142).
+143 numbered items in `docs/governance/open-items-register.md` (highest number 143).
 
 | Type | Count |
 |---|---|
@@ -275,6 +275,7 @@ Accepted: 21 · Superseded: 1
 | Scaling limit and verification gap | 1 |
 | Decision record | 1 |
 | Data retention | 1 |
+| Scaling limit | 1 |
 
 | Item status | Count |
 |---|---|
@@ -282,7 +283,7 @@ Accepted: 21 · Superseded: 1
 | Resolved | 46 |
 | Accepted | 5 |
 | Tracking | 12 |
-| Open | 58 |
+| Open | 59 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |

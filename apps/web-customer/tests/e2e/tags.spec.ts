@@ -67,7 +67,7 @@ test('a catalog without tags (fixture B) shows no chips and nothing leaks from f
 
   await expect(row(page, 'Dark Rye Loaf')).toBeVisible();
   await expect(page.getByTestId('tag')).toHaveCount(0);
-  await expect(page.locator('body')).not.toContainText('Local favourite');
+  await expect(page.getByTestId('listing').filter({ hasText: 'Local favourite' })).toHaveCount(0); // the filter chips list the registry, which is not fixture A's
   await context.close();
 });
 

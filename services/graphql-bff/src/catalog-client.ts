@@ -101,7 +101,11 @@ export interface CatalogClient {
   ): Promise<SavePreferencesResult>;
   /** The public tags active today, optionally of one kind (lower case, as the catalog names it). */
   tags(kind: string | undefined, trace: TraceContext): Promise<CatalogTag[]>;
-  list(args: { limit: number; after?: string | undefined }, trace: TraceContext): Promise<CatalogPage>;
+  /** With `tags`, only listings that carry all of them (WI-TAG-003). A 422 from the catalog is a {@link DownstreamError} with that status. */
+  list(
+    args: { limit: number; after?: string | undefined; tags?: readonly string[] | undefined },
+    trace: TraceContext,
+  ): Promise<CatalogPage>;
   /** Null when the listing does not exist or is not public (404). */
   get(id: string, trace: TraceContext): Promise<CatalogListing | null>;
 }
@@ -199,9 +203,10 @@ export function createCatalogClient(
       if (!res.ok) throw new DownstreamError(`catalog tags returned ${res.status}`, res.status);
       return (await parse<{ items: CatalogTag[] }>(res)).items;
     },
-    async list({ limit, after }, trace) {
+    async list({ limit, after, tags }, trace) {
       const qs = new URLSearchParams({ limit: String(limit) });
       if (after) qs.set('after', after);
+      for (const tag of tags ?? []) qs.append('tag', tag);
       const res = await request(`/catalog/listings?${qs}`, trace);
       if (!res.ok) throw new DownstreamError(`catalog list returned ${res.status}`, res.status);
       return parse<CatalogPage>(res);

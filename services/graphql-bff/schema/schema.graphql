@@ -13,7 +13,12 @@ interface Node {
 
 type Query {
   node(id: ID!): Node
-  listings(first: Int = 20, after: String): ListingConnection!
+  """
+  The public listings. With `tags` (ids from the `tags` query), only listings that carry ALL of them on the listing itself (a tag on an option does not select
+  the listing). Public and anonymous like the unfiltered list. An id that cannot be used to filter (unknown, hidden, retired, outside its window, an allergen, or
+  more than the limit) is refused with BAD_INPUT, the same for all of them.
+  """
+  listings(first: Int = 20, after: String, tags: [ID!]): ListingConnection!
   listing(id: ID!): Listing
   """
   The caller's own allergen profile (WI-PREF-001): quasi-health data, private to the caller. Needs a customer's bearer token (UNAUTHENTICATED
