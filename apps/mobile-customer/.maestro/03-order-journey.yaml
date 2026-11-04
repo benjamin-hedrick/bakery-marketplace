@@ -1,0 +1,37 @@
+# The whole customer journey: add an item with an option to the order, change the quantity, check out and see the status of the order.
+appId: com.bakerymarketplace.mobile
+name: Add to order, check out, see the order status
+---
+- launchApp:
+    clearState: true
+- runFlow: subflows/login.yaml
+- tapOn:
+    id: listing-Country Sourdough
+- tapOn:
+    id: option-Sliced
+- tapOn:
+    id: quantity-more
+- tapOn:
+    id: add-to-order
+# The order (cart): two sliced loaves at 8.00 each.
+- assertVisible:
+    id: cart-line-Country Sourdough
+- assertVisible: Sliced
+- assertVisible: Estimated total $16.00
+- tapOn:
+    id: to-checkout
+- assertVisible:
+    id: checkout
+- tapOn:
+    id: window-0
+- tapOn:
+    id: place-order
+# The order page: an order with an option waits for the bakery, so it is PLACED (a plain order confirms itself).
+- assertVisible:
+    id: order-headline
+- assertVisible: Order received
+- assertVisible: "Status: PLACED"
+- assertVisible: 2 × Country Sourdough
+- assertVisible: Total $16.00
+# The order is no longer in the cart.
+- assertVisible: Order (0)

@@ -16,7 +16,19 @@ the issuer refuses it (`src/auth/session.ts`). A network failure never deletes i
 JDK 17 (`JAVA_HOME`), the Android SDK (`ANDROID_HOME`, platform-tools on `PATH`), the AVD `bakery_pixel`, Maestro 2.12.x, Docker, the .NET SDK and
 Node >= 24. How they were installed is in `docs/evidence/WI-QA-003/` and `docs/operations/local-dev.md`.
 
-## Run it
+## The Maestro flows (one command)
+
+```
+node ../../scripts/dev/mobile-flows.mjs              # from here or the repository root
+node ../../scripts/dev/mobile-flows.mjs --no-build   # reuse the test build already installed
+node ../../scripts/dev/mobile-flows.mjs --flow 03    # one flow
+```
+
+It boots the emulator if none is running, starts the backend (test hook on), builds and installs the app as a test build, runs the four flows in
+`.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order) and tears down what it started. The
+last result is recorded in `docs/evidence/WI-MOB-001/`; Maestro's own output goes to `artifacts/mobile/` (git-ignored).
+
+## Run it by hand
 
 ```
 npm ci                                       # here, and in ../../packages/customer-core

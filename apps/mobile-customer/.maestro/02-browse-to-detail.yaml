@@ -1,0 +1,18 @@
+# From the menu to an item with its options, and back.
+appId: com.bakerymarketplace.mobile
+name: Browse to an item's detail
+---
+- launchApp:
+    clearState: true
+- runFlow: subflows/login.yaml
+- tapOn:
+    id: listing-Country Sourdough
+- assertVisible:
+    id: detail-name
+- assertVisible: Country Sourdough
+- assertVisible: "Add seeds.*"
+- assertVisible: Sliced
+- tapOn:
+    id: back
+- assertVisible:
+    id: listings

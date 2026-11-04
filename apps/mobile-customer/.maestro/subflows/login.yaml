@@ -1,0 +1,14 @@
+# Signs in as Alice Customer through the real mock issuer in the system browser (Custom Tabs). Chrome shows its first-run screen once per
+# emulator image; when it does, it is dismissed here.
+appId: com.bakerymarketplace.mobile
+---
+- tapOn:
+    id: login-button
+- runFlow:
+    when:
+      visible: Use without an account
+    commands:
+      - tapOn: Use without an account
+- tapOn: Login as Alice Customer (Customer)
+- assertVisible:
+    id: listings
