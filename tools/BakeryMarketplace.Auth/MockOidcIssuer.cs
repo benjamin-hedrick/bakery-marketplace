@@ -64,14 +64,18 @@ public static class MockOidcIssuer
     /// </summary>
     public static readonly string[] DefaultRedirectUris = ["http://localhost:3000/api/auth/callback", "http://localhost:3100/api/auth/callback"];
 
-    /// <summary>A registered redirect_uri is an absolute http(s) address with no fragment, no credentials and no wildcard.</summary>
+    /// <summary>
+    /// A registered redirect_uri is an absolute address with no fragment, no credentials and no wildcard, and is either http(s) (the web apps) or
+    /// a private-use scheme in reverse-domain form, so with a dot, as a native app registers it (RFC 8252 section 7.1, ADR-0023). The dot rule keeps
+    /// schemes such as <c>javascript:</c>, <c>data:</c> and <c>file:</c> out.
+    /// </summary>
     private static string ValidateRedirectUri(string value)
     {
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-            || value.Contains('#') || uri.UserInfo.Length > 0)
+            || !(uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps || uri.Scheme.Contains('.'))
+            || value.Contains('#') || value.Contains('*') || uri.UserInfo.Length > 0)
         {
-            throw new ArgumentException($"'{value}' is not a redirect URI (an absolute http or https address without a fragment or credentials).", nameof(value));
+            throw new ArgumentException($"'{value}' is not a redirect URI (an absolute http or https address, or a reverse-domain app scheme, without a fragment or credentials).", nameof(value));
         }
         return value;
     }

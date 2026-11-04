@@ -223,6 +223,67 @@ public partial class MockOidcAuthorizeHardeningTests
         Assert.Throws<ArgumentException>(() => CreateServer([bad]));
     }
 
+    // ---- ADR-0023: a native app registers a private-use scheme, compared exactly ---------------------------------------------------
+
+    private const string AppRedirect = "com.bakerymarketplace.mobile:/auth/callback";
+
+    [Fact]
+    public async Task ARegisteredPrivateUseSchemeCanCompleteTheWholeFlow()
+    {
+        using var server = CreateServer([Registered, AppRedirect]);
+        using var client = server.CreateClient();
+
+        var page = await client.GetAsync(AuthorizeUrl(AppRedirect));
+        var redirect = await Submit(client, AppRedirect);
+
+        Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, redirect.StatusCode);
+        Assert.StartsWith(AppRedirect + "?code=", redirect.Headers.Location!.OriginalString);
+    }
+
+    [Theory]
+    [InlineData("com.bakerymarketplace.mobile:/auth/callback/")]
+    [InlineData("com.bakerymarketplace.mobile:/auth/callbackx")]
+    [InlineData("com.bakerymarketplace.mobile:/auth")]
+    [InlineData("com.bakerymarketplace.mobile:/auth/callback#frag")]
+    [InlineData("com.bakerymarketplace.mobile:/auth/callback?x=1")]
+    [InlineData("COM.BAKERYMARKETPLACE.MOBILE:/auth/callback")]
+    [InlineData("com.bakerymarketplace.mobile://auth/callback")]
+    [InlineData("com.bakerymarketplace.evil:/auth/callback")]
+    [InlineData("com.bakerymarketplace:/auth/callback")]
+    [InlineData("com.bakerymarketplace.mobile.evil:/auth/callback")]
+    public async Task AnythingButTheExactRegisteredAppSchemeIsRefused(string redirectUri)
+    {
+        using var server = CreateServer([AppRedirect]);
+        using var client = server.CreateClient();
+
+        var page = await client.GetAsync(AuthorizeUrl(redirectUri));
+        var submit = await Submit(client, redirectUri);
+
+        Assert.Equal(HttpStatusCode.BadRequest, page.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, submit.StatusCode);
+        Assert.Null(submit.Headers.Location);
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("data:text/html,x")]
+    [InlineData("file:///etc/passwd")]
+    [InlineData("bakery:/auth/callback")] // no dot: not reverse-domain, and too easy for another app to claim
+    [InlineData("com.bakerymarketplace.mobile:/auth/callback#frag")]
+    [InlineData("com.bakerymarketplace.mobile://user:pw@host/auth/callback")]
+    [InlineData("com.bakerymarketplace.*:/auth/callback")]
+    public void ARegisteredSchemeThatIsNotAReverseDomainAppSchemeIsRejectedAtStartup(string bad)
+    {
+        Assert.Throws<ArgumentException>(() => CreateServer([bad]));
+    }
+
+    [Fact]
+    public void TheAppSchemeIsNotAmongTheHostDefaults()
+    {
+        Assert.DoesNotContain(MockOidcIssuer.DefaultRedirectUris, u => u.Contains(AppRedirect));
+    }
+
     [Fact]
     public void TheHostDefaultsAreTheTwoLocalWebAppsServerSideCallbacks()
     {
