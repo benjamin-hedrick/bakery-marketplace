@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\NotificationService.csproj" />
+    <!-- Test only (EventContractTests): the producer's event names. Aliased because both services have a global Program class. -->
+    <ProjectReference Include="..\..\..\ordering-service\src\OrderingService.csproj" Aliases="ordering" />
   </ItemGroup>
 
 </Project>

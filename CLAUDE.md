@@ -19,7 +19,7 @@ dotnet test tools/BakeryMarketplace.slnx
 dotnet test tools/tests/BakeryMarketplace.Auth.Tests --filter "FullyQualifiedName~MockOidcIssuerTests"
 dotnet test services/catalog-service/tests/CatalogService.Tests   # 104 tests; hosts the real service in-process
 dotnet test services/ordering-service/tests/OrderingService.Tests # 432 tests with Redis up (6 skipped); 5 more skip without it
-dotnet test services/notification-service/tests/NotificationService.Tests # 42 tests; 1 needs Redis (REDIS_CONNECTION_STRING)
+dotnet test services/notification-service/tests/NotificationService.Tests # 45 tests; 1 needs Redis (REDIS_CONNECTION_STRING)
 ```
 
 The framework is xUnit. The Redis and Cosmos adapter tests read `REDIS_CONNECTION_STRING` (default `localhost:6379`), and some fall back to in-memory fakes when Docker dependencies aren't running (reconciliation finding A8). A green run without Docker doesn't prove the real adapters work.
