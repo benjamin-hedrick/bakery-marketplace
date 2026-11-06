@@ -89,10 +89,10 @@ locals {
         GRAPHQL_URL    = "http://graphql-bff/graphql"
         AUTH_ISSUER    = local.web_issuer
         AUTH_CLIENT_ID = var.web_auth_client_id
-        # The login happens on the app's server (ADR-0019): its own origin, and the cache Redis for the session store (sessions are encrypted with
+        # The login happens on the app's server (ADR-0019): its own origin, and the sessions Redis for the session store (sessions are encrypted with
         # the key below). In mock mode the server reaches the issuer at the same public address the browser uses.
         APP_ORIGIN        = local.web_url
-        SESSION_REDIS_URL = "redis://redis-cache:6380"
+        SESSION_REDIS_URL = "redis://redis-sessions:6381"
       }
       secrets = { "session-encryption-key" = "SESSION_ENCRYPTION_KEY" }
     }
@@ -268,9 +268,9 @@ resource "azurerm_container_app" "redis" {
   }
 }
 
-# The cache Redis (ADR-0002) that also holds the web app's browser sessions (ADR-0019, the lead's decision): internal only, no persistence, a separate
-# instance from the event Redis so eviction can never touch the event streams. It is on its own TCP port because two TCP apps in one environment
-# cannot share an exposed port. A full cache evicts the least recently used keys, sessions included, which ends those logins (register item 118).
+# The cache Redis (ADR-0002): internal only, no persistence, a separate instance from the event Redis so eviction can never touch the event streams.
+# It is on its own TCP port because two TCP apps in one environment cannot share an exposed port. A full cache evicts the least recently used
+# keys; sessions are NOT kept here (they are in redis-sessions below, register item 118).
 resource "azurerm_container_app" "redis_cache" {
   name                         = "redis-cache"
   resource_group_name          = local.rg
@@ -300,6 +300,42 @@ resource "azurerm_container_app" "redis_cache" {
       cpu    = 0.25
       memory = "0.5Gi"
       args   = ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    }
+  }
+}
+
+# The web app's browser sessions (ADR-0019, register item 118): a separate instance because the eviction policy is per instance. noeviction means a
+# full store refuses new logins loudly instead of dropping the oldest sessions and logging those users out. Internal only, no persistence, its own
+# TCP port (two TCP apps in one environment cannot share an exposed port).
+resource "azurerm_container_app" "redis_sessions" {
+  name                         = "redis-sessions"
+  resource_group_name          = local.rg
+  container_app_environment_id = azurerm_container_app_environment.env.id
+  revision_mode                = "Single"
+  tags                         = local.tags
+
+  ingress {
+    external_enabled = false
+    transport        = "tcp"
+    target_port      = 6379
+    exposed_port     = 6381
+
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
+  }
+
+  template {
+    min_replicas = 1 # sessions live in memory; scaling to zero would log everyone out
+    max_replicas = 1
+
+    container {
+      name   = "redis"
+      image  = "docker.io/library/redis:7.4-alpine"
+      cpu    = 0.25
+      memory = "0.5Gi"
+      args   = ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
     }
   }
 }

@@ -97,12 +97,26 @@ run "the_cosmos_containers_match_what_the_services_expect" {
   }
 }
 
-run "the_web_app_keeps_its_sessions_in_an_internal_cache_redis_with_its_key_from_the_vault" {
+run "the_web_app_keeps_its_sessions_in_an_internal_noeviction_redis_with_its_key_from_the_vault" {
   command = plan
 
   assert {
-    condition     = azurerm_container_app.redis_cache.ingress[0].external_enabled == false && azurerm_container_app.redis_cache.ingress[0].exposed_port != azurerm_container_app.redis.ingress[0].exposed_port
-    error_message = "The cache Redis must be internal and must not share the event Redis's exposed port (ADR-0019)."
+    condition = (
+      azurerm_container_app.redis_sessions.ingress[0].external_enabled == false
+      && azurerm_container_app.redis_sessions.ingress[0].exposed_port != azurerm_container_app.redis.ingress[0].exposed_port
+      && azurerm_container_app.redis_sessions.ingress[0].exposed_port != azurerm_container_app.redis_cache.ingress[0].exposed_port
+    )
+    error_message = "The sessions Redis must be internal and must not share the event Redis's or the cache Redis's exposed port (ADR-0019)."
+  }
+
+  assert {
+    condition     = contains(azurerm_container_app.redis_sessions.template[0].container[0].args, "noeviction") && !contains(azurerm_container_app.redis_sessions.template[0].container[0].args, "allkeys-lru")
+    error_message = "The sessions Redis must use maxmemory-policy noeviction: a full store refuses new logins instead of silently ending existing ones (register item 118)."
+  }
+
+  assert {
+    condition     = contains(azurerm_container_app.redis_cache.template[0].container[0].args, "allkeys-lru")
+    error_message = "The cache Redis stays an evicting cache (ADR-0002); sessions do not live in it (register item 118)."
   }
 
   assert {
@@ -111,7 +125,7 @@ run "the_web_app_keeps_its_sessions_in_an_internal_cache_redis_with_its_key_from
   }
 
   assert {
-    condition     = local.apps["web"].env["SESSION_REDIS_URL"] == "redis://redis-cache:6380" && contains(keys(local.apps["web"].env), "APP_ORIGIN")
+    condition     = local.apps["web"].env["SESSION_REDIS_URL"] == "redis://redis-sessions:6381" && contains(keys(local.apps["web"].env), "APP_ORIGIN")
     error_message = "The web app needs its own origin and the cache Redis address to run the login on its server."
   }
 
