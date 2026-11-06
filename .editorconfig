@@ -39,6 +39,9 @@ dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
 
 # Analyzer tuning for this repo. Everything from AnalysisLevel latest-recommended stays a visible warning unless it is listed here.
+# CA1873 and CA1859 are micro-optimisations (skip argument work when the log level is off; use a concrete type instead of an interface). The interface returns are the adapter pattern on purpose, so these stay visible as suggestions.
+dotnet_diagnostic.CA1873.severity = suggestion
+dotnet_diagnostic.CA1859.severity = suggestion
 
 [**/tests/**.cs]
 # xUnit test names use underscores (Method_condition_result) throughout.
