@@ -6,6 +6,7 @@
 
 | Record | What it shows |
 |---|---|
+| [`sonar/triage-2026-11-06.md`](sonar/triage-2026-11-06.md) | The second local SonarQube scan (15 bugs, 35 vulnerabilities, 224 code smells) and the triage of each rule: false positives, accepted, fixed, and left for the lead |
 | [`ai-usage-2026-10-31.md`](ai-usage-2026-10-31.md) | Cost, time and token use of two Claude Code sessions as copied from the usage screen, with notes on how to read them |
 | [`ai-usage-2026-11-01.md`](ai-usage-2026-11-01.md) | Cost, time and token use of one larger Claude Code session (browser sessions and the vendor queue), as copied from the usage screen |
 | [`ai-usage-2026-11-03.md`](ai-usage-2026-11-03.md) | Cost, time and token use of one Claude Code session (the notification service, `NOT-001` and `NOT-002`), as copied from the usage screen |
