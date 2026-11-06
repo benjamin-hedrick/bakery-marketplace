@@ -109,6 +109,7 @@ Formatting and linting (decided 2026-10-28, `docs/process/quality-gates.md`): `d
 - Report passed, failed, not-run and blocked results distinctly. Don't claim an endpoint, pipeline or deployment is operational without evidence.
 - `_incoming/` is a transient staging folder for packets awaiting reconciliation; don't treat its contents as repo truth.
 - `.claude/settings.json` denies reads of `dist/`, `build/`, `*.generated.*` and `vendor/`.
+- **Shell edits:** no files or multi-line scripts through a heredoc. Write documents with the Write tool; write an edit script to a file with the Write tool and run it (`python <path>`), asserting each target occurs exactly once; use Edit for single changes. `git push` runs as its own command.
 
 ## Human approval required
 Security, auth logic, IAM/RBAC changes
