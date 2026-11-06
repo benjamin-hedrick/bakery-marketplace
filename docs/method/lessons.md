@@ -29,6 +29,7 @@
 | L-21 | Tie each work item to the ADRs and NFRs it affects | Hypothesis (proposed 2026-11-02) |
 | L-22 | Review the security-sensitive part before building it, not only after | Hypothesis (proposed 2026-11-02) |
 | L-23 | Chain commands with `&&` so a failed edit cannot be followed by a long run | Observation |
+| L-24 | Write files and edit scripts with the Write tool, not through a shell heredoc | Adopted (2026-11-06, in `CLAUDE.md`) |
 
 ## L-01 A surprise is a trigger to ask what should change
 
@@ -121,3 +122,7 @@
 ## L-23 Chain commands with `&&` so a failed edit cannot be followed by a long run
 
 **Situation.** During `WI-QUE-003` a failed edit was followed by a long test run on the unchanged code, three times. **Lesson.** Join an edit and the run that depends on it with `&&` (or run them as one script), and don't keep Docker state between evidence runs (`--keep`). **Evidence.** Register item 130, finding 6; no measurement of the time lost. **Status.** Observation.
+
+## L-24 Write files and edit scripts with the Write tool, not through a shell heredoc
+
+**Situation.** Edits made through shell heredocs failed in several ways between 2026-10-30 and 2026-11-06. Backticks in an unquoted heredoc ran as commands (a 10-run test job started instead of a document being written). Long quoted heredocs with apostrophes and braces failed to parse. Backslash escapes in Python or `sed` run from the shell were rewritten before they ran (`\n` became a real newline, `\/` an invalid escape, a Unicode escape in a regular expression the literal character), which broke edit scripts and, once, a script file. A chained fetch and push produced a permission prompt labelled "fetch" that also approved the push. **Lesson.** Write documents with the Write tool. Write an edit script as a file with the Write tool and run it with `python <path>`, with an assertion that each target occurs exactly once, so a script that stops midway is visible. Use Edit for single changes. Run `git push` as its own command. **Evidence.** The assistant's feedback memory `feedback-shell-heredocs` (updated 2026-10-31, 2026-11-04 and 2026-11-06); commits that repeated work after a failed script. **Status.** Adopted: one line in `CLAUDE.md` working conventions, which is guidance and has no automated check.
