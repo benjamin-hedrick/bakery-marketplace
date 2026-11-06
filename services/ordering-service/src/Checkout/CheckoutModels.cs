@@ -15,7 +15,7 @@ public sealed record PickupWindowRequest(DateTimeOffset? Start, DateTimeOffset? 
 /// registry, never against the customer's profile (which ordering does not read).
 /// </summary>
 public sealed record CheckoutRequest(
-    string? VendorId, List<CheckoutLineRequest>? LineItems, PickupWindowRequest? PickupWindow, List<string>? Allergens = null);
+    string? VendorId, List<CheckoutLineRequest>? LineItems, PickupWindowRequest? PickupWindow, List<string>? Allergens = null, string? PaymentMethodId = null);
 
 /// <summary>One thing wrong with a checkout request. <see cref="Field"/> names the input; <see cref="Code"/> is the stable error code.</summary>
 public sealed record CheckoutProblem(string Code, string Field, string Message);
@@ -58,7 +58,11 @@ public sealed record CheckoutResult(
 
 // ---- payment step (stub until EPIC-PAYMENTS; ADR-0005) ----
 
-public sealed record PaymentRequest(string OrderId, string CustomerId, long AmountCents, string Currency, bool ForceDecline);
+/// <summary>What the payment step is asked to authorize. <see cref="Token"/> is the customer's saved method's opaque token; it is secret-like, so <see cref="ToString"/> leaves it out.</summary>
+public sealed record PaymentRequest(string OrderId, string CustomerId, long AmountCents, string Currency, string Token)
+{
+    public override string ToString() => $"PaymentRequest {{ OrderId = {OrderId}, CustomerId = {CustomerId}, AmountCents = {AmountCents}, Currency = {Currency} }}";
+}
 
 public sealed record PaymentResult(bool Approved, string? Reference = null);
 
@@ -72,8 +76,9 @@ public interface IPaymentProcessor
 }
 
 /// <summary>
-/// **A stub. No money moves.** It approves everything and logs a warning each time so it cannot be mistaken for a real integration. A caller
-/// may ask it to decline, which the checkout endpoint allows only outside Production (first-slice contract D-10).
+/// **A stub. No money moves.** It approves whatever reaches it and logs a warning each time so it cannot be mistaken for a real integration. It
+/// holds no rule about tokens: the checkout refuses an invalid token with <see cref="PaymentTokenValidator"/> before calling any processor
+/// (WI-ORD-010; this replaced the decline switch of first-slice contract D-10). It never logs the token.
 /// </summary>
 public sealed partial class StubPaymentProcessor(ILogger<StubPaymentProcessor> logger) : IPaymentProcessor
 {
@@ -81,18 +86,9 @@ public sealed partial class StubPaymentProcessor(ILogger<StubPaymentProcessor> l
 
     public Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
     {
-        if (request.ForceDecline)
-        {
-            LogPaymentDECLINEDForOrderTestHook(logger, ProcessorName, request.OrderId);
-            return Task.FromResult(new PaymentResult(false));
-        }
-
         LogPaymentAuthorizationForOrderNoPayment(logger, ProcessorName, request.OrderId, request.AmountCents, request.Currency);
         return Task.FromResult(new PaymentResult(true, $"stub-{request.OrderId}"));
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "{Processor} payment DECLINED for order {OrderId} (test hook). No payment provider was called.")]
-    private static partial void LogPaymentDECLINEDForOrderTestHook(ILogger logger, string processor, string orderId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{Processor} payment authorization for order {OrderId}, {AmountCents} {Currency}. No payment provider was called and no money moved.")]
     private static partial void LogPaymentAuthorizationForOrderNoPayment(ILogger logger, string processor, string orderId, long amountCents, string currency);

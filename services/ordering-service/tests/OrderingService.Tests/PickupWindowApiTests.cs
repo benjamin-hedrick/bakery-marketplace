@@ -114,6 +114,7 @@ public sealed class PickupWindowApiTests : IAsyncLifetime
             var response = await PostCheckout(customer, new
             {
                 vendorId = Vendor,
+                paymentMethodId = "pm-ok",
                 lineItems = new[] { new { listingId = "listing-latte-001", modifierIds = Array.Empty<string>(), quantity = 1 } },
                 pickupWindow = new { start = window.Start, end = window.End },
             });
@@ -134,6 +135,7 @@ public sealed class PickupWindowApiTests : IAsyncLifetime
             var response = await PostCheckout(customer, new
             {
                 vendorId = Vendor,
+                paymentMethodId = "pm-ok",
                 lineItems = new[] { new { listingId = "listing-latte-001", modifierIds = Array.Empty<string>(), quantity = 1 } },
                 pickupWindow = new { start, end = start.AddMinutes(15) },
             });
@@ -153,6 +155,7 @@ public sealed class PickupWindowApiTests : IAsyncLifetime
         var response = await PostCheckout(customer, new
         {
             vendorId = Vendor,
+            paymentMethodId = "pm-ok",
             lineItems = new[] { new { listingId = "listing-latte-001", modifierIds = Array.Empty<string>(), quantity = 1 } },
             pickupWindow = new { start = first.Start, end = first.End },
         });

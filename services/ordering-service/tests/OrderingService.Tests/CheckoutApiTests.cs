@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using OrderingService.Checkout;
 using static OrderingService.Tests.OrderingFactory;
 using static OrderingService.Tests.Seed;
@@ -37,6 +38,7 @@ public sealed class CheckoutApiTests : IAsyncLifetime
     private static object Body(IEnumerable<object>? lines = null, bool window = true, object? pickupWindow = null) => new
     {
         vendorId = Vendor,
+        paymentMethodId = "pm-ok",
         lineItems = (lines ?? [new { listingId = "listing-sourdough-001", modifierIds = new[] { "mod-seeds" }, quantity = 2 }]).ToArray(),
         pickupWindow = pickupWindow ?? (window ? new { start = WindowStart, end = WindowEnd } : null),
     };
@@ -309,6 +311,7 @@ public sealed class CheckoutApiTests : IAsyncLifetime
         var response = await PostCheckout(_customer, new
         {
             vendorId = Vendor,
+            paymentMethodId = "pm-ok",
             customerId = "someone-else",
             status = "Completed",
             totalCents = 1,
@@ -381,33 +384,109 @@ public sealed class CheckoutApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NotFound, (await _customer.GetAsync($"/ordering/orders/{id}")).StatusCode);
     }
 
-    // ---- payment (stub) and its test hook ---------------------------------------------------------
+    // ---- saved payment methods (WI-ORD-010) -----------------------------------------------------
+
+    private static object BodyWithMethod(string? methodId) => new
+    {
+        vendorId = Vendor,
+        paymentMethodId = methodId,
+        lineItems = new[] { new { listingId = "listing-sourdough-001", modifierIds = new[] { "mod-seeds" }, quantity = 2 } },
+        pickupWindow = new { start = WindowStart, end = WindowEnd },
+    };
 
     [Fact]
-    public async Task TheTestHookDeclinesThePayment_ReleasesTheStockAndStoresNothing()
+    public async Task AMethodWithAnInvalidToken_IsDeclinedWith402AndNothingIsReservedOrStored()
     {
         var key = NewKey();
 
-        var response = await PostCheckout(_customer, Body(), key, testPayment: "decline");
+        var response = await PostCheckout(_customer, BodyWithMethod("pm-bad"), key);
 
         Assert.Equal(HttpStatusCode.PaymentRequired, response.StatusCode);
         Assert.Equal("payment_declined", (await JsonOf(response)).GetProperty("code").GetString());
-        var release = Assert.Single(_catalog.To("DELETE", "/catalog/stock/reservations/"));
-        Assert.Equal($"Bearer {FakeCatalogServer.ServiceToken}", release.Authorization);
-        Assert.Contains($"vendorId={Vendor}", release.Path);
+        Assert.Empty(_catalog.To("POST", "/catalog/stock")); // the rule runs before any stock is reserved
         Assert.Empty(_catalog.Reservations);
         Assert.Equal(HttpStatusCode.NotFound, (await _customer.GetAsync($"/ordering/orders/{CheckoutService.OrderIdFor("customer-1", key)}")).StatusCode);
     }
 
-    [Fact]
-    public async Task TheTestHookIsIgnoredInProduction()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("pm-unknown")]
+    public async Task AMissingOrUnknownMethodIs422OnPaymentMethodId(string? methodId)
     {
-        await using var production = new OrderingFactory(_catalog, _secret, environment: "Production");
-        using var client = production.CustomerClient();
+        var response = await PostCheckout(_customer, BodyWithMethod(methodId));
 
-        var response = await PostCheckout(client, Body(), testPayment: "decline");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        var body = await JsonOf(response);
+        Assert.Equal("validation_failed", body.GetProperty("code").GetString());
+        Assert.True(body.GetProperty("errors").TryGetProperty("paymentMethodId", out _));
+    }
 
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode); // the header changed nothing
+    [Fact]
+    public async Task AnotherCustomersMethodGetsTheSameAnswerAsAnUnknownOne()
+    {
+        using var other = _factory.CustomerClient("customer-2"); // customer-2 has its own pm-ok; customer-1 cannot use ids from that partition
+        await _factory.Services.GetRequiredService<BakeryMarketplace.Data.IRepository<OrderingService.Persistence.PaymentMethodDocument>>().SaveAsync(
+            new OrderingService.Persistence.PaymentMethodDocument { Id = "pm-only-customer-2", CustomerId = "customer-2", Description = "x", Token = "pm_test_valid_token_9" }, "customer-2");
+
+        var foreign = await PostCheckout(_customer, BodyWithMethod("pm-only-customer-2"));
+        var unknown = await PostCheckout(_customer, BodyWithMethod("pm-does-not-exist"));
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, foreign.StatusCode);
+        Assert.Equal(await foreign.Content.ReadAsStringAsync(), await unknown.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task ThePaymentMethodsEndpointListsTheCallersOwnMethodsWithoutTheToken()
+    {
+        using var other = _factory.CustomerClient("customer-2");
+
+        var response = await _customer.GetAsync("/ordering/payment-methods");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var text = await response.Content.ReadAsStringAsync();
+        var list = JsonDocument.Parse(text).RootElement;
+        Assert.Equal(["pm-ok", "pm-bad"], list.EnumerateArray().Select(m => m.GetProperty("id").GetString()));
+        Assert.All(list.EnumerateArray(), m => Assert.Equal(["description", "id"], m.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal)));
+        Assert.DoesNotContain("token", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(PaymentMethods.ValidToken, text);
+        Assert.DoesNotContain(PaymentMethods.InvalidToken, text);
+    }
+
+    [Fact]
+    public async Task ACustomerWithNoMethodsGetsAnEmptyList()
+    {
+        using var nobody = _factory.ClientWithToken(_factory.Token("customer-with-nothing", "Customer"));
+
+        var response = await nobody.GetAsync("/ordering/payment-methods");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("[]", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task OnlyACustomerMayListPaymentMethods()
+    {
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/ordering/payment-methods")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientWithRole("vendor-1", "Vendor").GetAsync("/ordering/payment-methods")).StatusCode);
+    }
+
+    [Fact]
+    public async Task NeitherTheCheckoutAnswerNorTheOrderShowsTheMethodTheReferenceOrTheToken()
+    {
+        var created = await PostCheckout(_customer, Body());
+        var createdText = await created.Content.ReadAsStringAsync();
+        var id = JsonDocument.Parse(createdText).RootElement.GetProperty("id").GetString();
+        var fetched = await (await _customer.GetAsync($"/ordering/orders/{id}")).Content.ReadAsStringAsync();
+        var listed = await (await _customer.GetAsync("/ordering/orders")).Content.ReadAsStringAsync();
+
+        foreach (var text in new[] { createdText, fetched, listed })
+        {
+            Assert.DoesNotContain("paymentMethod", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("paymentReference", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("token", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("stub-", text);
+        }
     }
 
     // ---- dependencies failing --------------------------------------------------------------------

@@ -103,9 +103,9 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
 
     /// <summary>Stores a new order and its raised events together. Returns null when an order with that id already exists (a concurrent or repeated create).</summary>
     public async Task<StoredOrder?> TryCreateAsync(
-        Order order, string idempotencyKey, string requestFingerprint, CancellationToken ct = default)
+        Order order, string idempotencyKey, string requestFingerprint, string? paymentMethodId = null, string? paymentReference = null, CancellationToken ct = default)
     {
-        var document = OrderDocument.From(order, idempotencyKey, requestFingerprint);
+        var document = OrderDocument.From(order, idempotencyKey, requestFingerprint, paymentMethodId, paymentReference);
         document.SetOutbox(NewEntries(order));
         var saved = await documents.SaveIfUnchangedAsync(document, order.CustomerId, ct);
         return saved is null ? null : new StoredOrder(order, saved);
@@ -117,7 +117,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     /// </summary>
     public async Task<StoredOrder?> TryUpdateAsync(StoredOrder current, Order updated, CancellationToken ct = default)
     {
-        var document = OrderDocument.From(updated, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
+        var document = OrderDocument.From(updated, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
         document.ETag = current.Document.ETag;
         document.ParkedAt = current.Document.ParkedAt;
         document.SetOutbox(current.Document.Outbox.Concat(NewEntries(updated)));
@@ -131,7 +131,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     /// </summary>
     public async Task<StoredOrder?> TryMarkPublishedAsync(StoredOrder current, IReadOnlyCollection<string> publishedEventIds, CancellationToken ct = default)
     {
-        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
+        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
         document.ETag = current.Document.ETag;
         document.ParkedAt = current.Document.ParkedAt;
         document.SetOutbox(current.Document.Outbox.Where(e => !publishedEventIds.Contains(e.EventId)));
@@ -150,7 +150,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
         if (current.Document.Outbox.All(e => e.EventId != eventId)) return current;
 
         var entries = current.Document.Outbox.Select(e => Clone(e, e.EventId == eventId ? e.Attempts + 1 : e.Attempts)).ToList();
-        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
+        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
         document.ETag = current.Document.ETag;
         document.ParkedAt = current.Document.ParkedAt
             ?? (entries.Any(e => e.Attempts >= maxAttempts) ? now.ToUnixTimeMilliseconds() : null);
@@ -167,7 +167,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     {
         if (current.Document.ParkedAt is null) return current;
 
-        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint);
+        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
         document.ETag = current.Document.ETag;
         document.SetOutbox(current.Document.Outbox.Select(e => Clone(e, 0)));
         var saved = await documents.SaveIfUnchangedAsync(document, current.Order.CustomerId, ct);

@@ -1,4 +1,4 @@
-> **Status:** Proposed · written 2026-11-06 from register item 150; the lead has approved the direction (data instead of a test switch) and the draft is waiting for the lead's approval before it becomes Ready
+> **Status:** Ready · written 2026-11-06 from register item 150; approved by the lead 2026-11-06 (open points 1 to 10 answered)
 
 ```
 WI ID:               ORD-010
@@ -7,7 +7,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  EPIC-WEB-CUSTOMER, EPIC-QUALITY-EVIDENCE
 Hat/Owner:            Engineering/Build, Architect (contract change)
-Status:               Proposed
+Status:               Ready
 Size:                 L
 Verification class:   V2 (checkout contract and a payment-adjacent input; no card data, no real provider). Classes are proposed in `docs/process/verification-policy.md`.
 ```

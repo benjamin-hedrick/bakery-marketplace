@@ -140,7 +140,9 @@ public class AutoConfirmTests
     {
         var f = new CheckoutFixture();
 
-        var result = await f.CheckoutAsync(Plain(), decline: true);
+        f.Payments.Decline = true; // the processor refuses after the reservation was taken
+
+        var result = await f.CheckoutAsync(Plain());
 
         Assert.Equal(CheckoutOutcome.PaymentDeclined, result.Outcome);
         Assert.Empty(f.Events.Published);
@@ -216,11 +218,13 @@ public class AutoConfirmTests
         var plain = await PostCheckout(customer, new
         {
             vendorId = Vendor,
+            paymentMethodId = "pm-ok",
             lineItems = new[] { new { listingId = "listing-sourdough-001", modifierIds = Array.Empty<string>(), quantity = 1 } },
         });
         var optioned = await PostCheckout(customer, new
         {
             vendorId = Vendor,
+            paymentMethodId = "pm-ok",
             lineItems = new[] { new { listingId = "listing-sourdough-001", modifierIds = new[] { "mod-seeds" }, quantity = 1 } },
         });
 

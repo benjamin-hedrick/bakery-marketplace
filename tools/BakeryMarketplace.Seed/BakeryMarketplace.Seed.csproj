@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../services/catalog-service/src/CatalogService.csproj" />
+    <!-- PrivateAssets: the catalog tests reference this project, and ordering-service has a `Program` class too; they must not see it (WI-ORD-010). -->
+    <ProjectReference Include="../../services/ordering-service/src/OrderingService.csproj" PrivateAssets="all" />
     <ProjectReference Include="../BakeryMarketplace.Data/BakeryMarketplace.Data.csproj" />
     <ProjectReference Include="../BakeryMarketplace.Eventing/BakeryMarketplace.Eventing.csproj" />
     <ProjectReference Include="../BakeryMarketplace.EventSchemas/BakeryMarketplace.EventSchemas.csproj" />

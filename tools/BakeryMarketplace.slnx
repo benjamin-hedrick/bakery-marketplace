@@ -7,6 +7,7 @@
     <Project Path="tests/BakeryMarketplace.EventSchemas.Tests/BakeryMarketplace.EventSchemas.Tests.csproj" />
     <Project Path="tests/BakeryMarketplace.Logging.Tests/BakeryMarketplace.Logging.Tests.csproj" />
     <Project Path="tests/BakeryMarketplace.Secrets.Tests/BakeryMarketplace.Secrets.Tests.csproj" />
+    <Project Path="tests/BakeryMarketplace.Seed.Tests/BakeryMarketplace.Seed.Tests.csproj" />
   </Folder>
   <Project Path="BakeryMarketplace.Auth/BakeryMarketplace.Auth.csproj" />
   <Project Path="BakeryMarketplace.Caching/BakeryMarketplace.Caching.csproj" />

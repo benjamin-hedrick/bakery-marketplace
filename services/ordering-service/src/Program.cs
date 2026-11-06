@@ -55,17 +55,21 @@ if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringCompari
         var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("orders", "/customerId"));
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("vendor-orders", "/vendorId")); // the vendor read model (N-03)
+        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("payment-methods", "/customerId")); // saved payment methods (WI-ORD-010)
     }
 
     builder.Services.AddSingleton<IRepository<OrderDocument>>(new CosmosRepository<OrderDocument>(cosmos, database, "orders"));
     builder.Services.AddSingleton<IRepository<VendorOrderDocument>>(new CosmosRepository<VendorOrderDocument>(cosmos, database, "vendor-orders"));
+    builder.Services.AddSingleton<IRepository<PaymentMethodDocument>>(new CosmosRepository<PaymentMethodDocument>(cosmos, database, "payment-methods"));
 }
 else
 {
     builder.Services.AddSingleton<IRepository<OrderDocument>>(new FakeRepository<OrderDocument>(d => d.Id));
     builder.Services.AddSingleton<IRepository<VendorOrderDocument>>(new FakeRepository<VendorOrderDocument>(d => d.Id));
+    builder.Services.AddSingleton<IRepository<PaymentMethodDocument>>(new FakeRepository<PaymentMethodDocument>(d => d.Id));
 }
 builder.Services.AddSingleton<OrderStore>();
+builder.Services.AddSingleton<PaymentMethodStore>();
 builder.Services.AddSingleton<VendorOrderProjection>();
 builder.Services.AddSingleton<VendorOrderReader>();
 

@@ -304,6 +304,7 @@ public sealed class VendorOrderApiTests : IAsyncLifetime
         var response = await PostCheckout(customer ?? _customer, new
         {
             vendorId = Seed.Vendor,
+            paymentMethodId = "pm-ok",
             lineItems = new[] { new { listingId = "listing-sourdough-001", modifierIds = new[] { "mod-seeds" }, quantity = 2 } },
             pickupWindow = new { start = Seed.WindowStart, end = Seed.WindowEnd },
         });

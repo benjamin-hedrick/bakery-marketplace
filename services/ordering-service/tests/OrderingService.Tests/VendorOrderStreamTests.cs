@@ -62,6 +62,7 @@ public sealed partial class VendorOrderStreamTests
             var response = await PostCheckout(customer, new
             {
                 vendorId,
+                paymentMethodId = "pm-ok",
                 lineItems = new[] { new { listingId = "listing-sourdough-001", modifierIds = new[] { "mod-seeds" }, quantity = 2 } },
                 pickupWindow = new { start = Seed.WindowStart, end = Seed.WindowEnd },
             });

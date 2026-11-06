@@ -26,6 +26,7 @@ public sealed partial class CheckoutService(
     OrderStore orders,
     IPaymentProcessor payments,
     PickupSchedule schedule,
+    PaymentMethodStore paymentMethods,
     OrderEventPublisher eventPublisher,
     AllergenRegistry allergenRegistry,
     IOptions<CheckoutOptions> checkoutOptions,
@@ -40,7 +41,7 @@ public sealed partial class CheckoutService(
         "order-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{customerId}\n{idempotencyKey}")))[..32].ToLowerInvariant();
 
     public async Task<CheckoutResult> CheckoutAsync(
-        string customerId, string? idempotencyKey, CheckoutRequest? request, bool forcePaymentDecline, CancellationToken ct = default)
+        string customerId, string? idempotencyKey, CheckoutRequest? request, CancellationToken ct = default)
     {
         var shape = ValidateShape(idempotencyKey, request, allergenRegistry.MaxRequestIds);
         if (shape.Count > 0) return CheckoutResult.Invalid(shape);
@@ -72,6 +73,12 @@ public sealed partial class CheckoutService(
             allergens = named.Distinct(StringComparer.Ordinal).OrderBy(a => a, StringComparer.Ordinal).ToList();
         }
 
+        // ---- the saved payment method (WI-ORD-010): only from the caller's own partition, so a missing id, an unknown id and someone else's id all
+        // get the same answer and the endpoint is no oracle for other customers' method ids ----
+        var method = await paymentMethods.GetAsync(request.PaymentMethodId!, customerId, ct);
+        if (method is null)
+            return CheckoutResult.Invalid([new CheckoutProblem("validation_failed", "paymentMethodId", "Choose one of your saved payment methods.")]);
+
         // ---- read and price ----
         var listings = new Dictionary<string, CatalogListing?>(StringComparer.Ordinal);
         try
@@ -101,6 +108,13 @@ public sealed partial class CheckoutService(
             return new CheckoutResult(CheckoutOutcome.Conflict, Code: "pickup_window_unavailable", Message: "That pickup time is no longer available. Choose another.");
         }
 
+        // ---- the payment token must be well formed before anything is reserved or any processor is called (business rule, not the stub's) ----
+        if (!PaymentTokenValidator.Validate(method.Token).Valid)
+        {
+            LogPaymentMethodRefused(logger, orderId, method.Id);
+            return new CheckoutResult(CheckoutOutcome.PaymentDeclined, Code: "payment_declined", Message: "The payment was declined.");
+        }
+
         // ---- build the order (the aggregate enforces the lifecycle and the D-5 limits) ----
         var order = Order.Create(orderId, customerId, vendorId, FulfillmentType.Pickup, now);
         foreach (var line in lines) order.AddLine(line, now);
@@ -128,7 +142,7 @@ public sealed partial class CheckoutService(
             reserved = true;
 
             var payment = await payments.AuthorizeAsync(
-                new PaymentRequest(orderId, customerId, order.TotalCents, order.Currency, forcePaymentDecline), ct);
+                new PaymentRequest(orderId, customerId, order.TotalCents, order.Currency, method.Token), ct);
             if (!payment.Approved)
             {
                 await ReleaseQuietlyAsync(orderId, vendorId);
@@ -136,7 +150,7 @@ public sealed partial class CheckoutService(
                 return new CheckoutResult(CheckoutOutcome.PaymentDeclined, Code: "payment_declined", Message: "The payment was declined.");
             }
 
-            var created = await orders.TryCreateAsync(order, idempotencyKey!, fingerprint, ct);
+            var created = await orders.TryCreateAsync(order, idempotencyKey!, fingerprint, method.Id, payment.Reference, ct);
             if (created is not null)
             {
                 reserved = false; // the order now owns the reservation
@@ -207,6 +221,9 @@ public sealed partial class CheckoutService(
             return problems;
         }
 
+        if (string.IsNullOrWhiteSpace(request.PaymentMethodId) || request.PaymentMethodId.Length > 100)
+            problems.Add(new CheckoutProblem("validation_failed", "paymentMethodId", "Choose one of your saved payment methods."));
+
         if (string.IsNullOrWhiteSpace(request.VendorId) || request.VendorId.Length > 100)
             problems.Add(new CheckoutProblem("validation_failed", "vendorId", "A vendor id is required."));
 
@@ -270,11 +287,15 @@ public sealed partial class CheckoutService(
         var allergens = r.Allergens is { Count: > 0 } a
             ? "|a:" + string.Join(",", a.Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal))
             : "";
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"v1|{r.VendorId}|{window}|{lines}{allergens}"))).ToLowerInvariant();
+        // The payment method id joins the hash (WI-ORD-010): the same key with another method is a different checkout.
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"v1|{r.VendorId}|{window}|{lines}{allergens}|p:{r.PaymentMethodId}"))).ToLowerInvariant();
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId} placed: {Lines} line(s), {TotalCents} cents")]
     private static partial void LogOrderPlacedLineSCents(ILogger logger, string orderId, int lines, long totalCents);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId} refused: the payment token of method {PaymentMethodId} failed validation")]
+    private static partial void LogPaymentMethodRefused(ILogger logger, string orderId, string paymentMethodId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stock reservation for {OrderId} could not be released; it needs cleanup")]
     private static partial void LogStockReservationForCouldNotBe(ILogger logger, Exception exception, string orderId);

@@ -37,6 +37,7 @@ public sealed class OutboxHostTests : IAsyncLifetime
         var response = await PostCheckout(customer, new
         {
             vendorId = Seed.Vendor,
+            paymentMethodId = "pm-ok",
             lineItems = new[] { new { listingId = "listing-sourdough-001", modifierIds = new[] { "mod-seeds" }, quantity = 2 } },
             pickupWindow = new { start = Seed.WindowStart, end = Seed.WindowEnd },
         });
