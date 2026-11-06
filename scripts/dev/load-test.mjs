@@ -241,7 +241,7 @@ process.env.BFF_RATE_LIMIT_PER_MINUTE = '100000';
 
 try {
   stack.up();
-  await stack.startServices({ testHooks: false });
+  await stack.startServices();
 
   const vendor = await userToken('vendor-shop-001');
   const customer = await userToken('user-customer-1');
@@ -346,6 +346,7 @@ try {
           {
             input: {
               idempotencyKey: `load-${randomUUID()}`,
+              paymentMethodId: 'pm-alice-ok',
               vendorId: 'vendor-shop-001',
               lineItems: [{ listingId: globalId('Listing', LISTING), modifierIds: ['mod-seeds'], quantity: 1 }],
               pickupWindow: null,

@@ -39,7 +39,6 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 Data__B
 # 6. GraphQL BFF on :4100
 (cd services/graphql-bff && npm ci)
 (cd services/graphql-bff && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)
-#    To run the journeys later (below), start it with ENABLE_TEST_HOOKS=1 as well. That forwards the declined-payment test hook; never set it outside tests.
 
 # 7. Customer web app on :3000 (everything is read at run time, on every request). The login runs on its server (ADR-0019): it needs the sessions Redis
 #    (`docker compose --profile with-redis up -d`, sessions Redis on port 6381) and the encryption key that init-env.mjs wrote to .env as SESSION_ENCRYPTION_KEY.
@@ -58,7 +57,9 @@ curl -s -X POST localhost:4100/graphql -H 'content-type: application/json' \
 
 **Use it:** open http://localhost:3000, press Log in, choose "Login as Alice Customer (Customer)" (the mock issuer lists its users on its own page; the other customers are in "Seeded customers" below), open a listing, add it to the order, go to checkout, optionally pick a pickup time, and press "Place test order". A banner says no payment is taken. A plain order (no option, no pickup time) confirms by itself; one with an option or a pickup time stays "Order received" until a vendor acts. A reload keeps you logged in: the session is on the web app's server behind an HttpOnly cookie (ADR-0019).
 
-**Seeded customers.** Test state is seed data, not something a test changes at run time (`CLAUDE.md`, working conventions). The mock issuer has five customers; the seed tool (`tools/BakeryMarketplace.Seed`, `SeedData.CustomerProfiles`) writes a saved allergen profile for four of them into the catalog's `preferences` container, keyed by the customer id (the token's `sub`). Alice never saved one. Written only when absent, so a profile you change by hand survives a re-seed; `docker compose down` resets everything.
+**Seeded customers.** Test state is seed data, not something a test changes at run time (`CLAUDE.md`, working conventions). The mock issuer has six customers; the seed tool (`tools/BakeryMarketplace.Seed`, `SeedData.CustomerProfiles`) writes a saved allergen profile for four of them into the catalog's `preferences` container, keyed by the customer id (the token's `sub`). Alice never saved one, and Nia (`user-customer-nomethods`) has neither a profile nor a payment method.
+
+**Seeded payment methods (`WI-ORD-010`).** The same tool writes each customer's saved payment methods (`PaymentSeedData`) into ordering's `payment-methods` container (partition `/customerId`): Alice has "Test card (accepted)" (`pm-alice-ok`, first, so a checkout preselects it) and "Test card (refused)" (`pm-alice-refused`, a token that fails ordering's token rule, which is how a declined payment is reached: by choosing it, not by a switch); Max has two accepted methods; Nora, Sam and Dana have one each; Nia has none. A method is an id, a description and an opaque token; the token never leaves ordering. `GET /ordering/payment-methods` lists a customer's own (id and description only); the BFF's `paymentMethods` query and both customer apps' checkout dropdown read it. Written only when absent, so a profile you change by hand survives a re-seed; `docker compose down` resets everything.
 
 | Login as (name on the issuer's page) | Customer id | Saved profile | What it is there to show |
 |---|---|---|---|
@@ -236,7 +237,7 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 \
 
 `appsettings.Development.json` supplies the authority, the catalog URL, the event backend (`redis`, so Redis from compose must be up) and the non-secret service-auth settings; the service stops at startup if the client secret (or any required value) is missing or the token endpoint is not https/loopback. Without `Data__Backend=cosmos` orders are kept in memory. The `orders` container is created locally by `Cosmos__EnsureCreated` (deployed environments use Terraform).
 
-Checkout needs a customer token (log in through the PKCE flow as `user-customer-1`), an `Idempotency-Key` header, and a pickup window from `GET /ordering/pickup-windows?vendorId=...` (anonymous, UTC, never cached): 15-minute slots between 08:00 and 17:00 `America/New_York` (converted to UTC for each date, so they shift an hour with daylight saving), at least 30 minutes ahead. `X-Test-Payment: decline` makes the payment stub decline (ignored in Production). The host needs time-zone data to resolve the zone; the .NET SDK container has it, and no ordering-service container image exists yet (open item 71).
+Checkout needs a customer token (log in through the PKCE flow as `user-customer-1`), an `Idempotency-Key` header, and a pickup window from `GET /ordering/pickup-windows?vendorId=...` (anonymous, UTC, never cached): 15-minute slots between 08:00 and 17:00 `America/New_York` (converted to UTC for each date, so they shift an hour with daylight saving), at least 30 minutes ahead. The body names one of the customer's saved methods in `paymentMethodId` (required; an id that is missing, unknown or someone else's is `422 validation_failed` on that field); a method whose token fails ordering's token rule answers `402 payment_declined` before anything is reserved. The host needs time-zone data to resolve the zone; the .NET SDK container has it, and no ordering-service container image exists yet (open item 71).
 
 ## Seeding
 

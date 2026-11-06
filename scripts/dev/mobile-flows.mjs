@@ -3,13 +3,13 @@
 //
 //   node scripts/dev/mobile-flows.mjs                 boot the emulator if none is running, start the stack, build and install the app, run
 //                                                     every flow, tear down what it started; exit 0 only if every flow passed
-//   node scripts/dev/mobile-flows.mjs --no-build      reuse the app already installed on the emulator (it must be a test build)
+//   node scripts/dev/mobile-flows.mjs --no-build      reuse the app already installed on the emulator (the same build)
 //   node scripts/dev/mobile-flows.mjs --flow 03       run only the flow files whose name starts with 03
 //   node scripts/dev/mobile-flows.mjs --keep          leave the stack (and an emulator it booted) running afterwards
 //
 // Local only, no CI. Needs Docker, the .NET SDK, Node >= 24, JDK 17, the Android SDK with the AVD bakery_pixel and Maestro (scripts/lib/mobile.mjs
-// finds them at their usual places when JAVA_HOME and ANDROID_HOME are not set; docs/operations/scripts.md). The app is built WITH the
-// declined-payment switch (EXPO_PUBLIC_TEST_HOOKS=1) and the BFF started with ENABLE_TEST_HOOKS=1: a test setup, never a demo.
+// finds them at their usual places when JAVA_HOME and ANDROID_HOME are not set; docs/operations/scripts.md). The app and the stack are the ones the demo
+// uses: a declined payment is reached by choosing the seeded customer's method whose token is invalid (WI-ORD-010), not by a switch.
 // Results: artifacts/mobile/maestro-junit.xml and the debug output under artifacts/mobile/maestro-debug.
 import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
@@ -90,11 +90,11 @@ try {
   checkSyntax(flows);
   bootedEmulator = await mobile.ensureEmulator(log);
   stack.up();
-  await stack.startServices({ testHooks: true });
+  await stack.startServices();
   mobile.reversePorts(log);
   // The flows' setup steps (a customer's allergen profile, the newest order, taking the BFF away) call this from Maestro's JavaScript.
   flowControl = startFlowControl({ stack, log });
-  if (!noBuild) mobile.buildApp(log, { testHooks: true });
+  if (!noBuild) mobile.buildApp(log);
   mobile.installApp(log);
 
   log(`running ${flows.length} flow(s): ${flows.join(', ')}`);

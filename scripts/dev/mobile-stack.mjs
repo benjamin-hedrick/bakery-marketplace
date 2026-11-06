@@ -31,13 +31,13 @@ try {
     if (mobile.portInUse(port)) throw new Error(`port ${port} is already in use; stop what is using it first`);
   }
   stack.up();
-  await stack.startServices({ testHooks: true });
+  await stack.startServices();
   if (/\bdevice\b/.test(mobile.adb('devices').stdout.split('\n').slice(1).join('\n'))) mobile.reversePorts(stack.log);
   else
     stack.log(
       'WARNING: no emulator or device is visible to adb; run `adb reverse tcp:5100 tcp:5100` and tcp:4100 once one is up',
     );
-  console.log('\n[mobile] stack is up (test hooks ON). Enter or Ctrl+C stops and tears down.\n');
+  console.log('\n[mobile] stack is up. Enter or Ctrl+C stops and tears down.\n');
   process.on('SIGINT', () => stop(0));
   process.on('SIGTERM', () => stop(0));
   if (process.stdin.isTTY) process.stdin.once('data', () => stop(0));

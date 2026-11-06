@@ -1,5 +1,6 @@
-# The failure flow: a declined payment says so and keeps the order, and the customer can try again. Needs the test build (the decline switch exists
-# only when the app was built with EXPO_PUBLIC_TEST_HOOKS=1) and a BFF with ENABLE_TEST_HOOKS=1 (scripts/dev/mobile-stack.mjs starts one).
+# The failure flow: choosing the saved payment method whose token is invalid is declined and says so, keeps the order, and choosing the customer's accepted
+# method then places it. Alice's two methods are seed data (tools/BakeryMarketplace.Seed, PaymentSeedData): the accepted one is first (preselected), the
+# second is "refused" because its token fails ordering's token rule. No test switch or build variant is involved (WI-ORD-010).
 appId: com.bakerymarketplace.mobile
 name: A declined payment keeps the order
 ---
@@ -12,8 +13,10 @@ name: A declined payment keeps the order
     id: add-to-order
 - tapOn:
     id: to-checkout
+# The accepted method is chosen to begin with; choose the refused one.
+- assertVisible: ".*Test card \\(accepted\\).*"
 - tapOn:
-    id: decline-test
+    id: payment-1
 - tapOn:
     id: place-order
 - assertVisible:
@@ -23,9 +26,9 @@ name: A declined payment keeps the order
 - assertVisible: Order (1)
 - assertNotVisible:
     id: order-headline
-# Trying again without the decline places the order.
+# Choosing the accepted method places the order.
 - tapOn:
-    id: decline-test
+    id: payment-0
 - tapOn:
     id: place-order
 - assertVisible:

@@ -65,7 +65,7 @@ function summarise(name, jsonFile) {
 
 try {
   stack.up();
-  await stack.startServices({ testHooks: false });
+  await stack.startServices();
   await stack.startWeb();
   await stack.startQueue();
 

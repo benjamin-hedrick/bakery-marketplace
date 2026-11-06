@@ -168,6 +168,49 @@ internal static class PaymentMethods
     }
 }
 
+/// <summary>
+/// The payment-method store of the in-process ordering host in the HTTP tests. Every test customer has the two test methods (<see cref="PaymentMethods.For"/>)
+/// without anyone seeding them first (set-up code must not block on the store, and a test that is about something else should not need to know), except the
+/// customers named in <see cref="Without"/>. Methods saved with <see cref="SaveAsync"/> are real entries of the inner repository and win over the defaults.
+/// </summary>
+internal sealed class TestPaymentMethodRepository : IRepository<PaymentMethodDocument>
+{
+    private readonly FakeRepository<PaymentMethodDocument> _inner = new(d => d.Id);
+    private readonly HashSet<string> _without = [];
+    private readonly object _gate = new();
+
+    /// <summary>A customer who has no methods at all (the "no methods" case).</summary>
+    public void Without(string customerId)
+    {
+        lock (_gate) _without.Add(customerId);
+    }
+
+    private bool HasNone(string customerId)
+    {
+        lock (_gate) return _without.Contains(customerId);
+    }
+
+    public async Task<PaymentMethodDocument?> GetAsync(string id, string partitionKey, CancellationToken ct = default) =>
+        await _inner.GetAsync(id, partitionKey, ct)
+        ?? (HasNone(partitionKey) ? null : PaymentMethods.For(partitionKey).FirstOrDefault(m => m.Id == id));
+
+    public Task<PaymentMethodDocument> SaveAsync(PaymentMethodDocument entity, string partitionKey, CancellationToken ct = default) =>
+        _inner.SaveAsync(entity, partitionKey, ct);
+
+    public Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default) => _inner.DeleteAsync(id, partitionKey, ct);
+
+    public async IAsyncEnumerable<PaymentMethodDocument> QueryAsync(
+        string partitionKey, Func<IQueryable<PaymentMethodDocument>, IQueryable<PaymentMethodDocument>> query,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var saved = new List<PaymentMethodDocument>();
+        await foreach (var d in _inner.QueryAsync(partitionKey, query, ct)) saved.Add(d);
+        foreach (var d in saved) yield return d;
+        if (HasNone(partitionKey)) yield break;
+        foreach (var d in query(PaymentMethods.For(partitionKey).Where(m => saved.All(s => s.Id != m.Id)).AsQueryable())) yield return d;
+    }
+}
+
 internal sealed class RecordingPayments : IPaymentProcessor
 {
     public List<PaymentRequest> Requests { get; } = [];

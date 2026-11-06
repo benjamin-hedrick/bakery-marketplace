@@ -106,13 +106,12 @@ export function reversePorts(log, ports = [5100, 4100]) {
 
 // ---- the app ----------------------------------------------------------------------------------------------------------------
 /**
- * Builds the debug APK. `testHooks` compiles the "decline the payment" switch in (EXPO_PUBLIC_TEST_HOOKS=1): the flows need it, the demo must not
- * have it. The flag is read when the JavaScript bundle is made and Gradle does not treat an environment variable as an input, so the generated
- * bundle is deleted first; without that a build with the other setting would be reused.
+ * Builds the debug APK. Gradle does not treat an environment variable as an input and the JavaScript bundle is made from the sources, so the generated
+ * bundle is deleted first; without that an earlier bundle could be reused.
  */
-export function buildApp(log, { testHooks }) {
-  const buildEnv = { ...env, ...(testHooks ? { EXPO_PUBLIC_TEST_HOOKS: '1' } : { EXPO_PUBLIC_TEST_HOOKS: '' }) };
-  log(`prebuild (android/ is generated and git-ignored), test hooks ${testHooks ? 'ON' : 'off'}`);
+export function buildApp(log) {
+  const buildEnv = { ...env };
+  log('prebuild (android/ is generated and git-ignored)');
   let r = sh('npx', ['expo', 'prebuild', '--platform', 'android', '--no-install'], {
     cwd: appDir,
     env: buildEnv,

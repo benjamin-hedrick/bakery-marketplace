@@ -27,6 +27,7 @@ test('an order the customer places shows up on the vendor queue screen, carried 
       variables: {
         input: {
           idempotencyKey: `queue-${randomUUID()}`,
+          paymentMethodId: 'pm-alice-ok',
           vendorId: 'vendor-shop-001',
           lineItems: [{ listingId: globalId('Listing', SOURDOUGH), modifierIds: ['mod-seeds'], quantity: 2 }],
           pickupWindow: null,

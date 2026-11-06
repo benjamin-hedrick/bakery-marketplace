@@ -9,8 +9,8 @@ import type { IncomingHttpHeaders, ServerResponse } from 'node:http';
 export const FORWARDED_REQUEST_HEADERS = ['content-type', 'accept', 'traceparent', 'tracestate', 'baggage'] as const;
 
 /**
- * More header names to forward, from GRAPHQL_EXTRA_FORWARDED_HEADERS (comma-separated). For tests only: the D-10 declined-payment hook
- * (x-test-payment) and the mock BFF's x-fixture, x-delay-ms and x-place-order. Empty in a deployed environment. A name that is not a plain
+ * More header names to forward, from GRAPHQL_EXTRA_FORWARDED_HEADERS (comma-separated). For tests only: the mock BFF's x-fixture, x-delay-ms and
+ * x-place-order. Empty in a deployed environment. A name that is not a plain
  * header token is ignored, so the setting cannot be used to smuggle a value into another header.
  */
 export function extraForwardedHeaders(setting: string | undefined): string[] {

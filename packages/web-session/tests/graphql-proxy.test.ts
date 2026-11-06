@@ -158,19 +158,13 @@ describe('the GraphQL proxy', () => {
 
   test('a header named in the extra list is forwarded too, and only when named', async () => {
     const { calls, fetchImpl } = fakeFetch(() => new Response('{}'));
-    const headers = { 'x-test-payment': 'decline', 'x-fixture': 'B', cookie: 'a=b' };
+    const headers = { 'x-delay-ms': '5', 'x-fixture': 'B', cookie: 'a=b' };
 
     await proxyGraphql(request('POST', headers, '{}'), response().res, TARGET, [], fetchImpl);
-    await proxyGraphql(
-      request('POST', headers, '{}'),
-      response().res,
-      TARGET,
-      ['x-test-payment', 'x-fixture'],
-      fetchImpl,
-    );
+    await proxyGraphql(request('POST', headers, '{}'), response().res, TARGET, ['x-delay-ms', 'x-fixture'], fetchImpl);
 
     assert.deepEqual(calls[0]!.init.headers, {});
-    assert.deepEqual(calls[1]!.init.headers, { 'x-test-payment': 'decline', 'x-fixture': 'B' });
+    assert.deepEqual(calls[1]!.init.headers, { 'x-delay-ms': '5', 'x-fixture': 'B' });
   });
 
   test('register 137: the client address is sent in X-Bakery-Client-Address from the server, never from the browser, and not at all when unknown', async () => {
@@ -210,13 +204,10 @@ describe('the GraphQL proxy', () => {
   });
 
   test('the fixed list has no cookie, host or forwarding header and no test hook', () => {
-    for (const bad of ['cookie', 'host', 'x-forwarded-for', 'x-forwarded-host', 'forwarded', 'x-test-payment']) {
+    for (const bad of ['cookie', 'host', 'x-forwarded-for', 'x-forwarded-host', 'forwarded', 'x-delay-ms']) {
       assert.ok(!(FORWARDED_REQUEST_HEADERS as readonly string[]).includes(bad), bad);
     }
-    assert.deepEqual(
-      forwardedRequestHeaders({ 'x-test-payment': 'decline', cookie: 'a=b', authorization: 'Bearer t' }),
-      {},
-    );
+    assert.deepEqual(forwardedRequestHeaders({ 'x-delay-ms': '5', cookie: 'a=b', authorization: 'Bearer t' }), {});
   });
 
   test('the bearer header is the session token it is given, replacing any the browser sent, and absent when there is none', async () => {

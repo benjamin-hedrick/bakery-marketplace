@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { graphql, useMutation, useRelayEnvironment } from 'react-relay';
 import { fetchQuery } from 'relay-runtime';
+import type { CheckoutPaymentMethodsQuery } from '../__generated__/CheckoutPaymentMethodsQuery.graphql';
 import type { CheckoutPlaceOrderMutation } from '../__generated__/CheckoutPlaceOrderMutation.graphql';
 import type { CheckoutWindowsQuery } from '../__generated__/CheckoutWindowsQuery.graphql';
 import {
@@ -10,10 +11,13 @@ import {
   fingerprint,
   lineTotalCents,
   MAX_QUANTITY,
+  NO_PAYMENT_METHODS_TEXT,
   removeLine,
+  selectedPaymentMethodId,
   setQuantity,
   toPlaceOrderInput,
   type Cart,
+  type PaymentMethod,
 } from '@bakery/customer-core';
 import { cartStore, useCart } from '../lib/cart/useCart.ts';
 import {
@@ -34,6 +38,16 @@ const windowsQuery = graphql`
     pickupWindows(vendorId: $vendorId) {
       start
       end
+    }
+  }
+`;
+
+// The customer's saved payment methods (WI-ORD-010): an id and a description each. The order sent carries only the id of the chosen one.
+const paymentMethodsQuery = graphql`
+  query CheckoutPaymentMethodsQuery {
+    paymentMethods {
+      id
+      description
     }
   }
 `;
@@ -66,6 +80,7 @@ const placeOrderMutation = graphql`
 
 type Window = { readonly start: string; readonly end: string };
 type Windows = { state: 'loading' } | { state: 'failed' } | { state: 'ready'; windows: readonly Window[] };
+type Methods = { state: 'loading' } | { state: 'failed' } | { state: 'ready'; methods: readonly PaymentMethod[] };
 
 interface Rejection {
   kind: 'rejected';
@@ -94,6 +109,9 @@ export function CheckoutForm() {
   const [commit, inFlight] = useMutation<CheckoutPlaceOrderMutation>(placeOrderMutation);
   const [windows, setWindows] = useState<Windows>({ state: 'loading' });
   const [selected, setSelected] = useState(''); // the start of the chosen window, or '' for no specific time
+  const [methods, setMethods] = useState<Methods>({ state: 'loading' });
+  const [pickedMethod, setPickedMethod] = useState<string | null>(null); // what the customer chose; the first method is shown chosen until then
+  const methodId = methods.state === 'ready' ? selectedPaymentMethodId(methods.methods, pickedMethod) : null;
   const [problem, setProblem] = useState<Problem | null>(null);
   const [placed, setPlaced] = useState(false);
   const attempt = useRef<{ key: string; fingerprint: string } | null>(null);
@@ -129,6 +147,19 @@ export function CheckoutForm() {
 
   useEffect(fetchWindows, [fetchWindows]);
 
+  // Always from the network too: methods belong to the signed-in customer and must never come from a stored answer.
+  const fetchMethods = useCallback(() => {
+    fetchQuery<CheckoutPaymentMethodsQuery>(environment, paymentMethodsQuery, {}, { fetchPolicy: 'network-only' })
+      .toPromise()
+      .then((data) => setMethods({ state: 'ready', methods: data?.paymentMethods ?? [] }))
+      .catch(() => setMethods({ state: 'failed' }));
+  }, [environment]);
+  const reloadMethods = () => {
+    setMethods({ state: 'loading' });
+    fetchMethods();
+  };
+  useEffect(fetchMethods, [fetchMethods]);
+
   if (placed) return <p role="status">Placing your order…</p>;
   if (cart.lines.length === 0) {
     return (
@@ -144,14 +175,17 @@ export function CheckoutForm() {
   function submit() {
     const pickupWindow = chosen ? { start: chosen.start, end: chosen.end } : null;
     if (mustAcknowledge && !acknowledged) return; // the button is off in this case; this is the same rule for any other way in
-    const content = fingerprint(cart, pickupWindow, tell);
+    if (methodId === null) return; // the button is off without a payment method
+    const content = fingerprint(cart, pickupWindow, methodId, tell);
     if (attempt.current?.fingerprint !== content) {
       // "checkout-" first, so the key always starts with a letter or digit as ordering-service requires
       attempt.current = { key: `checkout-${randomUrlSafe(16)}`, fingerprint: content };
     }
     setProblem(null);
     commit({
-      variables: { input: { idempotencyKey: attempt.current.key, ...toPlaceOrderInput(cart, pickupWindow, tell) } },
+      variables: {
+        input: { idempotencyKey: attempt.current.key, ...toPlaceOrderInput(cart, pickupWindow, methodId, tell) },
+      },
       onCompleted: ({ placeOrder }) => {
         if (placeOrder.__typename === 'PlaceOrderSuccess') {
           setPlaced(true);
@@ -298,6 +332,42 @@ export function CheckoutForm() {
         <small>A specific pickup time or a customized item waits for the bakery to confirm.</small>
       </p>
 
+      <p>
+        <label>
+          Payment method{' '}
+          <select
+            value={methodId ?? ''}
+            disabled={methods.state !== 'ready' || methods.methods.length === 0}
+            onChange={(e) => {
+              setPickedMethod(e.target.value);
+              setProblem(null);
+            }}
+          >
+            {methods.state === 'ready'
+              ? methods.methods.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.description}
+                  </option>
+                ))
+              : null}
+          </select>
+        </label>{' '}
+        {methods.state === 'loading' ? <small>Loading payment methods…</small> : null}
+        {methods.state === 'failed' ? (
+          <small role="alert" data-testid="payment-methods-failed">
+            Payment methods could not be loaded.{' '}
+            <button type="button" onClick={reloadMethods}>
+              Try again
+            </button>
+          </small>
+        ) : null}
+        {methods.state === 'ready' && methods.methods.length === 0 ? (
+          <small role="alert" data-testid="no-payment-methods">
+            {NO_PAYMENT_METHODS_TEXT}
+          </small>
+        ) : null}
+      </p>
+
       {profile || checkFailed ? (
         <section aria-label="Your allergies" data-testid="allergy-section">
           {checkFailed ? (
@@ -400,7 +470,10 @@ export function CheckoutForm() {
       {problem ? <ProblemNotice problem={problem} cart={cart} onOrderChanged={() => setProblem(null)} /> : null}
 
       <p>
-        <button type="submit" disabled={inFlight || checking || (mustAcknowledge && !acknowledged)}>
+        <button
+          type="submit"
+          disabled={inFlight || checking || methodId === null || (mustAcknowledge && !acknowledged)}
+        >
           {inFlight ? 'Placing your order…' : 'Place test order'}
         </button>{' '}
         {checking ? <small data-testid="checking">Checking this order against your allergies…</small> : null}

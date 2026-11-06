@@ -389,11 +389,6 @@ describe('placeOrder: the payment method (WI-ORD-010)', () => {
       ['paymentMethodId'],
     );
   });
-
-  test('the old decline header is gone: it is never forwarded, whatever the caller sends', async () => {
-    await place(undefined, { ...auth, 'x-test-payment': 'decline' });
-    assert.equal(seen[0]!.headers['x-test-payment'], undefined);
-  });
 });
 
 describe('paymentMethods', () => {

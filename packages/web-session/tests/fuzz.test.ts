@@ -174,7 +174,7 @@ describe('the headers forwarded to the BFF', () => {
       'cookie',
       'x-forwarded-for',
       'host',
-      'x-test-payment',
+      'x-delay-ms',
       text(r, 1).toLowerCase(),
     ];
     for (let i = 0; i < CASES; i++) {
@@ -182,12 +182,12 @@ describe('the headers forwarded to the BFF', () => {
       for (const n of names) if (r.next() < 0.5) incoming[n] = r.next() < 0.2 ? [text(r), text(r)] : text(r);
       const out = forwardedRequestHeaders(
         incoming,
-        extraForwardedHeaders(r.next() < 0.5 ? 'x-test-payment, x fixture,  ,BAD NAME,x-ok' : undefined),
+        extraForwardedHeaders(r.next() < 0.5 ? 'x-delay-ms, x fixture,  ,BAD NAME,x-ok' : undefined),
       );
       for (const [k, v] of Object.entries(out)) {
         assert.equal(typeof v, 'string', at(i));
         assert.ok(k !== 'authorization' && k !== 'cookie', `${at(i)}: ${k} was forwarded`);
-        assert.ok([...FORWARDED_REQUEST_HEADERS, 'x-test-payment', 'x-ok'].includes(k as never), `${at(i)}: ${k}`);
+        assert.ok([...FORWARDED_REQUEST_HEADERS, 'x-delay-ms', 'x-ok'].includes(k as never), `${at(i)}: ${k}`);
       }
     }
   });

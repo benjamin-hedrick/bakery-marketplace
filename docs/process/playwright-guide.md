@@ -17,8 +17,8 @@ Select by what a person sees, in this order: role and accessible name (`getByRol
 
 ## Fixtures and the mock BFF
 
-- The mock BFF picks its data from a request header: `x-fixture: A|B` selects the listing set; `x-delay-ms` slows a response; `x-test-payment: decline` is the declined-payment hook. Set them per browser context with `extraHTTPHeaders`, not globally.
-- The Next.js server forwards `x-fixture` and `x-delay-ms` only when `ENABLE_TEST_HOOKS=1` (`forwardTestHeaders` in `src/lib/relay/environment.ts`), and the real BFF forwards the declined-payment hook only under the same variable. **The variable must never be set outside tests.** `playwright.config.ts` sets it for the web server it starts; `skeleton-smoke.mjs` sets it for the BFF it starts; `scripts/dev/demo.mjs` does not set it.
+- The mock BFF picks its data from a request header: `x-fixture: A|B` selects the listing set; `x-delay-ms` slows a response. A declined payment is reached by choosing the mock customer's "Test card (refused)" method, not by a header (`WI-ORD-010`). Set them per browser context with `extraHTTPHeaders`, not globally.
+- The Next.js server forwards `x-fixture` and `x-delay-ms` only when `ENABLE_TEST_HOOKS=1` (`forwardTestHeaders` in `src/lib/relay/environment.ts`),. **The variable must never be set outside tests.** `playwright.config.ts` sets it for the web server it starts; `scripts/dev/demo.mjs` does not set it. (The BFF no longer reads it: the payment hook was removed by `WI-ORD-010`.)
 - `tests/e2e/helpers.ts` gives a logged-in customer without the real issuer: `stubIssuer` stubs `/authorize` and `/token` inside the browser with `page.route`, so the whole PKCE flow runs for real in the page and the token is a fake with the right claims (`fakeToken`).
 - `tests/skeleton/support.ts` gives a real token from the mock issuer without a browser (`userToken`, the same Authorization Code and PKCE exchange), stable global ids (`globalId`), and the vendor's view of stock (`quantity`, `adjustStock`) for checking that an order really took stock.
 

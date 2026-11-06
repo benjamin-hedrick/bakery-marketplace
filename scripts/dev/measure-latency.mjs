@@ -90,6 +90,7 @@ const WINDOWS = '{ pickupWindows(vendorId: "vendor-shop-001") { start end } }';
 const PLACE = `mutation($input: PlaceOrderInput!) { placeOrder(input: $input) { __typename ... on PlaceOrderSuccess { order { id status } } ... on PlaceOrderRejected { code } } }`;
 const order = () => ({
   idempotencyKey: `latency-${randomUUID()}`,
+  paymentMethodId: 'pm-alice-ok',
   vendorId: 'vendor-shop-001',
   lineItems: [{ listingId: globalId('Listing', LISTING), modifierIds: [], quantity: 1 }],
   pickupWindow: null,

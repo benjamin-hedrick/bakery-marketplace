@@ -33,6 +33,7 @@ async function placeOrder(customerToken: string) {
   const body = await gql(customerToken, PLACE, {
     input: {
       idempotencyKey: `actions-${randomUUID()}`,
+      paymentMethodId: 'pm-alice-ok',
       vendorId: 'vendor-shop-001',
       lineItems: [{ listingId: globalId('Listing', SOURDOUGH), modifierIds: ['mod-seeds'], quantity: 1 }],
       pickupWindow: null,

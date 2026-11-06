@@ -42,7 +42,6 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
   const bff = path.join(root, 'services', 'graphql-bff');
   const next = path.join('node_modules', 'next', 'dist', 'bin', 'next');
   // GRAPHQL_URL is read at run time (the /api/graphql route and server rendering); NEXT_DIST_DIR keeps this build out of `.next`.
-  // x-test-payment is the declined-payment hook (D-10): the API route forwards it only because it is named here, and the BFF ignores it unless ENABLE_TEST_HOOKS=1.
   // The smoke run (and only it) logs in far faster than a person: its browser journeys each log in, and the web app limits login starts to 10 a minute per address
   // (WI-RATE-001). The limit is raised for that run, as the mock-backed browser suites do; the demo and every other environment keep the default.
   const smokeRates = label === 'skeleton' ? { RATE_LIMIT_LOGIN_PER_MINUTE: '1000' } : {};
@@ -50,7 +49,6 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
     ...smokeRates,
     GRAPHQL_URL: bffUrl,
     NEXT_DIST_DIR: distDir,
-    GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment',
     AUTH_ISSUER: issuerUrl,
     AUTH_CLIENT_ID: 'web-customer',
     // The login happens on the app's server (ADR-0019): its own origin, and the sessions Redis (compose profile with-redis, port 6381) for sessions.
@@ -113,8 +111,8 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       });
     },
 
-    /** The catalog service, the ordering service and the BFF, each waited for. `testHooks` forwards the declined-payment hook (D-10): tests only. */
-    async startServices({ testHooks = false } = {}) {
+    /** The catalog service, the ordering service and the BFF, each waited for. */
+    async startServices() {
       const dotnetEnv = {
         ASPNETCORE_ENVIRONMENT: 'Development', // appsettings.Development.json supplies the authority, the catalog URL and the service-auth settings
         Data__Backend: 'cosmos',
@@ -139,7 +137,6 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
           CATALOG_URL: `http://localhost:${ports.catalog}`,
           ORDERING_URL: `http://localhost:${ports.ordering}`,
           BFF_TRUSTED_CLIENT_SOURCES: '127.0.0.1,::1', // the web app runs on this machine (register 137)
-          ...(testHooks ? { ENABLE_TEST_HOOKS: '1' } : {}),
         },
       });
       await waitFor('catalog', `http://localhost:${ports.catalog}/health`);
@@ -151,16 +148,13 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
      * The four application containers (compose profile `apps`, the images the cloud dev environment uses) in place of startServices and
      * startWeb. The web container is given the BFF address of the Compose network at run time; the browser reaches the BFF through the same-origin /api/graphql route.
      */
-    async startContainers({ testHooks = false } = {}) {
+    async startContainers() {
       run(
         'app containers',
         'docker',
         ['compose', '--profile', 'apps', '--profile', 'with-redis', 'up', '-d', '--build'],
         {
-          env: {
-            ...(testHooks ? { ENABLE_TEST_HOOKS: '1', GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment' } : {}),
-            ...smokeRates,
-          },
+          env: { ...smokeRates },
         },
       );
       await waitFor('catalog', `http://localhost:${ports.catalog}/health`);

@@ -183,7 +183,6 @@ services:
     environment:
       CATALOG_URL: http://catalog:5200
       ORDERING_URL: http://ordering:5300
-      ENABLE_TEST_HOOKS: ${ENABLE_TEST_HOOKS:-} # tests only (the declined-payment hook); never set it elsewhere
       BFF_TRUSTED_CLIENT_SOURCES: 172.28.0.10 # the web container: only it may say which client a request is from (register 137)
     ports: ["127.0.0.1:${BFF_PORT:-4100}:4100"]
 
@@ -193,7 +192,6 @@ services:
     profiles: ["apps"]
     environment:
       GRAPHQL_URL: http://graphql-bff:4100/graphql # read at run time (ADR-0020); the same image runs in every environment
-      GRAPHQL_EXTRA_FORWARDED_HEADERS: ${GRAPHQL_EXTRA_FORWARDED_HEADERS:-} # tests only (x-test-payment); empty elsewhere
       RATE_LIMIT_LOGIN_PER_MINUTE: ${RATE_LIMIT_LOGIN_PER_MINUTE:-} # the smoke run raises it (its journeys log in quickly); empty means the default of 10
       # The login happens on this container's server (ADR-0019). AUTH_ISSUER is the browser's address for the mock issuer, as in MockOidc__Issuer;
       # AUTH_ISSUER_INTERNAL is this container's own address for its token endpoint.

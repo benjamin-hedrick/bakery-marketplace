@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
 using OrderingService.Checkout;
+using OrderingService.Persistence;
 using static OrderingService.Tests.OrderingFactory;
 using static OrderingService.Tests.Seed;
 
@@ -426,8 +426,8 @@ public sealed class CheckoutApiTests : IAsyncLifetime
     public async Task AnotherCustomersMethodGetsTheSameAnswerAsAnUnknownOne()
     {
         using var other = _factory.CustomerClient("customer-2"); // customer-2 has its own pm-ok; customer-1 cannot use ids from that partition
-        await _factory.Services.GetRequiredService<BakeryMarketplace.Data.IRepository<OrderingService.Persistence.PaymentMethodDocument>>().SaveAsync(
-            new OrderingService.Persistence.PaymentMethodDocument { Id = "pm-only-customer-2", CustomerId = "customer-2", Description = "x", Token = "pm_test_valid_token_9" }, "customer-2");
+        await _factory.MethodRepository.SaveAsync(
+            new PaymentMethodDocument { Id = "pm-only-customer-2", CustomerId = "customer-2", Description = "x", Token = "pm_test_valid_token_9" }, "customer-2");
 
         var foreign = await PostCheckout(_customer, BodyWithMethod("pm-only-customer-2"));
         var unknown = await PostCheckout(_customer, BodyWithMethod("pm-does-not-exist"));
@@ -456,6 +456,7 @@ public sealed class CheckoutApiTests : IAsyncLifetime
     [Fact]
     public async Task ACustomerWithNoMethodsGetsAnEmptyList()
     {
+        _factory.MethodRepository.Without("customer-with-nothing");
         using var nobody = _factory.ClientWithToken(_factory.Token("customer-with-nothing", "Customer"));
 
         var response = await nobody.GetAsync("/ordering/payment-methods");

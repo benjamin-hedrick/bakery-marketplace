@@ -23,6 +23,7 @@ async function place(allergens?: string[]) {
       variables: {
         input: {
           idempotencyKey: `queue-allergens-${randomUUID()}`,
+          paymentMethodId: 'pm-alice-ok',
           vendorId: 'vendor-shop-001',
           // An option makes the order wait for the vendor, so it stays in the New column.
           lineItems: [

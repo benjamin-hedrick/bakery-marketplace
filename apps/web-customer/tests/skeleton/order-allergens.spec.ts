@@ -26,6 +26,7 @@ async function gql(token: string | null, query: string, variables: object) {
 
 const input = (allergens?: string[]) => ({
   idempotencyKey: `allergens-${randomUUID()}`,
+  paymentMethodId: 'pm-alice-ok',
   vendorId: 'vendor-shop-001',
   lineItems: [{ listingId: globalId('Listing', SOURDOUGH), modifierIds: [], quantity: 1 }],
   pickupWindow: null,
