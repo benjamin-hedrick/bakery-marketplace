@@ -266,7 +266,8 @@ The web apps and the BFF limit how fast a caller may act. Locally the defaults a
 | `RATE_LIMIT_STREAM_PER_MINUTE` | 10 | web apps: opening `/api/graphql-stream`, per login |
 | `RATE_LIMIT_ADDRESS_PER_MINUTE` | 600 | web apps: all routes except login, per address, before the session store |
 | `TRUSTED_PROXY_HOPS` | 0 | web apps: how many proxies add to `X-Forwarded-For`; 0 ignores the header. Behind a proxy with 0, everyone shares the proxy's address |
-| `BFF_RATE_LIMIT_PER_MINUTE` | 600 | BFF: `/graphql` per source address (in practice the web app's server) |
+| `BFF_RATE_LIMIT_PER_MINUTE` | 600 | BFF: `/graphql` per client: the address in `X-Bakery-Client-Address` when the connection is a trusted source, otherwise the connection's own address |
+| `BFF_TRUSTED_CLIENT_SOURCES` | empty | BFF: comma-separated addresses or IPv4 ranges (`10.0.0.0/8`) allowed to name the client in `X-Bakery-Client-Address` (the web app's address). Empty trusts nobody. The local scripts set `127.0.0.1,::1`; Compose gives the web container the fixed address `172.28.0.10` |
 
 The BFF also limits the size of an operation (register item 135): `BFF_MAX_QUERY_DEPTH` (default 10), `BFF_MAX_ROOT_FIELDS` (8, each is a call to a service) and `BFF_MAX_FIELDS` (200), each a whole number from 1 to 99999, and `BFF_DISABLE_INTROSPECTION=1` refuses schema introspection (on by default; a deployed environment is expected to refuse it, the lead decides). The web apps set browser hardening headers in their `next.config.js` (register item 134); nothing to configure.
 

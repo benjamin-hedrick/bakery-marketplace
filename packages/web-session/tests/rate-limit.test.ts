@@ -248,8 +248,10 @@ function rig(settings: Partial<typeof DEFAULT_RATE_LIMITS> = {}) {
   const service = createSessionService({ config, store, fetch: issuer.fetchImpl, clock });
   const limits = createWebRateLimits({ ...DEFAULT_RATE_LIMITS, ...settings }, clock.now);
   const bff: string[] = [];
-  const bffFetch = (async (url: string) => {
+  const bffHeaders: Record<string, string>[] = [];
+  const bffFetch = (async (url: string, init?: RequestInit) => {
     bff.push(url);
+    bffHeaders.push((init?.headers ?? {}) as Record<string, string>);
     return new Response('{"data":{"ok":true}}', { status: 200, headers: { 'content-type': 'application/json' } });
   }) as unknown as typeof fetch;
   const deps = { config, service, target: () => 'http://bff.internal:4100/graphql', fetchImpl: bffFetch, limits };
@@ -258,6 +260,7 @@ function rig(settings: Partial<typeof DEFAULT_RATE_LIMITS> = {}) {
     service,
     issuer,
     bff,
+    bffHeaders,
     auth: createAuthHandlers({ config, service, limits }),
     graphql: createGraphqlHandler(deps),
     stream: createGraphqlStreamHandler(deps),
@@ -363,6 +366,31 @@ describe('/api/graphql', () => {
     return out.out;
   };
   void body;
+
+  test('register 137: the BFF is told the address the request was counted by (anonymous or logged in), and a header the browser sends is replaced', async () => {
+    const r = rig();
+    const cookie = await loggedIn(r);
+    const forged = { 'x-bakery-client-address': '198.51.100.99' };
+    for (const headers of [post(cookie), post()]) {
+      const out = res();
+      await r.graphql({ ...req('POST', { ...headers, ...forged }, { remote: '203.0.113.7' }) }, out.api);
+      assert.equal(out.out.statusCode, 200);
+    }
+    assert.deepEqual(
+      r.bffHeaders.map((h) => h['x-bakery-client-address']),
+      ['203.0.113.7', '203.0.113.7'],
+    );
+  });
+
+  test('register 137: behind the configured number of proxies it is the client the proxies saw, not the proxy', async () => {
+    const r = rig({ trustedProxyHops: 1 });
+    const out = res();
+    await r.graphql(
+      { ...req('POST', { ...post(), 'x-forwarded-for': '198.51.100.5, 203.0.113.50' }, { remote: '10.9.9.9' }) },
+      out.api,
+    );
+    assert.equal(r.bffHeaders[0]!['x-bakery-client-address'], '203.0.113.50');
+  });
 
   test('a login is limited by its own count: past the limit the request is refused and not forwarded', async () => {
     const r = rig({ graphqlPerMinute: 3 });

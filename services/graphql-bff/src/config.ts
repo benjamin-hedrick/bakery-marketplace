@@ -1,5 +1,5 @@
 import { limitsFromEnv, type OperationLimits } from './limits.ts';
-import { ratePerMinuteFromEnv } from './rate-limit.ts';
+import { ratePerMinuteFromEnv, trustedSourcesFromEnv, type TrustedSources } from './rate-limit.ts';
 
 export interface Config {
   port: number;
@@ -28,6 +28,8 @@ export interface Config {
   maxStreams?: number | undefined;
   /** A coarse ceiling on requests per minute from one source address (`BFF_RATE_LIMIT_PER_MINUTE`, default 600). In practice the source is the web app's server. */
   rateLimitPerMinute?: number | undefined;
+  /** Register 137: the connections whose `X-Bakery-Client-Address` header names the real client (`BFF_TRUSTED_CLIENT_SOURCES`, the web app's address). Absent: nobody is trusted. */
+  trustedClientSources?: TrustedSources | undefined;
   /** Limits on the size of an operation and whether introspection is refused (`BFF_MAX_QUERY_DEPTH`, `BFF_MAX_ROOT_FIELDS`, `BFF_MAX_FIELDS`, `BFF_DISABLE_INTROSPECTION=1`). */
   operationLimits?: OperationLimits | undefined;
   /** OTLP/HTTP base URL (`OTEL_EXPORTER_OTLP_ENDPOINT`). Unset means traces are not exported. */
@@ -46,6 +48,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     streamIdleMs: Number(env.STREAM_IDLE_MS ?? 45000),
     maxStreams: Number(env.MAX_STREAMS ?? 500),
     rateLimitPerMinute: ratePerMinuteFromEnv(env),
+    trustedClientSources: trustedSourcesFromEnv(env),
     operationLimits: limitsFromEnv(env),
     otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
   };

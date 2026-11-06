@@ -138,6 +138,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
           BFF_PORT: String(ports.bff),
           CATALOG_URL: `http://localhost:${ports.catalog}`,
           ORDERING_URL: `http://localhost:${ports.ordering}`,
+          BFF_TRUSTED_CLIENT_SOURCES: '127.0.0.1,::1', // the web app runs on this machine (register 137)
           ...(testHooks ? { ENABLE_TEST_HOOKS: '1' } : {}),
         },
       });

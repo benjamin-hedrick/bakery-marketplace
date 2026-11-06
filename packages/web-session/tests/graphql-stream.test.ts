@@ -9,6 +9,7 @@ import {
   type ApiResponse,
 } from '../src/handlers.ts';
 import type { StreamResponse } from '../src/graphql-proxy.ts';
+import { createWebRateLimits, DEFAULT_RATE_LIMITS } from '../src/rate-limit.ts';
 import { createSessionService } from '../src/service.ts';
 import { createMemoryStore, type SessionStore } from '../src/store.ts';
 import { checkDelayMs } from '../src/graphql-proxy.ts';
@@ -123,6 +124,7 @@ async function start(
     maxFailedChecks?: number;
     sessionCheckMs?: number;
     issuerAnswer?: Parameters<typeof fakeIssuer>[0];
+    limits?: boolean;
   } = {},
 ) {
   storeDown.fail = false;
@@ -161,6 +163,7 @@ async function start(
     target: () => bff.url(),
     log: (e) => logged.push(e),
     sessionCheckMs: options.sessionCheckMs ?? 40,
+    ...(options.limits ? { limits: createWebRateLimits(DEFAULT_RATE_LIMITS) } : {}),
     ...(options.maxOpen ? { maxOpen: options.maxOpen } : {}),
     ...(options.maxPerSession ? { maxPerSession: options.maxPerSession } : {}),
     ...(options.maxFailedChecks ? { maxFailedChecks: options.maxFailedChecks } : {}),
@@ -410,6 +413,15 @@ describe('the subscription route, when the login cannot be renewed', () => {
 });
 
 describe('the subscription route, at its limit', () => {
+  test('register 137: with rate limits on, the BFF is told the address the app counted the browser by, and a header the browser sends is not passed on', async () => {
+    await start({ limits: true });
+    const res = await open({ 'x-bakery-client-address': '198.51.100.99', 'x-forwarded-for': '1.2.3.4' });
+    await new Frames(res).next();
+
+    // The connection to the app is the loopback test client; X-Forwarded-For is not believed (no trusted hops), and the forged header is replaced.
+    assert.equal(bff.seen[0]!.headers['x-bakery-client-address'], '127.0.0.1');
+  });
+
   test('relays at most maxOpen streams at once, tells the rest to poll, and frees the place when one closes', async () => {
     await start({ maxOpen: 1 });
     const first = new Frames(await open());
