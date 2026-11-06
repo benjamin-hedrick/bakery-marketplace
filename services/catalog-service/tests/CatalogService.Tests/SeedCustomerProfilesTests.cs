@@ -70,15 +70,17 @@ public sealed class SeedCustomerProfilesTests
     }
 
     [Fact]
-    public void Every_seeded_profile_belongs_to_a_mock_customer_and_every_mock_customer_but_alice_has_one()
+    public void Every_seeded_profile_belongs_to_a_mock_customer_and_every_mock_customer_but_alice_and_nia_has_one()
     {
         var mockCustomers = MockUsers.All.Values.Where(u => u.Role == "Customer").Select(u => u.Id).Distinct().ToHashSet();
         var seeded = SeedData.CustomerProfiles().Select(p => p.CustomerId).ToList();
 
         Assert.Equal(seeded.Count, seeded.Distinct().Count()); // no customer twice
         Assert.True(seeded.All(mockCustomers.Contains), "a seeded profile has no matching mock identity");
-        Assert.Equal(mockCustomers.Except([MockUsers.Customer.Id]).Order(), seeded.Order());
+        // Nia (WI-ORD-010) is the customer with no saved payment method; she has no allergen profile either.
+        Assert.Equal(mockCustomers.Except([MockUsers.Customer.Id, MockUsers.NoPaymentMethodsCustomer.Id]).Order(), seeded.Order());
         Assert.DoesNotContain(MockUsers.Customer.Id, seeded); // Alice is the customer who never saved a profile
+        Assert.DoesNotContain(MockUsers.NoPaymentMethodsCustomer.Id, seeded);
     }
 
     [Fact]

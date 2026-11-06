@@ -53,6 +53,14 @@ public sealed class OrderDocument : IETagged
     /// <summary>A hash of the checkout request, so the same key with a different request is recognised (422 <c>idempotency_key_reuse</c>).</summary>
     [JsonProperty("requestFingerprint", NullValueHandling = NullValueHandling.Ignore)] public string? RequestFingerprint { get; set; }
 
+    /// <summary>
+    /// The saved payment method the customer chose at checkout (WI-ORD-010), and the payment step's reference for the authorization. They are what a
+    /// later capture needs (ADR-0005: authorize at place, capture at confirm). Like the idempotency data they belong to the checkout, so they live
+    /// only here: not on the aggregate, in no response, event or notification, and never the token.
+    /// </summary>
+    [JsonProperty("paymentMethodId", NullValueHandling = NullValueHandling.Ignore)] public string? PaymentMethodId { get; set; }
+    [JsonProperty("paymentReference", NullValueHandling = NullValueHandling.Ignore)] public string? PaymentReference { get; set; }
+
     /// <summary>Events raised but not yet confirmed published (open item 68). Omitted from the stored JSON when empty.</summary>
     [JsonProperty("outbox")] public List<OutboxEntryDocument> Outbox { get; set; } = new();
 
@@ -81,7 +89,8 @@ public sealed class OrderDocument : IETagged
         PendingSince = Outbox.Count == 0 || ParkedAt is not null ? null : Outbox.Min(e => e.OccurredAt).ToUnixTimeMilliseconds();
     }
 
-    public static OrderDocument From(Order order, string? idempotencyKey = null, string? requestFingerprint = null)
+    public static OrderDocument From(
+        Order order, string? idempotencyKey = null, string? requestFingerprint = null, string? paymentMethodId = null, string? paymentReference = null)
     {
         var s = order.ToSnapshot();
         return new OrderDocument
@@ -111,6 +120,8 @@ public sealed class OrderDocument : IETagged
             Allergens = s.Allergens is { Count: > 0 } a ? a.ToList() : null,
             IdempotencyKey = idempotencyKey,
             RequestFingerprint = requestFingerprint,
+            PaymentMethodId = paymentMethodId,
+            PaymentReference = paymentReference,
         };
     }
 

@@ -1,6 +1,7 @@
 using BakeryMarketplace.EventSchemas;
 using OrderingService.Checkout;
 using OrderingService.Domain;
+using OrderingService.Persistence;
 using static OrderingService.Tests.Seed;
 
 namespace OrderingService.Tests;
@@ -45,7 +46,7 @@ public class CheckoutServiceTests
         var f = new CheckoutFixture();
         var key = NewKey();
 
-        var result = await f.Service.CheckoutAsync("customer-7", key, Request([Line("listing-sourdough-001", 2, "mod-seeds")]), false);
+        var result = await f.CheckoutAsync(Request([Line("listing-sourdough-001", 2, "mod-seeds")]), key, "customer-7");
 
         Assert.Equal(CheckoutOutcome.Created, result.Outcome);
         var order = result.Order!.Order;
@@ -181,7 +182,7 @@ public class CheckoutServiceTests
         f.Repository.ConflictOnNextCreate = true;
 
         // Same key again, but pretend the existence check was passed before the winner wrote: the store reports the conflict.
-        var loser = await f.Service.CheckoutAsync("customer-1", key, Seed.Request(), false);
+        var loser = await f.CheckoutAsync(Seed.Request(), key);
 
         Assert.Equal(winner.Order!.Order.Id, loser.Order!.Order.Id);
     }
@@ -194,14 +195,14 @@ public class CheckoutServiceTests
         ["short key", "abc", Request(), "validation_failed"],
         ["key with spaces", "has some spaces in it", Request(), "validation_failed"],
         ["no vendor", NewKey(), Request(vendor: " "), "validation_failed"],
-        ["no lines", NewKey(), new CheckoutRequest(Vendor, [], null), "validation_failed"],
+        ["no lines", NewKey(), Req(Vendor, [], null), "validation_failed"],
         ["zero quantity", NewKey(), Request([Line("listing-sourdough-001", 0)]), "invalid_quantity"],
         ["above the line limit", NewKey(), Request([Line("listing-sourdough-001", OrderRules.MaxQuantityPerLine + 1)]), "invalid_quantity"],
         ["too many lines", NewKey(), Request(Enumerable.Range(0, OrderRules.MaxLines + 1).Select(i => Line($"listing-{i}", 1))), "invalid_quantity"],
         ["no listing id", NewKey(), Request([Line("", 1)]), "validation_failed"],
         ["duplicate option", NewKey(), Request([Line("listing-sourdough-001", 1, "mod-seeds", "mod-seeds")]), "invalid_modifier"],
-        ["window with only a start", NewKey(), new CheckoutRequest(Vendor, [Line("listing-sourdough-001", 1)], new PickupWindowRequest(WindowStart, null)), "validation_failed"],
-        ["window ending before it starts", NewKey(), new CheckoutRequest(Vendor, [Line("listing-sourdough-001", 1)], new PickupWindowRequest(WindowEnd, WindowStart)), "validation_failed"],
+        ["window with only a start", NewKey(), Req(Vendor, [Line("listing-sourdough-001", 1)], new PickupWindowRequest(WindowStart, null)), "validation_failed"],
+        ["window ending before it starts", NewKey(), Req(Vendor, [Line("listing-sourdough-001", 1)], new PickupWindowRequest(WindowEnd, WindowStart)), "validation_failed"],
     ];
 
     [Theory]
@@ -210,7 +211,8 @@ public class CheckoutServiceTests
     {
         var f = new CheckoutFixture();
 
-        var result = await f.Service.CheckoutAsync("customer-1", key, request, false);
+        await PaymentMethods.EnsureAsync(f.MethodRepository, "customer-1");
+        var result = await f.Service.CheckoutAsync("customer-1", key, request); // the service itself, so that a missing key stays missing
 
         Assert.True(result.Outcome == CheckoutOutcome.Invalid, why);
         Assert.Equal(code, result.Code);
@@ -274,7 +276,7 @@ public class CheckoutServiceTests
         var f = new CheckoutFixture();
         var start = Now.AddMinutes(minutesFromNow);
 
-        var result = await f.CheckoutAsync(new CheckoutRequest(Vendor, [Line("listing-sourdough-001", 1)], new PickupWindowRequest(start, start.AddMinutes(15))));
+        var result = await f.CheckoutAsync(Req(Vendor, [Line("listing-sourdough-001", 1)], new PickupWindowRequest(start, start.AddMinutes(15))));
 
         Assert.Equal(CheckoutOutcome.Conflict, result.Outcome);
         Assert.Equal("pickup_window_unavailable", result.Code);
@@ -288,7 +290,7 @@ public class CheckoutServiceTests
         {
             var f = new CheckoutFixture();
 
-            var result = await f.CheckoutAsync(new CheckoutRequest(Vendor, [Line("listing-sourdough-001", 1)], new PickupWindowRequest(start, start.AddMinutes(15))));
+            var result = await f.CheckoutAsync(Req(Vendor, [Line("listing-sourdough-001", 1)], new PickupWindowRequest(start, start.AddMinutes(15))));
 
             Assert.Equal("pickup_window_unavailable", result.Code);
         }
@@ -339,7 +341,25 @@ public class CheckoutServiceTests
     // ---- payment (stub) --------------------------------------------------------------------------------
 
     [Fact]
-    public async Task ADeclinedPaymentReleasesTheStockAndStoresNothing()
+    public async Task AProcessorThatDeclinesReleasesTheStockAndStoresNothing()
+    {
+        var f = new CheckoutFixture();
+        f.Payments.Decline = true;
+        var key = NewKey();
+
+        var result = await f.CheckoutAsync(key: key);
+
+        Assert.Equal(CheckoutOutcome.PaymentDeclined, result.Outcome);
+        Assert.Equal("payment_declined", result.Code);
+        Assert.Equal([CheckoutService.OrderIdFor("customer-1", key)], f.Catalog.ReleaseCalls);
+        Assert.Empty(f.Catalog.ReservedOrders);
+        Assert.Null(await f.Store.GetAsync(CheckoutService.OrderIdFor("customer-1", key), "customer-1"));
+    }
+
+    // ---- saved payment methods and the token rule (WI-ORD-010) ---------------------------------------
+
+    [Fact]
+    public async Task AMethodWhoseTokenIsInvalidIsDeclinedBeforeAnythingIsReservedOrAuthorized()
     {
         var f = new CheckoutFixture();
         var key = NewKey();
@@ -348,10 +368,86 @@ public class CheckoutServiceTests
 
         Assert.Equal(CheckoutOutcome.PaymentDeclined, result.Outcome);
         Assert.Equal("payment_declined", result.Code);
-        Assert.Equal([CheckoutService.OrderIdFor("customer-1", key)], f.Catalog.ReleaseCalls);
-        Assert.Empty(f.Catalog.ReservedOrders);
+        Assert.Empty(f.Catalog.ReserveCalls); // nothing was reserved, so nothing needs releasing
+        Assert.Empty(f.Catalog.ReleaseCalls);
+        Assert.Empty(f.Payments.Requests); // the processor was never reached: the rule is ordering's own
         Assert.Null(await f.Store.GetAsync(CheckoutService.OrderIdFor("customer-1", key), "customer-1"));
+        Assert.Empty(f.Events.Published);
     }
+
+    [Fact]
+    public async Task AValidMethodIsAuthorizedWithItsTokenAndTheOrderKeepsTheMethodAndTheReference()
+    {
+        var f = new CheckoutFixture();
+
+        var result = await f.CheckoutAsync();
+
+        Assert.Equal(CheckoutOutcome.Created, result.Outcome);
+        var payment = Assert.Single(f.Payments.Requests);
+        Assert.Equal(PaymentMethods.ValidToken, payment.Token);
+        Assert.Equal(Seed.ValidMethod, result.Order!.Document.PaymentMethodId);
+        Assert.Equal("recorded", result.Order.Document.PaymentReference);
+        // It is on the stored order and survives a later change of the order (the reference is what a capture will need).
+        var stored = (await f.Store.GetAsync(result.Order.Order.Id, "customer-1"))!;
+        Assert.Equal(Seed.ValidMethod, stored.Document.PaymentMethodId);
+    }
+
+    public static TheoryData<string?> UnusableMethodIds => new() { null, "", "   ", "pm-unknown", "pm-other-customers" };
+
+    [Theory]
+    [MemberData(nameof(UnusableMethodIds))]
+    public async Task AMissingUnknownOrForeignMethodIsRefusedIdenticallyAndNothingIsReserved(string? methodId)
+    {
+        var f = new CheckoutFixture();
+        // Another customer's method exists, but only in that customer's partition.
+        await f.MethodRepository.SaveAsync(
+            new PaymentMethodDocument { Id = "pm-other-customers", CustomerId = "customer-2", Description = "x", Token = PaymentMethods.ValidToken }, "customer-2");
+
+        var result = await f.CheckoutAsync(Seed.Request(method: methodId));
+
+        Assert.Equal(CheckoutOutcome.Invalid, result.Outcome);
+        Assert.Equal("validation_failed", result.Code);
+        var problem = Assert.Single(result.Problems!);
+        Assert.Equal("paymentMethodId", problem.Field);
+        Assert.Equal("Choose one of your saved payment methods.", problem.Message);
+        Assert.Empty(f.Catalog.ReserveCalls);
+    }
+
+    [Fact]
+    public async Task TheSameKeyWithAnotherMethodIsAKeyReuseAndWithTheSameMethodARepeat()
+    {
+        var f = new CheckoutFixture();
+        var key = NewKey();
+        await f.CheckoutAsync(key: key);
+        await f.MethodRepository.SaveAsync(
+            new PaymentMethodDocument { Id = "pm-second", CustomerId = "customer-1", Description = "y", Token = "pm_test_valid_token_2" }, "customer-1");
+
+        var other = await f.CheckoutAsync(Seed.Request(method: "pm-second"), key);
+        var same = await f.CheckoutAsync(key: key);
+
+        Assert.Equal(CheckoutOutcome.KeyReuse, other.Outcome);
+        Assert.Equal(CheckoutOutcome.Existing, same.Outcome);
+    }
+
+    [Fact]
+    public async Task TheListShowsOnlyTheCustomersOwnMethodsWithoutTheToken()
+    {
+        var f = new CheckoutFixture();
+        await PaymentMethods.EnsureAsync(f.MethodRepository, "customer-1");
+        await PaymentMethods.EnsureAsync(f.MethodRepository, "customer-2");
+
+        var list = await f.Methods.ListAsync("customer-1");
+
+        Assert.Equal([Seed.ValidMethod, Seed.InvalidMethod], list.Select(m => m.Id));
+        Assert.Empty(await f.Methods.ListAsync("customer-without-methods"));
+        var json = System.Text.Json.JsonSerializer.Serialize(list);
+        Assert.DoesNotContain("token", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(PaymentMethods.ValidToken, json);
+    }
+
+    [Fact]
+    public void ThePaymentRequestDoesNotPrintItsToken() =>
+        Assert.DoesNotContain("secret-token", new PaymentRequest("o", "c", 100, "USD", "secret-token").ToString());
 
     [Fact]
     public async Task ADeclinedCheckoutCanBeRetriedWithTheSameKey()
@@ -410,8 +506,9 @@ public class CheckoutServiceTests
     {
         var f = new CheckoutFixture();
         f.Catalog.ReleaseFails = true;
+        f.Payments.Decline = true;
 
-        var result = await f.CheckoutAsync(decline: true);
+        var result = await f.CheckoutAsync();
 
         Assert.Equal(CheckoutOutcome.PaymentDeclined, result.Outcome); // the customer still gets the real answer; the failed release is logged
         Assert.Single(f.Catalog.ReleaseCalls);

@@ -40,31 +40,21 @@ public sealed record OrderDto(
 /// <summary>One page of the customer's orders, and the cursor of the next page (null on the last).</summary>
 public sealed record OrderPage(IReadOnlyList<OrderDto> Items, string? NextCursor);
 
-public static partial class CheckoutEndpoints
+public static class CheckoutEndpoints
 {
     public const string IdempotencyKeyHeader = "Idempotency-Key";
-
-    /// <summary>Test hook (first-slice contract D-10): <c>X-Test-Payment: decline</c> makes the payment stub decline. Ignored in Production.</summary>
-    public const string TestPaymentHeader = "X-Test-Payment";
 
     public static IEndpointRouteBuilder MapCheckoutEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/ordering").RequireAuthorization("CustomerRole");
 
         group.MapPost("/checkout", async (
-            CheckoutRequest? request, HttpContext http, CheckoutService checkout, IHostEnvironment env, ILogger<CheckoutService> log, CancellationToken ct) =>
+            CheckoutRequest? request, HttpContext http, CheckoutService checkout, CancellationToken ct) =>
         {
             var customerId = SubjectOf(http.User);
             if (customerId is null) return Results.Unauthorized();
 
-            var forceDecline = false;
-            if (string.Equals(http.Request.Headers[TestPaymentHeader], "decline", StringComparison.OrdinalIgnoreCase))
-            {
-                if (env.IsProduction()) LogTheHeaderWasSentInProduction(log, TestPaymentHeader);
-                else forceDecline = true;
-            }
-
-            var result = await checkout.CheckoutAsync(customerId, http.Request.Headers[IdempotencyKeyHeader].FirstOrDefault(), request, forceDecline, ct);
+            var result = await checkout.CheckoutAsync(customerId, http.Request.Headers[IdempotencyKeyHeader].FirstOrDefault(), request, ct);
             return result.Outcome switch
             {
                 CheckoutOutcome.Created => Results.Created($"/ordering/orders/{result.Order!.Order.Id}", OrderDto.From(result.Order.Order)),
@@ -74,6 +64,14 @@ public static partial class CheckoutEndpoints
                 CheckoutOutcome.PaymentDeclined => Error(StatusCodes.Status402PaymentRequired, result),
                 _ => Error(StatusCodes.Status503ServiceUnavailable, result),
             };
+        });
+
+        // The customer's own saved payment methods (WI-ORD-010): id and description only, never the token. The customer is always the token's subject.
+        group.MapGet("/payment-methods", async (HttpContext http, PaymentMethodStore methods, CancellationToken ct) =>
+        {
+            var customerId = SubjectOf(http.User);
+            if (customerId is null) return Results.Unauthorized();
+            return Results.Ok(await methods.ListAsync(customerId, ct));
         });
 
         // The customer's own order. Another customer's order, and one that does not exist, look the same (404, never 403).
@@ -122,7 +120,4 @@ public static partial class CheckoutEndpoints
             .ToDictionary(g => g.Key, g => g.Select(p => p.Message).ToArray());
         return Results.Json(new ApiError(r.Code ?? "error", r.Message ?? "The request could not be completed.", errors, r.StockRejections), statusCode: status);
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The {Header} header was sent in Production and was ignored")]
-    private static partial void LogTheHeaderWasSentInProduction(ILogger logger, string header);
 }

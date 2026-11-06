@@ -109,6 +109,9 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
 
     public HttpClient CustomerClient(string customerId = "customer-1")
     {
+        // A test customer has the two test payment methods, as the seeded customers have theirs (see PaymentMethods).
+        PaymentMethods.EnsureAsync(Services.GetRequiredService<BakeryMarketplace.Data.IRepository<OrderingService.Persistence.PaymentMethodDocument>>(), customerId)
+            .GetAwaiter().GetResult();
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token(customerId, "Customer"));
         return client;
@@ -129,11 +132,10 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
     }
 
     public static Task<HttpResponseMessage> PostCheckout(
-        HttpClient client, object? body, string? key = null, string? testPayment = null, bool noKey = false)
+        HttpClient client, object? body, string? key = null, bool noKey = false)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/ordering/checkout") { Content = JsonContent.Create(body) };
         if (!noKey) request.Headers.Add("Idempotency-Key", key ?? Seed.NewKey());
-        if (testPayment is not null) request.Headers.Add("X-Test-Payment", testPayment);
         return client.SendAsync(request);
     }
 }

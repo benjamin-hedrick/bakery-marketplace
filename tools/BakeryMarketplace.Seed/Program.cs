@@ -44,6 +44,9 @@ internal static class SeedProgram
         // The same container, with the same partition key, that catalog-service creates for customers' saved allergen profiles (its Program.cs).
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("preferences", "/customerId"));
 
+        // The same container, with the same partition key, that ordering-service creates for customers' saved payment methods (its Program.cs; WI-ORD-010).
+        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("payment-methods", "/customerId"));
+
         var redis = await ConnectionMultiplexer.ConnectAsync(config["Redis:ConnectionString"] ?? "localhost:6379");
         var seeder = new Seeder(
             new CosmosRepository<ListingDocument>(cosmos, database, "catalog"),
@@ -51,6 +54,9 @@ internal static class SeedProgram
             new CosmosRepository<PreferenceProfileDocument>(cosmos, database, "preferences"));
 
         var result = await seeder.SeedAsync();
+        var (methodsCreated, methodsUnchanged) =
+            await new PaymentMethodSeeder(new CosmosRepository<OrderingService.Persistence.PaymentMethodDocument>(cosmos, database, "payment-methods")).SeedAsync();
+        Console.WriteLine($"Payment methods created: {methodsCreated}, already present: {methodsUnchanged}.");
         Console.WriteLine($"Listings created: {result.ListingsCreated}, already present: {result.ListingsUnchanged}; VendorVerified events published: {result.VendorEventsPublished}; customer profiles created: {result.ProfilesCreated}, already present: {result.ProfilesUnchanged}.");
         Console.WriteLine("Start catalog-service afterwards (or leave it running): it applies VendorVerified from the stream, after which GET /catalog/listings returns the published listings.");
         return 0;

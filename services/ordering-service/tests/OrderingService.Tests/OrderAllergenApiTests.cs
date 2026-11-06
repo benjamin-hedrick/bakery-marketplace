@@ -41,6 +41,7 @@ public sealed class OrderAllergenApiTests : IAsyncLifetime
     private static object Body(params string[] allergens) => new
     {
         vendorId = Vendor,
+        paymentMethodId = "pm-ok",
         lineItems = new[] { new { listingId = "listing-sourdough-001", modifierIds = new[] { "mod-seeds" }, quantity = 2 } },
         pickupWindow = new { start = WindowStart, end = WindowEnd },
         allergens,

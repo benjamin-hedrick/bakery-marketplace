@@ -35,10 +35,18 @@ internal static class Seed
 
     public static CheckoutLineRequest Line(string listingId, int quantity, params string[] modifiers) => new(listingId, [.. modifiers], quantity);
 
-    public static CheckoutRequest Request(IEnumerable<CheckoutLineRequest>? lines = null, bool window = true, string vendor = Vendor) => new(
+    public static CheckoutRequest Request(IEnumerable<CheckoutLineRequest>? lines = null, bool window = true, string vendor = Vendor, string? method = ValidMethod) => new(
         vendor,
         [.. lines ?? [Line("listing-sourdough-001", 2, "mod-seeds")]],
-        window ? new PickupWindowRequest(WindowStart, WindowEnd) : null);
+        window ? new PickupWindowRequest(WindowStart, WindowEnd) : null,
+        PaymentMethodId: method);
+
+    public static CheckoutRequest Req(string vendor, List<CheckoutLineRequest> lines, PickupWindowRequest? window) =>
+        new(vendor, lines, window, PaymentMethodId: ValidMethod);
+
+    // Every test customer gets two saved methods (see PaymentMethods.For): one whose token passes the validator and one whose token fails it.
+    public const string ValidMethod = "pm-ok";
+    public const string InvalidMethod = "pm-bad";
 
     public static string NewKey() => "key-" + Guid.NewGuid().ToString("N");
 }
@@ -139,16 +147,40 @@ internal sealed class FakeCatalog : ICatalogGateway
     }
 }
 
+/// <summary>The saved payment methods the tests give a customer: one with a valid token and one whose token fails <see cref="PaymentTokenValidator"/>.</summary>
+internal static class PaymentMethods
+{
+    public const string ValidToken = "pm_test_valid_token_1";
+    public const string InvalidToken = "invalid token";
+
+    public static IEnumerable<PaymentMethodDocument> For(string customerId) =>
+    [
+        new() { Id = Seed.ValidMethod, CustomerId = customerId, Description = "Test card (accepted)", Token = ValidToken, CreatedAt = Seed.Now },
+        new() { Id = Seed.InvalidMethod, CustomerId = customerId, Description = "Test card (refused)", Token = InvalidToken, CreatedAt = Seed.Now.AddSeconds(1) },
+    ];
+
+    public static async Task EnsureAsync(IRepository<PaymentMethodDocument> repository, string customerId)
+    {
+        foreach (var method in For(customerId))
+        {
+            if (await repository.GetAsync(method.Id, customerId) is null) await repository.SaveAsync(method, customerId);
+        }
+    }
+}
+
 internal sealed class RecordingPayments : IPaymentProcessor
 {
     public List<PaymentRequest> Requests { get; } = [];
     private readonly object _gate = new();
 
+    /// <summary>A processor that refuses the authorization (a provider saying no), to prove the checkout cleans up after a refusal that comes after the reservation.</summary>
+    public bool Decline { get; set; }
+
     public async Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
     {
         await Task.Yield();
         lock (_gate) Requests.Add(request);
-        return request.ForceDecline ? new PaymentResult(false) : new PaymentResult(true, "recorded");
+        return Decline ? new PaymentResult(false) : new PaymentResult(true, "recorded");
     }
 }
 
@@ -197,6 +229,8 @@ internal sealed class CheckoutFixture
     public RecordingPayments Payments { get; } = new();
     public ManualTime Time { get; } = new(Seed.Now);
     public FlakyOrderRepository Repository { get; } = new(new FakeRepository<OrderDocument>(d => d.Id));
+    public FakeRepository<PaymentMethodDocument> MethodRepository { get; } = new(d => d.Id);
+    public PaymentMethodStore Methods { get; }
     public RecordingEvents Events { get; } = new();
     public OutboxOptions Outbox { get; } = new();
     public CheckoutOptions CheckoutSettings { get; } = new();
@@ -212,17 +246,24 @@ internal sealed class CheckoutFixture
     public CheckoutFixture()
     {
         Store = new OrderStore(Repository);
+        Methods = new PaymentMethodStore(MethodRepository);
         Publisher = new OrderEventPublisher(Events, Store, Signal, Options.Create(Outbox), Time, NullLogger<OrderEventPublisher>.Instance);
         Relay = new OutboxRelay(Store, Publisher, Signal, Options.Create(Outbox), Time, NullLogger<OutboxRelay>.Instance);
         Allergens = new AllergenRegistry(Catalog, Options.Create(AllergenSettings), Time);
         Service = new CheckoutService(
-            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Publisher, Allergens,
+            Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Methods, Publisher, Allergens,
             Options.Create(CheckoutSettings), Time, NullLogger<CheckoutService>.Instance);
         Actions = new OrderActionService(Store, Catalog, Publisher, Time, NullLogger<OrderActionService>.Instance);
     }
 
-    public Task<CheckoutResult> CheckoutAsync(CheckoutRequest? request = null, string? key = null, string customer = "customer-1", bool decline = false) =>
-        Service.CheckoutAsync(customer, key ?? Seed.NewKey(), request ?? Seed.Request(), decline);
+    /// <summary>Gives the customer the two test methods (idempotent) and runs checkout. <c>decline</c> chooses the method whose token is invalid.</summary>
+    public async Task<CheckoutResult> CheckoutAsync(CheckoutRequest? request = null, string? key = null, string customer = "customer-1", bool decline = false)
+    {
+        await PaymentMethods.EnsureAsync(MethodRepository, customer);
+        var asked = request ?? Seed.Request();
+        if (decline) asked = asked with { PaymentMethodId = Seed.InvalidMethod };
+        return await Service.CheckoutAsync(customer, key ?? Seed.NewKey(), asked);
+    }
 }
 
 /// <summary>Records every published envelope; can be scripted to fail or to hang, like a broker that is down or slow.</summary>
