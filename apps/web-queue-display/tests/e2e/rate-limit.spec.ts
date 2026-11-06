@@ -9,6 +9,11 @@ import { logInAsVendor, mockRequests, order, resetAll, setMock } from './helpers
 const BASE = 'http://localhost:3101';
 test.use({ baseURL: BASE });
 
+// Every browser project talks to the same server, whose limits last a minute, so a project must not reuse the addresses of the one before it
+// (register 132): each project gets its own block of 50 last octets.
+const PROJECTS = ['chromium', 'firefox', 'webkit', 'mobile-chrome', 'mobile-safari'];
+const ip = (last: number) => `198.51.100.${last + Math.max(0, PROJECTS.indexOf(test.info().project.name)) * 50}`;
+
 test.beforeEach(async () => {
   await resetAll();
 });
@@ -21,7 +26,7 @@ test('a burst of login starts from one address is turned away to the error page 
   browser,
 }) => {
   const results = [];
-  for (let i = 0; i < 5; i++) results.push(await login(request, '198.51.100.10'));
+  for (let i = 0; i < 5; i++) results.push(await login(request, ip(10)));
 
   expect(results.map((r) => r.status())).toEqual([302, 302, 302, 302, 302]);
   const locations = results.map((r) => r.headers()['location']!);
@@ -31,10 +36,10 @@ test('a burst of login starts from one address is turned away to the error page 
   expect(results[3]!.headers()['set-cookie']).toBeUndefined(); // no pending-login cookie for a refused start
 
   // Another address starts a login as usual.
-  expect((await login(request, '198.51.100.11')).headers()['location']).toMatch(/^http:\/\/localhost:5101\/authorize/);
+  expect((await login(request, ip(11))).headers()['location']).toMatch(/^http:\/\/localhost:5101\/authorize/);
 
   // And the browser of the limited address lands on the page with the sentence, not on the issuer.
-  const context = await browser.newContext({ baseURL: BASE, extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.10' } });
+  const context = await browser.newContext({ baseURL: BASE, extraHTTPHeaders: { 'x-forwarded-for': ip(10) } });
   const page = await context.newPage();
   await page.goto('/api/auth/login?returnTo=/');
   await expect(page).toHaveURL(/\/auth\/error\?code=rate_limited/);
@@ -48,7 +53,7 @@ test('a forged X-Forwarded-For entry on the left gives no new allowance: the add
   const statuses = [];
   for (let i = 0; i < 5; i++) {
     const r = await request.get('/api/auth/login?returnTo=/', {
-      headers: { 'x-forwarded-for': `10.9.9.${i}, 198.51.100.20` },
+      headers: { 'x-forwarded-for': `10.9.9.${i}, ${ip(20)}` },
       maxRedirects: 0,
     });
     statuses.push(r.headers()['location']!.startsWith('/auth/error') ? 'limited' : 'ok');
@@ -60,7 +65,7 @@ test('a logged-in screen that sends GraphQL requests faster than its limit gets 
   browser,
 }) => {
   await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
-  const context = await browser.newContext({ baseURL: BASE, extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.30' } });
+  const context = await browser.newContext({ baseURL: BASE, extraHTTPHeaders: { 'x-forwarded-for': ip(30) } });
   const page = await context.newPage();
   await logInAsVendor(page);
   await expect(page.getByTestId('queue-order')).toHaveCount(1);
@@ -92,7 +97,7 @@ test('a logged-in screen that sends GraphQL requests faster than its limit gets 
 test('another login from the same address is not held back by the first one being over its limit', async ({
   browser,
 }) => {
-  const address = { 'x-forwarded-for': '198.51.100.40' };
+  const address = { 'x-forwarded-for': ip(40) };
   const first = await browser.newContext({ baseURL: BASE, extraHTTPHeaders: address });
   const firstPage = await first.newPage();
   await setMock({ orders: [order({ id: 'o1', reference: 'AAA111', status: 'PLACED' })] });
