@@ -15,7 +15,7 @@ namespace OrderingService.Api;
 /// Nothing is replayed: a client lists first, then applies what arrives. The token is read only by the authentication middleware; it is never
 /// logged here.
 /// </summary>
-public static class VendorOrderStreamEndpoint
+public static partial class VendorOrderStreamEndpoint
 {
     public static IEndpointRouteBuilder MapVendorOrderStreamEndpoint(this IEndpointRouteBuilder app)
     {
@@ -43,7 +43,7 @@ public static class VendorOrderStreamEndpoint
             }
             catch (Exception e)
             {
-                logger.LogError(e, "A vendor order stream could not be opened: the live channel is unavailable");
+                LogAVendorOrderStreamCouldNot(logger, e);
                 return Unavailable(http, 5);
             }
             if (stream is null) return Unavailable(http, 30);
@@ -76,7 +76,7 @@ public static class VendorOrderStreamEndpoint
             try
             {
                 await SendAsync("retry: 3000\n: connected\n\n", token);
-                if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("A vendor order stream opened ({Open} open on this instance)", hub.OpenCount);
+                if (logger.IsEnabled(LogLevel.Debug)) LogAVendorOrderStreamOpenedOpen(logger, hub.OpenCount);
 
                 var lastWrite = DateTimeOffset.UtcNow;
                 while (!token.IsCancellationRequested)
@@ -120,7 +120,7 @@ public static class VendorOrderStreamEndpoint
             {
                 // The client holds the connection and does not read: the stream is closed and the connection dropped, which frees its place.
                 hub.RecordClosedByServer("write-timeout");
-                logger.LogWarning("A vendor order stream was closed: the client did not read within {Timeout} ms", (int)o.WriteTimeout.TotalMilliseconds);
+                LogAVendorOrderStreamWasClosed(logger, (int)o.WriteTimeout.TotalMilliseconds);
                 http.Abort();
             }
             catch (OperationCanceledException)
@@ -134,7 +134,7 @@ public static class VendorOrderStreamEndpoint
             finally
             {
                 await hub.ReleaseAsync(stream);
-                if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("A vendor order stream closed ({Open} open on this instance)", hub.OpenCount);
+                if (logger.IsEnabled(LogLevel.Debug)) LogAVendorOrderStreamClosedOpen(logger, hub.OpenCount);
             }
             return Results.Empty;
         }).RequireAuthorization("VendorRole");
@@ -162,4 +162,16 @@ public static class VendorOrderStreamEndpoint
         http.Response.Headers.RetryAfter = retryAfterSeconds.ToString(CultureInfo.InvariantCulture);
         return Results.Json(new ApiError("stream_unavailable", "Live updates are not available right now; poll instead."), statusCode: StatusCodes.Status503ServiceUnavailable);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "A vendor order stream could not be opened: the live channel is unavailable")]
+    private static partial void LogAVendorOrderStreamCouldNot(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "A vendor order stream opened ({Open} open on this instance)")]
+    private static partial void LogAVendorOrderStreamOpenedOpen(ILogger logger, int open);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A vendor order stream was closed: the client did not read within {Timeout} ms")]
+    private static partial void LogAVendorOrderStreamWasClosed(ILogger logger, int timeout);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "A vendor order stream closed ({Open} open on this instance)")]
+    private static partial void LogAVendorOrderStreamClosedOpen(ILogger logger, int open);
 }

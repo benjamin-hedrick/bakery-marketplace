@@ -44,7 +44,7 @@ public sealed class SeededContactDirectory : IContactDirectory
 /// (<c>GetManyAsync</c>) for all the ids, one batch read of the inner directory for the misses. "No contact" is cached briefly so an
 /// unknown customer does not hit the directory on every event. A cache failure is never a delivery failure: it reads through.
 /// </summary>
-public sealed class CachedContactDirectory(
+public sealed partial class CachedContactDirectory(
     IContactDirectory inner, ICacheProvider cache, ILogger<CachedContactDirectory> logger,
     TimeSpan? ttl = null, TimeSpan? negativeTtl = null) : IContactDirectory
 {
@@ -70,7 +70,7 @@ public sealed class CachedContactDirectory(
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            logger.LogWarning(e, "The contact cache could not be read; reading {Count} contacts from the directory", ids.Length);
+            LogTheContactCacheCouldNotBe(logger, e, ids.Length);
             cached = new Dictionary<string, Entry>();
         }
 
@@ -96,8 +96,14 @@ public sealed class CachedContactDirectory(
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            logger.LogWarning(e, "The contact cache could not be written"); // the cache is down: skip the rest, the contacts are already in the result
+            LogTheContactCacheCouldNotBe2(logger, e); // the cache is down: skip the rest, the contacts are already in the result
         }
         return result;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The contact cache could not be read; reading {Count} contacts from the directory")]
+    private static partial void LogTheContactCacheCouldNotBe(ILogger logger, Exception exception, int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The contact cache could not be written")]
+    private static partial void LogTheContactCacheCouldNotBe2(ILogger logger, Exception exception);
 }

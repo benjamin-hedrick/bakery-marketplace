@@ -21,6 +21,8 @@ public static class ServicePolicies
 /// <summary>Reads the identity of an app-only (client credentials) caller from a validated token.</summary>
 public static class ServiceCaller
 {
+    private static readonly string[] ClientIdClaimTypes = ["client_id", "azp", "appid"];
+
     /// <summary>
     /// True for an app-only token: <c>idtyp=app</c> and a client identity. A user token never has <c>idtyp=app</c>, so a user
     /// who somehow carried a service role still would not pass the service policies.
@@ -30,7 +32,7 @@ public static class ServiceCaller
 
     /// <summary>The calling client's id: <c>client_id</c> (mock issuer), else <c>azp</c> or <c>appid</c> (Entra). Safe to log; it is not a secret.</summary>
     public static string? ClientId(ClaimsPrincipal user) =>
-        new[] { "client_id", "azp", "appid" }
+        ClientIdClaimTypes
             .Select(type => user.FindFirst(type)?.Value)
             .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 }

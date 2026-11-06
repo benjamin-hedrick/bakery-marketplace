@@ -40,7 +40,7 @@ public sealed record OrderDto(
 /// <summary>One page of the customer's orders, and the cursor of the next page (null on the last).</summary>
 public sealed record OrderPage(IReadOnlyList<OrderDto> Items, string? NextCursor);
 
-public static class CheckoutEndpoints
+public static partial class CheckoutEndpoints
 {
     public const string IdempotencyKeyHeader = "Idempotency-Key";
 
@@ -60,7 +60,7 @@ public static class CheckoutEndpoints
             var forceDecline = false;
             if (string.Equals(http.Request.Headers[TestPaymentHeader], "decline", StringComparison.OrdinalIgnoreCase))
             {
-                if (env.IsProduction()) log.LogWarning("The {Header} header was sent in Production and was ignored", TestPaymentHeader);
+                if (env.IsProduction()) LogTheHeaderWasSentInProduction(log, TestPaymentHeader);
                 else forceDecline = true;
             }
 
@@ -122,4 +122,7 @@ public static class CheckoutEndpoints
             .ToDictionary(g => g.Key, g => g.Select(p => p.Message).ToArray());
         return Results.Json(new ApiError(r.Code ?? "error", r.Message ?? "The request could not be completed.", errors, r.StockRejections), statusCode: status);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The {Header} header was sent in Production and was ignored")]
+    private static partial void LogTheHeaderWasSentInProduction(ILogger logger, string header);
 }

@@ -36,7 +36,7 @@ public sealed record ListingNames(string? Name, IReadOnlyDictionary<string, stri
 /// request that needs the same listing while it is being fetched shares that one fetch, however many orders are waiting. If the catalog cannot be
 /// reached the vendor still gets the orders, with ids where a name is missing; an entry already held is kept and served until it is too old.
 /// </summary>
-public sealed class ListingNameCache(
+public sealed partial class ListingNameCache(
     ICatalogGateway catalog, IOptions<ListingNameOptions> options, TimeProvider time, ILogger<ListingNameCache> logger)
 {
     private sealed class Entry(ListingNames names, DateTimeOffset fetchedAt)
@@ -132,7 +132,7 @@ public sealed class ListingNameCache(
         catch (Exception e) when (e is DownstreamUnavailableException or HttpRequestException or TaskCanceledException)
         {
             _failedAt[id] = time.GetUtcNow();
-            logger.LogWarning("The catalog could not be asked for the names of listing {ListingId}: {Error}", id, e.GetType().Name);
+            LogTheCatalogCouldNotBeAsked(logger, id, e.GetType().Name);
             return _entries.TryGetValue(id, out var held) && time.GetUtcNow() - held.FetchedAt < MaxAge ? held : null;
         }
         finally
@@ -149,10 +149,13 @@ public sealed class ListingNameCache(
             if (oldest.Key is null || !_entries.TryRemove(oldest.Key, out _)) return;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The catalog could not be asked for the names of listing {ListingId}: {Error}")]
+    private static partial void LogTheCatalogCouldNotBeAsked(ILogger logger, string listingId, string error);
 }
 
 /// <summary>Runs <see cref="ListingNameCache.RefreshStaleAsync"/> on the configured interval (register item 113).</summary>
-public sealed class ListingNameRefresher(ListingNameCache cache, IOptions<ListingNameOptions> options, ILogger<ListingNameRefresher> logger) : BackgroundService
+public sealed partial class ListingNameRefresher(ListingNameCache cache, IOptions<ListingNameOptions> options, ILogger<ListingNameRefresher> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -171,8 +174,11 @@ public sealed class ListingNameRefresher(ListingNameCache cache, IOptions<Listin
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, "The listing name refresh failed; it will run again");
+                LogTheListingNameRefreshFailedIt(logger, e);
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The listing name refresh failed; it will run again")]
+    private static partial void LogTheListingNameRefreshFailedIt(ILogger logger, Exception exception);
 }

@@ -19,7 +19,7 @@ public sealed record PublishResult(int Published, bool Failed, bool Parked = fal
 /// same event ids, and consumers dedupe on the id. Events go out in sequence order and publishing stops at the first failure, so a consumer
 /// never sees a later event of an order without the earlier ones having been sent first.
 /// </summary>
-public sealed class OrderEventPublisher(
+public sealed partial class OrderEventPublisher(
     IEventPublisher events, OrderStore orders, OutboxSignal signal, IOptions<OutboxOptions> options, TimeProvider time, ILogger<OrderEventPublisher> logger)
 {
     private const int MaxCleanupAttempts = 5;
@@ -49,7 +49,7 @@ public sealed class OrderEventPublisher(
         }
         catch (Exception e)
         {
-            logger.LogWarning(e, "Events of order {OrderId} were not published inline; the outbox relay will send them", stored.Order.Id);
+            LogEventsOfOrderWereNotPublished(logger, e, stored.Order.Id);
             signal.Wake();
         }
     }
@@ -75,8 +75,7 @@ public sealed class OrderEventPublisher(
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                logger.LogWarning(e, "Event {EventType} #{Sequence} of order {OrderId} could not be published; it stays pending",
-                    entry.EventType, entry.SequenceNumber, stored.Order.Id);
+                LogEventOfOrderCouldNotBe(logger, e, entry.EventType, entry.SequenceNumber, stored.Order.Id);
                 failed = true;
                 failedEntry = entry;
                 break; // later events wait: they must not overtake this one
@@ -106,9 +105,7 @@ public sealed class OrderEventPublisher(
                     var parked = saved.Document.ParkedAt is not null;
                     if (parked && !wasParked)
                     {
-                        logger.LogError(
-                            "Order {OrderId}: event {EventType} #{Sequence} failed {Attempts} times; the order's outbox is parked and will not be retried until it is unparked",
-                            stored.Order.Id, entry.EventType, entry.SequenceNumber, options.Value.MaxPublishAttempts);
+                        LogOrderEventFailedTimesTheOrder(logger, stored.Order.Id, entry.EventType, entry.SequenceNumber, options.Value.MaxPublishAttempts);
                     }
                     return parked;
                 }
@@ -119,7 +116,7 @@ public sealed class OrderEventPublisher(
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                logger.LogWarning(e, "Order {OrderId}: the failed attempt could not be counted", stored.Order.Id);
+                LogOrderTheFailedAttemptCouldNot(logger, e, stored.Order.Id);
                 return false;
             }
         }
@@ -138,7 +135,7 @@ public sealed class OrderEventPublisher(
             if (fresh is null || !fresh.Document.Outbox.Any(e => publishedIds.Contains(e.EventId))) return; // already cleaned by someone else
             current = fresh;
         }
-        logger.LogWarning("Order {OrderId}: published events could not be removed from the outbox; they will be sent again with the same ids", stored.Order.Id);
+        LogOrderPublishedEventsCouldNotBe(logger, stored.Order.Id);
     }
 
     private static Task Send<T>(OutboxEntryDocument entry, string orderId, IEventPublisher events, CancellationToken ct)
@@ -150,4 +147,19 @@ public sealed class OrderEventPublisher(
                 Guid.Parse(entry.EventId), entry.EventType, 1, entry.OccurredAt, "Order", orderId, entry.SequenceNumber, payload, entry.Traceparent),
             ct);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Events of order {OrderId} were not published inline; the outbox relay will send them")]
+    private static partial void LogEventsOfOrderWereNotPublished(ILogger logger, Exception exception, string orderId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Event {EventType} #{Sequence} of order {OrderId} could not be published; it stays pending")]
+    private static partial void LogEventOfOrderCouldNotBe(ILogger logger, Exception exception, string eventType, long sequence, string orderId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Order {OrderId}: event {EventType} #{Sequence} failed {Attempts} times; the order's outbox is parked and will not be retried until it is unparked")]
+    private static partial void LogOrderEventFailedTimesTheOrder(ILogger logger, string orderId, string eventType, long sequence, int attempts);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: the failed attempt could not be counted")]
+    private static partial void LogOrderTheFailedAttemptCouldNot(ILogger logger, Exception exception, string orderId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: published events could not be removed from the outbox; they will be sent again with the same ids")]
+    private static partial void LogOrderPublishedEventsCouldNotBe(ILogger logger, string orderId);
 }

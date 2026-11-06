@@ -59,7 +59,7 @@ public interface ICatalogGateway
 /// that sends the service token (ADR-0018). Anything that is not a clear answer becomes <see cref="DownstreamUnavailableException"/>:
 /// checkout never guesses.
 /// </summary>
-public sealed class CatalogGateway(IHttpClientFactory clients, ILogger<CatalogGateway> logger) : ICatalogGateway
+public sealed partial class CatalogGateway(IHttpClientFactory clients, ILogger<CatalogGateway> logger) : ICatalogGateway
 {
     public const string PublicClientName = "catalog-public";
     public const string ServiceClientName = "catalog-service";
@@ -135,14 +135,14 @@ public sealed class CatalogGateway(IHttpClientFactory clients, ILogger<CatalogGa
         }
         catch (Exception e) when ((e is HttpRequestException or TaskCanceledException or ServiceTokenException) && !ct.IsCancellationRequested)
         {
-            logger.LogWarning("Catalog call failed before an answer ({Client} {Method}): {Error}", client, method, e.GetType().Name);
+            LogCatalogCallFailedBeforeAnAnswer(logger, client, method, e.GetType().Name);
             throw new DownstreamUnavailableException("The catalog could not be reached.", e);
         }
     }
 
     private DownstreamUnavailableException Unavailable(string what, HttpStatusCode status)
     {
-        logger.LogWarning("Catalog {What} answered HTTP {Status}", what, (int)status);
+        LogCatalogAnsweredHTTP(logger, what, (int)status);
         return new DownstreamUnavailableException($"The catalog answered HTTP {(int)status} to the {what}.");
     }
 
@@ -169,4 +169,10 @@ public sealed class CatalogGateway(IHttpClientFactory clients, ILogger<CatalogGa
     private sealed record RejectedBody(string? Code, List<RejectedLine>? Lines);
 
     private sealed record RejectedLine(string ListingId, string Reason, int? Available);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog call failed before an answer ({Client} {Method}): {Error}")]
+    private static partial void LogCatalogCallFailedBeforeAnAnswer(ILogger logger, string client, System.Net.Http.HttpMethod method, string error);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog {What} answered HTTP {Status}")]
+    private static partial void LogCatalogAnsweredHTTP(ILogger logger, string what, int status);
 }

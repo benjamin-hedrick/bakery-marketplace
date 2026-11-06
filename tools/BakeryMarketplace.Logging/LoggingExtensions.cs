@@ -21,6 +21,8 @@ public static class LoggingExtensions
     /// <summary>
     /// Emits a structured log entry with ServiceName and optional EventType property scopes.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1848:Use the LoggerMessage delegates",
+        Justification = "A general helper: the level and the message are chosen by the caller at run time, so no compile-time template can be generated.")]
     public static void LogStructuredEvent(
         this ILogger logger,
         LogLevel logLevel,

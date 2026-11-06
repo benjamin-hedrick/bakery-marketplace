@@ -75,7 +75,7 @@ public interface IPaymentProcessor
 /// **A stub. No money moves.** It approves everything and logs a warning each time so it cannot be mistaken for a real integration. A caller
 /// may ask it to decline, which the checkout endpoint allows only outside Production (first-slice contract D-10).
 /// </summary>
-public sealed class StubPaymentProcessor(ILogger<StubPaymentProcessor> logger) : IPaymentProcessor
+public sealed partial class StubPaymentProcessor(ILogger<StubPaymentProcessor> logger) : IPaymentProcessor
 {
     public const string ProcessorName = "STUB";
 
@@ -83,13 +83,17 @@ public sealed class StubPaymentProcessor(ILogger<StubPaymentProcessor> logger) :
     {
         if (request.ForceDecline)
         {
-            logger.LogWarning("{Processor} payment DECLINED for order {OrderId} (test hook). No payment provider was called.", ProcessorName, request.OrderId);
+            LogPaymentDECLINEDForOrderTestHook(logger, ProcessorName, request.OrderId);
             return Task.FromResult(new PaymentResult(false));
         }
 
-        logger.LogWarning(
-            "{Processor} payment authorization for order {OrderId}, {AmountCents} {Currency}. No payment provider was called and no money moved.",
-            ProcessorName, request.OrderId, request.AmountCents, request.Currency);
+        LogPaymentAuthorizationForOrderNoPayment(logger, ProcessorName, request.OrderId, request.AmountCents, request.Currency);
         return Task.FromResult(new PaymentResult(true, $"stub-{request.OrderId}"));
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Processor} payment DECLINED for order {OrderId} (test hook). No payment provider was called.")]
+    private static partial void LogPaymentDECLINEDForOrderTestHook(ILogger logger, string processor, string orderId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Processor} payment authorization for order {OrderId}, {AmountCents} {Currency}. No payment provider was called and no money moved.")]
+    private static partial void LogPaymentAuthorizationForOrderNoPayment(ILogger logger, string processor, string orderId, long amountCents, string currency);
 }

@@ -63,7 +63,7 @@ public sealed class VendorStreamSession : IDisposable
 /// already holds, no read of the store) and queued for each of that vendor's streams. A message for one vendor is never queued for another's
 /// stream: the stream is found by the vendor id of the token that opened it, and the document's own vendor id is checked again.
 /// </summary>
-public sealed class VendorOrderStreamHub(
+public sealed partial class VendorOrderStreamHub(
     IBroadcastSubscriber broadcast, ListingNameCache names, IOptions<VendorStreamOptions> options, TimeProvider time, ILogger<VendorOrderStreamHub> logger) : IAsyncDisposable
 {
     /// <summary>The name of the hub's meter, for the telemetry registration (ADR-0021, observability).</summary>
@@ -247,7 +247,7 @@ public sealed class VendorOrderStreamHub(
         try { doc = JsonConvert.DeserializeObject<VendorOrderDocument>(message); }
         catch (Newtonsoft.Json.JsonException)
         {
-            logger.LogWarning("A message on a vendor order channel could not be read and was skipped");
+            LogAMessageOnAVendorOrder(logger);
             return;
         }
         if (doc is null || !string.Equals(doc.VendorId, vendorId, StringComparison.Ordinal)) return;
@@ -294,4 +294,7 @@ public sealed class VendorOrderStreamHub(
         }
         _metrics.Dispose();
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A message on a vendor order channel could not be read and was skipped")]
+    private static partial void LogAMessageOnAVendorOrder(ILogger logger);
 }

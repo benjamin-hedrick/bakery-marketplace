@@ -38,9 +38,7 @@ dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
 
-# Analyzer tuning for this repo. Everything else from AnalysisLevel latest-recommended stays a visible warning.
-# High-performance logging delegates are not a goal here.
-dotnet_diagnostic.CA1848.severity = suggestion
+# Analyzer tuning for this repo. Everything from AnalysisLevel latest-recommended stays a visible warning unless it is listed here.
 
 [**/tests/**.cs]
 # xUnit test names use underscores (Method_condition_result) throughout.

@@ -50,6 +50,15 @@ public static class MockOidcIssuer
     /// <summary>The scope that asks for a refresh token.</summary>
     public const string OfflineAccessScope = "offline_access";
 
+    // The constant lists of the discovery document, built once.
+    private static readonly string[] ResponseTypes = ["code"];
+    private static readonly string[] SubjectTypes = ["public"];
+    private static readonly string[] SigningAlgorithms = ["RS256"];
+    private static readonly string[] CodeChallengeMethods = ["plain", "S256"];
+    private static readonly string[] GrantTypes = ["authorization_code", "client_credentials", "refresh_token"];
+    private static readonly string[] Scopes = ["openid", OfflineAccessScope];
+    private static readonly string[] TokenEndpointAuthMethods = ["none", "client_secret_basic", "client_secret_post"];
+
     private static bool HasScope(string scope, string wanted) =>
         scope.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(wanted, StringComparer.Ordinal);
 
@@ -150,13 +159,13 @@ public static class MockOidcIssuer
                 jwks_uri = $"{baseUrl}/.well-known/jwks.json",
                 authorization_endpoint = $"{baseUrl}/authorize",
                 token_endpoint = $"{baseUrl}/token",
-                response_types_supported = new[] { "code" },
-                subject_types_supported = new[] { "public" },
-                id_token_signing_alg_values_supported = new[] { "RS256" },
-                code_challenge_methods_supported = new[] { "plain", "S256" },
-                grant_types_supported = new[] { "authorization_code", "client_credentials", "refresh_token" },
-                scopes_supported = new[] { "openid", OfflineAccessScope },
-                token_endpoint_auth_methods_supported = new[] { "none", "client_secret_basic", "client_secret_post" }
+                response_types_supported = ResponseTypes,
+                subject_types_supported = SubjectTypes,
+                id_token_signing_alg_values_supported = SigningAlgorithms,
+                code_challenge_methods_supported = CodeChallengeMethods,
+                grant_types_supported = GrantTypes,
+                scopes_supported = Scopes,
+                token_endpoint_auth_methods_supported = TokenEndpointAuthMethods
             });
         });
 
