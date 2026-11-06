@@ -1,0 +1,58 @@
+# WI-MOB-003: changing the order (the cart): quantity up and down, a second line, and removing a line, with the estimated total following each change.
+appId: com.bakerymarketplace.mobile
+name: Change quantities and remove a line, and the total follows
+---
+- launchApp:
+    clearState: true
+- runFlow: subflows/login.yaml
+- tapOn:
+    id: listing-Oat Milk Latte
+- tapOn:
+    id: add-to-order
+- assertVisible:
+    id: cart-line-Oat Milk Latte
+- assertVisible: Estimated total $5.00
+- tapOn:
+    id: more-0
+- assertVisible: Estimated total $10.00
+- tapOn:
+    id: more-0
+- assertVisible: Estimated total $15.00
+- tapOn:
+    id: less-0
+- assertVisible: Estimated total $10.00
+- tapOn:
+    id: less-0
+- assertVisible: Estimated total $5.00
+# A second line: back to the menu and add the bread (an option is chosen).
+- tapOn:
+    id: back
+- tapOn:
+    id: back
+- assertVisible:
+    id: listings
+- tapOn:
+    id: listing-Country Sourdough
+- tapOn:
+    id: option-Sliced
+- tapOn:
+    id: add-to-order
+- assertVisible:
+    id: cart-line-Country Sourdough
+- assertVisible:
+    id: cart-line-Oat Milk Latte
+- assertVisible: Estimated total $13.00
+# Remove the first line (the latte): the bread stays and the total follows.
+- tapOn:
+    id: remove-0
+- assertNotVisible:
+    id: cart-line-Oat Milk Latte
+- assertVisible:
+    id: cart-line-Country Sourdough
+- assertVisible: Estimated total $8.00
+# Remove the last line: the order is empty.
+- tapOn:
+    id: remove-0
+- assertVisible:
+    id: cart-empty
+- assertVisible: Order (0)

@@ -11,8 +11,8 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 54 |
-| In progress | 6 |
-| In review | 23 |
+| In progress | 5 |
+| In review | 24 |
 | Built | 1 |
 | Ready | 4 |
 | Proposed | 4 |
@@ -112,7 +112,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | EPIC-PM-ARTIFACTS | Done | evidence: `docs/process/branching-strategy.md` |
 | [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | EPIC-WEB-CUSTOMER | In review | built and run locally 2026-11-04 (four Maestro flows pass on the emulator, `docs/evidence/WI-MOB-001/`); waiting for the lead's review of the auth changes (the issuer redirect rule, the token handling in the app) and decision on pushing; ADR-0023 accepted 2026-11-04 |
 | [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | EPIC-WEB-CUSTOMER | In review | built and run locally 2026-11-04 (10 of 10 Maestro flows pass from a cold start, `docs/evidence/WI-MOB-002/`; 14 new customer-core tests and 10 seed tests); the lead approved the allergy wording on 2026-11-04; waiting for the lead's review of the control server's use of the sign-in flow (`scripts/lib/flow-control.mjs`); the lead added "Signed in as <name>" on 2026-11-04 |
-| [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | EPIC-QUALITY-EVIDENCE | In progress | written 2026-11-04 at the lead's request; depends on `WI-MOB-001` (built, In review). Remaining: the three Maestro flows (refused session, failed checkout request, order edits); the unit tests are built (2026-11-05, `docs/evidence/WI-MOB-003/unit-tests-2026-11-05.md`: 24 pass, 1 todo that fails by design, register 151 and 152) |
+| [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | EPIC-QUALITY-EVIDENCE | In review | built and run locally 2026-11-05: 25 unit tests pass (`docs/evidence/WI-MOB-003/unit-tests-2026-11-05.md`; register 151 fixed with the lead's approval, register 152 open) and flows 11 to 13 pass with flow 10 (`docs/evidence/WI-MOB-003/maestro-flows-2026-11-05.md`; all 13 flows in one cold run not yet done). Waiting for: the lead's review of the token handling, register 152, and whether the app's unit tests join the pipeline (register 148) |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |

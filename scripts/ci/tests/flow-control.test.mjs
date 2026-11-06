@@ -47,6 +47,10 @@ describe('flow control server', () => {
         res.writeHead(200, { 'content-type': 'application/json' });
         return res.end(JSON.stringify({ access_token: 'alice-token' }));
       }
+      if (req.url === '/.well-known/openid-configuration') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return res.end('{}');
+      }
       res.writeHead(404).end();
     });
     bff = await listen(async (req, res) => {
@@ -77,11 +81,13 @@ describe('flow control server', () => {
       stopOne: (n) => (seen.stack.push(`stop ${n}`), (bffUp = false)),
       startOne: (n) => (seen.stack.push(`start ${n}`), (bffUp = true)),
     };
+    const restartIssuer = () => seen.stack.push('restart issuer');
     control = startFlowControl({
       stack,
       issuer: `http://127.0.0.1:${issuer.port}`,
       bffUrl: `http://127.0.0.1:${bff.port}/graphql`,
       port: 0,
+      restartIssuer,
       log: () => {},
     });
     await once(control.server, 'listening');
@@ -148,6 +154,24 @@ describe('flow control server', () => {
     assert.deepEqual(seen.bff, []);
   });
 
+  test('counts the customer’s orders (WI-MOB-003): one orders query as that customer', async () => {
+    reset();
+    const res = await fetch(`${base}/order-count?user=user-customer-2`, { headers: flow });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { count: 1 }); // the fake BFF has one order
+    assert.deepEqual(seen.users, ['user-customer-2']);
+    reset();
+    assert.equal((await fetch(`${base}/order-count?user=user-vendor-1`, { headers: flow })).status, 400);
+    assert.deepEqual(seen.issuer, []);
+  });
+
+  test('restarts the issuer and waits until it answers (WI-MOB-003)', async () => {
+    reset();
+    assert.equal((await fetch(`${base}/issuer/restart`, { method: 'POST', headers: flow, body: '{}' })).status, 200);
+    assert.deepEqual(seen.stack, ['restart issuer']);
+    assert.ok(seen.issuer.includes('GET /.well-known/openid-configuration'));
+  });
+
   test('stops and starts the BFF process', async () => {
     reset();
     assert.equal((await fetch(`${base}/bff/stop`, { method: 'POST', headers: flow, body: '{}' })).status, 200);
@@ -185,6 +209,13 @@ describe('flow control server', () => {
         '/profile',
       );
       await refused('last order, no header', { method: 'GET' }, '/last-order');
+      await refused('order count, no header', { method: 'GET' }, '/order-count');
+      await refused('issuer restart, no header', { method: 'POST', body: '{}' }, '/issuer/restart');
+      await refused(
+        'issuer restart from a web page',
+        { method: 'POST', headers: { 'x-flow-control': '1', origin: 'http://evil.example' }, body: '{}' },
+        '/issuer/restart',
+      );
     });
 
     test('a request whose Host is not this server by address (DNS rebinding)', async () => {
