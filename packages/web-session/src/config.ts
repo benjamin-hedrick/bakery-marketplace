@@ -131,6 +131,13 @@ export function sessionConfigFromEnv(env: Record<string, string | undefined>): S
         'SESSION_REDIS_URL=memory needs SESSION_ALLOW_MEMORY_STORE=1: sessions would live in one process and be lost on restart',
     };
   }
+  // Tests and demos only: a deployed app (any origin that is not loopback) never keeps sessions in one process (register 122).
+  if (redisUrl === MEMORY_STORE && !LOOPBACK.has(origin.hostname)) {
+    return {
+      ok: false,
+      reason: 'SESSION_REDIS_URL=memory is accepted only when APP_ORIGIN is a loopback address',
+    };
+  }
 
   const margin = seconds(env['SESSION_REFRESH_MARGIN_SECONDS'], 60, 1);
   if (margin === undefined)
