@@ -129,6 +129,9 @@ test('choosing and adding produces no console warnings or errors', async ({ page
   await open(page, 'Country Sourdough');
   await page.getByLabel('Sliced (+$0.00)').check();
   await addToOrder(page).click();
+  await expect(page.getByTestId('cart-link')).toBeVisible();
+  // Let the page finish loading before reloading it: Firefox logs a warning for every script load the reload cancels (register 132).
+  await page.waitForLoadState('networkidle');
   await page.reload();
   await expect(page.getByTestId('cart-link')).toBeVisible();
   expect(problems, problems.join('\n')).toEqual([]);
