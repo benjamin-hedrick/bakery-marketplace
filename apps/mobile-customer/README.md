@@ -57,4 +57,5 @@ which the BFF honours only when started with `ENABLE_TEST_HOOKS=1`. Log in as Al
 ```
 npm run typecheck      # tsc
 npm run format:check   # Prettier
+npm test               # unit tests of the session and API logic (WI-MOB-003), no emulator
 ```
