@@ -98,7 +98,6 @@ describe('/graphql', () => {
         orderingUrl: `http://127.0.0.1:${port(ordering)}`,
         timeoutMs: 300,
         checkoutTimeoutMs: 300,
-        testHooks: false,
         rateLimitPerMinute: 4,
       },
       { log, exporter: () => {} },

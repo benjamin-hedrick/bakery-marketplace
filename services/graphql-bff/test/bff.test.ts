@@ -91,7 +91,6 @@ before(async () => {
       orderingUrl: 'http://127.0.0.1:1',
       timeoutMs: 300,
       checkoutTimeoutMs: 300,
-      testHooks: false,
     },
     { log, exporter: (s) => spans.push(s) },
   );
@@ -247,7 +246,6 @@ describe('client-safe errors (contract section 6)', () => {
         orderingUrl: 'http://127.0.0.1:1',
         timeoutMs: 300,
         checkoutTimeoutMs: 300,
-        testHooks: false,
       },
       { log },
     );

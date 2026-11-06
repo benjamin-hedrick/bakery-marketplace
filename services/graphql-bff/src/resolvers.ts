@@ -18,8 +18,6 @@ export interface Context {
   trace: TraceContext;
   /** The caller's `Authorization: Bearer ...` header, only when it has that shape. Forwarded to ordering-service and nowhere else. */
   authorization?: string | undefined;
-  /** The D-10 test hook, set only when the BFF has test hooks enabled and the caller asked for exactly `decline`. */
-  testPayment?: 'decline' | undefined;
   /**
    * Aborted when the caller's connection closes. A subscription ties its connection to ordering-service to it, because returning an async
    * generator that is waiting for the next event is queued behind that wait and would not close the stream until the next event or silence limit.
@@ -180,6 +178,8 @@ interface PlaceOrderInput {
   lineItems: { listingId: string; modifierIds: string[]; quantity: number }[];
   pickupWindow?: { start: string; end: string } | null;
   allergens?: string[] | null;
+  /** The id of one of the caller's saved payment methods (WI-ORD-010). Only the id crosses: the token stays in ordering-service. */
+  paymentMethodId: string;
 }
 
 // Expected failures, by the error code ordering-service returns. The client sees the BFF's own fixed text, never ordering's (first-slice
@@ -241,6 +241,7 @@ async function placeOrder(args: { input: PlaceOrderInput }, ctx: Context) {
   const result = await ctx.ordering.placeOrder(
     {
       vendorId: input.vendorId,
+      paymentMethodId: input.paymentMethodId,
       lineItems,
       pickupWindow: input.pickupWindow ? { start: input.pickupWindow.start, end: input.pickupWindow.end } : null,
       // Passed through as the customer sent them: ordering-service checks them against the registry (WI-ORD-009). Omitted when none, so the body is as before.
@@ -249,7 +250,6 @@ async function placeOrder(args: { input: PlaceOrderInput }, ctx: Context) {
     ctx.authorization,
     input.idempotencyKey,
     ctx.trace,
-    ctx.testPayment,
   );
 
   if (result.kind === 'order') return { __typename: 'PlaceOrderSuccess', order: toOrder(result.order) };
@@ -477,6 +477,13 @@ export const rootValue = {
     const serviceId = serviceIdFor('Order', args.id);
     if (serviceId === null) return null;
     return readOrder(serviceId, ctx);
+  },
+  /** The caller's saved payment methods (WI-ORD-010): an id and a description each. Ordering-service never sends the token, so the BFF cannot pass it on. */
+  async paymentMethods(_args: unknown, ctx: Context) {
+    const methods = await customerCall(ctx, (authorization) =>
+      ctx.ordering.listPaymentMethods(authorization, ctx.trace),
+    );
+    return methods.map((m) => ({ id: m.id, description: m.description }));
   },
   async orders(args: { first?: number; after?: string | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);

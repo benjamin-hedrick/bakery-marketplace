@@ -71,7 +71,6 @@ describe('/graphql counts per client for a trusted source and ignores the header
         orderingUrl: `http://127.0.0.1:${port}`,
         timeoutMs: 300,
         checkoutTimeoutMs: 300,
-        testHooks: false,
         rateLimitPerMinute: 2,
         trustedClientSources,
       },

@@ -15,11 +15,6 @@ export interface Config {
    */
   checkoutTimeoutMs: number;
   /**
-   * Forward the `X-Test-Payment: decline` header (first-slice contract D-10) so a browser test can see a declined payment. Off unless
-   * `ENABLE_TEST_HOOKS=1`, which must never be set outside tests. Ordering-service also ignores the header in Production.
-   */
-  testHooks: boolean;
-  /**
    * Live updates (ADR-0021): how long the stream from ordering-service may be silent before the BFF treats it as dead. Ordering sends a
    * heartbeat every 15 seconds, so the default of 45 seconds is three missed beats.
    */
@@ -44,7 +39,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     orderingUrl: (env.ORDERING_URL ?? 'http://localhost:5300').replace(/\/+$/, ''),
     timeoutMs,
     checkoutTimeoutMs: Number(env.CHECKOUT_TIMEOUT_MS ?? Math.max(15000, timeoutMs)),
-    testHooks: env.ENABLE_TEST_HOOKS === '1',
     streamIdleMs: Number(env.STREAM_IDLE_MS ?? 45000),
     maxStreams: Number(env.MAX_STREAMS ?? 500),
     rateLimitPerMinute: ratePerMinuteFromEnv(env),

@@ -73,7 +73,6 @@ before(async () => {
       orderingUrl: `http://127.0.0.1:${port(ordering)}`,
       timeoutMs: 3000,
       checkoutTimeoutMs: 3000,
-      testHooks: false,
     },
     { log: { info: () => {}, error: () => {} }, exporter: () => {} },
   );

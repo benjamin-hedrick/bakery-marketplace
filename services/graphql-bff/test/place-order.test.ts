@@ -13,6 +13,7 @@ const orderBody = {
   id: 'order-abc',
   customerId: 'customer-1',
   vendorId: 'vendor-shop-001',
+  paymentMethodId: 'pm-ok',
   lineItems: [
     {
       listingId: 'listing-sourdough-001',
@@ -62,8 +63,6 @@ const logs: Record<string, unknown>[] = [];
 const log: Logger = { info: (e) => logs.push(e), error: (e) => logs.push(e) };
 let bff: http.Server;
 let bffUrl: string;
-let hooksBff: http.Server;
-let hooksUrl: string;
 
 before(async () => {
   await new Promise<void>((r) => ordering.listen(0, '127.0.0.1', r));
@@ -74,18 +73,13 @@ before(async () => {
     orderingUrl,
     timeoutMs: 300,
     checkoutTimeoutMs: 400,
-    testHooks: false,
   };
   bff = createServer(config, { log, exporter: () => {} });
-  hooksBff = createServer({ ...config, testHooks: true }, { log, exporter: () => {} });
   await new Promise<void>((r) => bff.listen(0, '127.0.0.1', r));
-  await new Promise<void>((r) => hooksBff.listen(0, '127.0.0.1', r));
   bffUrl = `http://127.0.0.1:${(bff.address() as AddressInfo).port}/graphql`;
-  hooksUrl = `http://127.0.0.1:${(hooksBff.address() as AddressInfo).port}/graphql`;
 });
 after(() => {
   bff.close();
-  hooksBff.close();
   ordering.close();
 });
 beforeEach(() => {
@@ -119,6 +113,7 @@ const PLACE = `mutation($input: PlaceOrderInput!) { placeOrder(input: $input) {
 const input = (over: Record<string, unknown> = {}) => ({
   idempotencyKey: KEY,
   vendorId: 'vendor-shop-001',
+  paymentMethodId: 'pm-ok',
   lineItems: [{ listingId: sourdoughGid, modifierIds: ['mod-seeds'], quantity: 2 }],
   pickupWindow: { start: '2026-11-02T14:00:00+00:00', end: '2026-11-02T14:15:00+00:00' },
   ...over,
@@ -135,6 +130,7 @@ describe('placeOrder: the request ordering receives', () => {
     assert.equal(call.url, '/ordering/checkout');
     assert.deepEqual(call.body, {
       vendorId: 'vendor-shop-001',
+      paymentMethodId: 'pm-ok',
       lineItems: [{ listingId: 'listing-sourdough-001', modifierIds: ['mod-seeds'], quantity: 2 }],
       pickupWindow: { start: '2026-11-02T14:00:00+00:00', end: '2026-11-02T14:15:00+00:00' },
     });
@@ -353,19 +349,92 @@ describe('placeOrder: ids', () => {
   });
 });
 
-describe('placeOrder: the test-payment hook (D-10)', () => {
-  const withHeader = { ...auth, 'x-test-payment': 'decline' };
-
-  test('is not forwarded unless the BFF was started with test hooks enabled', async () => {
-    await place(undefined, withHeader);
-    assert.equal(seen[0]!.headers['x-test-payment'], undefined);
+describe('placeOrder: the payment method (WI-ORD-010)', () => {
+  test('sends the chosen method id to ordering, and only the id', async () => {
+    await place({ paymentMethodId: 'pm-alice-ok' });
+    assert.equal((seen[0]!.body as { paymentMethodId: string }).paymentMethodId, 'pm-alice-ok');
+    assert.deepEqual(Object.keys(seen[0]!.body as object).sort(), [
+      'lineItems',
+      'paymentMethodId',
+      'pickupWindow',
+      'vendorId',
+    ]);
   });
 
-  test('is forwarded, and only the value "decline", when test hooks are enabled', async () => {
-    await gql(PLACE, { input: input() }, withHeader, hooksUrl);
-    assert.equal(seen[0]!.headers['x-test-payment'], 'decline');
-    seen.length = 0;
-    await gql(PLACE, { input: input() }, { ...auth, 'x-test-payment': 'approve-everything' }, hooksUrl);
+  test('the method is required: an operation without it is refused by the schema and nothing is sent', async () => {
+    const without = { ...input() } as Record<string, unknown>;
+    delete without.paymentMethodId;
+    const { body } = await gql(PLACE, { input: without }, auth);
+    assert.ok(body.errors?.length > 0);
+    assert.equal(seen.length, 0);
+  });
+
+  test('a declined payment (402 from ordering) comes back as PAYMENT_DECLINED, and so does a refused method id as VALIDATION_FAILED on its field', async () => {
+    reply = { status: 402, body: { code: 'payment_declined', message: 'The payment was declined.' } };
+    const declined = await place({ paymentMethodId: 'pm-alice-refused' });
+    assert.equal(declined.body.data.placeOrder.code, 'PAYMENT_DECLINED');
+
+    reply = {
+      status: 422,
+      body: {
+        code: 'validation_failed',
+        message: 'x',
+        errors: { paymentMethodId: ['Choose one of your saved payment methods.'] },
+      },
+    };
+    const refused = await place({ paymentMethodId: 'pm-nope' });
+    assert.equal(refused.body.data.placeOrder.code, 'VALIDATION_FAILED');
+    assert.deepEqual(
+      refused.body.data.placeOrder.fields.map((f: { field: string }) => f.field),
+      ['paymentMethodId'],
+    );
+  });
+
+  test('the old decline header is gone: it is never forwarded, whatever the caller sends', async () => {
+    await place(undefined, { ...auth, 'x-test-payment': 'decline' });
     assert.equal(seen[0]!.headers['x-test-payment'], undefined);
+  });
+});
+
+describe('paymentMethods', () => {
+  const QUERY = '{ paymentMethods { id description } }';
+
+  test("lists the caller's methods from ordering with the caller's token, mapping only id and description", async () => {
+    reply = {
+      status: 200,
+      body: [
+        { id: 'pm-alice-ok', description: 'Test card (accepted)', token: 'pm_secret_1' },
+        { id: 'pm-alice-refused', description: 'Test card (refused)' },
+      ],
+    };
+    const { body } = await gql(QUERY, undefined, auth);
+    assert.equal(seen[0]!.url, '/ordering/payment-methods');
+    assert.equal(seen[0]!.headers.authorization, `Bearer ${TOKEN}`);
+    assert.deepEqual(body.data.paymentMethods, [
+      { id: 'pm-alice-ok', description: 'Test card (accepted)' },
+      { id: 'pm-alice-refused', description: 'Test card (refused)' },
+    ]);
+    assert.ok(!JSON.stringify(body).includes('pm_secret_1')); // even if a service sent one, the schema has no field for it
+  });
+
+  test('a customer with none gets an empty list', async () => {
+    reply = { status: 200, body: [] };
+    const { body } = await gql(QUERY, undefined, auth);
+    assert.deepEqual(body.data.paymentMethods, []);
+  });
+
+  test('needs a token (UNAUTHENTICATED) and the token is refused by ordering as FORBIDDEN for another role', async () => {
+    const anonymous = await gql(QUERY);
+    assert.equal(anonymous.body.errors[0].extensions.code, 'UNAUTHENTICATED');
+    assert.equal(seen.length, 0);
+
+    reply = { status: 403, body: {} };
+    const vendor = await gql(QUERY, undefined, auth);
+    assert.equal(vendor.body.errors[0].extensions.code, 'FORBIDDEN');
+  });
+
+  test('the schema has no field that could carry a token, number, brand or expiry', async () => {
+    const { body } = await gql('{ __type(name: "PaymentMethod") { fields { name } } }');
+    assert.deepEqual(body.data.__type.fields.map((f: { name: string }) => f.name).sort(), ['description', 'id']);
   });
 });

@@ -74,6 +74,14 @@ export interface CheckoutBody {
   lineItems: { listingId: string; modifierIds: string[]; quantity: number }[];
   pickupWindow: { start: string; end: string } | null;
   allergens?: string[];
+  /** One of the caller's saved payment methods, by id (WI-ORD-010). */
+  paymentMethodId: string;
+}
+
+/** A saved payment method as ordering-service shows it to its customer: an id and a description, never the token. */
+export interface OrderingPaymentMethod {
+  id: string;
+  description: string;
 }
 
 /** The stable error body of ordering-service (ApiError). */
@@ -97,15 +105,19 @@ export interface OrderingClient {
   /**
    * Places an order for the caller. The expected 4xx answers (422, 409, 402, and 401/403) come back as `kind: 'error'` for the caller to map; a
    * success (201, or 200 for a repeat of the same checkout) is `kind: 'order'`. Anything else (5xx, a body that is not JSON, a timeout) throws
-   * a {@link DownstreamError}. `testPayment` is the D-10 hook, passed only when the BFF was started with test hooks enabled.
+   * a {@link DownstreamError}.
    */
   placeOrder(
     body: CheckoutBody,
     authorization: string,
     idempotencyKey: string,
     trace: TraceContext,
-    testPayment?: 'decline',
   ): Promise<PlaceResult>;
+  /**
+   * The caller's own saved payment methods, in the order ordering-service gives them. The token is forwarded unchanged; ordering takes the customer
+   * from it. A 401 or 403 is a {@link DownstreamError} with that status.
+   */
+  listPaymentMethods(authorization: string, trace: TraceContext): Promise<OrderingPaymentMethod[]>;
   /**
    * A vendor's action on an order (confirm, decline, start-preparation, ready, complete). The vendor's token is forwarded unchanged; ordering
    * decides the role, the ownership and whether the action is allowed from the order's status. 404 (missing, or not the caller's) is
@@ -190,14 +202,15 @@ export function createOrderingClient(
   }
 
   return {
-    async placeOrder(body, authorization, idempotencyKey, trace, testPayment) {
+    async listPaymentMethods(authorization, trace) {
+      const res = await request('/ordering/payment-methods', trace, authorization);
+      if (!res.ok) throw new DownstreamError(`ordering payment methods returned ${res.status}`, res.status);
+      return parse<OrderingPaymentMethod[]>(res);
+    },
+    async placeOrder(body, authorization, idempotencyKey, trace) {
       const res = await request('/ordering/checkout', trace, authorization, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'idempotency-key': idempotencyKey,
-          ...(testPayment ? { 'x-test-payment': testPayment } : {}),
-        },
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
         body: JSON.stringify(body),
         timeoutMs: checkoutTimeoutMs,
       });
