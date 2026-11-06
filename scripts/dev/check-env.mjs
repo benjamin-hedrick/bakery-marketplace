@@ -17,6 +17,7 @@ const ports = {
   cosmos: port('COSMOS_PORT', 8081),
   oidc: port('MOCK_OIDC_PORT', 5100),
   cache: port('REDIS_CACHE_PORT', 6380),
+  sessions: port('REDIS_SESSIONS_PORT', 6381),
 };
 
 /** Sends a Redis PING and expects +PONG: proves it is Redis, not just any listener on the port. */
@@ -69,6 +70,11 @@ if (withRedis) {
     name: 'cache Redis (profile with-redis)',
     target: `127.0.0.1:${ports.cache}`,
     run: () => redisPing(ports.cache),
+  });
+  checks.push({
+    name: 'sessions Redis (profile with-redis)',
+    target: `127.0.0.1:${ports.sessions}`,
+    run: () => redisPing(ports.sessions),
   });
 }
 

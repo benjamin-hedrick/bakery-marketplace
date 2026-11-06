@@ -41,12 +41,12 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 Data__B
 (cd services/graphql-bff && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)
 #    To run the journeys later (below), start it with ENABLE_TEST_HOOKS=1 as well. That forwards the declined-payment test hook; never set it outside tests.
 
-# 7. Customer web app on :3000 (everything is read at run time, on every request). The login runs on its server (ADR-0019): it needs the cache Redis
-#    (`docker compose --profile with-redis up -d`, port 6380) and the encryption key that init-env.mjs wrote to .env as SESSION_ENCRYPTION_KEY.
+# 7. Customer web app on :3000 (everything is read at run time, on every request). The login runs on its server (ADR-0019): it needs the sessions Redis
+#    (`docker compose --profile with-redis up -d`, sessions Redis on port 6381) and the encryption key that init-env.mjs wrote to .env as SESSION_ENCRYPTION_KEY.
 (cd packages/web-session && npm ci)
 (cd apps/web-customer && npm ci)
 (cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run build)    # also compiles the Relay artifacts, which are git-ignored
-(cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql AUTH_ISSUER=http://localhost:5100 AUTH_CLIENT_ID=web-customer APP_ORIGIN=http://localhost:3000 SESSION_REDIS_URL=redis://127.0.0.1:6380 SESSION_ENCRYPTION_KEY="$SESSION_ENCRYPTION_KEY" npx next start -p 3000)
+(cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql AUTH_ISSUER=http://localhost:5100 AUTH_CLIENT_ID=web-customer APP_ORIGIN=http://localhost:3000 SESSION_REDIS_URL=redis://127.0.0.1:6381 SESSION_ENCRYPTION_KEY="$SESSION_ENCRYPTION_KEY" npx next start -p 3000)
 ```
 
 **Check it is up:** `curl localhost:5200/health`, `localhost:5300/health`, `localhost:4100/healthz` and `localhost:3000/` each return 200. Through the BFF:
@@ -91,7 +91,7 @@ Other reference below: services and ports, environment variables, tracing, servi
 
 ```
 docker compose up -d --build                # event backbone + Cosmos emulator + mock OIDC issuer
-docker compose --profile with-redis up -d   # additionally the cache Redis (ADR-0002)
+docker compose --profile with-redis up -d   # additionally the cache Redis (ADR-0002) and the sessions Redis (ADR-0019)
 node scripts/dev/check-env.mjs --wait 90    # add --with-redis when using the profile
 docker compose down                         # data is not persisted
 ```
@@ -108,6 +108,7 @@ All ports bind to `127.0.0.1` only. The mock issuer signs tokens for anyone who 
 | `cosmos` | 8081 (`COSMOS_PORT`), explorer 1234 (`COSMOS_EXPLORER_PORT`) | 0004 | Cosmos vNext emulator, image pinned to `vnext-EN20261019`, plain HTTP, partial API coverage (open item #2). Default |
 | `mock-oidc` | 5100 (`MOCK_OIDC_PORT`) | 0006 | Built from `tools/BakeryMarketplace.MockOidcHost`. Default. Refuses to start in the Production environment |
 | `redis-cache` | 6380 (`REDIS_CACHE_PORT`) | 0002 | Profile `with-redis` only. Separate from `redis-events` so cache eviction can never touch the event streams |
+| `redis-sessions` | 6381 (`REDIS_SESSIONS_PORT`) | 0019 | Profile `with-redis` only. The web apps' session store, `noeviction`: a full store refuses new logins instead of ending existing sessions (register 118) |
 
 ## Environment variables for services run on the host
 

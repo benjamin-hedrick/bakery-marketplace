@@ -53,10 +53,10 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
     GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-test-payment',
     AUTH_ISSUER: issuerUrl,
     AUTH_CLIENT_ID: 'web-customer',
-    // The login happens on the app's server (ADR-0019): its own origin, and the cache Redis (compose profile with-redis, port 6380) for sessions.
+    // The login happens on the app's server (ADR-0019): its own origin, and the sessions Redis (compose profile with-redis, port 6381) for sessions.
     // The encryption key is added where the server starts and never goes into this object, which the Playwright process also receives.
     APP_ORIGIN: `http://localhost:${ports.web}`,
-    SESSION_REDIS_URL: 'redis://127.0.0.1:6380',
+    SESSION_REDIS_URL: 'redis://127.0.0.1:6381',
   };
 
   function run(name, cmd, args, opts = {}) {
@@ -170,7 +170,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
 
     /**
      * The vendor's queue display (apps/web-queue-display, port 3100) as a host process in every mode: it has no container image. Built against the real
-     * BFF and logged in through the real mock issuer, with its sessions in the cache Redis like the customer app's.
+     * BFF and logged in through the real mock issuer, with its sessions in the sessions Redis like the customer app's.
      */
     async startQueue() {
       const queueDir = path.join(root, 'apps', 'web-queue-display');
@@ -180,7 +180,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
         AUTH_ISSUER: issuerUrl,
         AUTH_CLIENT_ID: 'web-queue-display',
         APP_ORIGIN: `http://localhost:${ports.queue}`,
-        SESSION_REDIS_URL: 'redis://127.0.0.1:6380',
+        SESSION_REDIS_URL: 'redis://127.0.0.1:6381',
         SESSION_ENCRYPTION_KEY: envValue('SESSION_ENCRYPTION_KEY'),
       };
       run('queue relay compile', 'node', ['scripts/ensure-artifact-dir.mjs'], { cwd: queueDir });

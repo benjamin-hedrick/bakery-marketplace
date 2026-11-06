@@ -62,3 +62,7 @@ Constraints: every service still validates the bearer token itself (ADR-0006, AD
 2. **The cloud client:** a **public client with PKCE** (no secret to keep, ADR-0007's preference), with the shorter refresh lifetimes that implies. The code stays correct for a confidential client if that is ever chosen (`AUTH-004`).
 3. **The session store is the cache Redis** (the `with-redis` profile), not the events Redis.
 4. **Approved:** the mock issuer's refresh grant, the server-side exchange and the amendments to ADR-0006 and ADR-0012 (appended when the apps move over, phase 3).
+
+## Amendment 2026-11-06 (register item 118)
+
+Decision 3 is refined: sessions live in their own Redis instance, `redis-sessions`, configured `noeviction`, and not in the evicting cache Redis, because the eviction policy is per instance. A full store now refuses new logins instead of silently ending existing sessions. Locally it is the `redis-sessions` service in the `with-redis` profile (port 6381, `REDIS_SESSIONS_PORT`); in the dev Terraform it is the `redis-sessions` container app (TCP port 6381). The cache Redis (ADR-0002) is unchanged. Approved by the lead 2026-11-06. Alerting on a full store is still not built.

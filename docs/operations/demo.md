@@ -29,7 +29,7 @@ flowchart LR
     I["mock-oidc issuer :5100"]
     D[("Cosmos emulator :8081")]
     R[("redis-events :6379")]
-    RC[("redis-cache :6380<br/>sessions")]
+    RC[("redis-sessions :6381<br/>sessions, noeviction")]
   end
   B --> W
   B -- "login page" --> I

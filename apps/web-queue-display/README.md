@@ -29,11 +29,11 @@ On first use run `npx playwright install chromium`. The login runs for real agai
 
 ## Against the real stack
 
-Start the stack as in `docs/operations/local-dev.md` (add `--profile with-redis`: sessions live in the cache Redis, port 6380), then:
+Start the stack as in `docs/operations/local-dev.md` (add `--profile with-redis`: sessions live in the sessions Redis, port 6381), then:
 
 ```
 APP_ORIGIN=http://localhost:3100 AUTH_ISSUER=http://localhost:5100 AUTH_CLIENT_ID=web-queue-display \
-SESSION_REDIS_URL=redis://127.0.0.1:6380 SESSION_ENCRYPTION_KEY=<from .env> \
+SESSION_REDIS_URL=redis://127.0.0.1:6381 SESSION_ENCRYPTION_KEY=<from .env> \
 GRAPHQL_URL=http://localhost:4100/graphql npx next start -p 3100
 ```
 

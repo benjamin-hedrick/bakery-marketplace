@@ -42,6 +42,7 @@ flowchart LR
         COSMOS[("Cosmos DB vNext emulator :8081<br/>containers: catalog (/vendorId),<br/>orders (/customerId)")]
         REDISEV[("Redis Streams :6379<br/>domain events")]
         REDISCACHE[("Redis cache :6380<br/>profile with-redis;<br/>no service uses it yet")]
+        REDISSESS[("Redis sessions :6381<br/>profile with-redis;<br/>web login sessions, noeviction")]
     end
 
     subgraph OBS["Tracing (optional compose profiles)"]

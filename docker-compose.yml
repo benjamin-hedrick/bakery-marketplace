@@ -78,6 +78,20 @@ services:
       timeout: 3s
       retries: 10
 
+  # Session store (ADR-0019, register item 118). Opt-in via --profile with-redis. A separate instance because the eviction policy is per
+  # instance: noeviction means a full store refuses new logins instead of silently ending existing ones (the cache above evicts).
+  redis-sessions:
+    image: redis:7.4-alpine
+    profiles: ["with-redis"]
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "127.0.0.1:${REDIS_SESSIONS_PORT:-6381}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   # Local trace viewer (ADR-0016 amendment 2026-10-28, WI-PORT-005). Opt-in via --profile tracing; services export
   # only when OTEL_EXPORTER_OTLP_ENDPOINT is set (docs/operations/local-dev.md). Anonymous access, so it is bound to
   # 127.0.0.1 like everything else here. Traces are kept in memory and lost on restart. UAT/Prod use Jaeger (not built).
@@ -186,9 +200,9 @@ services:
       AUTH_ISSUER_INTERNAL: http://mock-oidc:5100
       AUTH_CLIENT_ID: web-customer
       APP_ORIGIN: http://localhost:${WEB_PORT:-3000}
-      # Sessions live in the cache Redis (compose profile with-redis, started with `apps`), encrypted with the key init-env.mjs puts in .env.
-      SESSION_REDIS_URL: redis://redis-cache:6379
+      # Sessions live in the sessions Redis (compose profile with-redis, started with `apps`), encrypted with the key init-env.mjs puts in .env.
+      SESSION_REDIS_URL: redis://redis-sessions:6379
       SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY:-}
     depends_on:
-      redis-cache: { condition: service_healthy, required: false }
+      redis-sessions: { condition: service_healthy, required: false }
     ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]
