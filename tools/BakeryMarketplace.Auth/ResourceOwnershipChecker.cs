@@ -11,7 +11,7 @@ public sealed class ResourceOwnershipChecker : IResourceOwnershipChecker
 {
     public bool IsOwner(ClaimsPrincipal user, string resourceOwnerId)
     {
-        if (user is null) throw new ArgumentNullException(nameof(user));
+        ArgumentNullException.ThrowIfNull(user);
         if (string.IsNullOrEmpty(resourceOwnerId)) return false;
 
         var sub = user.FindFirst("sub")?.Value

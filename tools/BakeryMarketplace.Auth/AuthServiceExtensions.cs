@@ -53,8 +53,9 @@ public static class AuthServiceExtensions
                 options.Authority = configuration["Auth:Authority"];
                 // Where to fetch the discovery document when that differs from the issuer string (the issuer is a name, not always an address
                 // this process can reach: a container network, or a tenant whose metadata lives at another host). Unset: Authority + /.well-known.
-                if (!string.IsNullOrWhiteSpace(configuration["Auth:MetadataAddress"]))
-                    options.MetadataAddress = configuration["Auth:MetadataAddress"];
+                var metadataAddress = configuration["Auth:MetadataAddress"];
+                if (!string.IsNullOrWhiteSpace(metadataAddress))
+                    options.MetadataAddress = metadataAddress;
                 options.Audience = configuration["Auth:Audience"];
                 options.RequireHttpsMetadata = requireHttpsMetadata;
                 options.MapInboundClaims = false;
@@ -69,22 +70,17 @@ public static class AuthServiceExtensions
                 };
             });
 
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy("VendorRole", policy =>
-                policy.RequireClaim("roles", "Vendor"));
-
-            options.AddPolicy("AdminRole", policy =>
-                policy.RequireClaim("roles", "Admin"));
-
-            options.AddPolicy("CustomerRole", policy =>
-                policy.RequireClaim("roles", "Customer"));
-
+        services.AddAuthorizationBuilder()
+            .AddPolicy("VendorRole", policy =>
+                policy.RequireClaim("roles", "Vendor"))
+            .AddPolicy("AdminRole", policy =>
+                policy.RequireClaim("roles", "Admin"))
+            .AddPolicy("CustomerRole", policy =>
+                policy.RequireClaim("roles", "Customer"))
             // A calling service, not a user (ADR-0018): the app role AND an app-only token (idtyp=app plus a client id).
-            options.AddPolicy(ServicePolicies.StockReserve, policy => policy
+            .AddPolicy(ServicePolicies.StockReserve, policy => policy
                 .RequireClaim("roles", ServiceRoles.StockReserve)
                 .RequireAssertion(context => ServiceCaller.IsAppOnly(context.User)));
-        });
 
         services.AddSingleton<IResourceOwnershipChecker, ResourceOwnershipChecker>();
 

@@ -45,7 +45,7 @@ public sealed partial class CheckoutService(
         var shape = ValidateShape(idempotencyKey, request, allergenRegistry.MaxRequestIds);
         if (shape.Count > 0) return CheckoutResult.Invalid(shape);
 
-        request = request!;
+        ArgumentNullException.ThrowIfNull(request); // ValidateShape has refused a missing request above; this states it for the compiler
         var vendorId = request.VendorId!;
         var orderId = OrderIdFor(customerId, idempotencyKey!);
         var fingerprint = Fingerprint(request);
