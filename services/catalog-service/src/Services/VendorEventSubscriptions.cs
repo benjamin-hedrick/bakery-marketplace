@@ -9,7 +9,7 @@ namespace CatalogService.Services;
 /// Handlers are idempotent and order-safe: <see cref="VendorStatusStore.ApplyAsync"/> ignores duplicates and
 /// events older than the last one applied for that vendor.
 /// </summary>
-public sealed class VendorEventSubscriptions : IHostedService
+public sealed partial class VendorEventSubscriptions : IHostedService
 {
     private readonly IEventSubscriber _subscriber;
     private readonly VendorStatusStore _store;
@@ -28,18 +28,22 @@ public sealed class VendorEventSubscriptions : IHostedService
         await _subscriber.SubscribeAsync<VendorVerifiedPayload>("VendorVerified", async (e, token) =>
         {
             var changed = await _store.ApplyAsync(e.Payload.VendorId, verified: true, e.SequenceNumber, e.OccurredAt, token);
-            _logger.LogInformation("VendorVerified {EventId} for {VendorId}: {Result}",
-                e.EventId, e.Payload.VendorId, changed ? "applied" : "ignored (duplicate or stale)");
+            LogVendorVerifiedFor(_logger, e.EventId, e.Payload.VendorId, changed ? "applied" : "ignored (duplicate or stale)");
         }, ct);
 
         await _subscriber.SubscribeAsync<VendorSuspendedPayload>("VendorSuspended", async (e, token) =>
         {
             var changed = await _store.ApplyAsync(e.Payload.VendorId, verified: false, e.SequenceNumber, e.OccurredAt, token);
             // The suspension reason is deliberately not logged: it is admin free text and may contain personal data.
-            _logger.LogInformation("VendorSuspended {EventId} for {VendorId}: {Result}",
-                e.EventId, e.Payload.VendorId, changed ? "applied" : "ignored (duplicate or stale)");
+            LogVendorSuspendedFor(_logger, e.EventId, e.Payload.VendorId, changed ? "applied" : "ignored (duplicate or stale)");
         }, ct);
     }
 
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "VendorVerified {EventId} for {VendorId}: {Result}")]
+    private static partial void LogVendorVerifiedFor(ILogger logger, System.Guid eventId, string vendorId, string result);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "VendorSuspended {EventId} for {VendorId}: {Result}")]
+    private static partial void LogVendorSuspendedFor(ILogger logger, System.Guid eventId, string vendorId, string result);
 }

@@ -77,7 +77,7 @@ public static class OutboxTiming
 /// slows down while idle. Several instances may sweep at once: they can send the same event twice, which is harmless because the event id is
 /// the same, and one of them loses the cleanup race and moves on.
 /// </summary>
-public sealed class OutboxRelay(
+public sealed partial class OutboxRelay(
     OrderStore orders,
     OrderEventPublisher publisher,
     OutboxSignal signal,
@@ -105,7 +105,7 @@ public sealed class OutboxRelay(
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Outbox sweep failed; it will be retried");
+                LogOutboxSweepFailedItWillBe(logger, e);
                 empty = 0; // something is wrong: keep the normal pace rather than backing off
             }
 
@@ -132,8 +132,14 @@ public sealed class OutboxRelay(
         if (pending.Count > 0)
         {
             // These are events the inline path did not deliver, so this line is the signal that a miss happened.
-            logger.LogWarning("Outbox relay: {Orders} order(s) had unpublished events; {Published} event(s) published", pending.Count, published);
+            LogOutboxRelayOrderSHadUnpublished(logger, pending.Count, published);
         }
         return (pending.Count, published);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Outbox sweep failed; it will be retried")]
+    private static partial void LogOutboxSweepFailedItWillBe(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Outbox relay: {Orders} order(s) had unpublished events; {Published} event(s) published")]
+    private static partial void LogOutboxRelayOrderSHadUnpublished(ILogger logger, int orders, int published);
 }

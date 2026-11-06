@@ -35,7 +35,7 @@ public sealed class SentLedger(ICacheProvider cache, TimeSpan? retention = null)
 /// sends each message, and returns the ids of the events that must be tried again (a failed contact read or send). A customer with no
 /// contact is skipped and logged, not retried: a retry cannot make an address appear. Logs carry ids and types only.
 /// </summary>
-public sealed class OrderEventNotifier(
+public sealed partial class OrderEventNotifier(
     IContactDirectory contacts, IMessageComposer composer, INotificationSender sender, SentLedger ledger, ILogger<OrderEventNotifier> logger)
 {
     public async Task<IReadOnlyCollection<Guid>> HandleBatchAsync<T>(
@@ -49,7 +49,7 @@ public sealed class OrderEventNotifier(
             var customerId = customerOf(e.Payload);
             if (string.IsNullOrEmpty(customerId))
             {
-                logger.LogWarning("Event {EventId} ({EventType}) names no customer; no notification", e.EventId, e.EventType);
+                LogEventNamesNoCustomerNoNotification(logger, e.EventId, e.EventType);
                 continue;
             }
             pending.Add((e, orderOf(e.Payload), customerId));
@@ -63,7 +63,7 @@ public sealed class OrderEventNotifier(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Contacts for {Count} events could not be read; they will be tried again", pending.Count);
+            LogContactsForEventsCouldNotBe(logger, ex, pending.Count);
             return pending.Select(p => p.Event.EventId).ToList();
         }
 
@@ -71,7 +71,7 @@ public sealed class OrderEventNotifier(
         {
             if (!found.TryGetValue(customerId, out var contact))
             {
-                logger.LogWarning("Order {OrderId}: no contact for the customer; event {EventId} ({EventType}) skipped", orderId, e.EventId, e.EventType);
+                LogOrderNoContactForTheCustomer(logger, orderId, e.EventId, e.EventType);
                 continue;
             }
             try
@@ -82,7 +82,7 @@ public sealed class OrderEventNotifier(
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                logger.LogWarning(ex, "Order {OrderId}: event {EventId} ({EventType}) could not be sent; it will be tried again", orderId, e.EventId, e.EventType);
+                LogOrderEventCouldNotBeSent(logger, ex, orderId, e.EventId, e.EventType);
                 failed.Add(e.EventId);
                 continue;
             }
@@ -96,14 +96,29 @@ public sealed class OrderEventNotifier(
         try { return await action(); }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "The notification ledger failed ({What}); continuing", what);
+            LogTheNotificationLedgerFailedContinuing(logger, ex, what);
             return onFailure;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Event {EventId} ({EventType}) names no customer; no notification")]
+    private static partial void LogEventNamesNoCustomerNoNotification(ILogger logger, System.Guid eventId, string eventType);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Contacts for {Count} events could not be read; they will be tried again")]
+    private static partial void LogContactsForEventsCouldNotBe(ILogger logger, Exception exception, int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: no contact for the customer; event {EventId} ({EventType}) skipped")]
+    private static partial void LogOrderNoContactForTheCustomer(ILogger logger, string orderId, System.Guid eventId, string eventType);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: event {EventId} ({EventType}) could not be sent; it will be tried again")]
+    private static partial void LogOrderEventCouldNotBeSent(ILogger logger, Exception exception, string orderId, System.Guid eventId, string eventType);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The notification ledger failed ({What}); continuing")]
+    private static partial void LogTheNotificationLedgerFailedContinuing(ILogger logger, Exception exception, string what);
 }
 
 /// <summary>Subscribes the notifier to the six order events, in batches (one contact read per poll).</summary>
-public sealed class OrderEventSubscriptions(IEventSubscriber subscriber, OrderEventNotifier notifier, ILogger<OrderEventSubscriptions> logger) : IHostedService
+public sealed partial class OrderEventSubscriptions(IEventSubscriber subscriber, OrderEventNotifier notifier, ILogger<OrderEventSubscriptions> logger) : IHostedService
 {
     /// <summary>The event types subscribed to; each needs a template in <see cref="TemplateMessageComposer"/>.</summary>
     public static readonly string[] EventTypes = ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", "OrderReadyForFulfillment", "OrderCompleted", "OrderCancelled"];
@@ -122,8 +137,11 @@ public sealed class OrderEventSubscriptions(IEventSubscriber subscriber, OrderEv
             (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
         await subscriber.SubscribeBatchAsync<OrderCancelledPayload>("OrderCancelled",
             (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
-        logger.LogInformation("Notifications are subscribed to the six order events");
+        LogNotificationsAreSubscribedToTheSix(logger);
     }
 
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Notifications are subscribed to the six order events")]
+    private static partial void LogNotificationsAreSubscribedToTheSix(ILogger logger);
 }

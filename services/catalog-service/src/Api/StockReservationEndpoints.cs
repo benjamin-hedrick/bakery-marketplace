@@ -73,7 +73,7 @@ public static partial class ReservationValidator
     }
 }
 
-public static class StockReservationEndpoints
+public static partial class StockReservationEndpoints
 {
     public static IEndpointRouteBuilder MapStockReservationEndpoints(this IEndpointRouteBuilder app)
     {
@@ -87,8 +87,7 @@ public static class StockReservationEndpoints
 
             var result = await svc.ReserveAsync(
                 request.OrderId!, request.VendorId!, request.Lines!.Select(l => (l.ListingId!, l.Quantity!.Value)), ct);
-            log.LogInformation("Stock reserve for order {OrderId} by {Client}: {Outcome}",
-                request.OrderId, ServiceCaller.ClientId(http.User), result.Outcome);
+            LogStockReserveForOrderBy(log, request.OrderId, ServiceCaller.ClientId(http.User), result.Outcome);
 
             return result.Outcome switch
             {
@@ -137,8 +136,7 @@ public static class StockReservationEndpoints
             if (errors.Count > 0) return Invalid(errors);
 
             var result = await svc.ReleaseAsync(orderId, vendorId!, ct);
-            log.LogInformation("Stock release for order {OrderId} by {Client}: {Outcome}",
-                orderId, ServiceCaller.ClientId(http.User), result.Outcome);
+            LogStockReleaseForOrderBy(log, orderId, ServiceCaller.ClientId(http.User), result.Outcome);
 
             return result.Outcome switch
             {
@@ -157,4 +155,10 @@ public static class StockReservationEndpoints
 
     private static IResult Conflict(string code, string message) =>
         Results.Json(new ApiError(code, message), statusCode: StatusCodes.Status409Conflict);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Stock reserve for order {OrderId} by {Client}: {Outcome}")]
+    private static partial void LogStockReserveForOrderBy(ILogger logger, string? orderId, string? client, CatalogService.Services.ReservationOutcome outcome);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Stock release for order {OrderId} by {Client}: {Outcome}")]
+    private static partial void LogStockReleaseForOrderBy(ILogger logger, string orderId, string? client, CatalogService.Services.ReservationOutcome outcome);
 }

@@ -14,7 +14,7 @@ namespace BakeryMarketplace.Caching;
 ///
 /// This decorator is vendor-agnostic. It doesn't care what backs the primary provider.
 /// </summary>
-public sealed class ResilientCacheProvider : ICacheProvider
+public sealed partial class ResilientCacheProvider : ICacheProvider
 {
     private readonly ICacheProvider _primary;
     private readonly ICacheProvider _fallback;
@@ -105,8 +105,9 @@ public sealed class ResilientCacheProvider : ICacheProvider
 
     private void LogFallback(string operation, string key, Exception ex)
     {
-        _logger.LogWarning(ex,
-            "Cache primary failure on {Operation} for key '{Key}'. Falling back to local cache. BreakerOpen={BreakerOpen}",
-            operation, key, _breaker.IsOpen);
+        LogCachePrimaryFailureOnForKey(_logger, ex, operation, key, _breaker.IsOpen);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Cache primary failure on {Operation} for key '{Key}'. Falling back to local cache. BreakerOpen={BreakerOpen}")]
+    private static partial void LogCachePrimaryFailureOnForKey(ILogger logger, Exception exception, string operation, string key, bool breakerOpen);
 }

@@ -29,7 +29,7 @@ public sealed class OrphanReservationOptions
 /// order, and if there is none it releases the reservation through the same idempotent call checkout uses. Several instances may sweep at once:
 /// a release is safe to repeat. A catalog or store failure ends the sweep; the next one starts again.
 /// </summary>
-public sealed class OrphanReservationSweeper(
+public sealed partial class OrphanReservationSweeper(
     ICatalogGateway catalog,
     OrderStore orders,
     IOptions<OrphanReservationOptions> options,
@@ -53,7 +53,7 @@ public sealed class OrphanReservationSweeper(
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, "Orphan reservation sweep failed; it will be retried");
+                LogOrphanReservationSweepFailedItWill(logger, e);
             }
 
             try
@@ -85,13 +85,17 @@ public sealed class OrphanReservationSweeper(
 
                 await catalog.ReleaseAsync(reservation.OrderId, reservation.VendorId, ct);
                 released++;
-                logger.LogWarning(
-                    "Released the stock reserved for order {OrderId} (vendor {VendorId}, reserved {CreatedAt:O}): no such order exists",
-                    reservation.OrderId, reservation.VendorId, reservation.CreatedAt);
+                LogReleasedTheStockReservedForOrder(logger, reservation.OrderId, reservation.VendorId, reservation.CreatedAt);
             }
             after = page.NextCursor;
         }
         while (after is not null);
         return (checkedCount, released);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Orphan reservation sweep failed; it will be retried")]
+    private static partial void LogOrphanReservationSweepFailedItWill(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Released the stock reserved for order {OrderId} (vendor {VendorId}, reserved {CreatedAt:O}): no such order exists")]
+    private static partial void LogReleasedTheStockReservedForOrder(ILogger logger, string orderId, string vendorId, System.DateTimeOffset createdAt);
 }

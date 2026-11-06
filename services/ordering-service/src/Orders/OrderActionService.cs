@@ -38,7 +38,7 @@ public sealed record OrderActionResult(OrderActionOutcome Outcome, StoredOrder? 
 /// transition is allowed; the order and its event are stored in one write; a cancellation then releases the held stock (ADR-0017); the event
 /// is published straight away or left to the relay (ORD-005).
 /// </summary>
-public sealed class OrderActionService(
+public sealed partial class OrderActionService(
     OrderStore orders,
     ICatalogGateway catalog,
     OrderEventPublisher eventPublisher,
@@ -62,7 +62,7 @@ public sealed class OrderActionService(
             }
             catch (InvalidOrderTransitionException e)
             {
-                logger.LogInformation("Order {OrderId}: {Action} refused in status {Status}", orderId, action, order.Status);
+                LogOrderRefusedInStatus(logger, orderId, action, order.Status);
                 return new OrderActionResult(
                     OrderActionOutcome.Conflict, Code: "invalid_transition", Message: e.Message, CurrentStatus: order.Status);
             }
@@ -72,7 +72,7 @@ public sealed class OrderActionService(
 
             if (action is OrderAction.Decline or OrderAction.Cancel) await ReleaseQuietlyAsync(saved.Order);
             await eventPublisher.PublishInlineAsync(saved);
-            logger.LogInformation("Order {OrderId}: {Action} done, now {Status}", orderId, action, saved.Order.Status);
+            LogOrderDoneNow(logger, orderId, action, saved.Order.Status);
             return new OrderActionResult(OrderActionOutcome.Done, saved);
         }
 
@@ -127,7 +127,16 @@ public sealed class OrderActionService(
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Stock reservation for {OrderId} could not be released; it needs cleanup", order.Id);
+            LogStockReservationForCouldNotBe(logger, e, order.Id);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: {Action} refused in status {Status}")]
+    private static partial void LogOrderRefusedInStatus(ILogger logger, string orderId, OrderingService.Orders.OrderAction action, BakeryMarketplace.EventSchemas.OrderStatus status);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: {Action} done, now {Status}")]
+    private static partial void LogOrderDoneNow(ILogger logger, string orderId, OrderingService.Orders.OrderAction action, BakeryMarketplace.EventSchemas.OrderStatus status);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Stock reservation for {OrderId} could not be released; it needs cleanup")]
+    private static partial void LogStockReservationForCouldNotBe(ILogger logger, Exception exception, string orderId);
 }

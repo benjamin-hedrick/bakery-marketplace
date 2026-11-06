@@ -44,15 +44,20 @@ public static class SeedData
     private static PreferenceProfileDocument Profile(string customerId, string[] allergies, string[] avoid) =>
         new() { Id = customerId, CustomerId = customerId, Allergies = allergies.ToList(), Avoid = avoid.ToList(), Prefer = [], UpdatedAt = Stamp };
 
+    // The allergen flag sets shared by several listings (Listing() copies them, so sharing is safe).
+    private static readonly string[] Gluten = ["gluten"];
+    private static readonly string[] GlutenDairyTreeNut = ["gluten", "dairy", "tree-nut"];
+    private static readonly string[] GlutenDairyEgg = ["gluten", "dairy", "egg"];
+
     private static ListingDocument[] BaseListings() => new[]
     {
         Listing("listing-sourdough-001", ShopVendorId, "Country Sourdough", "bread", 800,
             "A naturally leavened country loaf.",
-            new[] { "gluten" },
+            Gluten,
             Mod("mod-seeds", "Add seeds", 100, "sesame"), Mod("mod-sliced", "Sliced", 0)),
         Listing("listing-croissant-001", ShopVendorId, "Almond Croissant", "pastry", 450,
             "Butter croissant filled with almond cream.",
-            new[] { "gluten", "dairy", "tree-nut" },
+            GlutenDairyTreeNut,
             Mod("mod-extra-almond", "Extra almonds", 75, "tree-nut")),
         Listing("listing-latte-001", ShopVendorId, "Oat Milk Latte", "coffee", 500,
             "Espresso with steamed oat milk.",
@@ -60,14 +65,14 @@ public static class SeedData
             Mod("mod-extra-shot", "Extra shot", 75), Mod("mod-vanilla", "Vanilla syrup", 50)),
         Listing("listing-cookies-001", IndependentVendorId, "Brown Butter Cookies", "cookies", 350,
             "Half-dozen brown butter cookies.",
-            new[] { "gluten", "dairy", "egg" },
+            GlutenDairyEgg,
             Mod("mod-sea-salt", "Sea salt finish", 0)),
         Listing("listing-lemon-loaf-001", IndependentVendorId, "Lemon Loaf", "cake", 600,
             "Glazed lemon loaf cake.",
-            new[] { "gluten", "dairy", "egg" }),
+            GlutenDairyEgg),
         Listing("listing-muffin-001", IndependentVendorId, "Blueberry Oat Muffin", "pastry", 400,
             "Blueberry muffin made with oat flour.",
-            new[] { "gluten" },
+            Gluten,
             Mod("mod-walnuts", "Add walnuts", 50, "tree-nut")),
         // Negative case: must never appear in browse (publish gate / Published filter).
         Listing("listing-draft-001", ShopVendorId, "Draft Seasonal Tart", "pastry", 300,

@@ -14,7 +14,7 @@ namespace OrderingService.Persistence;
 /// <c>OrderPlaced</c>, the pickup window of <c>OrderConfirmed</c>, the reason of <c>OrderCancelled</c>) are recorded whenever that event arrives.
 /// A lost race with another writer re-reads and applies the event again.
 /// </summary>
-public sealed class VendorOrderProjection(
+public sealed partial class VendorOrderProjection(
     IRepository<VendorOrderDocument> documents, ILogger<VendorOrderProjection> logger, IBroadcastPublisher? broadcast = null)
 {
     private const int MaxAttempts = 20;
@@ -80,9 +80,7 @@ public sealed class VendorOrderProjection(
             if (vendorId is null)
             {
                 // An event from before the vendor id was added to the payloads, for an order the read model has not seen: there is no partition to put it in.
-                logger.LogWarning(
-                    "Event {EventType} #{Sequence} of order {OrderId} carries no vendor id and the order is not in the vendor read model; it was skipped",
-                    e.EventType, e.SequenceNumber, orderId);
+                LogEventOfOrderCarriesNoVendor(logger, e.EventType, e.SequenceNumber, orderId);
                 return;
             }
 
@@ -119,7 +117,7 @@ public sealed class VendorOrderProjection(
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            logger.LogWarning(e, "The live update of order {OrderId} could not be published; the vendor screen will catch up by polling", saved.Id);
+            LogTheLiveUpdateOfOrderCould(logger, e, saved.Id);
         }
     }
 
@@ -128,4 +126,10 @@ public sealed class VendorOrderProjection(
         await foreach (var d in documents.QueryAsync("", q => q.Where(x => x.Id == orderId).Take(1), ct)) return d;
         return null;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Event {EventType} #{Sequence} of order {OrderId} carries no vendor id and the order is not in the vendor read model; it was skipped")]
+    private static partial void LogEventOfOrderCarriesNoVendor(ILogger logger, string eventType, long sequence, string orderId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The live update of order {OrderId} could not be published; the vendor screen will catch up by polling")]
+    private static partial void LogTheLiveUpdateOfOrderCould(ILogger logger, Exception exception, string orderId);
 }

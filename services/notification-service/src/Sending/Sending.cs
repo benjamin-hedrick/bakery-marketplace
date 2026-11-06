@@ -44,13 +44,15 @@ public sealed class RecordingNotificationSender : INotificationSender
 }
 
 /// <summary>Local sender: writes that a message was produced (order, event and type only), never the address, name or text.</summary>
-public sealed class LogNotificationSender(ILogger<LogNotificationSender> logger) : INotificationSender
+public sealed partial class LogNotificationSender(ILogger<LogNotificationSender> logger) : INotificationSender
 {
     public Task SendAsync(Notification notification, CancellationToken ct = default)
     {
         NotificationChecks.Validate(notification);
-        logger.LogInformation("Notification for order {OrderId} ({EventType}, event {EventId}) produced; not delivered to a provider",
-            notification.OrderId, notification.EventType, notification.EventId);
+        LogNotificationForOrderEventProducedNot(logger, notification.OrderId, notification.EventType, notification.EventId);
         return Task.CompletedTask;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Notification for order {OrderId} ({EventType}, event {EventId}) produced; not delivered to a provider")]
+    private static partial void LogNotificationForOrderEventProducedNot(ILogger logger, string orderId, string eventType, System.Guid eventId);
 }
