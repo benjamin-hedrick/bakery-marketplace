@@ -78,6 +78,7 @@ Not run in the pipeline: the emulator-gated Cosmos tests, the real-stack journey
 | BFF format, lint, typecheck, tests | Yes (`bff` job) | Yes | No |
 | Web format, lint, typecheck, mock browser suite | Yes (`web` job) | Yes | No |
 | Session package format, typecheck, tests (real Redis) | Yes (`session` job; written 2026-11-02, **not yet run on Azure**) | Yes (format, typecheck, tests in `node-gates.mjs`) | No |
+| Android app format, typecheck, unit tests (session and API logic) | Yes (`mobile` job; written 2026-11-05, **not yet run on Azure**; no emulator, so the Maestro flows are not in the pipeline, register 148) | Yes (format, typecheck, tests in `node-gates.mjs`) | The 13 Maestro flows: local only (`node scripts/dev/mobile-flows.mjs`) |
 | .NET tests with a hang timeout | Yes (`--blame-hang-timeout 5m` on the three `dotnet test` steps; added 2026-11-02, not yet run on Azure) | Yes (`linux-check.mjs`, 2 CPUs, 3 minutes) | No |
 | Queue display format, lint, typecheck, unit tests, mock browser suite | Yes (`queue` job; written 2026-11-02, **not yet run on Azure**) | Yes (format, lint, typecheck, unit tests in `node-gates.mjs`) | No |
 | Real-stack journeys | Yes (`skeleton` job) | `skeleton-smoke.mjs` | No |

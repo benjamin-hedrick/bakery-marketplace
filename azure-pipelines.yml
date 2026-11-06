@@ -6,7 +6,7 @@
 # Docker Desktop); that file lists what passed and what was not run.
 # Commands, gaps and the results format: docs/process/quality-gates.md.
 #
-# Gates here: secret scan, documentation checks, Terraform and script checks, format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
+# Gates here: secret scan, documentation checks, Android app checks, Terraform and script checks, format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
 # Do not read a green run as "covered": the Cosmos adapter tests do not touch Cosmos.
 #
 # The GitHub placeholder workflow (.github/workflows/ci.yml) was removed on 2026-10-28 (ADR-0015 amendment); this pipeline
@@ -312,6 +312,31 @@ jobs:
       - script: docker compose down
         displayName: Stop Redis
         condition: always()
+
+  # The Android app's code checks and unit tests (WI-MOB-003, 2026-11-05): Prettier, tsc and the Node-runner tests of the session and API logic, with the Expo
+  # modules and fetch faked. No emulator, Docker or network. The Maestro flows are NOT run here (register 148: Android only, local only, no CI, no Maestro cloud).
+  # Written 2026-11-05, not yet run on Azure.
+  - job: mobile
+    displayName: Android app (format, typecheck, unit tests)
+    steps:
+      - task: UseNode@1
+        inputs:
+          version: $(NODE_VERSION)
+      - script: npm ci
+        workingDirectory: packages/customer-core
+        displayName: Install the shared customer package (the app links to it)
+      - script: npm ci
+        workingDirectory: apps/mobile-customer
+        displayName: Install
+      - script: npm run format:check
+        workingDirectory: apps/mobile-customer
+        displayName: Format check (Prettier)
+      - script: npm run typecheck
+        workingDirectory: apps/mobile-customer
+        displayName: Typecheck
+      - script: npm test
+        workingDirectory: apps/mobile-customer
+        displayName: Unit tests (session and API logic; Node test runner)
 
   - job: skeleton
     displayName: Walking skeleton (real stack)

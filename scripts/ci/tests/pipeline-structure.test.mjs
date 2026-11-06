@@ -25,8 +25,8 @@ describe('azure-pipelines.yml (the pull-request checks)', () => {
     assert.match(code(file), /^pr:\n {2}branches:\n {4}include: \[main\]\n {2}drafts: false$/m);
   });
 
-  test('keeps every job it had, and adds the terraform job', () => {
-    for (const job of ['secrets', 'docs', 'dotnet', 'bff', 'web', 'skeleton', 'terraform']) {
+  test('keeps every job it had, and adds the terraform and mobile jobs', () => {
+    for (const job of ['secrets', 'docs', 'dotnet', 'bff', 'web', 'skeleton', 'terraform', 'mobile']) {
       assert.match(code(file), new RegExp(`^ {2}- job: ${job}$`, 'm'), job);
     }
   });
