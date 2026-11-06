@@ -46,17 +46,30 @@ test('logging in sends a PKCE request from the server, exchanges the code with t
 test('the browser holds no token: only an HttpOnly cookie with an opaque id, and a reload keeps the login', async ({
   page,
   context,
+  browserName,
 }) => {
   await stubIssuer(page);
+  // What the server sent, read from the callback's raw Set-Cookie header. Playwright's WebKit reports every cookie's sameSite as None, and WebKit
+  // hides the header on a redirect, so in WebKit the attribute cannot be read here (it is asserted in packages/web-session; register 132).
+  const sentCookies: Promise<string[]>[] = [];
+  page.on('response', (r) => {
+    if (new URL(r.url()).pathname === '/api/auth/callback')
+      sentCookies.push(
+        r.headersArray().then((hs) => hs.filter((h) => h.name.toLowerCase() === 'set-cookie').map((h) => h.value)),
+      );
+  });
   await page.goto('/');
   await page.getByRole('button', { name: 'Log in' }).click();
   await expect(page.getByTestId('user-name')).toBeVisible();
+  const sessionHeader = (await Promise.all(sentCookies))
+    .flat()
+    .find((c) => c.startsWith('bakery-session-web-customer='));
+  if (browserName !== 'webkit') expect(sessionHeader).toMatch(/;\s*SameSite=Lax/i);
 
   const cookies = await context.cookies();
   const session = cookies.find((c) => c.name === 'bakery-session-web-customer');
   expect(session).toBeTruthy();
   expect(session!.httpOnly).toBe(true);
-  expect(session!.sameSite).toBe('Lax');
   expect(session!.path).toBe('/');
   expect(session!.value).toMatch(/^[A-Za-z0-9_-]{43}$/);
   expect(cookies.some((c) => c.name.includes('login'))).toBe(false); // the pending-login cookie was cleared

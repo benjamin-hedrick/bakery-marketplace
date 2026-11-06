@@ -23,6 +23,7 @@ test('a sold-out item says so on the list and on its detail page', async ({ brow
   await expect(row(page, 'Dark Rye Loaf').getByTestId('stock')).toHaveText('In stock');
   await row(page, 'Cinnamon Roll').getByRole('link').click();
   await expect(page).toHaveURL(/\/listings\//); // wait for the navigation before looking for the detail page's badge
+  await expect(page.getByRole('heading', { level: 1, name: 'Cinnamon Roll' })).toBeVisible(); // WebKit changes the URL before the content
   await expect(page.getByTestId('stock')).toHaveText('Sold out');
   await context.close();
 });
@@ -31,6 +32,7 @@ test('the detail page shows the per-order limit when there is one', async ({ pag
   await page.goto('/');
   await row(page, 'Country Sourdough').getByRole('link').click();
   await expect(page).toHaveURL(/\/listings\//);
+  await expect(page.getByRole('heading', { level: 1, name: 'Country Sourdough' })).toBeVisible(); // WebKit changes the URL before the content
   await expect(page.getByTestId('stock')).toHaveText('In stock');
   await expect(page.getByText('up to 4 per order')).toBeVisible();
 });

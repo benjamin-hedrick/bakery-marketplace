@@ -24,6 +24,9 @@ async function placeOrder(page: Page, opts: { name?: string; option?: string; wi
   if (opts.window) await page.getByLabel('Pickup time').selectOption({ label: opts.window });
   await page.getByRole('button', { name: 'Place test order' }).click();
   await expect(page).toHaveURL(/\/orders\/.+/);
+  // The URL changes before the page has loaded the order (earlier in WebKit): wait for its first load, so a test that counts requests or
+  // stubs the API starts from a settled page (register 132).
+  await expect(page.getByTestId('order-status')).toBeVisible();
 }
 
 test('an order with no options and no pickup time shows as confirmed, with what was ordered and what it cost', async ({
