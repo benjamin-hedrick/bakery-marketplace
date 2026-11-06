@@ -27,6 +27,8 @@ Not built: the admin service (a scaffold), the admin web app, a real payment, cl
 
 **Ready to build, not started:** `CAT-003` and `PORT-004` (the listing cache), `VEN-001` and `VEN-002` (vendor onboarding; the plan keeps vendor onboarding last and the vendor on seeded data).
 
+**Static analysis (2026-11-05):** a local SonarQube Community scan (`node scripts/ci/sonar-scan.mjs`, Docker, C# and TypeScript) ran once: the quality gate passed, but the overall ratings are reliability D and security E; the 276 findings are not triaged (register 153). Running it in the pipeline is an option for later (register 154).
+
 **Open, not scheduled:** the outbox and stock hardening (register 66, 67, 74), a latency budget (100), a dependency audit and SBOM (`WI-SEC-004`), the process-review proposals (register 130: merged as proposals, nothing binding until the lead says so), and the stalled pipeline job of 2026-11-04 (register 144, cause unknown).
 
 **Product order agreed with the lead (2026-11-02; notifications, order history, personalization and the mobile app are done as listed above):** after the quality work, notifications on order events (`NOT-001`, `NOT-002`; built, above), then the customer's order history (`WI-CUST-007`) and personalization, then a mobile spike (`WI-QA-003`). Vendor onboarding (seeded data and the mock identity stay), the admin console and a real payment (design only) come last or are not built for the demo. The deployed dev environment, Azure and Entra stay a separate, parallel track.
