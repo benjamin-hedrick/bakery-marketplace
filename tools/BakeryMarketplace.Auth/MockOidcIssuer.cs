@@ -26,7 +26,7 @@ public static class MockOidcIssuer
     // In-memory store for authorization codes
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, AuthCodeData> AuthCodes = new();
 
-    private record AuthCodeData(
+    private sealed record AuthCodeData(
         string UserId, string RedirectUri, string? CodeChallenge, string? CodeChallengeMethod, DateTimeOffset ExpiresAt, string? ClientId = null, string Scope = "");
 
     // Refresh tokens (ADR-0019). Opaque, single use, rotated on every use, and grouped in a family per login: presenting a token that was already
@@ -296,8 +296,7 @@ public static class MockOidcIssuer
                 {
                     if (authCodeData.CodeChallengeMethod == "S256")
                     {
-                        using var sha256 = SHA256.Create();
-                        var hash = sha256.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier));
+                        var hash = SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier));
                         var expectedChallenge = Base64UrlEncoder.Encode(hash);
                         if (expectedChallenge != authCodeData.CodeChallenge)
                         {

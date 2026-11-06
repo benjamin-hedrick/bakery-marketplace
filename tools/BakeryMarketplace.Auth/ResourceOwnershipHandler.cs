@@ -26,8 +26,8 @@ public class ResourceOwnershipHandler<TResource> : AuthorizationHandler<Resource
         ResourceOwnershipRequirement requirement,
         TResource resource)
     {
-        if (context is null) throw new ArgumentNullException(nameof(context));
-        if (requirement is null) throw new ArgumentNullException(nameof(requirement));
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(requirement);
         if (resource is null) throw new ArgumentNullException(nameof(resource));
 
         // 1. Role check short-circuit
