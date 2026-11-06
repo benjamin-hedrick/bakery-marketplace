@@ -64,6 +64,8 @@ public sealed class InMemoryBroadcast : IBroadcastPublisher, IBroadcastSubscribe
         public string ChannelName { get; } = channel;
         public Channel<string> Queue { get; } = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
 
+        // The token is deliberately not passed to Task.Run: the loop watches _stop itself, and DisposeAsync awaits _reader. A token that is
+        // cancelled before the task starts would leave _reader cancelled and make that await throw.
         public void Start() => _reader = Task.Run(async () =>
         {
             try
