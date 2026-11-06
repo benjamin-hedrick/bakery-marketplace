@@ -2,7 +2,9 @@
 // cannot read a user's orders through the BFF or stop a process itself, so two steps call this server from Maestro's JavaScript (`http.get`, `http.post` on 127.0.0.1:4199):
 //
 //   GET  /last-order?user=<customer id>                        that customer's newest order as the BFF reports it (its allergens), for a flow to assert on
+//   GET  /order-count?user=<customer id>                       how many orders that customer has (the newest 50 at most), for the "one order after a retry" flow (WI-MOB-003)
 //   POST /bff/stop     /bff/start                              takes the BFF away and brings it back (waits until it answers), for the "check failed" flow
+//   POST /issuer/restart                                       restarts the mock issuer's container so it forgets its refresh tokens (WI-MOB-003, "refused session" flow)
 //
 // It is test tooling, local only, and it is on the list to be reviewed (register item 150): the lead's rule is not to build functionality only to close a gap in testing.
 // The customers' saved allergen profiles are NOT set here any more: they are seed data (tools/BakeryMarketplace.Seed, SeedData.CustomerProfiles) for customers of the mock
@@ -16,7 +18,10 @@
 // answers), and any request whose `Host` is not 127.0.0.1 on its own port (DNS rebinding). Another program running as the same user on this machine can still call
 // it while a run lasts; that is the limit of a loopback server with no secret.
 import { createHash, randomBytes } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import http from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const REDIRECT = 'com.bakerymarketplace.mobile:/auth/callback';
 const CLIENT_ID = 'bakery-mobile';
@@ -63,6 +68,7 @@ export async function customerToken(issuer, userId = ALICE) {
   return json.access_token;
 }
 
+const COUNT = `query Count { orders(first: 50) { edges { node { id } } } }`;
 const LAST = `query Last { orders(first: 1) { edges { node { id status allergens total { cents } } } } }`;
 
 async function waitFor(url, up, seconds = 60) {
@@ -80,6 +86,13 @@ async function waitFor(url, up, seconds = 60) {
   throw new Error(`${url} did not ${up ? 'come up' : 'go down'} within ${seconds} s`);
 }
 
+/** Restarts the mock issuer's compose service. Its refresh tokens live in memory, so a restart makes it forget all of them (and it signs with a new key). */
+function defaultRestartIssuer() {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+  const r = spawnSync('docker', ['compose', 'restart', 'mock-oidc'], { cwd: root, encoding: 'utf8' });
+  if (r.status !== 0) throw new Error(`docker compose restart mock-oidc failed: ${r.stderr}`);
+}
+
 /** Starts the server. `stack` is the object from createStack (its stopOne and startOne manage the BFF process). Returns { close }. */
 export function startFlowControl({
   stack,
@@ -87,6 +100,7 @@ export function startFlowControl({
   bffUrl = 'http://localhost:4100/graphql',
   port = 4199,
   log = console.log,
+  restartIssuer = defaultRestartIssuer,
 }) {
   const health = `${new URL(bffUrl).origin}/healthz`;
 
@@ -126,6 +140,18 @@ export function startFlowControl({
         const data = await bff(LAST, {}, user);
         const node = data.orders.edges[0]?.node;
         return node ? send(200, node) : send(404, { error: `${user} has no order` });
+      }
+      if (req.method === 'GET' && url.pathname === '/order-count') {
+        const user = url.searchParams.get('user') ?? ALICE;
+        if (!CUSTOMER_ID.test(user)) return send(400, { error: 'not a customer id' });
+        const data = await bff(COUNT, {}, user);
+        return send(200, { count: data.orders.edges.length });
+      }
+      if (req.method === 'POST' && req.url === '/issuer/restart') {
+        restartIssuer();
+        await waitFor(`${issuer}/.well-known/openid-configuration`, true);
+        log('the issuer is restarted (it has forgotten its refresh tokens)');
+        return send(200, { ok: true });
       }
       if (req.method === 'POST' && req.url === '/bff/stop') {
         stack.stopOne('bff');

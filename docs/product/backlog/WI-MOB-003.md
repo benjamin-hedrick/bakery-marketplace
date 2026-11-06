@@ -1,4 +1,4 @@
-> **Status:** In progress · written 2026-11-04 at the lead's request; depends on `WI-MOB-001` (built, In review). Remaining: the three Maestro flows (refused session, failed checkout request, order edits); the unit tests are built (2026-11-05, `docs/evidence/WI-MOB-003/unit-tests-2026-11-05.md`: 24 pass, 1 todo that fails by design, register 151 and 152)
+> **Status:** In review · built and run locally 2026-11-05: 25 unit tests pass (`docs/evidence/WI-MOB-003/unit-tests-2026-11-05.md`; register 151 fixed with the lead's approval, register 152 open) and flows 11 to 13 pass with flow 10 (`docs/evidence/WI-MOB-003/maestro-flows-2026-11-05.md`; all 13 flows in one cold run not yet done). Waiting for: the lead's review of the token handling, register 152, and whether the app's unit tests join the pipeline (register 148)
 
 ```
 WI ID:               MOB-003
@@ -7,7 +7,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-QUALITY-EVIDENCE
 Shared with epic(s):  EPIC-WEB-CUSTOMER
 Hat/Owner:            Engineering/Build, QA
-Status:               In progress
+Status:               In review
 Size:                 M
 Verification class:   V3 (sessions and tokens). Classes are proposed in `docs/process/verification-policy.md`.
 ```

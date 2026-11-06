@@ -1,0 +1,21 @@
+# WI-MOB-003: the issuer refuses the stored refresh token. The runner restarts the issuer's container between the login and the restart of the app (the issuer keeps its
+# refresh tokens in memory, so it forgets every one); the app does not touch it. After the restart of the app the login screen is shown.
+# MUST BE THE LAST FLOW OF A RUN: the issuer signs with a new key after its restart, so the services may reject tokens until they fetch it again (expected, not tested).
+# That the stored token is deleted (and not only refused again) is asserted by the unit tests on the Keystore fake (apps/mobile-customer/tests/session.test.ts); a flow cannot read the Keystore.
+appId: com.bakerymarketplace.mobile
+name: A refused session returns to the login screen
+---
+- launchApp:
+    clearState: true
+- runFlow: subflows/login.yaml
+- assertVisible:
+    id: signed-in-as
+- runScript: scripts/issuer-restart.js
+- stopApp
+- launchApp
+- assertVisible:
+    id: login-button
+- assertNotVisible:
+    id: listings
+- assertNotVisible:
+    id: signed-in-as

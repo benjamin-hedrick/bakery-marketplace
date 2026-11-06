@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="bakery_pixel" tests="4" failures="0" time="211.288" timestamp="2026-11-05T21:02:12">
+    <testcase id="With several allergies the customer chooses which are told to the bakery" name="With several allergies the customer chooses which are told to the bakery" classname="With several allergies the customer chooses which are told to the bakery" file=".maestro\10-several-allergies.yaml" time="64.428" timestamp="2026-11-05T21:02:12" status="SUCCESS"/>
+    <testcase id="A failed checkout request keeps the order and a retry places one order" name="A failed checkout request keeps the order and a retry places one order" classname="A failed checkout request keeps the order and a retry places one order" file=".maestro\11-failed-checkout-request.yaml" time="48.607" timestamp="2026-11-05T21:03:16" status="SUCCESS"/>
+    <testcase id="Change quantities and remove a line, and the total follows" name="Change quantities and remove a line, and the total follows" classname="Change quantities and remove a line, and the total follows" file=".maestro\12-order-edits.yaml" time="57.297" timestamp="2026-11-05T21:04:05" status="SUCCESS"/>
+    <testcase id="A refused session returns to the login screen" name="A refused session returns to the login screen" classname="A refused session returns to the login screen" file=".maestro\13-refused-session.yaml" time="40.759" timestamp="2026-11-05T21:05:02" status="SUCCESS"/>
+  </testsuite>
+</testsuites>
