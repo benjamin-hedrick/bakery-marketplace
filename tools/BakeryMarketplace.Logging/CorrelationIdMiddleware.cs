@@ -26,7 +26,7 @@ public class CorrelationIdMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context is null) throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
 
         var activity = Activity.Current;
         var correlationId = activity is { IdFormat: ActivityIdFormat.W3C }

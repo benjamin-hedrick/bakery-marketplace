@@ -13,6 +13,7 @@
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,7 +27,7 @@ const analysisImage = 'bakery-sonar-scan';
 const network = 'bakery-sonar';
 const server = 'bakery-sonar-server';
 const projectKey = 'bakery-marketplace';
-const password = 'Bakery-local-1-' + Math.random().toString(36).slice(2, 10); // throwaway: the server is destroyed unless --keep
+const password = 'Bakery-local-1-' + randomBytes(6).toString('hex'); // throwaway: the server is destroyed unless --keep
 const work = path.join(os.tmpdir(), 'bakery-sonar-scan');
 const out = path.join(root, 'artifacts', 'sonar');
 mkdirSync(out, { recursive: true });

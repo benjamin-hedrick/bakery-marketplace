@@ -71,7 +71,7 @@ public sealed class SeederTests : IAsyncLifetime
         Assert.Equal(first.Items.Select(l => (l.Id, l.Version)), after.Items.Select(l => (l.Id, l.Version)));
     }
 
-    private int Unit(string listingId, params string[] modifierIds)
+    private static int Unit(string listingId, params string[] modifierIds)
     {
         var l = SeedData.Listings().Single(x => x.Id == listingId);
         return l.PriceCents + modifierIds.Sum(id => l.Modifiers.Single(m => m.Id == id).PriceDeltaCents);

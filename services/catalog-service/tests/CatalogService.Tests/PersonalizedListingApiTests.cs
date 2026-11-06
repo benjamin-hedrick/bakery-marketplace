@@ -258,7 +258,7 @@ public sealed class PersonalizedListingApiTests : IAsyncLifetime
     {
         var tooMany = await Check(Enumerable.Range(0, PreferenceEndpoints.MaxCartLines + 1).Select(_ => Line("listing-c-latte")).ToArray());
         var tooManyOptions = await Check(Line("listing-c-latte", Enumerable.Range(0, PreferenceEndpoints.MaxOptionsPerLine + 1).Select(i => $"o{i}").ToArray()));
-        var noId = await Check(new { listingId = "", optionIds = new string[0] });
+        var noId = await Check(new { listingId = "", optionIds = Array.Empty<string>() });
         var noLines = await _customer.PostAsync("/catalog/preferences/check", new StringContent("{}", Encoding.UTF8, "application/json"));
         var notJson = await _customer.PostAsync("/catalog/preferences/check", new StringContent("nope", Encoding.UTF8, "application/json"));
         var huge = await _customer.PostAsync("/catalog/preferences/check",
@@ -286,7 +286,7 @@ public sealed class PersonalizedListingApiTests : IAsyncLifetime
         {
             Assert.Equal(expected, (await client.GetAsync("/catalog/listings/for-me")).StatusCode);
             Assert.Equal(expected, (await client.GetAsync("/catalog/listings/for-me/listing-a-sourdough")).StatusCode);
-            Assert.Equal(expected, (await client.PostAsJsonAsync("/catalog/preferences/check", new { lines = new object[0] })).StatusCode);
+            Assert.Equal(expected, (await client.PostAsJsonAsync("/catalog/preferences/check", new { lines = Array.Empty<object>() })).StatusCode);
         }
     }
 

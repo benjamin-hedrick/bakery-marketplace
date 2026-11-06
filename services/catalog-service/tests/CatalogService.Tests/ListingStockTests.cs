@@ -46,13 +46,13 @@ public sealed class ListingStockTests : IDisposable
         return (await response.Content.ReadFromJsonAsync<ListingDto>())!;
     }
 
-    private async Task<ListingDto> CreateAsync(HttpClient vendor, object body) =>
+    private static async Task<ListingDto> CreateAsync(HttpClient vendor, object body) =>
         await ReadAsync(await vendor.PostAsJsonAsync("/catalog/listings", body));
 
     private static async Task<JsonElement> JsonOf(HttpResponseMessage response) =>
         JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.Clone();
 
-    private Task<HttpResponseMessage> Adjust(HttpClient vendor, string id, object? delta) =>
+    private static Task<HttpResponseMessage> Adjust(HttpClient vendor, string id, object? delta) =>
         vendor.PostAsJsonAsync($"/catalog/listings/{id}/stock/adjust", new { delta });
 
     // ---- status mapping (pure) ---------------------------------------------------------------

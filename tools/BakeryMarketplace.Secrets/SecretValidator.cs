@@ -14,8 +14,8 @@ public static class SecretValidator
     /// </summary>
     public static void ValidateRequiredSecrets(IConfiguration configuration, IEnumerable<string> secretKeys)
     {
-        if (configuration is null) throw new ArgumentNullException(nameof(configuration));
-        if (secretKeys is null) throw new ArgumentNullException(nameof(secretKeys));
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(secretKeys);
 
         foreach (var key in secretKeys)
         {
@@ -38,7 +38,7 @@ public static class SecretValidator
     /// </summary>
     public static void ValidateUriSecret(IConfiguration configuration, string secretKey)
     {
-        if (configuration is null) throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
         if (string.IsNullOrEmpty(secretKey)) throw new ArgumentNullException(nameof(secretKey));
 
         ValidateRequiredSecrets(configuration, new[] { secretKey });
@@ -55,7 +55,7 @@ public static class SecretValidator
     /// </summary>
     public static void ValidateSecretPrefix(IConfiguration configuration, string secretKey, string requiredPrefix)
     {
-        if (configuration is null) throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
         if (string.IsNullOrEmpty(secretKey)) throw new ArgumentNullException(nameof(secretKey));
         if (string.IsNullOrEmpty(requiredPrefix)) throw new ArgumentNullException(nameof(requiredPrefix));
 
