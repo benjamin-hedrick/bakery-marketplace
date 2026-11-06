@@ -1,6 +1,6 @@
 # Scope: features and artifacts, and where each stands
 
-> **Status:** Current · written 2026-10-30. Moved from the repository's original `portfolio-plan.md` (September 2026, now in `docs/history/portfolio-plan-2026-09.md`): the scope decisions and the MVP legend are the original's; the "State" columns are new and say what exists in the repository on this date. "Built" means built and run locally. Nothing is deployed.
+> **Status:** Current · written 2026-10-30, state column refreshed 2026-11-05. Moved from the repository's original `portfolio-plan.md` (September 2026, now in `docs/history/portfolio-plan-2026-09.md`): the scope decisions and the MVP legend are the original's; the "State" columns are new and say what exists in the repository on this date. "Built" means built and run locally. Nothing is deployed.
 
 A pickup-based marketplace connecting customers with local bakeries and coffee shops and with independent or homemade vendors, with dietary preference matching, order customization, a live order-queue display and sponsored placement in search. Designed so delivery and dispatch can be added without building them in v1. The project exists to show end-to-end ownership across architecture, engineering lead, product, digital product management, operations and platform roles.
 
@@ -17,16 +17,16 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 
 ## Domain features
 
-| Feature | Scope | State (2026-10-30) | Notes |
+| Feature | Scope | State (2026-11-05) | Notes |
 |---|---|---|---|
 | Catalog and listings, including coffee and bakery customization | MVP | Built | Listings, options, allergy flags, stock (`catalog-service`) |
-| Search and discovery, dietary filtering | MVP | Not started | `SRCH-001` is Ready |
+| Search and discovery, dietary filtering | MVP | Partly | Allergen and diet matching and conflicts on browse, detail and cart (`SRCH-001`, `TAG-*`); In review. Free-text search is not built |
 | Sponsored placement mixed into search | MVP-lite | Not started | A simple flag; no bidding engine |
 | Ordering and checkout with scheduled pickup windows | MVP | Built | Checkout, idempotency, pickup windows, stock reservation (`ordering-service`) |
-| Order lifecycle and live order-queue display | MVP | Partly | The lifecycle and its events are built; the read model and the queue display are not (`QUE-001`, `QUE-002`) |
-| Customer preferences and dietary constraints | MVP | Not started | `PREF-001`, `PREF-002`, `CUST-005`, `CUST-006` are Ready |
+| Order lifecycle and live order-queue display | MVP | Built | The lifecycle, the vendor read side, the live queue display and the vendor's actions (`QUE-001` to `QUE-004`); some still In review |
+| Customer preferences and dietary constraints | MVP | Partly | The allergen profile, warnings and the checkout acknowledgement (`PREF-001`, `CUST-005`, `CUST-006`; In review); the Android app has seeded profiles |
 | Vendor onboarding and verification | MVP | Stub | Vendors are seeded and marked verified by an event the seed script publishes (`VEN-001`, `VEN-002` are Ready) |
-| Notifications and background processing | MVP | Not started | `notification-service` is an empty scaffold |
+| Notifications and background processing | MVP | Built (local) | `notification-service` consumes order events and sends through a sender adapter; no real provider (`NOT-001`, `NOT-002`, In review) |
 | Admin and moderation console | MVP-lite | Not started | `admin-service` is an empty scaffold |
 | Payments and vendor payouts | MVP-lite | Stub | A named stub approves every payment; no Stripe code |
 | Reviews and trust | MVP-lite | Not started | |
@@ -47,7 +47,7 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 | C4 diagrams: context, container, components for one or two services | MVP | Done: [C4](../architecture/c4/README.md) |
 | Data model and API contracts | MVP | Done: [contracts](../architecture/data-model-api-contracts.md); no OpenAPI for the services |
 | NFRs | MVP | Done: [NFRs](../architecture/nfrs.md) |
-| Key ADRs | MVP | Done: 18 [ADRs](../architecture/adr/README.md) and a [timeline](../architecture/decision-timeline.md) |
+| Key ADRs | MVP | Done: 23 [ADRs](../architecture/adr/README.md) and a [timeline](../architecture/decision-timeline.md) |
 | Multi-region and scale architecture | Deferred | Not written |
 
 **Manager and lead**
@@ -111,8 +111,8 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 
 | Artifact | Scope | State |
 |---|---|---|
-| Working services for the MVP feature set | MVP | Partly: `catalog-service` and `ordering-service`; two services are scaffolds |
-| Tests and CI/CD pipeline | MVP | Partly: tests and an Azure Pipelines build and test baseline; no CD |
+| Working services for the MVP feature set | MVP | Partly: `catalog-service`, `ordering-service` and `notification-service`; `admin-service` is a scaffold. Also the BFF, two web apps and an Android app, all local |
+| Tests and CI/CD pipeline | MVP | Partly: tests and an Azure Pipelines build and test baseline (including web, queue, session and mobile jobs); no CD. A dev-environment pipeline exists but has not been applied |
 | Docs site published | MVP | Not published: the MkDocs configuration exists |
 | Narrative top-level README | MVP | Done: the repository's `README.md` |
 | GitHub Projects board as public roadmap | MVP | Not created (register item 12) |

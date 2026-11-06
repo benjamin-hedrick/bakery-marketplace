@@ -1,11 +1,12 @@
 # Roadmap
 
-> **Status:** Current · written 2026-10-30. A now, next and later view. It is a rough ordering, not a schedule: there are no dates, because pace depends on available hours, which have not been decided. The order is the lead's decision. Phases and their exit criteria are in [the project plan](../management/project-plan.md); what is built and what is next in detail is [the current plan](backlog/current-plan.md); item status is [STATUS.md](backlog/STATUS.md).
+> **Status:** Current · written 2026-10-30, Now and Next refreshed 2026-11-05. A now, next and later view. It is a rough ordering, not a schedule: there are no dates, because pace depends on available hours, which have not been decided. The order is the lead's decision. Phases and their exit criteria are in [the project plan](../management/project-plan.md); what is built and what is next in detail is [the current plan](backlog/current-plan.md); item status is [STATUS.md](backlog/STATUS.md).
 
 ## Now
 
 - **Slice 1 is done** (login, browse with stock, cart, test checkout, order status), running locally on a developer machine. See [local development](../operations/local-dev.md) to run it.
-- **Documentation reconciliation** (`WI-PORT-006` pass 2): making every document agree with what was built.
+- **Built since slice 1, local only:** the live vendor queue, notifications, order history, allergen personalization, rate limits and hardening, and an Android customer app. Detail: [the current plan](backlog/current-plan.md).
+- **Open:** the deployed dev environment (`WI-DEP-001`, needs the lead to run the Azure bootstrap and approve IAM), vendor onboarding, the admin console.
 
 ## Next (priority P2 in the slice-1 backlog, about 55 points)
 
@@ -13,17 +14,17 @@ Sized and sequenced in [the prioritized backlog](../management/slice-1/03-priori
 
 | Item | What it gives | Needs the lead |
 |---|---|---|
-| N-01 Cookie session | Fixes the logout on reload; allows server-rendered authenticated pages | Auth design (ADR-0019 not yet written) |
+| N-01 Cookie session | Done (ADR-0019, `WI-AUTH-007`); the lead's review of the security phases is pending | Review |
 | N-02 Service-to-service credential for a deployed environment | Gates any deployment | IAM approval (ADR-0018) |
-| N-03 Vendor read side | Vendors can see what is waiting; groundwork for the queue display | |
-| N-04 Queue read model and display (`QUE-001`, `QUE-002`) | Shows the event backbone working | |
+| N-03 Vendor read side | Done (`WI-QUE-001`) | |
+| N-04 Queue read model and display | Done (`QUE-002` to `QUE-004`) | |
 | N-05 `PickupFulfillment` | Completes the order lifecycle design | |
 | N-06 Stock correctness follow-ups | Correctness under failure | |
 | N-07 Outbox hardening | Needed before more events or consumers | |
 
 ## Later (priority P3, about 76 points)
 
-Real payment (N-08), notifications (N-09), container images and a hosting decision (N-10), tracing completion (N-11), personalization (N-12), vendor onboarding (N-13), caching layers (N-14), process hygiene (N-15).
+Real payment (N-08), container images and a hosting decision (N-10; images built), tracing completion (N-11), vendor onboarding (N-13). Notifications (N-09) and personalization (N-12) are built locally and In review, caching layers (N-14), process hygiene (N-15).
 
 ## Candidate order from the October documentation review (not agreed)
 
