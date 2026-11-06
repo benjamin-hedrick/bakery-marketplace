@@ -212,7 +212,7 @@ export function createGraphqlHandler({
     }
 
     res.setHeader('Cache-Control', 'no-store');
-    await proxyGraphql(req, res, target(), extraForwardedHeaders(extraHeaders?.()), fetchImpl, bearer);
+    await proxyGraphql(req, res, target(), extraForwardedHeaders(extraHeaders?.()), fetchImpl, bearer, address);
   };
 }
 
@@ -251,7 +251,8 @@ export function createGraphqlStreamHandler({
   return async function graphqlStream(req: ApiRequest, res: ApiResponse & StreamResponse): Promise<void> {
     res.setHeader('Cache-Control', 'no-store');
     if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
-    const wait = limits?.address.take(addressOf(req, limits));
+    const address = limits ? addressOf(req, limits) : '';
+    const wait = limits?.address.take(address);
     if (wait && !wait.allowed) {
       log('graphql stream refused: rate limit (address)');
       return refuseRateLimited(res, wait.retryAfterSeconds);
@@ -323,6 +324,7 @@ export function createGraphqlStreamHandler({
         extraHeaders: extraForwardedHeaders(extraHeaders?.()),
         ...(fetchImpl ? { fetchImpl } : {}),
         bearerToken: bearer.token,
+        clientAddress: address,
         body: read.body,
         keepOpen: { check: () => service.isActive(resolved.id), everyMs: sessionCheckMs, maxFailures: maxFailedChecks },
       });

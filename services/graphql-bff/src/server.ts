@@ -20,7 +20,13 @@ import { ClientError, DownstreamError, internalError } from './errors.ts';
 import { rootValue, subscriptionRoot, type Context } from './resolvers.ts';
 import { validationRules, DEFAULT_LIMITS } from './limits.ts';
 import { createOtlpExporter, type SpanExporter } from './otlp.ts';
-import { connectionAddress, createTokenBucketLimiter, DEFAULT_PER_MINUTE } from './rate-limit.ts';
+import {
+  CLIENT_ADDRESS_HEADER,
+  createTokenBucketLimiter,
+  DEFAULT_PER_MINUTE,
+  NO_TRUSTED_SOURCES,
+  rateKey,
+} from './rate-limit.ts';
 import { startTrace, toTraceparent } from './trace.ts';
 
 const schema = buildSchema(readFileSync(fileURLToPath(new URL('../schema/schema.graphql', import.meta.url)), 'utf8'));
@@ -72,6 +78,7 @@ export function createServer(
   const maxStreams = config.maxStreams ?? 500;
   const rules = validationRules(config.operationLimits ?? DEFAULT_LIMITS);
   const limiter = createTokenBucketLimiter(config.rateLimitPerMinute ?? DEFAULT_PER_MINUTE);
+  const trusted = config.trustedClientSources ?? NO_TRUSTED_SOURCES;
   let openStreams = 0;
   // A place among the streams this instance holds is taken when a subscription is about to be established (its body has been read and it is a
   // valid subscription), not when the request arrives: the library reads the body first, so counting at arrival would let anyone who sends a body
@@ -149,7 +156,7 @@ export function createServer(
     if (req.url !== '/graphql' || req.method !== 'POST') return send(404, { errors: [{ message: 'Not found' }] });
 
     // The coarse backstop (register item 128): checked before the body is read or anything is called.
-    const turn = limiter.take(connectionAddress(req.socket));
+    const turn = limiter.take(rateKey(req.socket, req.headers[CLIENT_ADDRESS_HEADER], trusted));
     if (!turn.allowed) {
       log.info({ msg: 'graphql request refused: rate limit', traceId: trace.traceId });
       res.setHeader('retry-after', String(turn.retryAfterSeconds));

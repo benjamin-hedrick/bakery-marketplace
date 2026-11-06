@@ -1,6 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  CLIENT_ADDRESS_HEADER,
   FORWARDED_REQUEST_HEADERS,
   extraForwardedHeaders,
   forwardedRequestHeaders,
@@ -170,6 +171,31 @@ describe('the GraphQL proxy', () => {
 
     assert.deepEqual(calls[0]!.init.headers, {});
     assert.deepEqual(calls[1]!.init.headers, { 'x-test-payment': 'decline', 'x-fixture': 'B' });
+  });
+
+  test('register 137: the client address is sent in X-Bakery-Client-Address from the server, never from the browser, and not at all when unknown', async () => {
+    const { calls, fetchImpl } = fakeFetch(() => new Response('{}'));
+    const forged = { 'x-bakery-client-address': '198.51.100.99' };
+
+    // The server's own address wins over a header the browser sent, even when the extra list names it.
+    await proxyGraphql(
+      request('POST', forged, '{}'),
+      response().res,
+      TARGET,
+      [CLIENT_ADDRESS_HEADER],
+      fetchImpl,
+      undefined,
+      '203.0.113.9',
+    );
+    // No address (rate limits off) or an unknown one: no header, and the browser's is not passed on.
+    await proxyGraphql(request('POST', forged, '{}'), response().res, TARGET, [], fetchImpl, undefined, 'unknown');
+    await proxyGraphql(request('POST', forged, '{}'), response().res, TARGET, [], fetchImpl);
+
+    assert.deepEqual(calls[0]!.init.headers, { 'x-bakery-client-address': '203.0.113.9' });
+    assert.deepEqual(calls[1]!.init.headers, {});
+    assert.deepEqual(calls[2]!.init.headers, {});
+    assert.deepEqual(extraForwardedHeaders('X-Bakery-Client-Address,x-fixture'), ['x-fixture']);
+    assert.ok(!(FORWARDED_REQUEST_HEADERS as readonly string[]).includes(CLIENT_ADDRESS_HEADER));
   });
 
   test('the extra list is read from a comma-separated setting; anything that is not a plain header name is ignored', () => {

@@ -17,7 +17,18 @@ export function extraForwardedHeaders(setting: string | undefined): string[] {
   return (setting ?? '')
     .split(',')
     .map((name) => name.trim().toLowerCase())
-    .filter((name) => /^[a-z0-9-]+$/.test(name));
+    .filter((name) => /^[a-z0-9-]+$/.test(name) && name !== CLIENT_ADDRESS_HEADER);
+}
+
+/**
+ * Register 137: the header in which this server tells the BFF which client the request is from. It is set here from the address this server counted
+ * the browser by, never copied from the browser (it is not in {@link FORWARDED_REQUEST_HEADERS} and cannot be added to the extra names). The BFF
+ * believes it only from this server's own address (`BFF_TRUSTED_CLIENT_SOURCES`).
+ */
+export const CLIENT_ADDRESS_HEADER = 'x-bakery-client-address';
+
+function clientAddressHeader(address: string | undefined): Record<string, string> {
+  return address && address !== 'unknown' ? { [CLIENT_ADDRESS_HEADER]: address } : {};
 }
 
 // Headers of the upstream response that describe its own connection or encoding; the body is re-sent in full, so they would be wrong.
@@ -66,6 +77,8 @@ export interface StreamOptions {
   fetchImpl?: typeof fetch;
   /** The session's access token, sent as the bearer credential. */
   bearerToken: string;
+  /** The address this server counted the browser by (register 137), sent in {@link CLIENT_ADDRESS_HEADER}. */
+  clientAddress?: string | undefined;
   /** The largest request body accepted; a subscription request is a few hundred bytes. */
   maxBodyBytes?: number;
   /** How long to wait for the BFF to accept the stream. Once it is open it may live as long as the BFF keeps it. */
@@ -203,7 +216,11 @@ export async function proxyGraphqlStream(
   try {
     const upstream = await fetchImpl(target, {
       method: 'POST',
-      headers: { ...forwardedRequestHeaders(req.headers, extraHeaders), authorization: `Bearer ${bearerToken}` },
+      headers: {
+        ...forwardedRequestHeaders(req.headers, extraHeaders),
+        ...clientAddressHeader(options.clientAddress),
+        authorization: `Bearer ${bearerToken}`,
+      },
       body,
       signal: controller.signal,
     });
@@ -261,6 +278,8 @@ export async function proxyGraphql(
   fetchImpl: typeof fetch = fetch,
   /** The session's access token, to be sent as the bearer credential. Absent for an anonymous request. */
   bearerToken?: string,
+  /** The address this server counted the browser by (register 137); the BFF counts the request against it when it trusts this server. */
+  clientAddress?: string,
 ): Promise<void> {
   if (!target) {
     res.status(502);
@@ -273,6 +292,7 @@ export async function proxyGraphql(
       method: req.method ?? 'POST',
       headers: {
         ...forwardedRequestHeaders(req.headers, extraHeaders),
+        ...clientAddressHeader(clientAddress),
         ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}),
       },
       ...(hasBody ? { body: await readBodyWithin(req, MAX_REQUEST_BODY_BYTES) } : {}),
