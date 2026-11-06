@@ -865,5 +865,5 @@ In `infra/foundation/main.tf` and `infra/environments/dev/main.tf`: public netwo
 
 **157. Payments beyond the stub: add-payment-method and capture are not scoped**
 Type: Scope gap · Source: the lead, 2026-11-06 (while deciding `WI-ORD-010`) · Hat: Product, Architect
-Status: Open · not in demo scope
+Status: Open · not in demo scope · part (2) decided 2026-11-06: capture at confirm, as ADR-0005 says (no amendment needed); part (1) stays open
 (1) Customers cannot add, edit or remove a payment method; the methods are seeded (`WI-ORD-010`). Adding one has not been scoped or designed (ADR-0005's hosted fields would return the token). (2) `WI-ORD-010` makes the order keep the payment method id and the authorization reference, so a later item can charge. When to charge is not settled: ADR-0005 and the `IPaymentProcessor` comment say capture at confirm; the lead said charge when fulfilled or completed. "Reconciled" means a decision on the capture event (with an ADR-0005 amendment if it differs), and either a spec for add-payment-method or a recorded decision that it stays out of scope.
