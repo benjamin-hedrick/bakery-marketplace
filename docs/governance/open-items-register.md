@@ -835,7 +835,7 @@ Questions for the review: can a failed order be reached with data alone (a seede
 
 **151. The Android app deletes the stored refresh token when the issuer answers 5xx**
 Type: Defect (auth logic) · Source: `WI-MOB-003` unit tests (2026-11-05), `apps/mobile-customer/src/auth/session.ts` `postToken` · Hat: Engineering, Security
-Status: Open · needs the lead's decision (auth logic: not changed)
+Status: Resolved 2026-11-05 · the lead approved the change; `postToken` now answers unreachable for a status of 500 or more (one line, `session.ts`); the test is a normal test and a mutation (the line removed) makes it fail. A 429 is still treated as a refusal (the issuer's rate limit; not changed, not tested).
 `postToken` returns 'refused' for every answer that is not 2xx. A 500, 502 or 503 from the issuer (a deploy, an overload) therefore ends the session and deletes the refresh token from the Keystore, and the customer must log in again. The spec of `WI-MOB-003` and the web session (`packages/web-session`, where a 5xx is an outage) both keep the token; ADR-0023 decision 5 says the token is deleted only when the issuer refuses it. The unit test "an issuer 5xx is an outage, not a refusal" states the required behaviour; it is marked todo so the suite stays green, and it fails today (the token is gone). The change would be one line: answer 'unreachable' for a status of 500 or more. Not made, because it is session code and the item says changes there go to the lead first.
 
 **152. After the retry, a second UNAUTHENTICATED answer leaves the app signed in**
