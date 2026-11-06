@@ -45,14 +45,26 @@ function cleanup() {
 }
 
 async function api(pathname, { method = 'GET', body, auth = password } = {}) {
-  const res = await fetch(`http://localhost:${port}${pathname}`, {
-    method,
-    headers: {
-      Authorization: 'Basic ' + Buffer.from(`admin:${auth}`).toString('base64'),
-      ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
-    },
-    body,
-  });
+  const request = () =>
+    fetch(`http://127.0.0.1:${port}${pathname}`, {
+      method,
+      headers: {
+        Authorization: 'Basic ' + Buffer.from(`admin:${auth}`).toString('base64'),
+        ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
+      },
+      body,
+    });
+  let res;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      res = await request();
+      break;
+    } catch (e) {
+      if (attempt >= 5)
+        throw new Error(`${pathname}: ${e.message} (${e.cause?.code ?? e.cause?.message ?? 'no cause'})`);
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+  }
   const text = await res.text();
   return { status: res.status, json: text.startsWith('{') ? JSON.parse(text) : text };
 }
@@ -73,14 +85,14 @@ try {
   if (build.status !== 0) throw new Error('The analysis image did not build.');
 
   docker('network', 'create', network);
-  log(`starting ${serverImage} on http://localhost:${port}`);
+  log(`starting ${serverImage} on http://127.0.0.1:${port}`);
   const start = docker('run', '-d', '--name', server, '--network', network, '-p', `${port}:9000`, serverImage);
   if (start.status !== 0) throw new Error('The server did not start: ' + start.stderr);
 
   let up = false;
   for (let i = 0; i < 120 && !up; i++) {
     try {
-      const r = await fetch(`http://localhost:${port}/api/system/status`);
+      const r = await fetch(`http://127.0.0.1:${port}/api/system/status`);
       up = r.ok && (await r.json()).status === 'UP';
     } catch {
       /* not listening yet */
@@ -143,7 +155,7 @@ try {
   for (const f of issues.json.facets ?? [])
     log(`  open issues by ${f.property}: ${f.values.map((v) => `${v.val}=${v.count}`).join(', ')}`);
   log('summary written to artifacts/sonar/sonar-summary.json');
-  if (keep) log(`server kept: http://localhost:${port}  (admin / ${password})`);
+  if (keep) log(`server kept: http://127.0.0.1:${port}  (admin / ${password})`);
   exitCode = gate.json.projectStatus.status === 'OK' ? 0 : 3;
 } catch (e) {
   console.error(`[sonar] ${e.message}`);
