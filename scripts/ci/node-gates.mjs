@@ -61,6 +61,7 @@ if (withTests) {
       name: 'customer core package: tests (cart, checkout input, allergen and diet wording)',
       ...npm('packages/customer-core', 'test'),
     },
+    { name: 'mobile app: unit tests (session and API logic, WI-MOB-003)', ...npm('apps/mobile-customer', 'test') },
     { name: 'queue display: unit tests', ...npm('apps/web-queue-display', 'test:unit') },
     {
       name: 'session package: tests (the Redis store tests run only with REDIS_CONNECTION_STRING)',
