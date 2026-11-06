@@ -177,30 +177,34 @@ describe('what is sent to checkout', () => {
     must(addLine(EMPTY_CART, 'vendor-shop-001', sourdough({ modifiers: [seeds, sliced], quantity: 2 }))).cart;
 
   test('carries only ids, options and quantities (never a price), with a window or none', () => {
-    assert.deepEqual(toPlaceOrderInput(cart(), null), {
+    assert.deepEqual(toPlaceOrderInput(cart(), null, 'pm-ok'), {
       vendorId: 'vendor-shop-001',
+      paymentMethodId: 'pm-ok',
       lineItems: [{ listingId: 'TGlzdGluZzpzb3VyZG91Z2g=', modifierIds: ['mod-seeds', 'mod-sliced'], quantity: 2 }],
       pickupWindow: null,
     });
     const window = { start: '2026-11-02T14:00:00+00:00', end: '2026-11-02T14:15:00+00:00' };
-    assert.deepEqual(toPlaceOrderInput(cart(), window).pickupWindow, window);
-    assert.doesNotMatch(JSON.stringify(toPlaceOrderInput(cart(), null)), /800|price|Cents/i);
+    assert.deepEqual(toPlaceOrderInput(cart(), window, 'pm-ok').pickupWindow, window);
+    assert.doesNotMatch(JSON.stringify(toPlaceOrderInput(cart(), null, 'pm-ok')), /800|price|Cents/i);
   });
 
   test('the fingerprint is the same for the same content however it was built, and different when anything that is ordered differs', () => {
     const a = must(addLine(EMPTY_CART, 'v', sourdough({ modifiers: [seeds, sliced], quantity: 2 }))).cart;
     const b = must(addLine(EMPTY_CART, 'v', sourdough({ modifiers: [sliced, seeds], quantity: 2 }))).cart;
-    assert.equal(fingerprint(a, null), fingerprint(b, null));
-    assert.notEqual(fingerprint(a, null), fingerprint(setQuantity(a, 0, 3), null));
-    assert.notEqual(fingerprint(a, null), fingerprint(removeLine(a, 0), null));
-    assert.notEqual(fingerprint(a, null), fingerprint(a, { start: 's', end: 'e' }));
-    assert.notEqual(fingerprint(a, { start: 's1', end: 'e' }), fingerprint(a, { start: 's2', end: 'e' }));
+    assert.equal(fingerprint(a, null, 'pm-ok'), fingerprint(b, null, 'pm-ok'));
+    assert.notEqual(fingerprint(a, null, 'pm-ok'), fingerprint(setQuantity(a, 0, 3), null, 'pm-ok'));
+    assert.notEqual(fingerprint(a, null, 'pm-ok'), fingerprint(removeLine(a, 0), null, 'pm-ok'));
+    assert.notEqual(fingerprint(a, null, 'pm-ok'), fingerprint(a, { start: 's', end: 'e' }, 'pm-ok'));
+    assert.notEqual(
+      fingerprint(a, { start: 's1', end: 'e' }, 'pm-ok'),
+      fingerprint(a, { start: 's2', end: 'e' }, 'pm-ok'),
+    );
   });
 
   test('a price shown to the customer is not part of the fingerprint (the same order is the same order)', () => {
     const a = must(addLine(EMPTY_CART, 'v', sourdough())).cart;
     const repriced = must(addLine(EMPTY_CART, 'v', sourdough({ unitPriceCents: 999 }))).cart;
-    assert.equal(fingerprint(a, null), fingerprint(repriced, null));
+    assert.equal(fingerprint(a, null, 'pm-ok'), fingerprint(repriced, null, 'pm-ok'));
   });
 });
 
