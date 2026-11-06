@@ -43,3 +43,5 @@ dotnet_style_qualification_for_method = false:suggestion
 [**/tests/**.cs]
 # xUnit test names use underscores (Method_condition_result) throughout.
 dotnet_diagnostic.CA1707.severity = none
+# Tests build small constant arrays once per test; hoisting them into fields would hide the data each test reads. Product code keeps CA1861 as a warning.
+dotnet_diagnostic.CA1861.severity = none
