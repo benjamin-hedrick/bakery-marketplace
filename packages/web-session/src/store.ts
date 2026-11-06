@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Redis } from 'ioredis';
 import type { Sealer } from './crypto.ts';
 import type { PendingLogin, SessionRecord } from './types.ts';
@@ -108,7 +109,7 @@ export function createMemoryStore(
     async acquireLock(id, ttlMs) {
       const held = backing.locks.get(id);
       if (held && held.expiresAt > now()) return null;
-      const token = `${now()}-${Math.random()}`;
+      const token = randomUUID();
       backing.locks.set(id, { token, expiresAt: now() + ttlMs });
       return async () => {
         if (backing.locks.get(id)?.token === token) backing.locks.delete(id);
@@ -182,7 +183,7 @@ export function createRedisStore(
       return sealed === null ? null : parse<PendingLogin>(sealer.open(sealed, pendingAad(id)));
     },
     async acquireLock(id, ttlMs) {
-      const token = `${process.pid}-${now()}-${Math.random()}`;
+      const token = randomUUID();
       const ok = await redis.set(key('lock', id), token, 'PX', ttlMs, 'NX');
       if (ok !== 'OK') return null;
       return async () => {
