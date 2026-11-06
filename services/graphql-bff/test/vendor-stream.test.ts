@@ -102,7 +102,6 @@ before(async () => {
     orderingUrl: `http://127.0.0.1:${port(ordering)}`,
     timeoutMs: 300,
     checkoutTimeoutMs: 300,
-    testHooks: false,
   };
   bff = createServer({ ...base, streamIdleMs: 400 }, { log, exporter: () => {} });
   limited = createServer({ ...base, maxStreams: 1 }, { log, exporter: () => {} });

@@ -323,7 +323,7 @@ async function run(
   return safeResult(result, ctx, log);
 }
 
-/** The request's context: the caller's bearer credential (only that shape), the test hook when enabled, and the trace. */
+/** The request's context: the caller's bearer credential (only that shape) and the trace. */
 function contextOf(
   req: http.IncomingMessage,
   config: Config,
@@ -331,10 +331,7 @@ function contextOf(
   trace: Context['trace'],
 ): Context {
   const authorization = bearerOnly(headerValue(req.headers.authorization));
-  // The D-10 hook: only when test hooks are on, and only the one value the hook defines.
-  const testPayment =
-    config.testHooks && headerValue(req.headers['x-test-payment'])?.toLowerCase() === 'decline' ? 'decline' : undefined;
-  return { ...clients, trace, authorization, testPayment };
+  return { ...clients, trace, authorization };
 }
 
 /** The instance holds as many streams as it will: 503 and a time to try again, in the library's response form. The screen polls meanwhile. */

@@ -88,7 +88,6 @@ before(async () => {
       orderingUrl: `http://127.0.0.1:${(ordering.address() as AddressInfo).port}`,
       timeoutMs: 3000,
       checkoutTimeoutMs: 4000,
-      testHooks: false,
     },
     { log, exporter: () => {} },
   );
@@ -126,6 +125,7 @@ const PLACE = `mutation($input: PlaceOrderInput!) { placeOrder(input: $input) {
 } }`;
 const input = (over: Record<string, unknown> = {}) => ({
   idempotencyKey: 'checkout-attempt-1234',
+  paymentMethodId: 'pm-ok',
   vendorId: 'vendor-shop-001',
   lineItems: [{ listingId: toGlobalId('Listing', 'listing-sourdough-001'), modifierIds: [], quantity: 1 }],
   ...over,

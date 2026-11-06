@@ -118,7 +118,6 @@ describe('the /graphql route with the limits', () => {
         orderingUrl: `http://127.0.0.1:${port(ordering)}`,
         timeoutMs: 500,
         checkoutTimeoutMs: 500,
-        testHooks: false,
         rateLimitPerMinute: 100000,
         operationLimits: { ...DEFAULT_LIMITS, ...limits },
       },
