@@ -1,8 +1,8 @@
 # Bakery/Coffee Marketplace — Portfolio Docs
 
-> **Status:** Current · rewritten 2026-10-30. This page replaced `project-log.md` as the map of what exists and where.
+> **Status:** Current · rewritten 2026-10-30, refreshed 2026-11-05. This page replaced `project-log.md` as the map of what exists and where.
 
-A pickup-based bakery and coffee marketplace, built to show architecture, product and engineering ownership. Slice 1 (login, browse with stock, cart, test checkout, order status) runs locally; nothing is deployed. Do not read a document here as proof that something works unless it points to a run; see the evidence below.
+A pickup-based bakery and coffee marketplace, built to show architecture, product and engineering ownership. Slice 1 (login, browse with stock, cart, test checkout, order status) and the work since (live vendor queue, notifications, order history, allergen profiles, an Android app) run locally; nothing is deployed. Do not read a document here as proof that something works unless it points to a run; see the evidence below.
 
 ## Where things are
 
@@ -17,6 +17,7 @@ A pickup-based bakery and coffee marketplace, built to show architecture, produc
 | What was run and what happened | [Slice 1 findings](evidence/slice-1/findings.md), [test reliability](evidence/test-reliability/findings.md), [evidence baseline](evidence/baseline-2026-10-30.md) |
 | How to run it on a laptop | [Local development](operations/local-dev.md) |
 | How to show it (one command, a checklist, screenshots) | [Demo](operations/demo.md) |
+| Every script and command | [Scripts](operations/scripts.md) |
 | How work is specified and tracked | [Method](method/README.md), [engineering standards](process/engineering-standards.md), [definition of done](process/definition-of-done.md), [quality gates](process/quality-gates.md) |
 | How it is tested | [Test strategy](process/test-strategy.md), [Playwright guide](process/playwright-guide.md), [test-review checklist](process/test-review-checklist.md) |
 | Quality targets and operations | [NFRs](architecture/nfrs.md), [SLA](operations/sla.md), [monitoring plan](operations/monitoring-alerting.md) |
