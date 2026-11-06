@@ -69,7 +69,7 @@ internal sealed class FakeCatalogServer : IAsyncDisposable
             if (TokenStatus != 0) return Results.StatusCode(TokenStatus);
             var form = await ctx.Request.ReadFormAsync();
             if (form["grant_type"] != "client_credentials" || form["client_id"] != ClientId || form["client_secret"] != _clientSecret
-                || form["scope"].ToString().EndsWith("/.default") == false)
+                || form["scope"].ToString().EndsWith("/.default", StringComparison.Ordinal) == false)
                 return Results.Json(new { error = "invalid_client" }, statusCode: 400);
             return Results.Ok(new { access_token = ServiceToken, token_type = "Bearer", expires_in = 3600 });
         });

@@ -92,7 +92,7 @@ public sealed class TagAssignmentApiTests : IDisposable
 
     private static string[] Ids(JsonElement tags) => tags.EnumerateArray().Select(t => t.GetProperty("id").GetString()!).ToArray();
 
-    private async Task<string> CreateAsync(HttpClient client, object body)
+    private static async Task<string> CreateAsync(HttpClient client, object body)
     {
         var response = await client.PostAsJsonAsync("/catalog/listings", body);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -102,7 +102,7 @@ public sealed class TagAssignmentApiTests : IDisposable
     private async Task<JsonElement> PublicAsync(string id, WebApplicationFactory<Program>? app = null) =>
         await JsonOf(await (app ?? _repoHost ?? _app).CreateClient().GetAsync($"/catalog/listings/{id}"));
 
-    private async Task<JsonElement> OwnAsync(HttpClient client, string id) => await JsonOf(await client.GetAsync($"/catalog/listings/mine/{id}"));
+    private static async Task<JsonElement> OwnAsync(HttpClient client, string id) => await JsonOf(await client.GetAsync($"/catalog/listings/mine/{id}"));
 
     // ---- assignment ----------------------------------------------------------------------------------------
 

@@ -14,7 +14,7 @@ public static class LoggingExtensions
     /// </summary>
     public static IApplicationBuilder UseCorrelationId(this IApplicationBuilder app)
     {
-        if (app is null) throw new ArgumentNullException(nameof(app));
+        ArgumentNullException.ThrowIfNull(app);
         return app.UseMiddleware<CorrelationIdMiddleware>();
     }
 
@@ -29,7 +29,7 @@ public static class LoggingExtensions
         string? eventType = null,
         Exception? exception = null)
     {
-        if (logger is null) throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
 
         var state = new Dictionary<string, object>
         {

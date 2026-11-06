@@ -35,7 +35,7 @@ public sealed class OwnListingsApiTests : IDisposable, IAsyncLifetime
 
     private static async Task<JsonElement> JsonOf(HttpResponseMessage r) => JsonDocument.Parse(await r.Content.ReadAsStringAsync()).RootElement.Clone();
 
-    private async Task<string> CreateAsync(HttpClient client, string name, string status, int? quantity = null)
+    private static async Task<string> CreateAsync(HttpClient client, string name, string status, int? quantity = null)
     {
         var response = await client.PostAsJsonAsync("/catalog/listings", new
         {

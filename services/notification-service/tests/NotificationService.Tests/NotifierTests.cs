@@ -19,7 +19,7 @@ public abstract class NotificationSenderContractTests
         new(Guid.NewGuid(), "order-1", "OrderPlaced", address, "X", "Subject", "Body");
 
     [Fact]
-    public async Task AValidMessageIsAccepted() => await Create().SendAsync(Message());
+    public async Task AValidMessageIsAccepted() => Assert.Null(await Record.ExceptionAsync(() => Create().SendAsync(Message())));
 
     [Fact]
     public async Task AMessageWithoutAnAddressIsRefused() =>
@@ -77,7 +77,7 @@ public sealed class OrderEventNotifierTests
     private static DomainEventEnvelope<OrderConfirmedPayload> Confirmed(string orderId, string? customerId) =>
         new(Guid.NewGuid(), "OrderConfirmed", 1, DateTimeOffset.UtcNow, "Order", orderId, 2, new OrderConfirmedPayload(orderId, CustomerId: customerId));
 
-    private Task<IReadOnlyCollection<Guid>> Handle(OrderEventNotifier notifier, params DomainEventEnvelope<OrderConfirmedPayload>[] events) =>
+    private static Task<IReadOnlyCollection<Guid>> Handle(OrderEventNotifier notifier, params DomainEventEnvelope<OrderConfirmedPayload>[] events) =>
         notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, CancellationToken.None);
 
     [Fact]

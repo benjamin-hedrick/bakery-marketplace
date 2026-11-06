@@ -19,7 +19,7 @@ public class CosmosRepository<T> : IRepository<T> where T : class
 
     public CosmosRepository(CosmosClient client, string databaseName, string containerName)
     {
-        if (client is null) throw new ArgumentNullException(nameof(client));
+        ArgumentNullException.ThrowIfNull(client);
         if (string.IsNullOrEmpty(databaseName)) throw new ArgumentException("Database name cannot be empty.", nameof(databaseName));
         if (string.IsNullOrEmpty(containerName)) throw new ArgumentException("Container name cannot be empty.", nameof(containerName));
 
@@ -47,7 +47,7 @@ public class CosmosRepository<T> : IRepository<T> where T : class
 
     public async Task<T> SaveAsync(T entity, string partitionKey, CancellationToken ct = default)
     {
-        if (entity is null) throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
 
         ItemResponse<T> response = await _container.UpsertItemAsync<T>(
             entity,
@@ -102,7 +102,7 @@ public class CosmosRepository<T> : IRepository<T> where T : class
         Func<IQueryable<T>, IQueryable<T>> query,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
-        if (query is null) throw new ArgumentNullException(nameof(query));
+        ArgumentNullException.ThrowIfNull(query);
 
         var requestOptions = new QueryRequestOptions();
         if (!string.IsNullOrEmpty(partitionKey))

@@ -136,7 +136,7 @@ lines.push('| Status | Count |', '|---|---|');
 for (const s of STATUSES) if (byStatus.has(s)) lines.push(`| ${s} | ${byStatus.get(s)} |`);
 lines.push('', '## Epics (derived from the specs)', '', 'Superseded and obsolete items are not counted.', '');
 lines.push('| Epic | Done | Items |', '|---|---|---|');
-for (const [name, list] of [...epics].sort()) {
+for (const [name, list] of [...epics].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
   const d = epicLine(list);
   lines.push(`| ${name} | ${d.done} of ${d.total} | ${list.map((i) => i.id).join(', ')} |`);
 }

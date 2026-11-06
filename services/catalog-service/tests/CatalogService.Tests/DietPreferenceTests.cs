@@ -283,7 +283,7 @@ public sealed class DietPreferenceApiTests : IDisposable
 
     // ---- the views -----------------------------------------------------------------------------------------
 
-    private async Task PreferAsync(HttpClient client, params string[] diets) =>
+    private static async Task PreferAsync(HttpClient client, params string[] diets) =>
         Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync("/catalog/preferences",
             new { allergies = Array.Empty<string>(), avoid = Array.Empty<string>(), prefer = diets })).StatusCode);
 

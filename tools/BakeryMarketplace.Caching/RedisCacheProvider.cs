@@ -21,7 +21,7 @@ public class RedisCacheProvider : ICacheProvider
 
     public RedisCacheProvider(IConnectionMultiplexer multiplexer, int db = -1)
     {
-        if (multiplexer is null) throw new ArgumentNullException(nameof(multiplexer));
+        ArgumentNullException.ThrowIfNull(multiplexer);
         _database = multiplexer.GetDatabase(db);
         _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
@@ -98,7 +98,7 @@ public class RedisCacheProvider : ICacheProvider
     public async Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", nameof(key));
-        if (value is null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
 
         string serialized = JsonSerializer.Serialize(value, _jsonOptions);
         await _database.StringSetAsync(key, serialized, expiry: ttl);

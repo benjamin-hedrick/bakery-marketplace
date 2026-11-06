@@ -358,7 +358,7 @@ public sealed class VendorOrderApiTests : IAsyncLifetime
         Assert.Equal(("mod-seeds", "Seed crust"), (modifier.GetProperty("id").GetString(), modifier.GetProperty("name").GetString()));
     }
 
-    private int ListingReadsSoFar() => _catalog.Requests.Count(r => r.Method == "GET" && r.Path.StartsWith("/catalog/listings/"));
+    private int ListingReadsSoFar() => _catalog.Requests.Count(r => r.Method == "GET" && r.Path.StartsWith("/catalog/listings/", StringComparison.Ordinal));
 
     [Fact]
     public async Task ThreeOrdersOfTheSameListingCostOneNameReadAndLaterListsCostNone()

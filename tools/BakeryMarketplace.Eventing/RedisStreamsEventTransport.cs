@@ -27,7 +27,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         string? serviceName = null,
         TimeSpan? redeliverAfter = null)
     {
-        if (multiplexer is null) throw new ArgumentNullException(nameof(multiplexer));
+        ArgumentNullException.ThrowIfNull(multiplexer);
         _database = multiplexer.GetDatabase(db);
         _maxDeliveryAttempts = maxDeliveryAttempts;
         _maxStreamLength = ValidateMaxStreamLength(maxStreamLength);
@@ -59,7 +59,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
 
     public async Task PublishAsync<T>(DomainEventEnvelope<T> envelope, CancellationToken ct = default)
     {
-        if (envelope is null) throw new ArgumentNullException(nameof(envelope));
+        ArgumentNullException.ThrowIfNull(envelope);
         envelope = EventTracing.StampTraceparent(envelope);
 
         string streamKey = GetStreamKey(envelope.EventType);
@@ -83,7 +83,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(eventType)) throw new ArgumentException("EventType cannot be empty.", nameof(eventType));
-        if (handler is null) throw new ArgumentNullException(nameof(handler));
+        ArgumentNullException.ThrowIfNull(handler);
 
         string streamKey = GetStreamKey(eventType);
         string groupName = GroupName(eventType);
@@ -100,7 +100,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(eventType)) throw new ArgumentException("EventType cannot be empty.", nameof(eventType));
-        if (handler is null) throw new ArgumentNullException(nameof(handler));
+        ArgumentNullException.ThrowIfNull(handler);
 
         string streamKey = GetStreamKey(eventType);
         string groupName = GroupName(eventType);
