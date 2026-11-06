@@ -1,4 +1,4 @@
-> **Status:** In review · decision: the lead sets the targets and confirms the north-star definition; first version written 2026-10-30
+> **Status:** Done · the lead confirmed the north-star definition and set the targets 2026-11-06; baselines refreshed the same day (changes in the revision log of `docs/product/okrs.md`); revise after each slice
 
 ```
 WI ID:               PROD-004
@@ -7,7 +7,7 @@ Type:                 Document/Artifact
 Epic:                 EPIC-PRODUCT-STRATEGY
 Shared with epic(s):  none
 Hat/Owner:            Digital Product Manager
-Status:               In review
+Status:               Done
 Size:                 S
 ```
 
@@ -45,5 +45,5 @@ See `docs/process/definition-of-done.md`.
 Yes for the draft; the lead sets the objectives and targets.
 
 **Open Points (working)**
-- [ ] The north-star safety metric's exact definition (named in the vision, not defined).
-- [ ] Which experiments count as key results.
+- [x] The north-star safety metric's exact definition: confirmed 2026-11-06 (KR1.3, with KR1.4 as a leading indicator).
+- [x] Which experiments count as key results: the list is in KR4.2.
