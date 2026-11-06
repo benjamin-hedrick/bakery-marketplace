@@ -203,7 +203,7 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-155 numbered items in `docs/governance/open-items-register.md` (highest number 155).
+156 numbered items in `docs/governance/open-items-register.md` (highest number 156).
 
 | Type | Count |
 |---|---|
@@ -231,6 +231,7 @@ Accepted: 22 · Superseded: 1
 | Follow-up | 2 |
 | Rough edge | 2 |
 | Open decision (IAM, needs the lead's approval) | 2 |
+| Deployment follow-up | 2 |
 | Tech debt / future work | 1 |
 | Future hardening | 1 |
 | Deferred scope / risk | 1 |
@@ -270,7 +271,6 @@ Accepted: 22 · Superseded: 1
 | Product gap | 1 |
 | Design gap, auth decision (human approval required) | 1 |
 | Test defect, found by a pipeline run | 1 |
-| Deployment follow-up | 1 |
 | Residual risk | 1 |
 | Open decisions and verification | 1 |
 | Known limitation (race) | 1 |
@@ -304,3 +304,4 @@ Accepted: 22 · Superseded: 1
 | First | 1 |
 | Done | 1 |
 | Part | 1 |
+| Triaged | 1 |
