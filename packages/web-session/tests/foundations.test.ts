@@ -145,6 +145,28 @@ describe('the settings', () => {
     assert.ok(real.ok && real.config.redisUrl === 'redis://127.0.0.1:6379');
   });
 
+  test('the in-memory store is refused when the app origin is not a loopback address, even with the allowance (register 122)', () => {
+    const result = sessionConfigFromEnv({
+      ...base,
+      APP_ORIGIN: 'https://web.example.com',
+      SESSION_REDIS_URL: 'memory',
+      SESSION_ALLOW_MEMORY_STORE: '1',
+    });
+    assert.ok(!result.ok);
+    assert.ok(result.reason.includes('SESSION_REDIS_URL=memory'), result.reason);
+    // loopback over https still works
+    assert.ok(
+      sessionConfigFromEnv({
+        ...base,
+        APP_ORIGIN: 'https://localhost:3100',
+        SESSION_REDIS_URL: 'memory',
+        SESSION_ALLOW_MEMORY_STORE: '1',
+      }).ok,
+    );
+    // a real Redis address is unaffected by the origin
+    assert.ok(sessionConfigFromEnv({ ...base, APP_ORIGIN: 'https://web.example.com' }).ok);
+  });
+
   test('the renewal margin defaults to 60 seconds and can be set for tests', () => {
     const normal = sessionConfigFromEnv(base);
     const short = sessionConfigFromEnv({ ...base, SESSION_REFRESH_MARGIN_SECONDS: '5' });

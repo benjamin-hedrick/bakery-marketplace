@@ -114,4 +114,9 @@ run "the_web_app_keeps_its_sessions_in_an_internal_cache_redis_with_its_key_from
     condition     = local.apps["web"].env["SESSION_REDIS_URL"] == "redis://redis-cache:6380" && contains(keys(local.apps["web"].env), "APP_ORIGIN")
     error_message = "The web app needs its own origin and the cache Redis address to run the login on its server."
   }
+
+  assert {
+    condition     = !contains(keys(local.apps["web"].env), "SESSION_ALLOW_MEMORY_STORE") && local.apps["web"].env["SESSION_REDIS_URL"] != "memory"
+    error_message = "The deployed web app must never be set to keep sessions in its own memory (SESSION_ALLOW_MEMORY_STORE, SESSION_REDIS_URL=memory): they would be lost on restart and not shared between instances (register item 122)."
+  }
 }

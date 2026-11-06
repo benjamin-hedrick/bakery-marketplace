@@ -27,7 +27,7 @@ The server-side browser session shared by the web apps (ADR-0019, `WI-AUTH-007`)
 | `APP_ORIGIN` | This app's own origin, e.g. `http://localhost:3100`. The redirect address (`<origin>/api/auth/callback`) and the CSRF check come from it. HTTPS gives the `__Host-` cookie names and `Secure`; HTTP is accepted only on `localhost`, `127.0.0.1` or `[::1]`. |
 | `SESSION_ENCRYPTION_KEY` | 32 random bytes, base64url, optionally `<id>:<key>`. `node scripts/dev/init-env.mjs` generates one locally (ADR-0007 for the cloud). |
 | `SESSION_ENCRYPTION_KEY_PREVIOUS` | The key before a rotation, with a different id, while old sessions may exist. |
-| `SESSION_REDIS_URL` | The cache Redis, e.g. `redis://127.0.0.1:6379`. |
+| `SESSION_REDIS_URL` | The session store's Redis, e.g. `redis://127.0.0.1:6379`. `memory` (sessions in the process; tests and demos) needs `SESSION_ALLOW_MEMORY_STORE=1` **and** a loopback `APP_ORIGIN`; anywhere else it is refused (register 122). |
 | `SESSION_REDIS_PREFIX` | Optional key prefix (default `web-session:<client id>`). |
 | `SESSION_IDLE_MINUTES`, `SESSION_ABSOLUTE_HOURS` | Defaults 720 (12 hours) and 168 (7 days). |
 | `GRAPHQL_URL`, `GRAPHQL_EXTRA_FORWARDED_HEADERS` | As before: the BFF address, read on every request, and test-only headers to forward. |
