@@ -5,20 +5,27 @@ import {
   fingerprint,
   lineConflictText,
   needsAcknowledgement,
+  NO_PAYMENT_METHODS_TEXT,
+  selectedPaymentMethodId,
   time,
   toPlaceOrderInput,
+  type PaymentMethod,
 } from '@bakery/customer-core';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, Switch, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { ApiError, gql } from '../api';
 import { useCheckoutAllergens } from '../allergens';
 import { randomUrlSafe } from '../auth/pkce';
 import { cartStore, useCart } from '../cart';
-import { PICKUP_WINDOWS, PLACE_ORDER, type PickupWindowsData, type PlaceOrderData } from '../queries';
+import {
+  PAYMENT_METHODS,
+  PICKUP_WINDOWS,
+  PLACE_ORDER,
+  type PaymentMethodsData,
+  type PickupWindowsData,
+  type PlaceOrderData,
+} from '../queries';
 import { Button, Checkbox, Loading, Notice, colors, money, styles } from '../ui';
-
-// Set at build time for the test build the Maestro flows use; absent in any other build, which then has no switch.
-const TEST_HOOKS = process.env.EXPO_PUBLIC_TEST_HOOKS === '1';
 
 type Window = { start: string; end: string };
 type Problem = { text: string; code?: string } | null;
@@ -30,7 +37,11 @@ export function CheckoutScreen(props: { onPlaced: (orderId: string) => void; onB
   const [pickup, setPickup] = useState<Window | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
-  const [declineTest, setDeclineTest] = useState(false); // only when the build was made with EXPO_PUBLIC_TEST_HOOKS=1: asks the BFF's test hook to decline the payment (never in a release)
+  // The saved payment methods (WI-ORD-010): the first is chosen until the customer picks another. The order carries only the chosen id.
+  const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
+  const [methodsFailed, setMethodsFailed] = useState(false);
+  const [pickedMethod, setPickedMethod] = useState<string | null>(null);
+  const methodId = methods ? selectedPaymentMethodId(methods, pickedMethod) : null;
   // One key per content of the order and per outcome (first-slice contract D-6): reused for a retry of the same content after a failure to
   // hear the answer, replaced when the content changes or after the server has answered with a rejection.
   const attempt = useRef<{ key: string; fingerprint: string } | null>(null);
@@ -58,6 +69,14 @@ export function CheckoutScreen(props: { onPlaced: (orderId: string) => void; onB
       .catch(() => setWindowsFailed(true));
   }, [vendorId]);
 
+  const loadMethods = () => {
+    setMethodsFailed(false);
+    gql<PaymentMethodsData>(PAYMENT_METHODS, {}, { authenticated: true })
+      .then((d) => setMethods(d.paymentMethods))
+      .catch(() => setMethodsFailed(true));
+  };
+  useEffect(loadMethods, []);
+
   if (cart.lines.length === 0) {
     return (
       <View style={styles.pad}>
@@ -71,16 +90,17 @@ export function CheckoutScreen(props: { onPlaced: (orderId: string) => void; onB
 
   async function place() {
     if (mustAcknowledge && !acknowledged) return; // the button is off in this case; this is the same rule for any other way in
+    if (methodId === null) return; // the button is off without a payment method
     setBusy(true);
     setProblem(null);
-    const content = fingerprint(cart, pickup, tell);
+    const content = fingerprint(cart, pickup, methodId, tell);
     if (attempt.current?.fingerprint !== content)
       attempt.current = { key: `mobile-${randomUrlSafe(16)}`, fingerprint: content };
     try {
       const data = await gql<PlaceOrderData>(
         PLACE_ORDER,
-        { input: { idempotencyKey: attempt.current.key, ...toPlaceOrderInput(cart, pickup, tell) } },
-        { authenticated: true, headers: TEST_HOOKS && declineTest ? { 'x-test-payment': 'decline' } : {} },
+        { input: { idempotencyKey: attempt.current.key, ...toPlaceOrderInput(cart, pickup, methodId, tell) } },
+        { authenticated: true },
       );
       const result = data.placeOrder;
       if (result.__typename === 'PlaceOrderSuccess') {
@@ -212,10 +232,30 @@ export function CheckoutScreen(props: { onPlaced: (orderId: string) => void; onB
         </ScrollView>
       ) : null}
 
-      {TEST_HOOKS ? (
-        <View style={styles.row}>
-          <Text style={styles.muted}>Test: decline the payment</Text>
-          <Switch testID="decline-test" value={declineTest} onValueChange={setDeclineTest} />
+      <Text style={styles.title}>Payment method</Text>
+      {methodsFailed ? (
+        <Notice text="Payment methods could not be loaded." testID="payment-methods-failed">
+          <Button label="Try again" testID="payment-methods-retry" onPress={loadMethods} />
+        </Notice>
+      ) : null}
+      {!methods && !methodsFailed ? <Text style={styles.muted}>Loading payment methods…</Text> : null}
+      {methods && methods.length === 0 ? (
+        <Notice tone="info" text={NO_PAYMENT_METHODS_TEXT} testID="no-payment-methods" />
+      ) : null}
+      {methods && methods.length > 0 ? (
+        <View style={{ gap: 8 }} testID="payment-methods">
+          {methods.map((m, i) => (
+            <Button
+              key={m.id}
+              testID={`payment-${i}`}
+              kind={methodId === m.id ? 'primary' : 'plain'}
+              label={`${methodId === m.id ? '✓ ' : ''}${m.description}`}
+              onPress={() => {
+                setPickedMethod(m.id);
+                setProblem(null);
+              }}
+            />
+          ))}
         </View>
       ) : null}
 
@@ -224,7 +264,7 @@ export function CheckoutScreen(props: { onPlaced: (orderId: string) => void; onB
         label={busy ? 'Placing…' : 'Place order'}
         testID="place-order"
         onPress={place}
-        disabled={busy || checking || (mustAcknowledge && !acknowledged)}
+        disabled={busy || checking || methodId === null || (mustAcknowledge && !acknowledged)}
       />
       <Button label="Back to my order" testID="checkout-back" kind="plain" onPress={props.onBack} />
     </ScrollView>

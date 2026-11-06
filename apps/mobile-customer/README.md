@@ -21,11 +21,11 @@ emulator image shows a first-run screen once; the login subflow dismisses it.
 
 ```
 node ../../scripts/dev/mobile-flows.mjs              # from here or the repository root
-node ../../scripts/dev/mobile-flows.mjs --no-build   # reuse the test build already installed
+node ../../scripts/dev/mobile-flows.mjs --no-build   # reuse the build already installed
 node ../../scripts/dev/mobile-flows.mjs --flow 03    # one flow
 ```
 
-It boots the emulator if none is running, starts the backend (test hook on), builds and installs the app as a test build, runs the thirteen flows in
+It boots the emulator if none is running, starts the backend, builds and installs the app, runs the fourteen flows in
 `.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order; an allergy warning that must be acknowledged; no allergy profile; a failed allergy check; an allergy only an option carries; an avoid that needs no acknowledgement; several allergies and choosing which to tell the bakery; a failed checkout request keeps the order and a retry places one order; changing quantities and removing lines; a refused session returns to the login screen, which must run last because it restarts the issuer). The allergen flows log in as seeded customers whose saved profiles are seed data (`docs/operations/local-dev.md`, "Seeded customers"). Two steps call a small local control server that the runner starts (`scripts/lib/flow-control.mjs`: read a customer's newest order, count their orders, stop and start the BFF, restart the mock issuer), so those flows only work when started by the runner, not by `maestro test` alone and tears down what it started. The
 last result is recorded in `docs/evidence/WI-MOB-001/`; Maestro's own output goes to `artifacts/mobile/` (git-ignored).
 
@@ -49,8 +49,8 @@ The debug APK carries its own JavaScript bundle (`plugins/withEmbeddedBundle.js`
 new Gradle build. The app reaches the host's issuer (`http://localhost:5100`) and BFF (`http://localhost:4100`) through `adb reverse`, so the issuer URL
 equals the `iss` the services expect. Cleartext http exists only in the debug manifests Expo generates; no release build has been made.
 
-The checkout screen shows a "Test: decline the payment" switch only in a build made with `EXPO_PUBLIC_TEST_HOOKS=1`; it sends the BFF's test header,
-which the BFF honours only when started with `ENABLE_TEST_HOOKS=1`. Log in as Alice Customer on the issuer's page.
+The checkout screen has a "Payment method" picker filled from the customer's saved methods (seed data); choosing Alice's "Test card (refused)" is how a declined payment is
+reached. There is no test build, switch or hook. Log in as Alice Customer on the issuer's page.
 
 ## Checks
 

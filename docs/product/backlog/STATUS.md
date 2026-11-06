@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 55 |
 | In progress | 5 |
-| In review | 23 |
+| In review | 24 |
 | Built | 1 |
-| Ready | 5 |
+| Ready | 4 |
 | Proposed | 4 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -128,7 +128,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [ORD-007](WI-ORD-007.md) | Order action endpoints (confirm, decline, start, ready, complete, cancel) | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | EPIC-ORDERING | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04); the lead's review of the privacy properties is wanted |
-| [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | EPIC-ORDERING | Ready | written 2026-11-06 from register item 150; approved by the lead 2026-11-06 (open points 1 to 10 answered) |
+| [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | EPIC-ORDERING | In review | built 2026-11-06 on feature/mobile-session-tests; evidence: the "Changes from the original plan" and "Not yet run" notes below. The real-stack smoke, the Maestro flows and the ordering tests with Redis up have not been run |
 | [PLAN-001](WI-PLAN-001.md) | Prioritization pass over the backlog | EPIC-BACKLOG-PLANNING | Proposed | decision: which method (MoSCoW or RICE) and who sets the weights |
 | [PLAN-002](WI-PLAN-002.md) | Sprint plan (first 2 to 3 sprints) | EPIC-BACKLOG-PLANNING | Deferred | trigger: sprint-style boundaries become useful (more contributors, or a time-boxed demo); deferred 2026-10-30 |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | EPIC-PORTFOLIO-SLICE | Done | evidence: merged `6175e05`; `docs/evidence/WI-PORT-001/findings.md` |

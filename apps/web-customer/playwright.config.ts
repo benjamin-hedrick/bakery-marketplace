@@ -62,9 +62,8 @@ export default defineConfig({
         SESSION_REDIS_URL: 'memory',
         SESSION_ALLOW_MEMORY_STORE: '1',
         SESSION_ENCRYPTION_KEY: randomBytes(32).toString('base64url'),
-        // The mock BFF and the declined-payment hook are steered by request headers, which the API route only forwards when told to.
-        GRAPHQL_EXTRA_FORWARDED_HEADERS:
-          'x-fixture,x-delay-ms,x-place-order,x-test-payment,x-save-preferences,x-cart-check',
+        // The mock BFF is steered by request headers, which the API route only forwards when told to.
+        GRAPHQL_EXTRA_FORWARDED_HEADERS: 'x-fixture,x-delay-ms,x-place-order,x-save-preferences,x-cart-check',
       },
     },
   ],

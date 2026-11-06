@@ -85,7 +85,7 @@ sequenceDiagram
             C-->>O: 409 with the quantity left per line
             O-->>G: insufficient_stock
         else reserved
-            O->>O: payment step, a named stub (an `X-Test-Payment: decline` hook exists outside Production)
+            O->>O: payment step: the saved method's token is validated by ordering, then a named stub authorizes
             alt payment declined
                 O->>C: release the reservation
                 O-->>G: 402 payment_declined

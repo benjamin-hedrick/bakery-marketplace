@@ -32,6 +32,7 @@ const PLACE = `mutation($input: PlaceOrderInput!) { placeOrder(input: $input) { 
   ... on PlaceOrderRejected { code } } }`;
 const plain = (quantity = 1) => ({
   idempotencyKey: `smoke-${randomUUID()}`,
+  paymentMethodId: 'pm-alice-ok',
   vendorId: 'vendor-shop-001',
   lineItems: [{ listingId: globalId('Listing', SOURDOUGH), modifierIds: [], quantity }],
   pickupWindow: null,
@@ -100,16 +101,43 @@ test('ordering reaches the catalog with its own credential: a plain order is pla
   expect(read.data!.order).toEqual({ status: 'CONFIRMED', total: { cents: 800 } });
 });
 
-test('a declined test payment, through the BFF hook, takes nothing from stock', async ({ request }) => {
+test("a method whose token is invalid (Alice's seeded refused method) is declined and takes nothing from stock", async ({
+  request,
+}) => {
   const customer = await userToken('user-customer-1');
   const vendor = await userToken('vendor-shop-001');
   const before = await quantity(request, vendor, SOURDOUGH);
 
   const res = await request.post(`${BFF}/graphql`, {
-    data: { query: PLACE, variables: { input: plain() } },
-    headers: { authorization: `Bearer ${customer}`, 'x-test-payment': 'decline' },
+    data: { query: PLACE, variables: { input: { ...plain(), paymentMethodId: 'pm-alice-refused' } } },
+    headers: { authorization: `Bearer ${customer}` },
   });
 
   expect((await res.json()).data.placeOrder).toEqual({ __typename: 'PlaceOrderRejected', code: 'PAYMENT_DECLINED' });
-  expect(await quantity(request, vendor, SOURDOUGH)).toBe(before); // reserved, then released
+  expect(await quantity(request, vendor, SOURDOUGH)).toBe(before); // refused before anything was reserved
+});
+
+test('the payment methods of a customer are listed without a token, and another customer cannot use them', async ({
+  request,
+}) => {
+  const alice = await userToken('user-customer-1');
+  const nia = await userToken('user-customer-nomethods');
+
+  const list = await gql(request, '{ paymentMethods { id description } }', {}, alice);
+  expect(list.data!.paymentMethods).toEqual([
+    { id: 'pm-alice-ok', description: 'Test card (accepted)' },
+    { id: 'pm-alice-refused', description: 'Test card (refused)' },
+  ]);
+  expect(JSON.stringify(list)).not.toMatch(/pm_seed|invalid token/);
+  expect((await gql(request, '{ paymentMethods { id } }', {}, nia)).data!.paymentMethods).toEqual([]);
+
+  // Nia tries Alice's method id: the same answer as for an id that does not exist.
+  const res = await request.post(`${BFF}/graphql`, {
+    data: { query: PLACE, variables: { input: { ...plain(), paymentMethodId: 'pm-alice-ok' } } },
+    headers: { authorization: `Bearer ${nia}` },
+  });
+  const placed = (await res.json()).data.placeOrder;
+  expect(placed.__typename).toBe('PlaceOrderRejected');
+  expect(placed.code).toBe('VALIDATION_FAILED');
+  expect(placed.fields.map((f: { field: string }) => f.field)).toEqual(['paymentMethodId']);
 });

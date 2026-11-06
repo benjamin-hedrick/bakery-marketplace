@@ -1,4 +1,4 @@
-> **Status:** Ready · written 2026-11-06 from register item 150; approved by the lead 2026-11-06 (open points 1 to 10 answered)
+> **Status:** In review · built 2026-11-06 on feature/mobile-session-tests; evidence: the "Changes from the original plan" and "Not yet run" notes below. The real-stack smoke, the Maestro flows and the ordering tests with Redis up have not been run
 
 ```
 WI ID:               ORD-010
@@ -7,11 +7,25 @@ Type:                 Service Implementation
 Epic:                 EPIC-ORDERING
 Shared with epic(s):  EPIC-WEB-CUSTOMER, EPIC-QUALITY-EVIDENCE
 Hat/Owner:            Engineering/Build, Architect (contract change)
-Status:               Ready
+Status:               In review
 Size:                 L
 Verification class:   V2 (checkout contract and a payment-adjacent input; no card data, no real provider). Classes are proposed in `docs/process/verification-policy.md`.
 ```
 ADRs and NFRs affected: ADR-0005 (the real design: card entry in the provider's hosted fields, so card data never reaches us; this item builds the stand-in for the token that step returns), ADR-0007 (nothing secret is stored), ADR-0013 (the BFF adds no business fields beyond a reference to a stored method), first-slice contract D-10 (replaced; a dated note is added, its text is not edited), NFR 3.7 (a payment method reference is personal data).
+
+**Changes from the original plan (as built, 2026-11-06; git keeps the original)**
+- The token rule is `PaymentTokenValidator` in ordering (the lead's decision 1), not a rule of the stub; the stub approves whatever reaches it. Checkout validates **before** reserving stock, so an invalid token never reserves anything and there is nothing to release. The old post-reservation decline path stays for a processor that says no.
+- `PaymentMethodId` and the authorization reference live on the stored order **document** (like the idempotency data), not on the `Order` aggregate; no event, response or notification carries them.
+- The mock customer set grew by one: `user-customer-nomethods` (Nia). The seed tests for payment methods are a new project, `tools/tests/BakeryMarketplace.Seed.Tests` (the catalog tests cannot reference ordering: both services have a `Program` class); `Seed` references ordering with `PrivateAssets="all"`.
+- The BFF's `testHooks` configuration, the app's `headers` option on `gql`, the `testHooks` options of the stack and build scripts, and the web container's `GRAPHQL_EXTRA_FORWARDED_HEADERS` in Compose were removed with the header. `ENABLE_TEST_HOOKS` itself stays for the web app's mock-backed fixtures (`x-fixture`, `x-delay-ms`; register 155).
+- Ordering's tests use a `TestPaymentMethodRepository` that gives every test customer the two test methods (set-up code must not block on the store, register 117).
+
+**Not yet run**
+- `skeleton-smoke.mjs` (host and `--containers`) after this item: one run was stopped for low memory at the seed step; the journeys that change are `journey.spec.ts` and `stack.spec.ts`.
+- The Maestro flows: 04 was rewritten to choose the refused method, 14 (no payment methods) is new, and the build now has no test variant.
+- The ordering tests with Redis up (511 passed, 11 skipped with Redis and Cosmos down).
+- The browser suites on the queue display (it does not place orders through the form; not run).
+- Results so far: ordering 511 passed (11 skipped), tools 8 projects passed, catalog 301 passed (7 skipped), BFF 235, `customer-core` 86, `web-session` 164 (13 skipped), mobile 25, web-customer mock-backed Playwright 137 passed, all 25 `node-gates` steps (with `--tests`) passed.
 
 **Context / Why**
 Today a test reaches the declined-payment path by sending `X-Test-Payment: decline`. The header is forwarded by the web app's proxy (`GRAPHQL_EXTRA_FORWARDED_HEADERS`), by the BFF only when started with `ENABLE_TEST_HOOKS=1`, and honoured by ordering outside Production; the Android app has a "Test: decline the payment" switch compiled in by `EXPO_PUBLIC_TEST_HOOKS=1`. That is a mechanism that exists only so a test can reach a path (register 150; `CLAUDE.md`: "Don't build functionality only to close a gap in testing"). Close the gap with **data**: each customer has saved payment methods, each with an opaque token and a description, as seed data. The customer picks one at checkout; the payment stub accepts valid tokens and rejects invalid ones. A declined payment is then reached by choosing a method whose token is invalid, exactly as a customer would in a real product, and no switch, header, flag or build variant is needed. This also gives the later Stripe integration (ADR-0005) its shape: the client sends a reference to a method, the provider token stays server-side.

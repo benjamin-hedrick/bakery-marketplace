@@ -27,11 +27,10 @@ const stack = createStack({
 let exitCode = 1;
 try {
   stack.up();
-  // ENABLE_TEST_HOOKS forwards the declined-payment hook (D-10) so the journey can test it; never set outside tests.
   if (containers) {
-    await stack.startContainers({ testHooks: true });
+    await stack.startContainers();
   } else {
-    await stack.startServices({ testHooks: true });
+    await stack.startServices();
     await stack.startWeb();
   }
   await stack.startQueue(); // the vendor's screen, for the journey from a customer's order to the vendor's queue

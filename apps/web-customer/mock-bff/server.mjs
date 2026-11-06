@@ -3,7 +3,9 @@
 //   `x-fixture: A|B`      selects the listing data
 //   `x-delay-ms`          delays the response
 //   `x-place-order: ...`  scripts placeOrder: `rejected:<CODE>`, `shortfall`, `internal`, `unauthenticated`, `slow` (default: really place it)
-//   `x-test-payment: decline`  the D-10 hook, as the real BFF forwards it
+//   The one mock customer has two saved payment methods (WI-ORD-010): `pm-ok` (accepted) and `pm-refused` (placeOrder answers PAYMENT_DECLINED, as
+//   ordering does for an invalid token). Any other id answers VALIDATION_FAILED on paymentMethodId.
+//   POST /__control {"paymentMethods": []} replaces the methods (the "no payment methods" screen); {"resetPaymentMethods": true} restores the two.
 //   POST /__control {"revision": n} shifts every price by n cents so refetches are observable.
 //   POST /__control {"resetOrders": true, "seedOrders": n} forgets the orders placed so far and adds n completed ones (the order history).
 //   POST /__control {"resetPreferences": true, "preferences": {"allergies": [...], "avoid": [...]}} clears or sets the one mock customer's allergen profile.
@@ -60,6 +62,13 @@ const REJECTION_TEXT = {
 
 const orders = new Map(); // service id -> order
 const keys = new Map(); // idempotency key -> { fingerprint, orderId }
+const DEFAULT_PAYMENT_METHODS = [
+  { id: 'pm-ok', description: 'Test card (accepted)' },
+  { id: 'pm-refused', description: 'Test card (refused)' },
+];
+let paymentMethods = DEFAULT_PAYMENT_METHODS.map((m) => ({ ...m }));
+// Which saved method the mock treats as having an invalid token. The real rule is ordering's; this stands in for its verdict.
+const REFUSED_METHOD_ID = 'pm-refused';
 let orderSeq = 0;
 
 const unauthenticated = () =>
@@ -106,7 +115,12 @@ async function placeOrder({ input }, ctx) {
   if (ctx.scenario === 'shortfall') {
     return rejected('INSUFFICIENT_STOCK', [], [{ listingId: input.lineItems[0].listingId, available: 1 }]);
   }
-  if (ctx.testPayment === 'decline') return rejected('PAYMENT_DECLINED');
+  if (!paymentMethods.some((m) => m.id === input.paymentMethodId)) {
+    return rejected('VALIDATION_FAILED', [
+      { field: 'paymentMethodId', message: 'Choose one of your saved payment methods.' },
+    ]);
+  }
+  if (input.paymentMethodId === REFUSED_METHOD_ID) return rejected('PAYMENT_DECLINED');
 
   const known = new Set(ALLERGENS.map((a) => a.id));
   if ((input.allergens ?? []).some((id) => !known.has(id))) {
@@ -115,7 +129,13 @@ async function placeOrder({ input }, ctx) {
     ]);
   }
   const allergens = [...new Set(input.allergens ?? [])].sort();
-  const fingerprint = JSON.stringify([input.vendorId, input.lineItems, input.pickupWindow ?? null, allergens]);
+  const fingerprint = JSON.stringify([
+    input.vendorId,
+    input.lineItems,
+    input.pickupWindow ?? null,
+    allergens,
+    input.paymentMethodId,
+  ]);
   const prior = keys.get(input.idempotencyKey);
   if (prior) {
     return prior.fingerprint === fingerprint
@@ -203,6 +223,10 @@ const needCustomer = (ctx) => {
 function tags({ kind }) {
   const all = [...ALLERGENS, ...Object.values(TAGS)];
   return kind ? all.filter((t) => t.kind === kind) : all;
+}
+function listPaymentMethods(_args, ctx) {
+  needCustomer(ctx);
+  return paymentMethods;
 }
 function preferences(_args, ctx) {
   needCustomer(ctx);
@@ -347,6 +371,7 @@ function rootFor(fixture) {
     pickupWindows: () => WINDOWS,
     tags,
     preferences,
+    paymentMethods: listPaymentMethods,
     savePreferences,
     personalizedListings,
     personalizedListing,
@@ -390,6 +415,8 @@ const server = http.createServer(async (req, res) => {
         createdAt: new Date(Date.UTC(2026, 0, 1, 12, i)).toISOString(),
       });
     }
+    if (control.resetPaymentMethods) paymentMethods = DEFAULT_PAYMENT_METHODS.map((m) => ({ ...m }));
+    if (Array.isArray(control.paymentMethods)) paymentMethods = control.paymentMethods.map((m) => ({ ...m }));
     if (control.resetPreferences) {
       profile = { allergies: [], avoid: [], prefer: [] };
       preferenceReads = 0;
@@ -417,7 +444,6 @@ const server = http.createServer(async (req, res) => {
   const { query, variables } = JSON.parse(raw);
   seenAuthorizations.push(req.headers.authorization ?? null);
   const fixture = String(req.headers['x-fixture'] ?? 'A').toUpperCase();
-  const decline = String(req.headers['x-test-payment'] ?? '').toLowerCase() === 'decline';
   const result = await graphql({
     schema,
     source: query,
@@ -427,7 +453,6 @@ const server = http.createServer(async (req, res) => {
       fixture,
       authorization: req.headers.authorization,
       scenario: req.headers['x-place-order'] ? String(req.headers['x-place-order']) : undefined,
-      testPayment: decline ? 'decline' : undefined,
       cartCheck: req.headers['x-cart-check'] ? String(req.headers['x-cart-check']) : undefined,
       savePreferences: req.headers['x-save-preferences'] ? String(req.headers['x-save-preferences']) : undefined,
     },

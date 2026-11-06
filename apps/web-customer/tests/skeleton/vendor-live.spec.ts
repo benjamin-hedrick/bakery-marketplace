@@ -27,6 +27,7 @@ async function placeOrder(customerToken: string): Promise<{ id: string; referenc
       variables: {
         input: {
           idempotencyKey: `live-${randomUUID()}`,
+          paymentMethodId: 'pm-alice-ok',
           vendorId: 'vendor-shop-001',
           lineItems: [{ listingId: globalId('Listing', SOURDOUGH), modifierIds: ['mod-seeds'], quantity: 1 }],
           pickupWindow: null,

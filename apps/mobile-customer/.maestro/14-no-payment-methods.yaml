@@ -1,0 +1,26 @@
+# WI-ORD-010: Nia, the seeded customer with no saved payment methods (MockUsers, PaymentSeedData). Checkout says so and an order cannot be placed.
+appId: com.bakerymarketplace.mobile
+name: With no saved payment method an order cannot be placed
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USER_NAME: Nia
+      USER_ROW: 5
+- tapOn:
+    id: listing-Oat Milk Latte
+- tapOn:
+    id: add-to-order
+- tapOn:
+    id: to-checkout
+- assertVisible:
+    id: no-payment-methods
+- assertVisible: ".*no saved payment method.*"
+# The button is off: pressing it places nothing, and the cart is kept.
+- tapOn:
+    id: place-order
+- assertNotVisible:
+    id: order-headline
+- assertVisible: Order (1)

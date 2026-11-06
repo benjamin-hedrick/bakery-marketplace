@@ -4,11 +4,10 @@
 // The web demo is scripts/dev/demo.mjs; this one shows the same slice on the phone.
 //
 //   node scripts/dev/mobile-demo.mjs                 emulator + stack + build + install + open the app, then wait
-//   node scripts/dev/mobile-demo.mjs --no-build      reuse the app already installed (it must be a NON-test build, see below)
+//   node scripts/dev/mobile-demo.mjs --no-build      reuse the app already installed (the build is the same as the flows use)
 //   node scripts/dev/mobile-demo.mjs --keep          leave Docker (and an emulator it booted) running when it stops
 //
-// Unlike scripts/dev/mobile-flows.mjs this is NOT a test setup: the app is built without the "decline the payment" switch and the BFF runs without
-// its test hook. Nothing is deployed and the payment is a stub. Needs Docker, the .NET SDK, Node >= 24, JDK 17 and the Android SDK with the AVD
+// Like scripts/dev/mobile-flows.mjs it builds the same app (there is no test build any more, WI-ORD-010). Nothing is deployed and the payment is a stub. Needs Docker, the .NET SDK, Node >= 24, JDK 17 and the Android SDK with the AVD
 // bakery_pixel (Maestro is not needed). The first build takes about ten minutes. Data lives in the Cosmos emulator and is lost on teardown.
 import { existsSync, rmSync } from 'node:fs';
 import path from 'node:path';
@@ -60,9 +59,9 @@ try {
   }
   bootedEmulator = await mobile.ensureEmulator(log);
   stack.up();
-  await stack.startServices({ testHooks: false });
+  await stack.startServices();
   mobile.reversePorts(log);
-  if (!noBuild) mobile.buildApp(log, { testHooks: false });
+  if (!noBuild) mobile.buildApp(log);
   mobile.installApp(log);
   mobile.clearAppData(); // a demo starts signed out
   mobile.launchApp();

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { ConsoleMessage, Page, Request } from '@playwright/test';
-import { bffAuthorizations, logIn, stubIssuer } from './helpers';
+import { bffAuthorizations, logIn, MOCK, stubIssuer } from './helpers';
 
 // S1-03: the checkout, against the mock BFF (which mirrors the real BFF's authentication and its typed rejections). The issuer is stubbed
 // in the browser, so the login is the real PKCE flow. Times are shown in the browser's zone, fixed here so labels are exact.
@@ -10,6 +10,7 @@ test.use({ timezoneId: 'America/New_York', locale: 'en-US' });
 interface PlaceOrderInput {
   idempotencyKey: string;
   vendorId: string;
+  paymentMethodId: string;
   lineItems: { listingId: string; modifierIds: string[]; quantity: number }[];
   pickupWindow: { start: string; end: string } | null;
 }
@@ -153,12 +154,80 @@ test('the test banner is on the page and next to the button', async ({ page }) =
   await expect(page.getByText('Test checkout: no payment is taken.')).toBeVisible();
 });
 
-test.describe('what the customer sees when the order cannot be placed (first-slice contract section 6)', () => {
-  test('a declined test payment keeps the order, and the retry uses a new key because the rejected attempt is spent', async ({
+// WI-ORD-010: the customer chooses one of their saved payment methods; the order carries only its id.
+test.describe('the payment method', () => {
+  const control = (body: object) =>
+    fetch(`${MOCK}/__control`, { method: 'POST', body: JSON.stringify(body) }).then((r) => {
+      if (!r.ok) throw new Error('the mock BFF did not take the state');
+    });
+  test.afterEach(() => control({ resetPaymentMethods: true }));
+
+  test('lists the customer methods by description with the first chosen, and the order carries that id and nothing else about payment', async ({
     page,
   }) => {
     await atCheckout(page);
-    await script(page, null, { 'x-test-payment': 'decline' });
+    const select = page.getByLabel('Payment method');
+    await expect(select.locator('option')).toHaveText(['Test card (accepted)', 'Test card (refused)']);
+    await expect(select).toHaveValue('pm-ok');
+
+    const request = page.waitForRequest(isPlaceOrder);
+    await placeButton(page).click();
+    const input = inputOf(await request);
+    expect(input.paymentMethodId).toBe('pm-ok');
+    expect(JSON.stringify(input)).not.toMatch(/token|card|number|expiry|description/i);
+    await expect(page).toHaveURL(/\/orders\/.+/);
+  });
+
+  test('another method is another checkout: choosing it after a failure uses a new key', async ({ page }) => {
+    await atCheckout(page);
+    await script(page, 'internal'); // an unexpected error keeps the key ...
+    const first = page.waitForRequest(isPlaceOrder);
+    await placeButton(page).click();
+    const firstKey = inputOf(await first).idempotencyKey;
+    await expect(page.getByTestId('checkout-error')).toBeVisible();
+
+    await script(page, null);
+    await page.getByLabel('Payment method').selectOption('pm-refused');
+    const second = page.waitForRequest(isPlaceOrder);
+    await placeButton(page).click();
+    expect(inputOf(await second).idempotencyKey).not.toBe(firstKey); // ... but the same key with a different method would be refused
+  });
+
+  test('with no saved method the order cannot be placed and the page says so', async ({ page }) => {
+    await control({ paymentMethods: [] });
+    await atCheckout(page);
+
+    await expect(page.getByTestId('no-payment-methods')).toContainText('no saved payment method');
+    await expect(page.getByLabel('Payment method')).toBeDisabled();
+    await expect(placeButton(page)).toBeDisabled();
+  });
+
+  test('when the methods cannot be loaded the order cannot be placed, and trying again loads them', async ({
+    page,
+  }) => {
+    await atCheckout(page);
+    await page.route('**/api/graphql', (route) =>
+      (route.request().postData() ?? '').includes('paymentMethods')
+        ? route.fulfill({ status: 500, body: '{}' })
+        : route.continue(),
+    );
+    await page.reload();
+    await expect(page.getByTestId('payment-methods-failed')).toBeVisible();
+    await expect(placeButton(page)).toBeDisabled();
+
+    await page.unroute('**/api/graphql');
+    await page.getByRole('button', { name: 'Try again' }).click();
+    await expect(page.getByLabel('Payment method')).toHaveValue('pm-ok');
+    await expect(placeButton(page)).toBeEnabled();
+  });
+});
+
+test.describe('what the customer sees when the order cannot be placed (first-slice contract section 6)', () => {
+  test('a declined payment keeps the order, and the retry uses a new key because the rejected attempt is spent', async ({
+    page,
+  }) => {
+    await atCheckout(page);
+    await page.getByLabel('Payment method').selectOption({ label: 'Test card (refused)' }); // a saved method whose token is invalid (data, not a switch)
 
     const first = page.waitForRequest(isPlaceOrder);
     await placeButton(page).click();
@@ -173,7 +242,11 @@ test.describe('what the customer sees when the order cannot be placed (first-sli
     await placeButton(page).click();
     expect(inputOf(await retry).idempotencyKey).not.toBe(firstKey);
 
-    await script(page, null); // payment would now be approved
+    // Choosing the accepted method clears the notice (once the retry's own answer has been shown), and the same order then goes through.
+    await expect(page.getByTestId('checkout-rejection')).toBeVisible();
+    await expect(placeButton(page)).toBeEnabled();
+    await page.getByLabel('Payment method').selectOption({ label: 'Test card (accepted)' });
+    await expect(page.getByTestId('checkout-rejection')).toHaveCount(0);
     await placeButton(page).click();
     await expect(page).toHaveURL(/\/orders\/.+/);
   });

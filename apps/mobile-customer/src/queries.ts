@@ -43,6 +43,12 @@ export interface PickupWindowsData {
   pickupWindows: { start: string; end: string }[];
 }
 
+// The customer's saved payment methods (WI-ORD-010): an id and a description each. Only the id of the chosen one is sent with the order.
+export const PAYMENT_METHODS = `query PaymentMethods { paymentMethods { id description } }`;
+export interface PaymentMethodsData {
+  paymentMethods: { id: string; description: string }[];
+}
+
 export const PLACE_ORDER = `mutation PlaceOrder($input: PlaceOrderInput!) { placeOrder(input: $input) {
   __typename
   ... on PlaceOrderSuccess { order { id status } }

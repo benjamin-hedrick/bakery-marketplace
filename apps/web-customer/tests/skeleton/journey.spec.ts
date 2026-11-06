@@ -122,7 +122,7 @@ test('an order with an option and a pickup time waits for the bakery, with the o
   await expect(page.getByTestId('order-pickup')).toContainText(chosen); // the time the customer picked is the time shown
 });
 
-test('a declined test payment keeps the order and takes nothing; the same order then goes through', async ({
+test('a payment method with an invalid token is declined, keeps the order and takes nothing; another method then goes through', async ({
   page,
   request,
 }) => {
@@ -131,21 +131,17 @@ test('a declined test payment keeps the order and takes nothing; the same order 
   await addToOrder(page, 'Country Sourdough');
   await toCheckout(page);
 
-  await page.route('**/api/graphql', (route) =>
-    route.continue({
-      headers: {
-        ...route.request().headers(),
-        ...((route.request().postData() ?? '').includes('placeOrder') ? { 'x-test-payment': 'decline' } : {}),
-      },
-    }),
-  );
+  // Alice's seeded methods (tools/BakeryMarketplace.Seed, PaymentSeedData): the accepted one is first; the other has a token the checkout's rule refuses.
+  const method = page.getByLabel('Payment method');
+  await expect(method.locator('option')).toHaveText(['Test card (accepted)', 'Test card (refused)']);
+  await method.selectOption({ label: 'Test card (refused)' });
   await placeButton(page).click();
   await expect(page.getByTestId('checkout-rejection')).toContainText('The payment was declined.');
   await expect(page.getByTestId('checkout-rejection')).toHaveAttribute('data-code', 'PAYMENT_DECLINED');
   await expect(page.getByTestId('order-line')).toHaveCount(1); // the order is still there
-  expect(await quantity(request, vendor, SOURDOUGH)).toBe(before); // reserved, then given back
+  expect(await quantity(request, vendor, SOURDOUGH)).toBe(before); // the token is refused before anything is reserved
 
-  await page.unroute('**/api/graphql'); // the same order, the same idempotency key, now approved
+  await method.selectOption({ label: 'Test card (accepted)' }); // the same order with the accepted method
   await placeButton(page).click();
   await expect(page.getByTestId('order-status')).toHaveText('Order confirmed');
   expect(await quantity(request, vendor, SOURDOUGH)).toBe(before - 1);

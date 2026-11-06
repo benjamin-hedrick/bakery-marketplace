@@ -17,10 +17,10 @@ interface GraphQLResponse<T> {
   errors?: { message: string; extensions?: { code?: string } }[];
 }
 
-async function send<T>(query: string, variables: object, token: string | null, headers: Record<string, string>) {
+async function send<T>(query: string, variables: object, token: string | null) {
   const res = await fetch(BFF_URL, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers },
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify({ query, variables }),
   });
   if (res.status === 401) return { unauthenticated: true as const };
@@ -33,17 +33,16 @@ async function send<T>(query: string, variables: object, token: string | null, h
 export async function gql<T>(
   query: string,
   variables: object = {},
-  options: { authenticated?: boolean; headers?: Record<string, string> } = {},
+  options: { authenticated?: boolean } = {},
 ): Promise<T> {
-  const headers = options.headers ?? {};
   let token = options.authenticated ? await currentAccessToken() : null;
   if (options.authenticated && !token) throw new ApiError('Please sign in.', 'UNAUTHENTICATED');
 
-  let outcome = await send<T>(query, variables, token, headers);
+  let outcome = await send<T>(query, variables, token);
   if ('unauthenticated' in outcome && options.authenticated) {
     if (await renewAfterRejection()) {
       token = await currentAccessToken();
-      outcome = await send<T>(query, variables, token, headers);
+      outcome = await send<T>(query, variables, token);
       if ('unauthenticated' in outcome) {
         // The issuer accepted the renewal but the BFF still rejects the new token (register 152): end the session so the login screen appears.
         await signOut();

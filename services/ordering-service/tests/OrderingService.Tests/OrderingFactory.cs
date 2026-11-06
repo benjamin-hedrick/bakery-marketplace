@@ -33,6 +33,9 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
 
     public ManualTime Time { get; } = new(Seed.Now);
 
+    /// <summary>The host's payment methods: every test customer has the two test methods (see <see cref="TestPaymentMethodRepository"/>).</summary>
+    public TestPaymentMethodRepository MethodRepository { get; } = new();
+
     private readonly IReadOnlyDictionary<string, string> _extraSettings;
     private readonly Microsoft.Extensions.Logging.ILoggerProvider? _logs;
 
@@ -80,6 +83,8 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
         {
             if (_logs is not null) services.AddSingleton(_logs);
             _configureServices?.Invoke(services);
+            services.RemoveAll<BakeryMarketplace.Data.IRepository<OrderingService.Persistence.PaymentMethodDocument>>();
+            services.AddSingleton<BakeryMarketplace.Data.IRepository<OrderingService.Persistence.PaymentMethodDocument>>(MethodRepository);
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -109,9 +114,6 @@ internal sealed class OrderingFactory : WebApplicationFactory<Program>
 
     public HttpClient CustomerClient(string customerId = "customer-1")
     {
-        // A test customer has the two test payment methods, as the seeded customers have theirs (see PaymentMethods).
-        PaymentMethods.EnsureAsync(Services.GetRequiredService<BakeryMarketplace.Data.IRepository<OrderingService.Persistence.PaymentMethodDocument>>(), customerId)
-            .GetAwaiter().GetResult();
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token(customerId, "Customer"));
         return client;

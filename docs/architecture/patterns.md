@@ -37,7 +37,7 @@ The two usually point the same way in a small project (the cheap local option is
 
 ## 2. Fail visibly on configuration
 
-A service refuses to start rather than guess. `ordering-service` and `catalog-service` stop unless `Events:Backend` is `redis` or `inmemory`, so events are never dropped silently; `ordering-service` stops if `Pickup:TimeZoneId` is unknown. Test hooks are gated the same way: the `X-Test-Payment` header is ignored (and logged) in Production, and the BFF forwards the declined-payment hook only when `ENABLE_TEST_HOOKS` is set, which must never be set outside tests. The exception to the rule is the telemetry exporter, which can drop spans silently (register 82).
+A service refuses to start rather than guess. `ordering-service` and `catalog-service` stop unless `Events:Backend` is `redis` or `inmemory`, so events are never dropped silently; `ordering-service` stops if `Pickup:TimeZoneId` is unknown. Test hooks are gated the same way: `ENABLE_TEST_HOOKS` (which now only lets the web app's mock-backed browser tests pick fixtures) must never be set outside tests. There is no payment hook any more: a declined payment is a saved payment method whose token fails ordering's token rule (`WI-ORD-010`). The exception to the rule is the telemetry exporter, which can drop spans silently (register 82).
 
 ## 3. Outbox with inline publish and a relay
 
@@ -84,7 +84,7 @@ How each row was established is stated, because "designed to" and "shown to" dif
 | Redis Streams during checkout | the order is stored with its events; the inline publish gives up after 2 s and the relay sends them later; the customer still gets the order | real-stack run with a Redis outage and recovery (`WI-ORD-005`) |
 | Catalog during checkout | ordering cannot price or reserve, answers `503 downstream_unavailable`; the BFF has no typed code for it, so the customer sees a generic error with a trace reference | read in code; ordering's call timeout is 5 s; not run as a failure test |
 | Not enough stock | `409 insufficient_stock` with the quantity left; the web page offers it | real-stack journey |
-| Payment declined (test hook) | the reservation is released and the answer is `402`; no order is stored, the customer's cart is kept, and the web client uses a new key | real-stack journey |
+| Payment declined (a saved method whose token fails ordering's rule) | nothing is reserved and the answer is `402`; no order is stored, the customer's cart is kept, and the web client uses a new key | real-stack journey |
 | The BFF or a service is slow | the BFF times out reads at 5 s and checkout at 15 s | configuration; the 15 s limit was met by the 4.7 s cold checkout |
 | Issuer cold or unreachable | the first request on a cold stack waits about 2 s twice (metadata, then a service token) | measured in the trace; behaviour with the issuer down is not examined |
 | Cosmos | not examined here | |
