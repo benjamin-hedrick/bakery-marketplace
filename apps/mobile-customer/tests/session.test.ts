@@ -134,18 +134,13 @@ describe('the issuer cannot be reached', () => {
     assert.equal(await app.session.currentAccessToken(), 'access-3');
   });
 
-  // Register 151: session.ts treats every non-2xx answer as a refusal, so a 5xx from the issuer deletes the stored refresh token. The spec (and
-  // the web session) call a 5xx an outage. Marked todo: the test states the required behaviour and fails until the lead decides on the change.
-  test(
-    'an issuer 5xx is an outage, not a refusal: the token is kept',
-    { todo: 'register 151: a 5xx deletes the refresh token' },
-    async () => {
-      seedRefreshToken();
-      fakeFetch(() => ({ status: 503, json: {} }));
-      await app.session.restoreSession();
-      assert.equal(storedRefreshToken(), 'refresh-1');
-    },
-  );
+  // Register 151 (fixed 2026-11-05 with the lead's approval): a 5xx from the issuer used to count as a refusal and delete the refresh token.
+  test('an issuer 5xx is an outage, not a refusal: the token is kept', async () => {
+    seedRefreshToken();
+    fakeFetch(() => ({ status: 503, json: {} }));
+    await app.session.restoreSession();
+    assert.equal(storedRefreshToken(), 'refresh-1');
+  });
 });
 
 describe('the login callback', () => {

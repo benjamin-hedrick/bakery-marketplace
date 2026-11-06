@@ -63,6 +63,7 @@ async function postToken(body: Record<string, string>): Promise<Tokens | 'refuse
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(body).toString(),
     });
+    if (res.status >= 500) return 'unreachable'; // an outage says nothing about the token: keep it (register 151)
     if (!res.ok) return 'refused';
     const json = (await res.json()) as Tokens;
     return typeof json.access_token === 'string' ? json : 'refused';
