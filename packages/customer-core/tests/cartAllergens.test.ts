@@ -133,15 +133,21 @@ describe('the checkout request', () => {
   };
 
   test('sends allergens only when there are some, sorted and without repeats', () => {
-    assert.equal('allergens' in toPlaceOrderInput(cart, null), false);
-    assert.equal('allergens' in toPlaceOrderInput(cart, null, []), false);
-    assert.deepEqual(toPlaceOrderInput(cart, null, ['tree-nut', 'dairy', 'tree-nut']).allergens, ['dairy', 'tree-nut']);
+    assert.equal('allergens' in toPlaceOrderInput(cart, null, 'pm-ok'), false);
+    assert.equal('allergens' in toPlaceOrderInput(cart, null, 'pm-ok', []), false);
+    assert.deepEqual(toPlaceOrderInput(cart, null, 'pm-ok', ['tree-nut', 'dairy', 'tree-nut']).allergens, [
+      'dairy',
+      'tree-nut',
+    ]);
   });
 
   test('a different choice of allergens is a different checkout (a new idempotency key), the same choice in any order is not', () => {
-    assert.notEqual(fingerprint(cart, null, []), fingerprint(cart, null, ['dairy']));
-    assert.notEqual(fingerprint(cart, null, ['dairy']), fingerprint(cart, null, ['dairy', 'egg']));
-    assert.equal(fingerprint(cart, null, ['egg', 'dairy']), fingerprint(cart, null, ['dairy', 'egg']));
-    assert.equal(fingerprint(cart, null), fingerprint(cart, null, []));
+    assert.notEqual(fingerprint(cart, null, 'pm-ok', []), fingerprint(cart, null, 'pm-ok', ['dairy']));
+    assert.notEqual(fingerprint(cart, null, 'pm-ok', ['dairy']), fingerprint(cart, null, 'pm-ok', ['dairy', 'egg']));
+    assert.equal(
+      fingerprint(cart, null, 'pm-ok', ['egg', 'dairy']),
+      fingerprint(cart, null, 'pm-ok', ['dairy', 'egg']),
+    );
+    assert.equal(fingerprint(cart, null, 'pm-ok'), fingerprint(cart, null, 'pm-ok', []));
   });
 });
