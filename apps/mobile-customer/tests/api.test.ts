@@ -57,11 +57,15 @@ describe('an UNAUTHENTICATED answer', () => {
       assert.equal(bffCalls(calls)[1]!.headers.authorization, 'Bearer access-2', 'the retry carries the renewed token');
     });
 
-    test(`${name} a second time is an error, not a loop`, async () => {
+    // Register 152, option B: the issuer and the BFF disagree about a fresh token, so the session ends (signedOut, refresh token deleted).
+    test(`${name} a second time is an error, not a loop, and ends the session`, async () => {
       const calls = await signedIn(() => rejection);
       await assert.rejects(() => app.api.gql('{ hello }', {}, { authenticated: true }), isUnauthenticated);
       assert.equal(tokenCalls(calls).length, 1);
       assert.equal(bffCalls(calls).length, 2);
+      assert.equal(storedRefreshToken(), undefined, 'the refresh token is deleted');
+      assert.equal(await app.session.currentAccessToken(), null, 'no session is left');
+      assert.equal(tokenCalls(calls).length, 1, 'and nothing asks the issuer again');
     });
   }
 

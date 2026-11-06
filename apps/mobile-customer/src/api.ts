@@ -1,6 +1,6 @@
 // The GraphQL BFF over plain fetch (WI-MOB-001): the app sends the access token as a bearer; an UNAUTHENTICATED answer is refreshed once, then the
 // customer goes back to the login screen. Orders and carts are not cached on the device beyond the running session (ADR-0014, ADR-0023).
-import { currentAccessToken, renewAfterRejection } from './auth/session';
+import { currentAccessToken, renewAfterRejection, signOut } from './auth/session';
 import { BFF_URL } from './config';
 
 export class ApiError extends Error {
@@ -44,6 +44,10 @@ export async function gql<T>(
     if (await renewAfterRejection()) {
       token = await currentAccessToken();
       outcome = await send<T>(query, variables, token, headers);
+      if ('unauthenticated' in outcome) {
+        // The issuer accepted the renewal but the BFF still rejects the new token (register 152): end the session so the login screen appears.
+        await signOut();
+      }
     }
     if ('unauthenticated' in outcome) throw new ApiError('Please sign in.', 'UNAUTHENTICATED');
   }
