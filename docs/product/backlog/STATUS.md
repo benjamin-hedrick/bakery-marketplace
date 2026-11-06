@@ -295,13 +295,12 @@ Accepted: 22 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
-| Resolved | 52 |
+| Resolved | 56 |
 | Accepted | 9 |
 | Tracking | 12 |
 | Open | 54 |
-| Decided | 3 |
+| Decided | 2 |
 | Partly | 1 |
-| Approved | 3 |
 | First | 1 |
 | Done | 1 |
 | Diagnosed | 1 |
