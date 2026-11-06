@@ -82,7 +82,7 @@ Formatting and linting (decided 2026-10-28, `docs/process/quality-gates.md`): `d
 
 ## Architecture (needs several files to see)
 
-**Decisions live in `docs/architecture/adr/` (0001–0018 and 0020; 0019 is reserved and unwritten).** Read the ADR index first. Amendments are appended as dated notes at the bottom of the ADR, never by rewriting its decision text. Superseded ADRs stay in place with a status line (ADR-0011 is superseded by ADR-0012).
+**Decisions live in `docs/architecture/adr/` (0001–0023, all written).** Read the ADR index first. Amendments are appended as dated notes at the bottom of the ADR, never by rewriting its decision text. Superseded ADRs stay in place with a status line (ADR-0011 is superseded by ADR-0012).
 
 **Shape (ADR-0012/0013, adopted 2026-10-26; built and run locally only, not deployed):** Next.js Pages Router apps (SSR only for public listing pages) → Node/TypeScript GraphQL BFF with a Relay client → C# REST services. In the cloud the BFF calls services through Azure API Management; locally it calls them directly. **C# services own all business rules, pricing, availability and order state; the BFF is composition and error mapping only.** Don't put domain logic in the BFF or let the GraphQL schema become a second domain model.
 
