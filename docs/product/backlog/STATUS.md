@@ -10,9 +10,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 | Status | Count |
 |---|---|
-| Done | 54 |
+| Done | 55 |
 | In progress | 5 |
-| In review | 24 |
+| In review | 23 |
 | Built | 1 |
 | Ready | 4 |
 | Proposed | 4 |
@@ -44,7 +44,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PM-ARTIFACTS | 4 of 8 | MGMT-001, MGMT-002, MGMT-003, MGMT-004, MGMT-005, MGMT-006, MGMT-007, MGMT-008 |
 | EPIC-PORTFOLIO-SLICE | 6 of 7 | PORT-001, PORT-002, PORT-003, PORT-004, PORT-005, PORT-006, PORT-007 |
 | EPIC-PREFERENCES | 0 of 1 | PREF-001, PREF-002 |
-| EPIC-PRODUCT-STRATEGY | 1 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
+| EPIC-PRODUCT-STRATEGY | 2 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
 | EPIC-QUALITY-EVIDENCE | 1 of 4 | MOB-003, QA-001, QA-002, QA-003 |
 | EPIC-QUEUE-DISPLAY | 3 of 5 | QUE-001, QUE-002, QUE-003, QUE-004, QUE-005 |
 | EPIC-RATE-LIMITING | 0 of 1 | RATE-001 |
@@ -142,7 +142,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [PROD-001](WI-PROD-001.md) | Draft personas / Jobs-to-be-Done | EPIC-PRODUCT-STRATEGY | Done | evidence: `docs/product/personas.md` |
 | [PROD-002](WI-PROD-002.md) | Competitive scan | EPIC-PRODUCT-STRATEGY | Proposed | decision: the lead sets the scope (which comparable products, how deep) |
 | [PROD-003](WI-PROD-003.md) | Monetization model | EPIC-PRODUCT-STRATEGY | Proposed | decision: the commission percentage and ad revenue split are business assumptions the lead sets |
-| [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | EPIC-PRODUCT-STRATEGY | In review | decision: the lead sets the targets and confirms the north-star definition; first version written 2026-10-30 |
+| [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | EPIC-PRODUCT-STRATEGY | Done | the lead confirmed the north-star definition and set the targets 2026-11-06; baselines refreshed the same day (changes in the revision log of `docs/product/okrs.md`); revise after each slice |
 | [QA-001](WI-QA-001.md) | Test strategy and guides | EPIC-QUALITY-EVIDENCE | Done | evidence: the Outcome note under this banner; `docs/process/test-strategy.md`, `playwright-guide.md`, `test-review-checklist.md`, `docs/product/backlog/TRACEABILITY.md`, `apps/web-customer/tests/e2e/accessibility.spec.ts` |
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | EPIC-QUALITY-EVIDENCE | In progress | remaining: rows `G-H04` and `G-H05` (theory tests that need judgment), throughput, and a CI job for repeated runs |
 | [QA-003](WI-QA-003.md) | Planned experiments: AI-assisted testing and the mobile question | EPIC-QUALITY-EVIDENCE | Deferred | trigger: the lead decides to run the experiments |
@@ -203,7 +203,7 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-154 numbered items in `docs/governance/open-items-register.md` (highest number 154).
+155 numbered items in `docs/governance/open-items-register.md` (highest number 155).
 
 | Type | Count |
 |---|---|
@@ -289,15 +289,18 @@ Accepted: 22 · Superseded: 1
 | Question (behaviour) | 1 |
 | Finding (static analysis) | 1 |
 | Option (future) | 1 |
+| Process review (agenda) | 1 |
 
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
-| Resolved | 51 |
+| Resolved | 52 |
 | Accepted | 9 |
 | Tracking | 12 |
-| Open | 61 |
-| Decided | 1 |
+| Open | 55 |
+| Decided | 3 |
 | Partly | 1 |
+| Approved | 3 |
 | First | 1 |
 | Done | 1 |
+| Part | 1 |

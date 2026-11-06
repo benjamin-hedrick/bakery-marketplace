@@ -2,7 +2,7 @@
 
 > **Status:** Generated · do not edit; `node scripts/docs/traceability.mjs` regenerates it and `--check` verifies it. Files are matched by naming the work item id as a whole word, so a missing entry means the link is not written down, not that nothing tests it, and a work item that is a document has no test by nature. Tests are the files under `tests/` and `test/` folders; evidence is `docs/evidence/`.
 
-Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence record, 16 by neither.
+Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence record, 17 by neither.
 
 | Item | Title | Status | Test files naming it | Evidence records naming it |
 |---|---|---|---|---|
@@ -71,7 +71,7 @@ Of 54 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [PORT-007](WI-PORT-007.md) | First-slice domain/API contract and GraphQL mapping | Done | *none* | *none* |
 | [PREF-001](WI-PREF-001.md) | The customer's allergen profile (allergies and avoid) | In review | `preferences.spec.ts`, `CosmosPreferenceTests.cs`, `PreferenceApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [PROD-001](WI-PROD-001.md) | Draft personas / Jobs-to-be-Done | Done | *none* | *none* |
-| [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | In review | *none* | *none* |
+| [PROD-004](WI-PROD-004.md) | Success metrics and OKRs | Done | *none* | *none* |
 | [QA-001](WI-QA-001.md) | Test strategy and guides | Done | `accessibility.spec.ts` | `status-check-experiment-2026-10-30.md` |
 | [QA-002](WI-QA-002.md) | Quality metrics and scripted baselines | In progress | *none* | `latency-2026-10-30.md`, `quality-report-2026-10-30.md` |
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | Done | `vendor-orders.test.ts`, `VendorOrderReadModelTests.cs` | *none* |

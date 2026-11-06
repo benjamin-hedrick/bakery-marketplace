@@ -260,7 +260,7 @@ Scope: cross-cutting-artifact · Primary hat(s): Digital PM · Status: see [STAT
 - ✅ PROD-001 (Document/Artifact) — **Done**, see `docs/product/personas.md` + `WI-PROD-001.md`
 - ⚪ PROD-002 (Document/Artifact) — Competitive scan — spec: `WI-PROD-002.md` (Proposed, 2026-10-30)
 - ⚪ PROD-003 (Document/Artifact) — Monetization model — overlaps with `ADV-002` above; deliberately listed in both places rather than picking one home (see gap note below) — spec: `WI-PROD-003.md` (Proposed, 2026-10-30)
-- ⚪ PROD-004 (Document/Artifact) — OKRs / success metrics (north-star safety metric already named in vision; needs the rest) — spec: `WI-PROD-004.md` (In review, 2026-10-30)
+- ⚪ PROD-004 (Document/Artifact) — OKRs / success metrics (north-star safety metric already named in vision; needs the rest) — spec: `WI-PROD-004.md` (Done, 2026-11-06)
 
 ---
 
