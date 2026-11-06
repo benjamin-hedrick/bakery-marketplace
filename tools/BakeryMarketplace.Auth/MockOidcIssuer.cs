@@ -374,7 +374,13 @@ public static class MockOidcIssuer
                 return InvalidGrant("The refresh token has expired.");
             }
 
-            if (!string.IsNullOrEmpty(clientId) && data.ClientId is not null && !string.Equals(clientId, data.ClientId, StringComparison.Ordinal))
+            // Register 120: the client must name itself, and be the one the token was issued to. Checked before the token is spent.
+            if (string.IsNullOrEmpty(clientId))
+            {
+                return InvalidGrant("The refresh grant requires a client_id.");
+            }
+
+            if (data.ClientId is not null && !string.Equals(clientId, data.ClientId, StringComparison.Ordinal))
             {
                 return InvalidGrant("The refresh token was issued to another client.");
             }

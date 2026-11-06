@@ -218,6 +218,23 @@ public class RefreshTokenGrantTests
         Assert.True(rightClient.IsSuccessStatusCode); // the refusal did not spend the token
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task ARefreshWithoutAClientIdIsRefusedAndDoesNotSpendTheToken(string? missingClientId)
+    {
+        using var server = CreateServer();
+        using var client = server.CreateClient();
+        var login = await LoginAsync(client, MockUsers.Customer.Id, "openid offline_access");
+
+        var anonymous = await RefreshAsync(client, login["refresh_token"]!.ToString(), missingClientId);
+        var rightClient = await RefreshAsync(client, login["refresh_token"]!.ToString());
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, anonymous.StatusCode);
+        Assert.Equal("invalid_grant", (await BodyAsync(anonymous))["error"]!.ToString());
+        Assert.True(rightClient.IsSuccessStatusCode);
+    }
+
     [Fact]
     public async Task ARefreshCannotChangeWhoTheTokenIsFor()
     {
