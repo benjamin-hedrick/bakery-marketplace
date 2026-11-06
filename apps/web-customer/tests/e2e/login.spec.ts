@@ -222,6 +222,9 @@ test('a forged cross-origin post to the GraphQL route, and a browser Authorizati
   await page.goto('/');
   await page.getByRole('button', { name: 'Log in' }).click();
   await expect(page.getByTestId('user-name')).toBeVisible();
+  // The page's own calls after login (profile, listings) must have finished, or one lands after the reset below and
+  // is counted as a forged request. This was a race that failed on the slower pipeline agent.
+  await page.waitForLoadState('networkidle');
   await forgetBffAuthorizations();
   const body = JSON.stringify({ query: '{ __typename }' });
 
