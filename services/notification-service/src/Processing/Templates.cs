@@ -13,7 +13,7 @@ public sealed class TemplateMessageComposer : IMessageComposer
 {
     /// <summary>The event types that have a template. A test keeps this equal to what the service subscribes to.</summary>
     public static IReadOnlyCollection<string> SupportedEventTypes { get; } =
-        ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", "OrderReadyForFulfillment", "OrderCompleted", "OrderCancelled"];
+        ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", FulfillmentEventTypes.ReadyForPickup, FulfillmentEventTypes.PickupWindowScheduled, "OrderCompleted", "OrderCancelled"];
 
     public (string Subject, string Body) Compose(OrderEventInfo info, Contact contact)
     {
@@ -23,7 +23,8 @@ public sealed class TemplateMessageComposer : IMessageComposer
             OrderPlacedPayload p => ($"We have your order {reference}", Placed(p, reference)),
             OrderConfirmedPayload p => ($"Order {reference} is confirmed", Confirmed(p, reference)),
             OrderPreparationStartedPayload => ($"Order {reference} is being prepared", [$"The bakery has started preparing order {reference}."]),
-            OrderReadyForFulfillmentPayload p => ($"Order {reference} is ready", Ready(p, reference)),
+            PickupWindowScheduledPayload p => ($"Pickup for order {reference} is scheduled", Scheduled(p, reference)),
+            OrderReadyForPickupPayload p => ($"Order {reference} is ready", Ready(p, reference)),
             OrderCompletedPayload => ($"Order {reference} is complete", [$"Order {reference} has been handed over. Thank you for ordering."]),
             OrderCancelledPayload p => ($"Order {reference} was cancelled", [Cancelled(p, reference)]),
             _ => throw new NotSupportedException($"There is no template for {info.EventType}."),
@@ -55,12 +56,14 @@ public sealed class TemplateMessageComposer : IMessageComposer
         return [.. lines];
     }
 
-    private static string[] Ready(OrderReadyForFulfillmentPayload p, string reference)
+    // From the pickup strategy's events (WI-ORD-003). The instructions are free text and are left out, as before.
+    private static string[] Scheduled(PickupWindowScheduledPayload p, string reference) =>
+        [$"Your pickup for order {reference} is scheduled: {Window(p.WindowStart, p.WindowEnd)}."];
+
+    private static string[] Ready(OrderReadyForPickupPayload p, string reference)
     {
-        var lines = new List<string> { p.FulfillmentType == FulfillmentType.Pickup
-            ? $"Your order {reference} is ready for pickup."
-            : $"Your order {reference} is ready." };
-        if (Window(p.Details) is { } window) lines.Add($"Pickup window: {window}.");
+        var lines = new List<string> { $"Your order {reference} is ready for pickup." };
+        if (p.WindowStart is { } start && p.WindowEnd is { } end) lines.Add($"Pickup window: {Window(start, end)}.");
         return [.. lines];
     }
 
@@ -75,10 +78,14 @@ public sealed class TemplateMessageComposer : IMessageComposer
     /// <summary>The pickup window as stored (the offset the order carries), or null when there is none.</summary>
     private static string? Window(FulfillmentDetails? details)
     {
-        if (details?.Pickup is not { } pickup) return null;
+        return details?.Pickup is { } pickup ? Window(pickup.WindowStart, pickup.WindowEnd) : null;
+    }
+
+    private static string Window(DateTimeOffset windowStart, DateTimeOffset windowEnd)
+    {
         const string format = "ddd d MMM, HH:mm";
-        var start = pickup.WindowStart.ToString(format, CultureInfo.InvariantCulture);
-        var end = pickup.WindowEnd.ToString(pickup.WindowEnd.Date == pickup.WindowStart.Date ? "HH:mm" : format, CultureInfo.InvariantCulture);
-        return $"{start} to {end} (UTC{pickup.WindowStart:zzz})";
+        var start = windowStart.ToString(format, CultureInfo.InvariantCulture);
+        var end = windowEnd.ToString(windowEnd.Date == windowStart.Date ? "HH:mm" : format, CultureInfo.InvariantCulture);
+        return $"{start} to {end} (UTC{windowStart:zzz})";
     }
 }

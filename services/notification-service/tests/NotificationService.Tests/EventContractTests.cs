@@ -21,23 +21,32 @@ public sealed class EventContractTests
             .OrderBy(x => x, StringComparer.Ordinal)
             .ToArray();
 
+    // The customer-facing "ready" message follows the pickup strategy's events, not the order's own OrderReadyForFulfillment (WI-ORD-003),
+    // and the strategy's "pickup window scheduled" has a message of its own.
+    private static string[] Expected() =>
+        OrderingEventTypes()
+            .Where(t => t != "OrderReadyForFulfillment")
+            .Concat([FulfillmentEventTypes.ReadyForPickup, FulfillmentEventTypes.PickupWindowScheduled])
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToArray();
+
     [Fact]
-    public void Subscribes_to_exactly_the_events_ordering_publishes()
+    public void Subscribes_to_the_orders_lifecycle_events_and_the_pickup_strategys()
     {
-        Assert.Equal(OrderingEventTypes(), OrderEventSubscriptions.EventTypes.OrderBy(x => x, StringComparer.Ordinal));
+        Assert.Equal(Expected(), OrderEventSubscriptions.EventTypes.OrderBy(x => x, StringComparer.Ordinal));
     }
 
     [Fact]
-    public void Has_a_template_for_every_event_ordering_publishes()
+    public void Has_a_template_for_every_event_it_subscribes_to()
     {
-        Assert.Equal(OrderingEventTypes(), TemplateMessageComposer.SupportedEventTypes.OrderBy(x => x, StringComparer.Ordinal));
+        Assert.Equal(Expected(), TemplateMessageComposer.SupportedEventTypes.OrderBy(x => x, StringComparer.Ordinal));
     }
 
     [Fact]
     public void Every_event_type_has_a_payload_type_in_the_shared_schemas()
     {
         var payloads = typeof(OrderPlacedPayload).Assembly.GetTypes().Select(t => t.Name).ToHashSet();
-        foreach (var eventType in OrderingEventTypes())
+        foreach (var eventType in Expected())
             Assert.Contains(eventType + "Payload", payloads);
     }
 }
