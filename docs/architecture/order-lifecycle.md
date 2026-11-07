@@ -66,6 +66,10 @@ Implemented by `WI-ORD-007` (2026-10-28); they call the aggregate's methods and 
 - **Side effects, owned elsewhere:** each transition's events are published by `ORD-005`; releasing held stock and the payment steps follow items 52 and 53.
 - Authorization and ownership are auth logic (human approval required): **approved for design and implementation on 2026-10-28, to be iterated.**
 
+## Planned: completion behind the fulfillment seam (`WI-ORD-003`, agreed 2026-11-07, not built)
+
+The tables above describe what is built. The agreed next change, which makes the events-only rule of ADR-0001 true in the running system: `PickupFulfillment` becomes its own event consumer; `POST /ordering/orders/{id}/complete` (the vendor's "Handed over") checks the order and publishes a new seam event, `OrderFulfillmentConfirmationRequested`, and returns **202** with the order as it is; the strategy answers with `OrderFulfillmentCompleted` (and raises `PickupWindowScheduled` on `OrderConfirmed` and `OrderReadyForPickup` on `OrderReadyForFulfillment`); the Order's handler of `OrderFulfillmentCompleted` calls `Complete`, which raises `OrderCompleted` as today. The Order's state machine and its own events do not change, so the vendor read model, the vendor queue and the customer pages are unaffected; a cancel that lands between the request and the completion wins (the handler ignores a completion for an order that is no longer `ReadyForFulfillment`). The customer's "ready for pickup" and "pickup window" messages are sent from the pickup events. Design and the one open decision: `docs/product/backlog/WI-ORD-003.md`.
+
 ## Not defined yet
 
 Availability windows and per-item pickup-window rules (open item 51), the stock design is ADR-0017, payment timing (53), vendor-response timeout (55, deferred), refunds (57). Pickup no-shows are handled by the vendor cancelling from ReadyForFulfillment (item 56, resolved). Open items 58 to 60 record the effects on the first-slice decisions, event schemas and accounts.

@@ -123,7 +123,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
 | [ORD-001](WI-ORD-001.md) | Checkout (payment stubbed) | EPIC-ORDERING | Done | evidence: `services/ordering-service` and its tests; the verification below was run on 2026-10-28 |
 | [ORD-002](WI-ORD-002.md) | Order aggregate + lifecycle states | EPIC-ORDERING | Done | evidence: `services/ordering-service/src/Domain/Order.cs` and `OrderingService.Tests` (lifecycle, cancellation, events); lifecycle in `docs/architecture/order-lifecycle.md` |
-| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | EPIC-ORDERING | In progress | remaining: pickup windows are built; the `PickupFulfillment` events remain |
+| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | EPIC-ORDERING | In progress | remaining: pickup windows are built (2026-10-28); `PickupFulfillment` itself is designed and agreed (2026-11-07) and is the first build of the next session; one decision is open (decision 2 below) |
 | [ORD-004](WI-ORD-004.md) | FulfillmentStrategy interface (ACL boundary) | EPIC-ORDERING | Done | evidence: `services/ordering-service` (the fulfillment seam) and its tests |
 | [ORD-005](WI-ORD-005.md) | Publish Order domain events via event backbone | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
@@ -207,7 +207,7 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-159 numbered items in `docs/governance/open-items-register.md` (highest number 159).
+161 numbered items in `docs/governance/open-items-register.md` (highest number 161).
 
 | Type | Count |
 |---|---|
@@ -296,6 +296,8 @@ Accepted: 22 · Superseded: 1
 | Process review (agenda) | 1 |
 | Scope gap | 1 |
 | Hardening gap | 1 |
+| Planned work | 1 |
+| Usability | 1 |
 
 | Item status | Count |
 |---|---|
@@ -303,7 +305,7 @@ Accepted: 22 · Superseded: 1
 | Resolved | 57 |
 | Accepted | 9 |
 | Tracking | 12 |
-| Open | 56 |
+| Open | 58 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
