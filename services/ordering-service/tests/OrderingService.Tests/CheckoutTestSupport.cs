@@ -1,4 +1,5 @@
 using BakeryMarketplace.Data;
+using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -285,6 +286,8 @@ internal sealed class CheckoutFixture
     public OutboxRelay Relay { get; }
     public CheckoutService Service { get; }
     public OrderActionService Actions { get; }
+    public OrderingService.Fulfillment.PickupFulfillment Strategy { get; }
+    public FulfillmentCompletionHandler CompletionHandler { get; }
 
     public CheckoutFixture()
     {
@@ -296,7 +299,28 @@ internal sealed class CheckoutFixture
         Service = new CheckoutService(
             Catalog, Store, Payments, new PickupSchedule(Options.Create(new PickupScheduleOptions())), Methods, Publisher, Allergens,
             Options.Create(CheckoutSettings), Time, NullLogger<CheckoutService>.Instance);
-        Actions = new OrderActionService(Store, Catalog, Publisher, Time, NullLogger<OrderActionService>.Instance);
+        Actions = new OrderActionService(Store, Catalog, Publisher, Events, Time, NullLogger<OrderActionService>.Instance);
+        Strategy = new OrderingService.Fulfillment.PickupFulfillment(Events);
+        CompletionHandler = new FulfillmentCompletionHandler(Store, Publisher, NullLogger<FulfillmentCompletionHandler>.Instance);
+    }
+
+    /// <summary>
+    /// Stands in for the transport in unit tests: hands every "completion requested" event published so far to the pickup strategy, and
+    /// every "fulfillment completed" event it (or anyone) published to the Ordering side, as a subscriber would receive them. Delivering
+    /// again delivers the same events again, which is what at-least-once delivery does.
+    /// </summary>
+    public async Task DeliverFulfillmentEventsAsync()
+    {
+        foreach (var e in Events.Published.Where(p => p.EventType == FulfillmentEventTypes.ConfirmationRequested).ToList())
+            await Strategy.OnConfirmationRequestedAsync(
+                new DomainEventEnvelope<OrderFulfillmentConfirmationRequestedPayload>(
+                    e.EventId, e.EventType, 1, DateTimeOffset.UtcNow, "Order", e.AggregateId, e.Sequence, (OrderFulfillmentConfirmationRequestedPayload)e.Payload, e.Traceparent),
+                CancellationToken.None);
+        foreach (var e in Events.Published.Where(p => p.EventType == FulfillmentEventTypes.Completed).ToList())
+            await CompletionHandler.OnCompletedAsync(
+                new DomainEventEnvelope<OrderFulfillmentCompletedPayload>(
+                    e.EventId, e.EventType, 1, DateTimeOffset.UtcNow, "Order", e.AggregateId, e.Sequence, (OrderFulfillmentCompletedPayload)e.Payload, e.Traceparent),
+                CancellationToken.None);
     }
 
     /// <summary>Gives the customer the two test methods (idempotent) and runs checkout. <c>decline</c> chooses the method whose token is invalid.</summary>

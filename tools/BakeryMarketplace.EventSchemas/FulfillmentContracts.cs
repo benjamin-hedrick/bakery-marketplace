@@ -90,6 +90,36 @@ public record OrderReadyForFulfillmentPayload(
 );
 
 /// <summary>
+/// Event names of the fulfillment seam (ADR-0001, WI-ORD-003). Ordering raises <c>OrderConfirmed</c> and <c>OrderReadyForFulfillment</c>
+/// and asks for a confirmation; a strategy answers with the rest.
+/// </summary>
+public static class FulfillmentEventTypes
+{
+    /// <summary>Published by ordering's <c>complete</c> endpoint: the vendor says the order was handed over.</summary>
+    public const string ConfirmationRequested = "OrderFulfillmentConfirmationRequested";
+
+    /// <summary>Published by the strategy when it accepts the confirmation; ordering completes the order on it.</summary>
+    public const string Completed = "OrderFulfillmentCompleted";
+
+    /// <summary>Pickup strategy events.</summary>
+    public const string PickupWindowScheduled = "PickupWindowScheduled";
+
+    public const string ReadyForPickup = "OrderReadyForPickup";
+}
+
+/// <summary>
+/// The vendor asked to complete the fulfillment of an order that is <see cref="OrderStatus.ReadyForFulfillment"/> (ADR-0001, WI-ORD-003).
+/// A plain integration event: it changes nothing in the order. The strategy for the type decides whether to accept it.
+/// </summary>
+public record OrderFulfillmentConfirmationRequestedPayload(
+    string OrderId,
+    string VendorId,
+    string CustomerId,
+    FulfillmentType FulfillmentType,
+    DateTimeOffset RequestedAt
+);
+
+/// <summary>
 /// Domain event published when fulfillment is completed and the order enters <see cref="OrderStatus.Completed"/> state.
 /// </summary>
 public record OrderFulfillmentCompletedPayload(

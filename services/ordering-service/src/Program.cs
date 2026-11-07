@@ -6,6 +6,7 @@ using BakeryMarketplace.Secrets;
 using Microsoft.Azure.Cosmos;
 using OrderingService.Api;
 using OrderingService.Checkout;
+using OrderingService.Fulfillment;
 using OrderingService.Orders;
 using OrderingService.Outbox;
 using OrderingService.Persistence;
@@ -107,6 +108,10 @@ builder.Services.AddHostedService<OutboxRelay>();
 builder.Services.Configure<VendorStreamOptions>(builder.Configuration.GetSection("VendorStream"));
 builder.Services.AddSingleton<VendorOrderStreamHub>();
 builder.Services.AddHostedService<VendorOrderSubscriptions>(); // the vendor order read model, fed by the order events (N-03)
+builder.Services.AddSingleton<FulfillmentCompletionHandler>(); // WI-ORD-003: the order's side of the fulfillment seam
+builder.Services.AddHostedService<FulfillmentCompletionSubscription>();
+builder.Services.AddSingleton<PickupFulfillment>(); // WI-ORD-003: the pickup strategy, its own consumer (events only)
+builder.Services.AddHostedService<PickupFulfillmentSubscriptions>();
 
 // Checkout (WI-ORD-001).
 builder.Services.AddSingleton(TimeProvider.System);
