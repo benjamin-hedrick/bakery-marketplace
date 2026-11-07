@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 // Register 159, ADR-0014 layer 3: what an API route answers by itself is not stored by any cache. The default for every /api response is `no-store`
-// (next.config.js, the same rule as in apps/web-customer). The stream's own policy, `no-store, no-transform`, and the BFF's pass-through are the proxy's
-// and are covered by the live-queue tests.
+// (next.config.js, the same rule as in apps/web-customer). The stream's own policy, `no-store, no-transform`, is the proxy's and is checked in
+// packages/web-session/tests/graphql-stream.test.ts; that Next leaves it as the handler set it is not asserted through the app here.
 
 test('the refusals the app writes itself are not stored', async ({ request }) => {
   const cases: [string, () => ReturnType<typeof request.post>][] = [
