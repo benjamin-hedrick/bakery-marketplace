@@ -26,7 +26,7 @@ A customer can add an item that sold out after the page loaded and learn it only
 **Requirements / Acceptance Criteria**
 - Pressing "Add to order" first reads the listing's `stock` fresh from the network (Relay `fetchQuery` with `network-only`, as `CheckoutForm` already does for windows; the Android app calls the listing query again). The item is added only when the fresh status is `IN_STOCK` or `LOW`; the quantity is capped to the fresh `maxPerOrder`.
 - Sold out on the fresh read: nothing is added, the page shows "Sold out" in words, and the stored listing record updates.
-- A fresh read that fails (network, service down): the customer is told the stock could not be checked and the item is **not** added silently; trying again works. (Chosen over adding anyway, since checkout would refuse a sold-out item later; the lead may reverse this.)
+- A fresh read that fails (network, service down): the customer is told the stock could not be checked and the item is **not** added silently; trying again works. (Decided by the lead 2026-11-07, over adding anyway.)
 - An unknown status counts as unavailable (as `canOrder` does now).
 - The cart page's checkout path is unchanged and remains the authoritative check.
 - **Tests:** unit tests in customer-core for the decision (in stock, low, sold out, unknown, capped quantity, failure); browser tests against the mock BFF (a listing that was in stock and is sold out on the second read; a failed read; the happy path adds once); Maestro: none new (the Android flows stay as they are; a unit test covers the app's logic); real stack: one skeleton journey (the vendor sets a listing's quantity to 0 after the customer's page loaded, the customer's add is refused).
