@@ -11,6 +11,14 @@
 // A stream whose token has expired (the mock issuer's last an hour) is reopened with a fresh token, as the web app does with a renewed session.
 //
 //   node scripts/dev/load-test.mjs [--minutes 3] [--order-every 3] [--readers 8] [--restart-at 0.5] [--outage 8] [--sample 30] [--read-pause 0] [--json out.json] [--keep]
+//                                      [--bff-rate-limit 100000] [--client-addresses]
+//
+// Register 137 (counting the BFF's rate limit per client): by default the BFF's backstop is set out of the way (100000 a minute). To show the fix,
+// run twice with the backstop at its default, `--bff-rate-limit 600`: without `--client-addresses` every reader and the ordering customer reach the
+// BFF with no client header, so they share one counter and the readers use it up (orders are refused: the control); with `--client-addresses`
+// each reader and the customer send their own `X-Bakery-Client-Address` (this script's address is a trusted source, `local-stack.mjs`), so the
+// customer's counter is the customer's own and no order may be refused outside the outage (the run then exits 1 if one was). The readers
+// themselves may be refused: that is the limit working on them. Test tooling that drives the system from outside; no product code changed.
 //
 // One machine, one process each, an emulator for the database: the numbers are a local data point, not a capacity claim. Exit code 0 when no
 // order was missed and the limits held; 1 otherwise. Logs: artifacts/load/*.log.
@@ -30,6 +38,8 @@ const sampleEvery = Number(opt('--sample', '30'));
 const readPause = Number(opt('--read-pause', '0')); // milliseconds a reader waits between rounds
 const jsonOut = opt('--json', undefined);
 const keep = argv.includes('--keep');
+const bffRateLimit = opt('--bff-rate-limit', '100000'); // a minute; the default backstop of the BFF is 600
+const perClient = argv.includes('--client-addresses'); // send X-Bakery-Client-Address per reader and for the ordering customer (register 137)
 
 const LISTING = 'listing-sourdough-001';
 const globalId = (type, id) => Buffer.from(`${type}:${id}`).toString('base64');
@@ -76,10 +86,14 @@ async function userToken(userId) {
   return (await res.json()).access_token;
 }
 
-const gql = (query, variables, token) =>
+const gql = (query, variables, token, clientAddress) =>
   fetch(bffUrl, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(perClient && clientAddress ? { 'x-bakery-client-address': clientAddress } : {}),
+    },
     body: JSON.stringify({ query, variables }),
     signal: AbortSignal.timeout(20000),
   });
@@ -233,11 +247,12 @@ const stack = createStack({ label: 'load', outDir: 'artifacts/load', distDir: '.
 const startedAt = Date.now();
 const report = {
   startedAt: new Date(startedAt).toISOString(),
-  options: { minutes, orderEvery, readers, restartAt, outage, sampleEvery },
+  options: { minutes, orderEvery, readers, restartAt, outage, sampleEvery, bffRateLimit, perClient },
 };
 let exitCode = 1;
-// The load is the point of this run, not the BFF's own backstop (tested elsewhere), so the backstop is set out of the way for the BFF this script starts.
-process.env.BFF_RATE_LIMIT_PER_MINUTE = '100000';
+// The load is the point of this run, not the BFF's own backstop (tested elsewhere), so the backstop is set out of the way for the BFF this script starts,
+// unless --bff-rate-limit says otherwise (register 137).
+process.env.BFF_RATE_LIMIT_PER_MINUTE = bffRateLimit;
 
 try {
   stack.up();
@@ -353,6 +368,7 @@ try {
             },
           },
           customerToken,
+          '10.20.0.1', // the ordering customer's own client address (sent only with --client-addresses)
         );
         const json = await res.json();
         const result = json.data?.placeOrder;
@@ -371,12 +387,13 @@ try {
     }
   })();
 
-  const readLoop = async () => {
+  const readLoop = async (_, index) => {
+    const clientAddress = `10.10.0.${index + 1}`; // each reader is a different client (sent only with --client-addresses)
     while (Date.now() < runEnd) {
       for (const q of [LISTINGS, WINDOWS]) {
         const t0 = performance.now();
         try {
-          const res = await gql(q);
+          const res = await gql(q, undefined, undefined, clientAddress);
           const json = await res.json();
           if (res.status === 200 && !json.errors) readSamples.push(performance.now() - t0);
           else
@@ -491,11 +508,16 @@ try {
 
   const limitsHeld =
     report.limits.stillOpen === 5 && JSON.stringify(report.limits.endedIndexes) === JSON.stringify([1, 2]);
-  exitCode = limitsHeld && afterRestart.length === 0 && missing.length === 0 ? 0 : 1;
+  // With --client-addresses (register 137) no order may be refused outside the outage: the customer's own counter must not be used up by the readers.
+  const orderRefusals = orderErrors.length - duringOutageOrders.length;
+  const ordersNotRefused = !perClient || orderRefusals === 0;
+  exitCode = limitsHeld && afterRestart.length === 0 && missing.length === 0 && ordersNotRefused ? 0 : 1;
   report.verdict = {
     limitsHeld,
     nothingMissed: missing.length === 0,
     nothingMissedAfterRecovery: afterRestart.length === 0,
+    ordersRefusedOutsideOutage: orderRefusals,
+    ...(perClient ? { ordersNotRefused } : {}),
   };
   console.log(JSON.stringify(report, null, 2));
   if (jsonOut) writeFileSync(jsonOut, JSON.stringify(report, null, 2));
