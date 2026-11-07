@@ -4,13 +4,21 @@ namespace BakeryMarketplace.Eventing;
 /// Adapter interface for event subscription.
 /// Consumers must be idempotent on EventId — the transport guarantees at-least-once delivery,
 /// not exactly-once (see ADR-0003).
+/// <para>
+/// <c>consumerName</c> (WI-ORD-003, register item 29): a consumer inside a service that must receive every message of an event type
+/// even though another consumer in the same service also subscribes to it. Without a name the consumer is the service's default
+/// consumer (instances of the service share it and split the work). With a name it is a separate consumer: it gets every message, and
+/// its instances split the work among themselves. Subscribing the same event type twice with the same name in one process throws
+/// <see cref="InvalidOperationException"/> at subscription time, because the two would silently split the messages.
+/// </para>
 /// </summary>
 public interface IEventSubscriber
 {
     Task SubscribeAsync<T>(
         string eventType,
         Func<DomainEventEnvelope<T>, CancellationToken, Task> handler,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        string? consumerName = null);
 
     /// <summary>
     /// Subscribes with a handler that receives the events the transport collected together (for Redis Streams, one poll of
@@ -22,5 +30,6 @@ public interface IEventSubscriber
     Task SubscribeBatchAsync<T>(
         string eventType,
         Func<IReadOnlyList<DomainEventEnvelope<T>>, CancellationToken, Task<IReadOnlyCollection<Guid>>> handler,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        string? consumerName = null);
 }

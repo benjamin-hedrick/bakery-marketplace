@@ -10,12 +10,19 @@ namespace BakeryMarketplace.Eventing;
 public class InMemoryEventTransport : IEventPublisher, IEventSubscriber
 {
     private readonly ConcurrentDictionary<string, List<Delegate>> _subscribers = new();
+    private readonly ConcurrentDictionary<string, byte> _namedConsumers = new();
 
     public Task SubscribeAsync<T>(
         string eventType,
         Func<DomainEventEnvelope<T>, CancellationToken, Task> handler,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        string? consumerName = null)
     {
+        // Every handler receives every event (as for default consumers before consumer names existed); a named consumer is
+        // additionally refused when its name is already in use for the event type, as in the Redis transport.
+        if (!string.IsNullOrWhiteSpace(consumerName) && !_namedConsumers.TryAdd($"{consumerName}:{eventType}", 0))
+            throw new InvalidOperationException($"Consumer '{consumerName}' already subscribes to '{eventType}'; two subscriptions with one name would split the messages.");
+
         _subscribers.AddOrUpdate(
             eventType,
             _ => new List<Delegate> { handler },
@@ -38,12 +45,13 @@ public class InMemoryEventTransport : IEventPublisher, IEventSubscriber
     public Task SubscribeBatchAsync<T>(
         string eventType,
         Func<IReadOnlyList<DomainEventEnvelope<T>>, CancellationToken, Task<IReadOnlyCollection<Guid>>> handler,
-        CancellationToken ct = default) =>
+        CancellationToken ct = default,
+        string? consumerName = null) =>
         SubscribeAsync<T>(eventType, async (envelope, token) =>
         {
             var failed = await handler(new[] { envelope }, token);
             if (failed.Count > 0) throw new InvalidOperationException($"Batch handler reported event {envelope.EventId} as failed.");
-        }, ct);
+        }, ct, consumerName);
 
     public async Task PublishAsync<T>(DomainEventEnvelope<T> envelope, CancellationToken ct = default)
     {
