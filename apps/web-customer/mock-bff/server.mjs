@@ -399,8 +399,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const seenAuthorizations = [];
 
 const server = http.createServer(async (req, res) => {
-  const send = (code, body) => {
-    res.writeHead(code, { 'content-type': 'application/json' });
+  const send = (code, body, headers = {}) => {
+    res.writeHead(code, { 'content-type': 'application/json', ...headers });
     res.end(JSON.stringify(body));
   };
   const chunks = [];
@@ -477,7 +477,7 @@ const server = http.createServer(async (req, res) => {
     },
     typeResolver: (value) => value.__typename,
   });
-  send(200, result);
+  send(200, result, { 'cache-control': 'private, no-store' }); // as the real BFF answers every GraphQL response (ADR-0014)
 });
 
 const port = Number(process.env.MOCK_PORT ?? 4000);

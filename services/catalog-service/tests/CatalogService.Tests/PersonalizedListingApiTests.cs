@@ -333,8 +333,50 @@ public sealed class PersonalizedListingApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, one.StatusCode);
         Assert.DoesNotContain("conflicts", await list.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("conflicts", await one.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
-        Assert.Null(list.Headers.CacheControl?.Private);
+        Assert.False(list.Headers.CacheControl?.Private ?? false); // the same answer for everyone: not private, and not the personalized no-store either
         Assert.False(list.Headers.CacheControl?.NoStore ?? false);
+    }
+
+    [Fact]
+    public async Task The_public_listing_reads_set_an_explicit_no_cache_policy_and_the_tag_registry_keeps_its_own()
+    {
+        var anonymous = _factory.CreateClient();
+        var responses = new[]
+        {
+            await anonymous.GetAsync("/catalog/listings"),
+            await anonymous.GetAsync("/catalog/listings?tag=vegan"),
+            await anonymous.GetAsync("/catalog/listings/listing-b-croissant"),
+            await anonymous.GetAsync("/catalog/listings/listing-nope"), // an answer for a listing that is not public is not reusable either
+        };
+
+        foreach (var r in responses) Assert.Equal(ListingEndpoints_PublicCacheControl, r.Headers.CacheControl!.ToString());
+        Assert.Equal(HttpStatusCode.NotFound, responses[3].StatusCode);
+        Assert.Equal(CatalogService.Tags.TagEndpoints.CacheControl, (await anonymous.GetAsync("/catalog/tags")).Headers.CacheControl!.ToString()); // carries no stock
+    }
+
+    private const string ListingEndpoints_PublicCacheControl = CatalogService.Api.ListingEndpoints.PublicCacheControl;
+
+    [Fact]
+    public async Task A_warm_listing_cache_never_carries_one_customers_conflicts_to_another_or_to_the_public()
+    {
+        await Save(["tree-nut"]);
+        var bob = _factory.ClientFor($"customer-{Guid.NewGuid():N}", "Customer");
+        var anonymous = _factory.CreateClient();
+
+        // Alice's reads warm the source cache (which holds listings, never a profile); then everyone else asks.
+        var alice1 = await JsonOf(await _customer.GetAsync("/catalog/listings/for-me"));
+        var alice2 = await JsonOf(await _customer.GetAsync("/catalog/listings/for-me"));
+        var bobPage = await JsonOf(await bob.GetAsync("/catalog/listings/for-me"));
+        var bobOne = await JsonOf(await bob.GetAsync("/catalog/listings/for-me/listing-b-croissant"));
+        var publicBody = await (await anonymous.GetAsync("/catalog/listings")).Content.ReadAsStringAsync();
+
+        Assert.NotEmpty(ConflictsOf(alice1, "listing-b-croissant"));
+        Assert.Equal(ConflictsOf(alice1, "listing-b-croissant"), ConflictsOf(alice2, "listing-b-croissant")); // the warm read gives her the same
+        Assert.All(bobPage.GetProperty("items").EnumerateArray(), i => Assert.Empty(i.GetProperty("conflicts").EnumerateArray()));
+        Assert.Empty(bobOne.GetProperty("conflicts").EnumerateArray());
+        Assert.DoesNotContain("conflicts", publicBody, StringComparison.OrdinalIgnoreCase);
+        foreach (var r in new[] { await _customer.GetAsync("/catalog/listings/for-me"), await bob.GetAsync("/catalog/listings/for-me") })
+            Assert.Contains("no-store", r.Headers.CacheControl!.ToString());
     }
 
     [Fact]

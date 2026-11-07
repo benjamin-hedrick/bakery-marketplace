@@ -11,7 +11,9 @@ import { parseTagQuery } from '@bakery/customer-core';
 
 // The public listing page, optionally narrowed by ?tag=a&tag=b (WI-TAG-003). Still anonymous and rendered on the server; a tag the catalog refuses (unknown,
 // hidden, retired, out of its window, an allergen) leads back to the unfiltered page rather than to an error.
-export const getServerSideProps: GetServerSideProps = async ({ req, query }) => {
+export const getServerSideProps: GetServerSideProps = async ({ req, res, query }) => {
+  // Explicit, not the framework's default (ADR-0014 layer 3, WI-PORT-004): the page shows stock, so no browser, proxy or CDN may reuse it.
+  res.setHeader('Cache-Control', 'private, no-store');
   const tags = parseTagQuery(query.tag);
   const environment = createServerEnvironment(forwardTestHeaders(req.headers));
   try {
