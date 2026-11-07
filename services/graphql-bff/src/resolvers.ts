@@ -270,6 +270,7 @@ const VENDOR_ACTIONS: Record<string, OrderActionName> = {
   START_PREPARATION: 'start-preparation',
   MARK_READY: 'ready',
   COMPLETE: 'complete',
+  CANCEL: 'cancel',
 };
 
 const actionRejected = (
@@ -308,6 +309,43 @@ async function vendorOrderAction(args: { input: { orderId: string; action: strin
   const current =
     result.currentStatus === null ? null : ORDER_STATUS[result.currentStatus as keyof typeof ORDER_STATUS];
   return actionRejected('NOT_ALLOWED_NOW', 'That cannot be done to this order now. It has changed.', current ?? null);
+}
+
+const cancelRejected = (
+  code: 'NOT_FOUND' | 'NOT_ALLOWED_NOW',
+  message: string,
+  currentStatus: string | null = null,
+) => ({
+  __typename: 'CancelOrderRejected',
+  code,
+  message,
+  currentStatus,
+});
+
+/**
+ * A customer cancels their own order. Mapping only, like {@link vendorOrderAction}: the same ordering endpoint, the caller's token goes through, and
+ * ordering decides the role, whose order it is and whether its status allows a cancel by a customer (ADR-0006, ADR-0013). Its text never reaches the
+ * client.
+ */
+async function cancelOrder(args: { input: { orderId: string } }, ctx: Context) {
+  const serviceId = serviceIdFor('Order', args.input.orderId);
+  if (!ctx.authorization) throw unauthenticated();
+  if (serviceId === null) return cancelRejected('NOT_FOUND', 'That order could not be found.');
+
+  const result = await customerCall(ctx, (authorization) =>
+    ctx.ordering.orderAction(serviceId, 'cancel', authorization, ctx.trace),
+  );
+  if (result.kind === 'done') {
+    return {
+      __typename: 'CancelOrderDone',
+      orderId: args.input.orderId,
+      status: enumValue('order status', ORDER_STATUS, result.order.status),
+    };
+  }
+  if (result.kind === 'not_found') return cancelRejected('NOT_FOUND', 'That order could not be found.');
+  const current =
+    result.currentStatus === null ? null : ORDER_STATUS[result.currentStatus as keyof typeof ORDER_STATUS];
+  return cancelRejected('NOT_ALLOWED_NOW', 'This order can no longer be cancelled. It has changed.', current ?? null);
 }
 
 const toPreferences = (p: { allergies: string[]; avoid: string[]; prefer?: string[] }) => ({
@@ -441,6 +479,7 @@ export const rootValue = {
     );
   },
   vendorOrderAction,
+  cancelOrder,
   async listings(args: { first?: number; after?: string | null; tags?: string[] | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
     const page = await ctx.catalog

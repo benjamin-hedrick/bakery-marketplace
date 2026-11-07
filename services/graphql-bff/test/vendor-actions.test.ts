@@ -116,6 +116,7 @@ describe('Mutation.vendorOrderAction', () => {
     ['START_PREPARATION', 'start-preparation', 'InPreparation', 'IN_PREPARATION'],
     ['MARK_READY', 'ready', 'ReadyForFulfillment', 'READY_FOR_FULFILLMENT'],
     ['COMPLETE', 'complete', 'Completed', 'COMPLETED'],
+    ['CANCEL', 'cancel', 'Cancelled', 'CANCELLED'], // a vendor cancelling an order it had accepted (ordering derives the reason from the token)
   ];
   for (const [action, segment, wire, status] of cases) {
     test(`${action} posts to ordering's ${segment} with the vendor's token and returns the new status`, async () => {
@@ -188,7 +189,7 @@ describe('Mutation.vendorOrderAction', () => {
   });
 
   test('an action the enum does not have is refused by the schema before anything is sent', async () => {
-    const { body } = await act('CANCEL');
+    const { body } = await act('REFUND');
     assert.ok(body.errors && body.errors.length > 0);
     assert.equal(seen.length, 0);
   });

@@ -96,7 +96,7 @@ export type PlaceResult =
   { kind: 'order'; order: OrderingOrder } | { kind: 'error'; status: number; error: OrderingError };
 
 /** The vendor actions of ordering-service, as the path segment of `POST /ordering/orders/{id}/{action}`. */
-export type OrderActionName = 'confirm' | 'decline' | 'start-preparation' | 'ready' | 'complete';
+export type OrderActionName = 'confirm' | 'decline' | 'start-preparation' | 'ready' | 'complete' | 'cancel';
 
 export type OrderActionResult =
   { kind: 'done'; order: OrderingOrder } | { kind: 'not_found' } | { kind: 'refused'; currentStatus: string | null };
@@ -119,7 +119,7 @@ export interface OrderingClient {
    */
   listPaymentMethods(authorization: string, trace: TraceContext): Promise<OrderingPaymentMethod[]>;
   /**
-   * A vendor's action on an order (confirm, decline, start-preparation, ready, complete). The vendor's token is forwarded unchanged; ordering
+   * An action on an order (a vendor's confirm, decline, start-preparation, ready, complete; a cancel by the vendor or by the customer). The caller's token is forwarded unchanged; ordering
    * decides the role, the ownership and whether the action is allowed from the order's status. 404 (missing, or not the caller's) is
    * `not_found`; 409 is `refused` with the current status. A 401 or 403 is a {@link DownstreamError} with that status; anything else throws.
    */
