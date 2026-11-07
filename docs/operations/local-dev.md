@@ -126,6 +126,7 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | `Cosmos__Database` | `bakery` | catalog-service |
 | `Cosmos__GatewayMode` | `true` (emulator only) | the emulator only works over the gateway; deployed environments keep direct mode |
 | `Cache__Backend` | `local` (default) or `redis` | catalog-service listing cache (`WI-CAT-003`): `redis` uses `Cache__Redis__ConnectionString` (default `localhost:6380`, the `with-redis` cache instance) behind the resilient provider; any other value stops the start |
+| `ListingCache__LoadTimeoutSeconds` | `30` (default) | catalog-service: how long one shared load of a listing-cache key may take before it is given up (stampede protection, `WI-CAT-003`) |
 | `ListingCache__TtlSeconds` | `60` (default) | catalog-service: how long the cached listings live; `0` turns the cache off (the "without cache" side of `docs/evidence/WI-CAT-003/after-2026-11-07.md`) |
 | `Cosmos__EnsureCreated` | `true` (local only) | creates the database and `catalog` container (partition key `/vendorId`); deployed environments use Terraform |
 

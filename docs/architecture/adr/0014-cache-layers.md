@@ -55,3 +55,7 @@ Treat caching as **three distinct layers**, each with its own owner:
 - ADR-0002 — layer 1, unchanged (see its amendment note)
 - ADR-0012, ADR-0013 — introduce layers 2 and 3
 - `WI-PORT-004`, `WI-CAT-003`, `EPIC-CACHING`
+
+## Amendment note (2026-11-07: the listing path is recorded)
+
+The decision is unchanged. The per-cache record this ADR asks for is filled in for the listing path in `WI-PORT-004` (In review): layer 1 is the catalog's `ListingCache` (`WI-CAT-003`), layer 2 adds a fresh `network-only` stock read when an item is added to the order (`WI-CUST-009`), and layer 3 now has an explicit `Cache-Control` on every route of that path (the catalog's public reads `no-cache`, the listing pages `private, no-store`). Register 159 records the one gap found: the session proxy's own refusals carry no policy.

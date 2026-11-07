@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 55 |
 | In progress | 5 |
-| In review | 26 |
+| In review | 27 |
 | Built | 1 |
-| Ready | 3 |
+| Ready | 2 |
 | Proposed | 4 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -135,7 +135,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | EPIC-PORTFOLIO-SLICE | Done | evidence: merged `6175e05`; `docs/evidence/WI-PORT-001/findings.md` |
 | [PORT-002](WI-PORT-002.md) | Walking skeleton: Next.js SSR → GraphQL BFF → C# API | EPIC-PORTFOLIO-SLICE | Done | evidence: the Outcome note under this banner; `docs/evidence/WI-PORT-002/` |
 | [PORT-003](WI-PORT-003.md) | Quality and CI baseline (Azure Pipelines) | EPIC-PORTFOLIO-SLICE | Done | evidence: the Outcome note under this banner; `docs/evidence/WI-PORT-003/findings.md` |
-| [PORT-004](WI-PORT-004.md) | Cache contract for the listing path (all three layers) | EPIC-PORTFOLIO-SLICE | Ready |  |
+| [PORT-004](WI-PORT-004.md) | Cache contract for the listing path (all three layers) | EPIC-PORTFOLIO-SLICE | In review | built and run locally 2026-11-07 on `feature/listing-cache`; waiting for the lead's review (the stock-path diff of `WI-CAT-003`, register 158) and a decision on register 159 |
 | [PORT-005](WI-PORT-005.md) | Verify trace propagation and safe logs | EPIC-PORTFOLIO-SLICE | Done | evidence: `docs/evidence/WI-PORT-005/findings.md`; follow-ups remain open as register items 36, 37 and 42 |
 | [PORT-006](WI-PORT-006.md) | Reconcile existing artifacts with ADR-0012 to ADR-0016 | EPIC-PORTFOLIO-SLICE | Done | evidence: `docs/history/review-2026-10/closing-record.md` (pass 2: every tracked document read and reconciled; steps 0 to 11 of the edit plan done); the open findings are in `docs/product/backlog/gap-catalog/` |
 | [PORT-007](WI-PORT-007.md) | First-slice domain/API contract and GraphQL mapping | EPIC-PORTFOLIO-SLICE | Done | evidence: the Outcome note under this banner |
@@ -205,7 +205,7 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-158 numbered items in `docs/governance/open-items-register.md` (highest number 158).
+159 numbered items in `docs/governance/open-items-register.md` (highest number 159).
 
 | Type | Count |
 |---|---|
@@ -293,6 +293,7 @@ Accepted: 22 · Superseded: 1
 | Option (future) | 1 |
 | Process review (agenda) | 1 |
 | Scope gap | 1 |
+| Hardening gap | 1 |
 
 | Item status | Count |
 |---|---|
@@ -300,7 +301,7 @@ Accepted: 22 · Superseded: 1
 | Resolved | 56 |
 | Accepted | 9 |
 | Tracking | 12 |
-| Open | 56 |
+| Open | 57 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
