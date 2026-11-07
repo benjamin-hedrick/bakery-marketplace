@@ -1,5 +1,5 @@
 # WI-MOB-002: Nora (a seeded tree-nut allergy); if the allergy check cannot be made, the screen says so plainly (never "no conflicts") and still lets the customer order. The runner's flow-control
-# server takes the BFF away while checkout opens and brings it back before the order is placed.
+# server takes the BFF away while checkout opens and brings it back before the order is placed (the payment methods are asked for again then, WI-ORD-010).
 appId: com.bakerymarketplace.mobile
 name: A failed allergy check is said plainly and does not block the order
 onFlowComplete:
@@ -26,10 +26,18 @@ onFlowComplete:
     id: no-profile
 - assertNotVisible:
     id: conflict-0
+# The payment methods come from the same BFF, so they are not loaded either (WI-ORD-010): the order needs one, so the button is off until the BFF is back
+# and the customer asks again. The failed allergy check itself never blocks the order.
+- assertVisible:
+    id: payment-methods-failed
+- runScript: scripts/bff-start.js
+- tapOn:
+    id: payment-methods-retry
+- assertVisible:
+    id: check-failed
 - assertVisible:
     id: place-order
     enabled: true
-- runScript: scripts/bff-start.js
 - tapOn:
     id: place-order
 - assertVisible:
