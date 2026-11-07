@@ -66,4 +66,4 @@ See `docs/process/definition-of-done.md`.
 Yes, except that the invalidation points touch stock code (ADR-0017): the lead reviews that diff.
 
 **Open Points (working)**
-- Whether the cached vendor-listings read should use one key per vendor holding the full list (simple; recommended at first-slice scale) or one key per listing; revisit if a vendor's list grows large.
+- Decided by the lead 2026-11-07: one key per vendor holding the full list, not one per listing. Revisit if a vendor's list grows large or single-listing reads dominate.
