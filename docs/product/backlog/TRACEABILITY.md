@@ -59,7 +59,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | Done | *none* | *none* |
 | [ORD-001](WI-ORD-001.md) | Checkout (payment stubbed) | Done | `CheckoutApiTests.cs`, `CheckoutServiceTests.cs` | *none* |
 | [ORD-002](WI-ORD-002.md) | Order aggregate + lifecycle states | Done | `OrderLifecycleTests.cs` | *none* |
-| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In progress | `PickupWindowApiTests.cs` | `ai-usage-2026-11-07.md`, `baseline-2026-10-30.md` |
+| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In review | `vendor-actions.spec.ts`, `vendor-live.spec.ts`, `vendor-actions.test.ts` and 7 more | `ai-usage-2026-11-07.md`, `baseline-2026-10-30.md` |
 | [ORD-004](WI-ORD-004.md) | FulfillmentStrategy interface (ACL boundary) | Done | `FulfillmentContractsTests.cs` | *none* |
 | [ORD-005](WI-ORD-005.md) | Publish Order domain events via event backbone | Done | `OrderEventTests.cs`, `OutboxHostTests.cs`, `OutboxTests.cs` | *none* |
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | Done | `CosmosOrderStoreTests.cs`, `OrderPersistenceTests.cs` | *none* |
