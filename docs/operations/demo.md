@@ -64,7 +64,9 @@ The BFF forwards the caller's token unchanged and every service validates it its
 | 10. History | Open "Order history" | The order from step 6 with its status and total |
 | 11. Stop | Enter or Ctrl+C | Processes stopped, containers removed |
 
-What not to expect: this demo does not start the vendor's live queue screen (`apps/web-queue-display`, port 3100, which exists and is exercised by `scripts/ci/skeleton-smoke.mjs` and `scripts/dev/load-test.mjs`), so nothing here moves an order past "waiting for the bakery"; the admin app is empty; there is no free-text search and no real payment; and the look is one small stylesheet (light and dark by system setting), not a designed brand. A reload keeps the login (the session lives on the server, ADR-0019), and the allergen profile you save stays until the stack is torn down.
+**The vendor's half (added 2026-11-07).** `demo.mjs` now also starts the vendor's live queue screen (`apps/web-queue-display`, port 3100; `--customer-only` skips it). Open it, log in as "Corner Bakery (owner) (Vendor)" on the issuer's page, and an order placed in the customer app appears at once (push, with polling as the fallback). An order with an option or a pickup time waits there for "Accept" (or "Decline"); then "Start preparing", "Mark ready" and "Handed over" move it along, and each step shows on the customer's order page after "Refresh status" (the customer's page does not update by itself yet). The 2026-11-07 check of this change started both screens (customer 200, vendor 200) and tore everything down cleanly; a person did not click through the vendor steps by hand (the same steps are in the real-stack journey `vendor-actions.spec.ts`, which passes in `skeleton-smoke.mjs`).
+
+What not to expect: there is no vendor screen for listings, stock or onboarding, and no cancel button yet; the admin app is empty; there is no free-text search and no real payment; and the look is one small stylesheet (light and dark by system setting), not a designed brand. A reload keeps the login (the session lives on the server, ADR-0019), and the allergen profile you save stays until the stack is torn down.
 
 ## Screenshots
 
