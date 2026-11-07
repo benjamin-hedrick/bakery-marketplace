@@ -9,6 +9,9 @@
 //   POST /__control {"revision": n} shifts every price by n cents so refetches are observable.
 //   POST /__control {"resetOrders": true, "seedOrders": n} forgets the orders placed so far and adds n completed ones (the order history).
 //   POST /__control {"resetPreferences": true, "preferences": {"allergies": [...], "avoid": [...]}} clears or sets the one mock customer's allergen profile.
+//   POST /__control {"stock": {"<service listing id>": {"status": "SOLD_OUT", "maxPerOrder": 2}}} changes what the public listing query says about an
+//   item's stock from now on (WI-CUST-009: a page that was loaded in stock, then the item sells out); {"failListingReads": true} makes the public
+//   `listing` query fail; {"resetStock": true} undoes both. GET /__reads also reports `listingReads`, how many times `listing` was asked.
 //   `x-cart-check: fail` makes cartCheck fail with an internal error.
 //   `x-save-preferences: fail` makes savePreferences fail with an internal error; `rejected` answers SavePreferencesRejected.
 // Like the real BFF, placeOrder and order need a bearer token. Orders are kept in memory and an idempotency key returns the same order.
@@ -30,8 +33,12 @@ const serviceId = (type, id) => {
   const text = Buffer.from(String(id), 'base64').toString('utf8');
   return text.startsWith(`${type}:`) ? text.slice(type.length + 1) : null;
 };
+let stockOverrides = {}; // by service listing id, set by POST /__control {"stock": ...}
+let failListingReads = false;
+let listingReads = 0;
 const shape = (l) => ({
   ...l,
+  stock: stockOverrides[l.id] ?? l.stock,
   id: globalId('Listing', l.id),
   price: money(l.priceCents + revision),
   modifiers: l.modifiers.map((m) => ({ ...m, priceDelta: money(m.priceDeltaCents) })),
@@ -363,7 +370,12 @@ function rootFor(fixture) {
         .map((node) => ({ cursor: node.id, node }));
       return { edges, pageInfo: { hasNextPage: false, endCursor: edges.at(-1)?.cursor ?? null } };
     },
-    listing: ({ id }) => data(fixture).find((l) => l.id === id) ?? null,
+    listing: ({ id }) => {
+      listingReads++;
+      if (failListingReads)
+        throw new GraphQLError('The listing could not be read.', { extensions: { code: 'INTERNAL' } });
+      return data(fixture).find((l) => l.id === id) ?? null;
+    },
     node: (args, ctx) =>
       serviceId('Order', args.id) !== null
         ? readOrder(args, ctx)
@@ -415,6 +427,13 @@ const server = http.createServer(async (req, res) => {
         createdAt: new Date(Date.UTC(2026, 0, 1, 12, i)).toISOString(),
       });
     }
+    if (control.resetStock) {
+      stockOverrides = {};
+      failListingReads = false;
+      listingReads = 0;
+    }
+    if (control.stock) stockOverrides = { ...stockOverrides, ...control.stock };
+    if ('failListingReads' in control) failListingReads = Boolean(control.failListingReads);
     if (control.resetPaymentMethods) paymentMethods = DEFAULT_PAYMENT_METHODS.map((m) => ({ ...m }));
     if (Array.isArray(control.paymentMethods)) paymentMethods = control.paymentMethods.map((m) => ({ ...m }));
     if (control.resetPreferences) {
@@ -435,7 +454,7 @@ const server = http.createServer(async (req, res) => {
     seenAuthorizations.length = 0;
     return send(200, { ok: true });
   }
-  if (req.url === '/__reads' && req.method === 'GET') return send(200, { preferenceReads });
+  if (req.url === '/__reads' && req.method === 'GET') return send(200, { preferenceReads, listingReads });
   if (req.url === '/healthz') return send(200, { ok: true });
   if (req.url !== '/graphql' || req.method !== 'POST') return send(404, { error: 'not found' });
 
