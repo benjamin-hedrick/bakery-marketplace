@@ -29,17 +29,31 @@ public sealed class ListingCacheTests
     /// <summary>Counts how many times a partition's listings are queried: the reads a cache is there to save.</summary>
     private sealed class CountingRepository<T>(IRepository<T> inner) : IRepository<T> where T : class
     {
-        public int Queries { get; private set; }
+        private int _queries;
+
+        public int Queries => Volatile.Read(ref _queries);
+
+        /// <summary>
+        /// Called with the number of the query (1, 2, ...) after it has read the store and before it answers: a test holds a load open here (so what it
+        /// read is older than anything written meanwhile), or fails it.
+        /// </summary>
+        public Func<int, Task>? AfterRead { get; set; }
 
         public Task<T?> GetAsync(string id, string partitionKey, CancellationToken ct = default) => inner.GetAsync(id, partitionKey, ct);
         public Task<T> SaveAsync(T entity, string partitionKey, CancellationToken ct = default) => inner.SaveAsync(entity, partitionKey, ct);
         public Task<T?> SaveIfUnchangedAsync(T entity, string partitionKey, CancellationToken ct = default) => inner.SaveIfUnchangedAsync(entity, partitionKey, ct);
         public Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default) => inner.DeleteAsync(id, partitionKey, ct);
 
-        public IAsyncEnumerable<T> QueryAsync(string partitionKey, Func<IQueryable<T>, IQueryable<T>> query, CancellationToken ct = default)
+        public IAsyncEnumerable<T> QueryAsync(string partitionKey, Func<IQueryable<T>, IQueryable<T>> query, CancellationToken ct = default) =>
+            Answer(Interlocked.Increment(ref _queries), partitionKey, query, ct);
+
+        private async IAsyncEnumerable<T> Answer(
+            int number, string partitionKey, Func<IQueryable<T>, IQueryable<T>> query, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
         {
-            Queries++;
-            return inner.QueryAsync(partitionKey, query, ct);
+            var items = new List<T>();
+            await foreach (var item in inner.QueryAsync(partitionKey, query, ct)) items.Add(item);
+            if (AfterRead is not null) await AfterRead(number);
+            foreach (var item in items) yield return item;
         }
     }
 
@@ -322,6 +336,141 @@ public sealed class ListingCacheTests
 
         Assert.DoesNotContain(warm, l => l.Id == "listing-ghost");
         Assert.Null(await rig.Service.GetPublicAsync("listing-ghost"));
+    }
+
+    // ---- stampede protection (single flight) ---------------------------------------------------
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        var until = DateTime.UtcNow.AddSeconds(10);
+        while (!condition())
+        {
+            if (DateTime.UtcNow > until) throw new TimeoutException("the condition did not become true");
+            await Task.Delay(10);
+        }
+    }
+
+    [Fact]
+    public async Task ManyConcurrentColdReadsLoadTheStoreOnceAndShareTheResult()
+    {
+        var rig = await Rig.CreateAsync();
+        var created = await rig.CreateListingAsync();
+        var before = rig.Listings.Queries;
+        var gate = new TaskCompletionSource();
+        rig.Listings.AfterRead = _ => gate.Task; // the one load is under way while the others arrive
+
+        var reads = Enumerable.Range(0, 50).Select(_ => rig.BrowseAsync()).ToList();
+        await WaitUntilAsync(() => rig.Cache.Coalesced >= 49);
+        gate.SetResult();
+        var results = await Task.WhenAll(reads);
+
+        Assert.Equal(before + 1, rig.Listings.Queries); // fifty requests, one read of the store
+        Assert.All(results, r => Assert.Equal([created.Id], r.Select(l => l.Id)));
+        Assert.True(rig.Cache.Coalesced >= 49); // both keys (the vendor list and the vendor's listings) coalesce
+    }
+
+    [Fact]
+    public async Task ACallerThatCancelsStopsWaitingAndTheOthersStillGetTheResult()
+    {
+        var rig = await Rig.CreateAsync();
+        await rig.CreateListingAsync();
+        var before = rig.Listings.Queries;
+        var gate = new TaskCompletionSource();
+        rig.Listings.AfterRead = _ => gate.Task;
+        using var cts = new CancellationTokenSource();
+
+        var leader = rig.Service.BrowseAsync(100, null, cts.Token); // starts the load, then cancels
+        var patient = rig.Service.BrowseAsync(100, null);
+        await WaitUntilAsync(() => rig.Cache.Coalesced >= 1);
+        await cts.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => leader);
+        gate.SetResult();
+
+        Assert.Single((await patient).Items); // the load was not cancelled with the caller that started it
+        Assert.Equal(before + 1, rig.Listings.Queries);
+    }
+
+    [Fact]
+    public async Task AFailedLoadIsSharedByTheCallersWaitingOnItAndIsNotKept()
+    {
+        var rig = await Rig.CreateAsync();
+        await rig.CreateListingAsync();
+        var before = rig.Listings.Queries;
+        var gate = new TaskCompletionSource();
+        rig.Listings.AfterRead = async n =>
+        {
+            await gate.Task;
+            if (n == before + 1) throw new InvalidOperationException("store down");
+        };
+
+        var first = rig.BrowseAsync();
+        var second = rig.BrowseAsync();
+        await WaitUntilAsync(() => rig.Cache.Coalesced >= 1);
+        gate.SetResult();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => first);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => second);
+        Assert.Equal(before + 1, rig.Listings.Queries); // one failing load, shared
+
+        rig.Listings.AfterRead = null;
+        Assert.Single(await rig.BrowseAsync()); // the next call tries again: the failure was not kept
+    }
+
+    [Fact]
+    public async Task ALoadThatBeganBeforeAWriteDoesNotFillTheCacheWithWhatItRead()
+    {
+        var rig = await Rig.CreateAsync();
+        var created = await rig.CreateListingAsync(); // priced 800
+        var held = rig.Listings.Queries + 1;
+        var gate = new TaskCompletionSource();
+        rig.Listings.AfterRead = n => n == held ? gate.Task : Task.CompletedTask;
+        await rig.Cache.InvalidateVendorAsync(Vendor); // an empty cache: the next read loads
+
+        var stale = rig.BrowseAsync(); // reads 800, then is held
+        await WaitUntilAsync(() => rig.Listings.Queries == held);
+        await rig.Service.UpdateAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950)); // the write
+        gate.SetResult();
+
+        Assert.Equal(800, (await stale).Single().PriceCents); // the caller that was already waiting gets what the load read
+        Assert.Equal(950, (await rig.BrowseAsync()).Single().PriceCents); // but it did not put that in the cache: the next read goes to the store
+    }
+
+    [Fact]
+    public async Task ARequestAfterAWriteDoesNotJoinALoadThatBeganBeforeIt()
+    {
+        var rig = await Rig.CreateAsync();
+        var created = await rig.CreateListingAsync();
+        var held = rig.Listings.Queries + 1;
+        var gate = new TaskCompletionSource();
+        rig.Listings.AfterRead = n => n == held ? gate.Task : Task.CompletedTask;
+        await rig.Cache.InvalidateVendorAsync(Vendor);
+
+        var stale = rig.BrowseAsync();
+        await WaitUntilAsync(() => rig.Listings.Queries == held);
+        await rig.Service.UpdateAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950));
+        var fresh = await rig.BrowseAsync(); // starts its own load; the held one is still held
+
+        Assert.Equal(950, fresh.Single().PriceCents);
+        Assert.False(stale.IsCompleted);
+        gate.SetResult();
+        await stale;
+    }
+
+    [Fact]
+    public async Task WithTheCacheOffNothingIsCoalesced()
+    {
+        var rig = await Rig.CreateAsync(ttlSeconds: 0);
+        await rig.CreateListingAsync();
+        var before = rig.Listings.Queries;
+        var gate = new TaskCompletionSource();
+        rig.Listings.AfterRead = _ => gate.Task;
+
+        var reads = Enumerable.Range(0, 3).Select(_ => rig.BrowseAsync()).ToList();
+        await WaitUntilAsync(() => rig.Listings.Queries == before + 3);
+        gate.SetResult();
+        await Task.WhenAll(reads);
+
+        Assert.Equal(0, rig.Cache.Coalesced);
     }
 
     // ---- failure behaviour -------------------------------------------------------------------
