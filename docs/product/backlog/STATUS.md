@@ -6,13 +6,13 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-108 specs.
+109 specs.
 
 | Status | Count |
 |---|---|
 | Done | 55 |
 | In progress | 5 |
-| In review | 27 |
+| In review | 28 |
 | Built | 1 |
 | Ready | 2 |
 | Proposed | 4 |
@@ -40,7 +40,7 @@ Superseded and obsolete items are not counted.
 | EPIC-LOCAL-DEV | 3 of 4 | DEMO-001, DEV-001, DEV-002, DEV-004 |
 | EPIC-NOTIFICATIONS | 0 of 2 | NOT-001, NOT-002 |
 | EPIC-OPS-ARTIFACTS | 3 of 3 | OPS-001, OPS-002, OPS-003 |
-| EPIC-ORDERING | 7 of 10 | ORD-001, ORD-002, ORD-003, ORD-004, ORD-005, ORD-006, ORD-007, ORD-008, ORD-009, ORD-010 |
+| EPIC-ORDERING | 7 of 11 | ORD-001, ORD-002, ORD-003, ORD-004, ORD-005, ORD-006, ORD-007, ORD-008, ORD-009, ORD-010, ORD-011 |
 | EPIC-PM-ARTIFACTS | 4 of 8 | MGMT-001, MGMT-002, MGMT-003, MGMT-004, MGMT-005, MGMT-006, MGMT-007, MGMT-008 |
 | EPIC-PORTFOLIO-SLICE | 6 of 7 | PORT-001, PORT-002, PORT-003, PORT-004, PORT-005, PORT-006, PORT-007 |
 | EPIC-PREFERENCES | 0 of 1 | PREF-001, PREF-002 |
@@ -130,6 +130,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | EPIC-ORDERING | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04); the lead's review of the privacy properties is wanted |
 | [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | EPIC-ORDERING | In review | built 2026-11-06 on feature/mobile-session-tests; evidence: the "Changes from the original plan" and "Not yet run" notes below. The host real-stack smoke (56 of 56, 2026-11-07) and the ordering tests with Redis and Cosmos up (522 passed, 0 skipped, 2026-11-07) have passed; the container smoke (56 of 56, 2026-11-07) and 14 Maestro flows (12 in the cold run, the other two after a fix in their own runs) have passed; all fourteen in one cold run is still to do |
+| [ORD-011](WI-ORD-011.md) | Cancel buttons: a customer cancels from the order page, a vendor cancels an accepted order from the queue | EPIC-ORDERING | In review | built and run locally 2026-11-07 on `feature/listing-cache` (web customer and vendor); the Android app has no cancel button; the lead asked for the buttons the same day and has not reviewed them |
 | [PLAN-001](WI-PLAN-001.md) | Prioritization pass over the backlog | EPIC-BACKLOG-PLANNING | Proposed | decision: which method (MoSCoW or RICE) and who sets the weights |
 | [PLAN-002](WI-PLAN-002.md) | Sprint plan (first 2 to 3 sprints) | EPIC-BACKLOG-PLANNING | Deferred | trigger: sprint-style boundaries become useful (more contributors, or a time-boxed demo); deferred 2026-10-30 |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | EPIC-PORTFOLIO-SLICE | Done | evidence: merged `6175e05`; `docs/evidence/WI-PORT-001/findings.md` |

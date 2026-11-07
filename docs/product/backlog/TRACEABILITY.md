@@ -66,6 +66,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | Done | `journey.spec.ts`, `stack.spec.ts`, `vendor-queue.spec.ts` and 2 more | *none* |
 | [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | In review | `order-allergens.spec.ts`, `order-allergens.test.ts`, `OrderAllergenApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | In review | `checkout.spec.ts`, `paymentMethod.test.ts`, `SeedCustomerProfilesTests.cs` and 6 more | *none* |
+| [ORD-011](WI-ORD-011.md) | Cancel buttons: a customer cancels from the order page, a vendor cancels an accepted order from the queue | In review | *none* | *none* |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | Done | *none* | `README.md`, `findings.md`, `findings.md` |
 | [PORT-002](WI-PORT-002.md) | Walking skeleton: Next.js SSR → GraphQL BFF → C# API | Done | `walking-skeleton.spec.ts` | `README.md`, `findings.md`, `findings.md` |
 | [PORT-003](WI-PORT-003.md) | Quality and CI baseline (Azure Pipelines) | Done | *none* | `README.md`, `findings.md`, `findings.md` and 2 more |

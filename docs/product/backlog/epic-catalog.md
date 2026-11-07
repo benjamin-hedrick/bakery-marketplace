@@ -55,7 +55,8 @@ Scope: Ordering & Fulfillment · Primary hat(s): Architect, Engineering/Build ·
 - ✅ ORD-007 (Service Implementation) — **Built 2026-10-28, merged to main**, see `WI-ORD-007.md` — order action endpoints (vendor confirm, decline, start, ready, complete, cancel; customer cancel)
 - ✅ ORD-008 (Service Implementation) — **Built 2026-10-28, merged to main**, see `WI-ORD-008.md` — automatic confirmation of orders with no options and no requested pickup window
 - ✅ ORD-009 (Service Implementation) — **Ready — added 2026-11-04**, see `WI-ORD-009.md` — allergens recorded on the order (chosen at checkout, shown to the vendor)
-- 🟡 ORD-010 (Service Implementation) — **Proposed — added 2026-11-06**, see `WI-ORD-010.md` — payment methods as seed data chosen at checkout; the stub judges the token (replaces the decline switch and `X-Test-Payment`, register 150)
+- ✅ ORD-010 (Service Implementation) — **In review — built 2026-11-06, run on the host and container smoke and the ordering tests 2026-11-07**, see `WI-ORD-010.md` — payment methods as seed data chosen at checkout; the stub judges the token (replaces the decline switch and `X-Test-Payment`, register 150)
+- ✅ ORD-011 (Service Implementation) — **In review — added and built 2026-11-07 (web customer and vendor; Android not done)**, see `WI-ORD-011.md` — cancel buttons: a customer cancels from the order page, a vendor cancels an accepted order from the queue display
 
 ### EPIC-QUEUE-DISPLAY — Live Order-Queue Display
 Scope: Ordering & Fulfillment (read-side) · Primary hat(s): Architect, Engineering/Build · Status: see [STATUS.md](STATUS.md)
