@@ -74,7 +74,7 @@ Scope: Catalog & Customization, Preferences & Dietary Safety, Ordering & Fulfill
 - ✅ CUST-005 (Service Implementation) — **Rewritten 2026-11-04, Ready**, see `WI-CUST-005.md` — the allergen profile page (Not set, Avoid, Allergy for each allergen in the registry)
 - ✅ CUST-006 (Service Implementation) — **Rewritten 2026-11-04, Ready**, see `WI-CUST-006.md` — allergen conflicts on browse and detail, laid over the public page after login
 - ✅ CUST-008 (Service Implementation) — **Ready — added 2026-11-04**, see `WI-CUST-008.md` — allergens in the cart and at checkout: show them, warn, and tell the bakery
-- ✅ CUST-009 (Service Implementation) — **Ready — added 2026-11-07**, see `WI-CUST-009.md` — a fresh stock check (a network-only listing read) when a customer adds an item to the order, on web and Android; checkout stays the authoritative check (shared with EPIC-CACHING, register 158)
+- ✅ CUST-009 (Service Implementation) — **In review 2026-11-07, built and run locally (web and Android; Maestro not re-run)**, see `WI-CUST-009.md` — a fresh stock check (a network-only listing read) when a customer adds an item to the order, on web and Android; checkout stays the authoritative check (shared with EPIC-CACHING, register 158)
 - ⚪ CUST-007 (Service Implementation) — **Detailed, Ready — added 2026-10-30**, see `WI-CUST-007.md` — customer order history list (`orders` query in ordering-service and the BFF, and a page); split out of `CUST-004`, register item 80.
 
 - ✅ MOB-001 (Service Implementation) — **In review 2026-11-04, built and run locally**, see `WI-MOB-001.md` — the Android customer app (Expo): sign-in with PKCE (ADR-0023), menu, cart, checkout, order status, four Maestro flows.
