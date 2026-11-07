@@ -1,6 +1,18 @@
 import Link from 'next/link';
 import { useState } from 'react';
-import { addLine, lineTotalCents, MAX_QUANTITY, type CartLine } from '@bakery/customer-core';
+import { graphql, useRelayEnvironment } from 'react-relay';
+import { fetchQuery } from 'relay-runtime';
+import type { AddToOrderStockQuery } from '../__generated__/AddToOrderStockQuery.graphql';
+import {
+  ADD_REFUSAL_TEXT,
+  addLine,
+  decideAdd,
+  lineTotalCents,
+  MAX_QUANTITY,
+  type AddRefusal,
+  type CartLine,
+  type FreshStockRead,
+} from '@bakery/customer-core';
 import { cartStore } from '../lib/cart/useCart.ts';
 import { formatMoney } from '@bakery/customer-core';
 import { ConflictMarks } from './ConflictMarks';
@@ -28,7 +40,21 @@ export interface OrderableListing {
   stock: { status: StockStatus; maxPerOrder: number | null | undefined };
 }
 
-type Notice = 'added' | 'capped' | 'other_vendor' | 'too_many_lines';
+type Notice = 'added' | 'capped' | 'other_vendor' | 'too_many_lines' | AddRefusal;
+
+// Always from the network (WI-CUST-009): the page may show an item in stock that has since sold out, from a stored answer or an open tab. It also
+// refreshes the stored listing, so the page's own badge follows what this read found.
+const freshStockQuery = graphql`
+  query AddToOrderStockQuery($id: ID!) {
+    listing(id: $id) {
+      id
+      stock {
+        status
+        maxPerOrder
+      }
+    }
+  }
+`;
 
 /**
  * Choose options and a quantity and put the item in the order. These are choices and hints only: ordering-service prices the order from the
@@ -45,11 +71,25 @@ export function AddToOrder({
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [checking, setChecking] = useState(false);
+  const environment = useRelayEnvironment();
+
+  // Why the last press of the button added nothing, shown on the page that is left after the fresh read (which may no longer offer the form).
+  const refusal =
+    notice === 'sold_out' || notice === 'unavailable' || notice === 'missing' || notice === 'check_failed'
+      ? notice
+      : null;
+  const refusalNotice = refusal ? (
+    <p role="alert" data-testid="add-notice" data-refusal={refusal}>
+      {ADD_REFUSAL_TEXT[refusal]}
+    </p>
+  ) : null;
 
   if (!canOrder(listing.stock.status)) {
     // Not orderable, but the options and their allergens stay visible: dietary-safety information does not depend on availability.
     return (
       <section>
+        {refusalNotice}
         <p data-testid="not-orderable">This item cannot be ordered right now.</p>
         {listing.modifiers.length > 0 ? (
           <>
@@ -88,10 +128,37 @@ export function AddToOrder({
     maxPerOrder: listing.stock.maxPerOrder ?? null,
   };
 
-  function add(replaceOrder = false) {
+  async function readFreshStock(): Promise<FreshStockRead> {
+    try {
+      const data = await fetchQuery<AddToOrderStockQuery>(
+        environment,
+        freshStockQuery,
+        { id: listing.id },
+        { fetchPolicy: 'network-only' },
+      ).toPromise();
+      if (!data?.listing) return { kind: 'missing' };
+      return { kind: 'listing', stock: data.listing.stock };
+    } catch {
+      return { kind: 'failed' };
+    }
+  }
+
+  // Read the stock again, then decide from that read (customer-core `decideAdd`). A read that failed adds nothing and says so. Advice only: checkout's
+  // atomic reservation is still the authority.
+  async function add(replaceOrder = false) {
+    if (checking) return;
+    setChecking(true);
+    setNotice(null);
+    const decision = decideAdd(await readFreshStock());
+    setChecking(false);
+    if (!decision.allowed) {
+      setNotice(decision.refusal);
+      return;
+    }
+    const fresh: CartLine = { ...line, maxPerOrder: decision.maxPerOrder };
     let outcome: Notice = 'added';
     cartStore.update((current) => {
-      const result = addLine(replaceOrder ? { vendorId: null, lines: [] } : current, listing.vendorId, line);
+      const result = addLine(replaceOrder ? { vendorId: null, lines: [] } : current, listing.vendorId, fresh);
       if ('error' in result) {
         outcome = result.error === 'other_vendor' ? 'other_vendor' : 'too_many_lines';
         return current;
@@ -107,7 +174,7 @@ export function AddToOrder({
       aria-label="Add to your order"
       onSubmit={(e) => {
         e.preventDefault();
-        add();
+        void add();
       }}
     >
       <fieldset>
@@ -160,7 +227,11 @@ export function AddToOrder({
           {formatMoney({ cents: lineTotalCents(line), currency: listing.price.currency })}
         </span>
       </p>
-      <button type="submit">Add to order</button>
+      <button type="submit" disabled={checking} aria-busy={checking}>
+        Add to order
+      </button>
+      {checking ? <span role="status"> Checking stock…</span> : null}
+      {refusalNotice}
 
       {notice === 'added' || notice === 'capped' ? (
         <p role="status" data-testid="add-notice">
@@ -171,7 +242,7 @@ export function AddToOrder({
       {notice === 'other_vendor' ? (
         <p role="alert" data-testid="add-notice">
           Your order has items from another bakery. An order is placed with one bakery at a time.{' '}
-          <button type="button" onClick={() => add(true)}>
+          <button type="button" disabled={checking} onClick={() => void add(true)}>
             Start a new order with this item
           </button>
         </p>
