@@ -6,13 +6,13 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-109 specs.
+110 specs.
 
 | Status | Count |
 |---|---|
 | Done | 55 |
 | In progress | 5 |
-| In review | 28 |
+| In review | 29 |
 | Built | 1 |
 | Ready | 2 |
 | Proposed | 4 |
@@ -54,7 +54,7 @@ Superseded and obsolete items are not counted.
 | EPIC-SHARED-TOOLING | 2 of 2 | TOOL-001, TOOL-002 |
 | EPIC-TAGS | 0 of 5 | TAG-001, TAG-002, TAG-003, TAG-004, TAG-005 |
 | EPIC-VENDOR-ONBOARDING | 0 of 2 | VEN-001, VEN-002 |
-| EPIC-WEB-CUSTOMER | 3 of 10 | CUST-002, CUST-003, CUST-004, CUST-005, CUST-006, CUST-007, CUST-008, CUST-009, MOB-001, MOB-002, WEB-001 |
+| EPIC-WEB-CUSTOMER | 3 of 11 | CUST-002, CUST-003, CUST-004, CUST-005, CUST-006, CUST-007, CUST-008, CUST-009, CUST-010, MOB-001, MOB-002, WEB-001 |
 
 Epics with no spec yet are listed, with their planned items, in `epic-catalog.md`.
 
@@ -88,6 +88,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CUST-007](WI-CUST-007.md) | Customer order history list | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/order-history` (2026-11-04); the page, the BFF query and the ordering endpoint pass their tests and the real-stack journeys (29 passed), nothing is deployed; waiting for the lead's review |
 | [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
 | [CUST-009](WI-CUST-009.md) | A fresh stock check when a customer adds an item to the order | EPIC-WEB-CUSTOMER | In review | built and run locally 2026-11-07 on `feature/listing-cache` (web and Android); the Maestro flows were not re-run with it (the Android add is now asynchronous); waiting for the lead's review |
+| [CUST-010](WI-CUST-010.md) | The customer's order status stays current by polling | EPIC-WEB-CUSTOMER | In review | built and run locally 2026-11-07 on `feature/listing-cache` (web: browser tests; Android: unit tests and the cancel flow on the emulator); the lead chose polling for the customer the same day |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
@@ -130,7 +131,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | EPIC-ORDERING | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04); the lead's review of the privacy properties is wanted |
 | [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | EPIC-ORDERING | In review | built 2026-11-06 on feature/mobile-session-tests; evidence: the "Changes from the original plan" and "Not yet run" notes below. The host real-stack smoke (56 of 56, 2026-11-07) and the ordering tests with Redis and Cosmos up (522 passed, 0 skipped, 2026-11-07) have passed; the container smoke (56 of 56, 2026-11-07) and 14 Maestro flows (12 in the cold run, the other two after a fix in their own runs) have passed; all fourteen in one cold run is still to do |
-| [ORD-011](WI-ORD-011.md) | Cancel buttons: a customer cancels from the order page, a vendor cancels an accepted order from the queue | EPIC-ORDERING | In review | built and run locally 2026-11-07 on `feature/listing-cache` (web customer and vendor); the Android app has no cancel button; the lead asked for the buttons the same day and has not reviewed them |
+| [ORD-011](WI-ORD-011.md) | Cancel buttons: a customer cancels from the order page, a vendor cancels an accepted order from the queue | EPIC-ORDERING | In review | built and run locally 2026-11-07 on `feature/listing-cache` (web customer and vendor, and the Android app); the lead asked for the buttons the same day and has not reviewed them |
 | [PLAN-001](WI-PLAN-001.md) | Prioritization pass over the backlog | EPIC-BACKLOG-PLANNING | Proposed | decision: which method (MoSCoW or RICE) and who sets the weights |
 | [PLAN-002](WI-PLAN-002.md) | Sprint plan (first 2 to 3 sprints) | EPIC-BACKLOG-PLANNING | Deferred | trigger: sprint-style boundaries become useful (more contributors, or a time-boxed demo); deferred 2026-10-30 |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | EPIC-PORTFOLIO-SLICE | Done | evidence: merged `6175e05`; `docs/evidence/WI-PORT-001/findings.md` |
