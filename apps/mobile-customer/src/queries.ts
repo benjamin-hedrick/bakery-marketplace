@@ -38,6 +38,12 @@ export interface ListingDetailData {
   } | null;
 }
 
+// Asked again when a customer adds an item to the order (WI-CUST-009): only what decides whether it can be added.
+export const LISTING_STOCK = `query ListingStock($id: ID!) { listing(id: $id) { id stock { status maxPerOrder } } }`;
+export interface ListingStockData {
+  listing: { id: string; stock: { status: StockStatus; maxPerOrder: number | null } } | null;
+}
+
 export const PICKUP_WINDOWS = `query PickupWindows($vendorId: ID!) { pickupWindows(vendorId: $vendorId) { start end } }`;
 export interface PickupWindowsData {
   pickupWindows: { start: string; end: string }[];

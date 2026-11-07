@@ -73,6 +73,7 @@ test('the saved order holds ids, options and quantities and no token or personal
   await open(page, 'Country Sourdough');
   await page.getByLabel('Seed crust (+$1.00) — contains sesame').check();
   await addToOrder(page).click();
+  await expect(page.getByTestId('cart-link')).toHaveText('Your order (1)'); // the add reads the stock first (WI-CUST-009), so it is not instant
 
   const saved = JSON.parse((await page.evaluate(() => sessionStorage.getItem('bakery.cart'))) ?? '{}');
   expect(saved.vendorId).toBe('vendor-shop-001');
