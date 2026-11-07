@@ -40,7 +40,13 @@ module.exports = {
   reactStrictMode: true,
   poweredByHeader: false, // no `X-Powered-By: Next.js`: a scan reports it as information about the stack
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Register 159, ADR-0014 layer 3: nothing an API route answers may be kept by any cache. This is the default for every /api response, including the
+      // ones the session proxy writes itself (an origin refusal, 413, 502); a handler that sets its own policy (the proxy passes the BFF's through, the
+      // stream says `no-store, no-transform`) keeps it. The same rule is in both apps; a test in each checks it.
+      { source: '/api/:path*', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
+    ];
   },
   // The shared packages ship TypeScript source (ADR-0019 session; WI-MOB-001 customer cart and wording).
   transpilePackages: ['@bakery/web-session', '@bakery/customer-core'],

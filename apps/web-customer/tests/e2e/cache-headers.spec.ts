@@ -24,3 +24,25 @@ test('the GraphQL route is not stored either', async ({ request }) => {
   });
   expect(res.headers()['cache-control'], `${res.status()} ${await res.text()}`).toContain('no-store');
 });
+
+// Register 159: what an API route answers by itself (a refusal, a body that is too large, no such route) is not stored either. The default for every
+// /api response is `no-store` (next.config.js); the BFF's own answer above still passes through as the BFF sent it.
+test('the refusals the app writes itself are not stored', async ({ request }) => {
+  const cases: [string, () => ReturnType<typeof request.post>][] = [
+    ['a GraphQL request from no origin', () => request.post('/api/graphql', { data: '{}' })],
+    [
+      'a GraphQL request that is too large',
+      () =>
+        request.post('/api/graphql', {
+          data: JSON.stringify({ query: 'x'.repeat(70 * 1024) }),
+          headers: { origin: 'http://localhost:3000', 'content-type': 'application/json' },
+        }),
+    ],
+    ['an API route that does not exist', () => request.post('/api/no-such-route', { data: '{}' })],
+  ];
+  for (const [name, send] of cases) {
+    const res = await send();
+    // `no-store` for the app's own refusals; Next's own 404 for a route that does not exist says the same and more, so the match is on the directive.
+    expect(res.headers()['cache-control'], `${name} (${res.status()})`).toContain('no-store');
+  }
+});
