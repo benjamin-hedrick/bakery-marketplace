@@ -1,4 +1,4 @@
-> **Status:** In review · built 2026-11-06 on feature/mobile-session-tests; evidence: the "Changes from the original plan" and "Not yet run" notes below. The real-stack smoke, the Maestro flows and the ordering tests with Redis up have not been run
+> **Status:** In review · built 2026-11-06 on feature/mobile-session-tests; evidence: the "Changes from the original plan" and "Not yet run" notes below. The host real-stack smoke (56 of 56, 2026-11-07) and the ordering tests with Redis and Cosmos up (522 passed, 0 skipped, 2026-11-07) have passed; the container smoke and the Maestro flows have not been run
 
 ```
 WI ID:               ORD-010
@@ -21,9 +21,9 @@ ADRs and NFRs affected: ADR-0005 (the real design: card entry in the provider's 
 - Ordering's tests use a `TestPaymentMethodRepository` that gives every test customer the two test methods (set-up code must not block on the store, register 117).
 
 **Not yet run**
-- `skeleton-smoke.mjs` (host and `--containers`) after this item: one run was stopped for low memory at the seed step; the journeys that change are `journey.spec.ts` and `stack.spec.ts`.
+- `skeleton-smoke.mjs --containers` after this item. **The host run passed on 2026-11-07 (56 of 56)** after two test fixes: `stack.spec.ts` asserted on a `fields` list the query did not select (found by the pipeline), and its declined-payment test then needed `fields: []` in its exact match (found by the first host run). The journeys that change are `journey.spec.ts` and `stack.spec.ts`.
 - The Maestro flows: 04 was rewritten to choose the refused method, 14 (no payment methods) is new, and the build now has no test variant.
-- The ordering tests with Redis up (511 passed, 11 skipped with Redis and Cosmos down).
+- ~~The ordering tests with Redis up~~ **Run 2026-11-07 with Redis and the Cosmos emulator up: 522 passed, 0 skipped** (511 passed and 11 skipped with them down).
 - The browser suites on the queue display (it does not place orders through the form; not run).
 - Results so far: ordering 511 passed (11 skipped), tools 8 projects passed, catalog 301 passed (7 skipped), BFF 235, `customer-core` 86, `web-session` 164 (13 skipped), mobile 25, web-customer mock-backed Playwright 137 passed, all 25 `node-gates` steps (with `--tests`) passed.
 

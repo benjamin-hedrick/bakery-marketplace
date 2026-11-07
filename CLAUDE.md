@@ -18,7 +18,7 @@ dotnet build BakeryMarketplace.slnx
 dotnet test tools/BakeryMarketplace.slnx
 dotnet test tools/tests/BakeryMarketplace.Auth.Tests --filter "FullyQualifiedName~MockOidcIssuerTests"
 dotnet test services/catalog-service/tests/CatalogService.Tests   # some tests skip without the emulator (set COSMOS_CONNECTION_STRING); hosts the real service in-process
-dotnet test services/ordering-service/tests/OrderingService.Tests # some tests skip without Redis and Cosmos; the run with them up is still to do after WI-ORD-010
+dotnet test services/ordering-service/tests/OrderingService.Tests # some tests skip without Redis and Cosmos (set REDIS_CONNECTION_STRING and COSMOS_CONNECTION_STRING; with both up nothing skips)
 dotnet test services/notification-service/tests/NotificationService.Tests # one test needs Redis (REDIS_CONNECTION_STRING)
 ```
 
