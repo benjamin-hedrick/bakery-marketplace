@@ -20,7 +20,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | Done | `LocalCacheProviderTests.cs`, `ResilientCacheProviderTests.cs` | *none* |
 | [CACHE-004](WI-CACHE-004.md) | ChaosCacheProvider decorator + fallback proof tests | Done | `ChaosCacheProviderTests.cs` | *none* |
 | [CAT-001](WI-CAT-001.md) | Listing CRUD + modifier/allergy-flag model | Done | `ListingApiTests.cs` | `README.md`, `findings.md` |
-| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `baseline-2026-11-07.md` |
+| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `after-2026-11-07.md`, `baseline-2026-11-07.md` |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | Done | `ListingStockTests.cs`, `ConcurrencyContractTests.cs` | *none* |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | Done | `StockReservationTests.cs`, `BatchContractTests.cs` | *none* |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
@@ -30,6 +30,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | In review | `personalized.spec.ts`, `profile-page.spec.ts`, `conflictText.test.ts` | `maestro-flows-2026-11-04.md`, `ai-usage-2026-11-04.md`, `status-check-experiment-2026-10-30.md` |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | In review | `order-history.spec.ts`, `order-history.spec.ts`, `customer-orders.test.ts` and 1 more | `ai-usage-2026-11-04.md`, `baseline-2026-10-30.md`, `status-check-experiment-2026-10-30.md` |
 | [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | In review | `checkout-allergens.spec.ts`, `checkout-allergens.spec.ts`, `cartAllergens.test.ts` | `ai-usage-2026-11-04.md` |
+| [CUST-009](WI-CUST-009.md) | A fresh stock check when a customer adds an item to the order | In review | `stock.test.ts`, `add-stock-check.spec.ts`, `order-controls.spec.ts` and 1 more | *none* |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |
