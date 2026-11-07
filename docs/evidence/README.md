@@ -12,6 +12,8 @@
 | [`ai-usage-2026-10-31.md`](ai-usage-2026-10-31.md) | Cost, time and token use of two Claude Code sessions as copied from the usage screen, with notes on how to read them |
 | [`ai-usage-2026-11-01.md`](ai-usage-2026-11-01.md) | Cost, time and token use of one larger Claude Code session (browser sessions and the vendor queue), as copied from the usage screen |
 | [`ai-usage-2026-11-03.md`](ai-usage-2026-11-03.md) | Cost, time and token use of one Claude Code session (the notification service, `NOT-001` and `NOT-002`), as copied from the usage screen |
+| [`ai-usage-2026-11-07.md`](ai-usage-2026-11-07.md) | Cost, time and token use of one Claude Code session (CI fixes, the listing cache, cancel buttons, order polling, the fulfillment reconciliation), as copied from the usage screen |
+| [`ai-usage-2026-11-04-to-06.md`](ai-usage-2026-11-04-to-06.md) | Cost, time and token use of five Claude Code sessions (the mobile spike and build, the Sonar scan, two register sessions with `WI-ORD-010`), as copied from the usage screen |
 | [`ai-usage-2026-11-04.md`](ai-usage-2026-11-04.md) | Cost, time and token use of two Claude Code sessions (order history and personalization), as copied from the usage screen, with notes for the AI collaboration record |
 | [`ai-usage-2026-11-02-b.md`](ai-usage-2026-11-02-b.md) | Cost, time and token use of one Claude Code session (vendor actions, rate limits, the security and quality pass), as copied from the usage screen |
 | [`ai-usage-2026-11-02.md`](ai-usage-2026-11-02.md) | Cost, time and token use of one Claude Code session (the live vendor queue, `WI-QUE-003`, and its review), as copied from the usage screen |
