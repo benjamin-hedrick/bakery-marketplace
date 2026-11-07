@@ -29,9 +29,9 @@ test('each card offers only what the vendor does next at its status, and a final
   await logInAsVendor(page);
 
   await expect(card(page, 'AAA111').getByRole('button')).toHaveText(['Accept', 'Decline']);
-  await expect(card(page, 'BBB222').getByRole('button')).toHaveText(['Start preparing']);
-  await expect(card(page, 'CCC333').getByRole('button')).toHaveText(['Mark ready']);
-  await expect(card(page, 'DDD444').getByRole('button')).toHaveText(['Handed over']);
+  await expect(card(page, 'BBB222').getByRole('button')).toHaveText(['Start preparing', 'Cancel']);
+  await expect(card(page, 'CCC333').getByRole('button')).toHaveText(['Mark ready', 'Cancel']);
+  await expect(card(page, 'DDD444').getByRole('button')).toHaveText(['Handed over', 'Cancel']);
   // The accessible name carries the order, so a screen reader hears which order a button is for.
   await expect(page.getByRole('button', { name: 'Accept order AAA111' })).toBeVisible();
 });
@@ -74,6 +74,46 @@ test('an order that is declined asks once more first, and nothing is sent until 
   await page.getByRole('button', { name: 'Confirm: Decline order AAA111' }).click();
   await expect(page.getByTestId('queue-order')).toHaveCount(0);
   expect((await mockActions()).map((a) => a.action)).toEqual(['DECLINE']);
+});
+
+test('an accepted order is cancelled after a second click, from any status it is in, and leaves the queue', async ({
+  page,
+}) => {
+  await setMock({
+    orders: [
+      order({ id: 'o1', reference: 'AAA111', status: 'CONFIRMED' }),
+      order({ id: 'o2', reference: 'BBB222', status: 'IN_PREPARATION' }),
+      order({ id: 'o3', reference: 'CCC333', status: 'READY_FOR_FULFILLMENT' }),
+    ],
+    streamMode: 'ok',
+  });
+  await logInAsVendor(page);
+
+  for (const [sentBefore, reference] of ['AAA111', 'BBB222', 'CCC333'].entries()) {
+    await page.getByRole('button', { name: `Cancel order ${reference}` }).click();
+    await expect(page.getByRole('button', { name: `Confirm: Cancel order ${reference}` })).toHaveText(
+      'Cancel this order?',
+    );
+    expect(await mockActions()).toHaveLength(sentBefore); // the first click sent nothing: only the earlier orders' second clicks have gone out
+    await page.getByRole('button', { name: `Confirm: Cancel order ${reference}` }).click();
+    await expect(card(page, reference)).toHaveCount(0);
+  }
+  expect((await mockActions()).map((a) => a.action)).toEqual(['CANCEL', 'CANCEL', 'CANCEL']);
+});
+
+test('a new order offers a decline and no cancel; an accepted one offers a cancel and no decline', async ({ page }) => {
+  await setMock({
+    orders: [
+      order({ id: 'o1', reference: 'AAA111', status: 'PLACED' }),
+      order({ id: 'o2', reference: 'BBB222', status: 'CONFIRMED' }),
+    ],
+  });
+  await logInAsVendor(page);
+
+  await expect(page.getByRole('button', { name: 'Decline order AAA111' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cancel order AAA111' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Cancel order BBB222' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Decline order BBB222' })).toHaveCount(0);
 });
 
 test('while an action is in flight the buttons are off, so a second click sends nothing more', async ({ page }) => {
