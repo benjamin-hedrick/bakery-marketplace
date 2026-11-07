@@ -84,6 +84,17 @@ export interface OrderData {
   } | null;
 }
 
+// The customer cancels their own order (ORD-011): done, or an expected refusal (no such order for them, or its status no longer allows it).
+export const CANCEL_ORDER = `mutation CancelOrder($input: CancelOrderInput!) { cancelOrder(input: $input) {
+  __typename
+  ... on CancelOrderDone { orderId status }
+  ... on CancelOrderRejected { code currentStatus } } }`;
+export interface CancelOrderData {
+  cancelOrder:
+    | { __typename: 'CancelOrderDone'; orderId: string; status: string }
+    | { __typename: 'CancelOrderRejected'; code: 'NOT_FOUND' | 'NOT_ALLOWED_NOW'; currentStatus: string | null };
+}
+
 export const LINE_NAME = `query LineName($id: ID!) { listing(id: $id) { name modifiers { id name } } }`;
 export interface LineNameData {
   listing: { name: string; modifiers: { id: string; name: string }[] } | null;
