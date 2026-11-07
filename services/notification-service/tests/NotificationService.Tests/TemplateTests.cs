@@ -60,14 +60,23 @@ public sealed class TemplateTests
     [Fact]
     public void Ready_ForPickupVersusOtherFulfillment_WithAndWithoutAWindow()
     {
-        var pickup = Compose(new OrderReadyForFulfillmentPayload("o", "v1", FulfillmentType.Pickup, Window), "OrderReadyForFulfillment", "o");
-        var bare = Compose(new OrderReadyForFulfillmentPayload("o", "v1", FulfillmentType.Pickup, new FulfillmentDetails(FulfillmentType.Pickup)), "OrderReadyForFulfillment", "o");
-        var other = Compose(new OrderReadyForFulfillmentPayload("o", "v1", FulfillmentType.Delivery, new FulfillmentDetails(FulfillmentType.Delivery)), "OrderReadyForFulfillment", "o");
+        var pickup = Compose(new OrderReadyForPickupPayload("o", "v1", "c1", Window.Pickup!.WindowStart, Window.Pickup.WindowEnd), "OrderReadyForPickup", "o");
+        var bare = Compose(new OrderReadyForPickupPayload("o"), "OrderReadyForPickup", "o");
 
+        Assert.Equal("Order O is ready", pickup.Subject);
         Assert.Contains("is ready for pickup.", pickup.Body);
         Assert.Contains("Pickup window: Sat 7 Nov, 09:00 to 09:30", pickup.Body);
+        Assert.Contains("is ready for pickup.", bare.Body);
         Assert.DoesNotContain("window", bare.Body);
-        Assert.Contains("Your order O is ready.", other.Body);
+    }
+
+    [Fact]
+    public void PickupWindowScheduled_NamesTheWindow()
+    {
+        var scheduled = Compose(new PickupWindowScheduledPayload("o", Window.Pickup!.WindowStart, Window.Pickup.WindowEnd, "v1", "c1"), "PickupWindowScheduled", "o");
+
+        Assert.Equal("Pickup for order O is scheduled", scheduled.Subject);
+        Assert.Contains("Your pickup for order O is scheduled: Sat 7 Nov, 09:00 to 09:30", scheduled.Body);
     }
 
     [Theory]
@@ -90,7 +99,7 @@ public sealed class TemplateTests
         {
             Compose(new OrderPlacedPayload("o", "c1", "v1", [], Details: Window), "OrderPlaced"),
             Compose(new OrderConfirmedPayload("o", Details: Window), "OrderConfirmed"),
-            Compose(new OrderReadyForFulfillmentPayload("o", "v1", FulfillmentType.Pickup, Window), "OrderReadyForFulfillment"),
+            Compose(new OrderReadyForPickupPayload("o", "v1", "c1", Window.Pickup!.WindowStart, Window.Pickup.WindowEnd, "side bell, flat 4"), "OrderReadyForPickup"),
         };
 
         Assert.All(all, m => { Assert.DoesNotContain("side bell", m.Body); Assert.DoesNotContain("flat 4", m.Body); });
@@ -123,7 +132,7 @@ public sealed class TemplateTests
     public void EveryEventTypeTheServiceSubscribesToHasATemplate_AndNothingElseDoes()
     {
         Assert.Equal(OrderEventSubscriptions.EventTypes.OrderBy(x => x), TemplateMessageComposer.SupportedEventTypes.OrderBy(x => x));
-        Assert.Equal(6, OrderEventSubscriptions.EventTypes.Length);
+        Assert.Equal(7, OrderEventSubscriptions.EventTypes.Length);
     }
 
     [Fact]

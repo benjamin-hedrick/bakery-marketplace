@@ -51,7 +51,7 @@ public sealed class HostTests
     }
 
     [Fact]
-    public async Task AWholeOrderLifecycleProducesTheFiveExpectedMessagesInOrder()
+    public async Task AWholeOrderLifecycleProducesTheSixExpectedMessagesInOrder()
     {
         var sender = new RecordingNotificationSender();
         using var host = Host("inmemory", sender);
@@ -67,14 +67,16 @@ public sealed class HostTests
         await Publish("OrderPlaced", new OrderPlacedPayload(order, "user-customer-1", "v1", [], 900, "GBP", FulfillmentType.Pickup, window));
         await Publish("OrderConfirmed", new OrderConfirmedPayload(order, CustomerId: "user-customer-1"));
         await Publish("OrderPreparationStarted", new OrderPreparationStartedPayload(order, CustomerId: "user-customer-1"));
-        await Publish("OrderReadyForFulfillment", new OrderReadyForFulfillmentPayload(order, "v1", FulfillmentType.Pickup, window, "user-customer-1"));
+        // The pickup strategy's events (WI-ORD-003): the window is scheduled when the order is confirmed, the ready message follows its own event.
+        await Publish("PickupWindowScheduled", new PickupWindowScheduledPayload(order, window.Pickup!.WindowStart, window.Pickup.WindowEnd, "v1", "user-customer-1"));
+        await Publish("OrderReadyForPickup", new OrderReadyForPickupPayload(order, "v1", "user-customer-1", window.Pickup.WindowStart, window.Pickup.WindowEnd));
         await Publish("OrderCompleted", new OrderCompletedPayload(order, DateTimeOffset.UtcNow, CustomerId: "user-customer-1"));
 
         Assert.Equal(
-            ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", "OrderReadyForFulfillment", "OrderCompleted"],
+            ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", "PickupWindowScheduled", "OrderReadyForPickup", "OrderCompleted"],
             sender.Sent.Select(n => n.EventType));
         Assert.All(sender.Sent, n => Assert.Equal("alice@customer.local", n.ToAddress));
-        Assert.Contains("is ready for pickup", sender.Sent.ElementAt(3).Body);
+        Assert.Contains("is ready for pickup", sender.Sent.ElementAt(4).Body);
     }
 
     [Fact]

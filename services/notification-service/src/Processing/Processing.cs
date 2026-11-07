@@ -117,11 +117,14 @@ public sealed partial class OrderEventNotifier(
     private static partial void LogTheNotificationLedgerFailedContinuing(ILogger logger, Exception exception, string what);
 }
 
-/// <summary>Subscribes the notifier to the six order events, in batches (one contact read per poll).</summary>
+/// <summary>
+/// Subscribes the notifier to the order's own events and the pickup strategy's two, in batches (one contact read per poll). The "ready" message
+/// follows <c>OrderReadyForPickup</c>, not <c>OrderReadyForFulfillment</c>: the customer-facing message belongs to the strategy (WI-ORD-003).
+/// </summary>
 public sealed partial class OrderEventSubscriptions(IEventSubscriber subscriber, OrderEventNotifier notifier, ILogger<OrderEventSubscriptions> logger) : IHostedService
 {
     /// <summary>The event types subscribed to; each needs a template in <see cref="TemplateMessageComposer"/>.</summary>
-    public static readonly string[] EventTypes = ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", "OrderReadyForFulfillment", "OrderCompleted", "OrderCancelled"];
+    public static readonly string[] EventTypes = ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", FulfillmentEventTypes.ReadyForPickup, FulfillmentEventTypes.PickupWindowScheduled, "OrderCompleted", "OrderCancelled"];
 
     public async Task StartAsync(CancellationToken ct)
     {
@@ -131,17 +134,19 @@ public sealed partial class OrderEventSubscriptions(IEventSubscriber subscriber,
             (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
         await subscriber.SubscribeBatchAsync<OrderPreparationStartedPayload>("OrderPreparationStarted",
             (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
-        await subscriber.SubscribeBatchAsync<OrderReadyForFulfillmentPayload>("OrderReadyForFulfillment",
+        await subscriber.SubscribeBatchAsync<OrderReadyForPickupPayload>(FulfillmentEventTypes.ReadyForPickup,
+            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
+        await subscriber.SubscribeBatchAsync<PickupWindowScheduledPayload>(FulfillmentEventTypes.PickupWindowScheduled,
             (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
         await subscriber.SubscribeBatchAsync<OrderCompletedPayload>("OrderCompleted",
             (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
         await subscriber.SubscribeBatchAsync<OrderCancelledPayload>("OrderCancelled",
             (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
-        LogNotificationsAreSubscribedToTheSix(logger);
+        LogNotificationsAreSubscribed(logger);
     }
 
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Notifications are subscribed to the six order events")]
-    private static partial void LogNotificationsAreSubscribedToTheSix(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Notifications are subscribed to the order events and the pickup strategy's events")]
+    private static partial void LogNotificationsAreSubscribed(ILogger logger);
 }
