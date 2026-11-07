@@ -113,7 +113,11 @@ test("a method whose token is invalid (Alice's seeded refused method) is decline
     headers: { authorization: `Bearer ${customer}` },
   });
 
-  expect((await res.json()).data.placeOrder).toEqual({ __typename: 'PlaceOrderRejected', code: 'PAYMENT_DECLINED' });
+  expect((await res.json()).data.placeOrder).toEqual({
+    __typename: 'PlaceOrderRejected',
+    code: 'PAYMENT_DECLINED',
+    fields: [],
+  });
   expect(await quantity(request, vendor, SOURDOUGH)).toBe(before); // refused before anything was reserved
 });
 
