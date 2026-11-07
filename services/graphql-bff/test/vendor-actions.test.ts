@@ -47,7 +47,8 @@ const ordering = http.createServer((req, res) => {
     return reply(res, 409, { code: 'invalid_transition', message: 'internal wording', currentStatus: 'InPreparation' });
   if (mode === 'conflict-unknown') return reply(res, 409, { code: 'invalid_transition', currentStatus: 'Mystery' });
   const status = mode === 'badstatus' ? 'Mystery' : okStatus;
-  return reply(res, 200, { id: ORDER_ID, status });
+  // Ordering answers 202 to a hand-over: the order is still ReadyForFulfillment and a strategy completes it moments later (WI-ORD-003).
+  return reply(res, req.url?.endsWith('/complete') ? 202 : 200, { id: ORDER_ID, status });
 });
 
 const logs: Record<string, unknown>[] = [];
@@ -115,7 +116,7 @@ describe('Mutation.vendorOrderAction', () => {
     ['DECLINE', 'decline', 'Cancelled', 'CANCELLED'],
     ['START_PREPARATION', 'start-preparation', 'InPreparation', 'IN_PREPARATION'],
     ['MARK_READY', 'ready', 'ReadyForFulfillment', 'READY_FOR_FULFILLMENT'],
-    ['COMPLETE', 'complete', 'Completed', 'COMPLETED'],
+    ['COMPLETE', 'complete', 'ReadyForFulfillment', 'READY_FOR_FULFILLMENT'], // accepted, not done: ordering answers 202 with the order as it is
     ['CANCEL', 'cancel', 'Cancelled', 'CANCELLED'], // a vendor cancelling an order it had accepted (ordering derives the reason from the token)
   ];
   for (const [action, segment, wire, status] of cases) {

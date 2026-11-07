@@ -51,7 +51,8 @@ async function act(
     method: 'POST',
     headers: { authorization: `Bearer ${vendorToken}` },
   });
-  expect(res.status, `${action} on ${orderId}`).toBe(200);
+  // "Handed over" is accepted (202): the pickup strategy completes the order moments later (WI-ORD-003).
+  expect(res.status, `${action} on ${orderId}`).toBe(action === 'complete' ? 202 : 200);
 }
 
 async function vendorScreen(browser: Browser): Promise<{ page: Page; close: () => Promise<void> }> {

@@ -19,6 +19,8 @@ const initial = () => ({
   heartbeatMs: 12000, // 0 = never (a silent stream)
   actionMode: 'ok', // ok | conflict | notfound | forbidden | error | slow
   actionDelayMs: 0, // answer the mutation after this long (an action "in flight")
+  completeMode: 'ok', // ok | lost: a hand-over is accepted (as ordering's 202) and completes moments later; 'lost' never completes (WI-ORD-003)
+  completeDelayMs: 150, // how long the strategy takes to complete an accepted hand-over
   listSnapshot: null, // when set, the list answers with this instead of the live orders (a read that is behind the stream)
   tagsMode: 'ok', // ok | fail: the allergen registry the cards take their labels from
   tags: [
@@ -117,11 +119,21 @@ async function vendorOrderAction(res, req, query, variables) {
   const [from, to] = NEXT[action] ?? [];
   const allowed = Array.isArray(from) ? from.includes(found.status) : found.status === from;
   if (state.actionMode === 'conflict' || !allowed) return rejected('NOT_ALLOWED_NOW');
-  found.status = to;
-  found.sequence = (found.sequence ?? 1) + 1;
-  found.updatedAt = new Date().toISOString();
-  for (const s of streams) s.res.write(sse('next', { data: { vendorOrderChanged: found } }));
-  if (to === 'COMPLETED' || to === 'CANCELLED') state.orders = state.orders.filter((o) => o.id !== orderId);
+  const move = () => {
+    found.status = to;
+    found.sequence = (found.sequence ?? 1) + 1;
+    found.updatedAt = new Date().toISOString();
+    for (const s of streams) s.res.write(sse('next', { data: { vendorOrderChanged: found } }));
+    if (to === 'COMPLETED' || to === 'CANCELLED') state.orders = state.orders.filter((o) => o.id !== orderId);
+  };
+  if (action === 'COMPLETE') {
+    // As ordering now does: the hand-over is accepted and the order is as it was; a fulfillment strategy completes it moments later.
+    if (state.completeMode !== 'lost') setTimeout(move, state.completeDelayMs);
+    return send(res, 200, {
+      data: { vendorOrderAction: { __typename: 'VendorOrderActionDone', orderId, status: found.status } },
+    });
+  }
+  move();
   return send(res, 200, { data: { vendorOrderAction: { __typename: 'VendorOrderActionDone', orderId, status: to } } });
 }
 
@@ -138,6 +150,8 @@ http
         'heartbeatMs',
         'actionMode',
         'actionDelayMs',
+        'completeMode',
+        'completeDelayMs',
         'listSnapshot',
         'tagsMode',
       ])

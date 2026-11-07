@@ -228,7 +228,7 @@ export function createOrderingClient(
       const res = await request(`/ordering/orders/${encodeURIComponent(id)}/${action}`, trace, authorization, {
         method: 'POST',
       });
-      if (res.status === 200) return { kind: 'done', order: await parse<OrderingOrder>(res) };
+      if (res.status === 200 || res.status === 202) return { kind: 'done', order: await parse<OrderingOrder>(res) }; // 202: the request was accepted and a strategy completes the order later (WI-ORD-003)
       if (res.status === 404) {
         await res.body?.cancel().catch(() => undefined);
         return { kind: 'not_found' };

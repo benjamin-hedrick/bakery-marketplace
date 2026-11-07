@@ -269,3 +269,30 @@ test('a list read that is behind the stream does not undo a change the stream al
   expect(await inColumn(page, 'preparing')).toEqual(['AAA111']);
   expect(await inColumn(page, 'new')).toEqual([]);
 });
+
+test('a hand-over whose completion never arrives brings the buttons back with a note after the wait, and pressing again sends again', async ({
+  page,
+}) => {
+  await setMock({
+    orders: [order({ id: 'o1', reference: 'AAA111', status: 'READY_FOR_FULFILLMENT' })],
+    streamMode: 'ok',
+    completeMode: 'lost',
+  });
+  await logInAsVendor(page);
+  await expect.poll(() => inColumn(page, 'ready')).toEqual(['AAA111']);
+  await page.clock.install();
+
+  await page.getByRole('button', { name: 'Handed over order AAA111' }).click();
+  // Accepted, and waiting: the buttons stay off, as for every accepted action, and the card has not moved.
+  await expect(page.getByRole('button', { name: 'Handed over order AAA111' })).toBeDisabled();
+  expect((await mockActions()).map((a) => a.action)).toEqual(['COMPLETE']);
+
+  await page.clock.fastForward(16_000);
+  await expect(page.getByTestId('action-problem')).toHaveText('Still waiting. Please try again.');
+  await expect(page.getByRole('button', { name: 'Handed over order AAA111' })).toBeEnabled();
+
+  await setMock({ completeMode: 'ok' });
+  await page.getByRole('button', { name: 'Handed over order AAA111' }).click();
+  await expect(page.getByTestId('queue-order')).toHaveCount(0);
+  expect((await mockActions()).map((a) => a.action)).toEqual(['COMPLETE', 'COMPLETE']);
+});
