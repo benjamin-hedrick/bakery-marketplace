@@ -385,9 +385,10 @@ type Mutation {
   """
   vendorOrderAction(input: VendorOrderActionInput!): VendorOrderActionPayload!
   """
-  A customer cancels one of their own orders. Needs a customer's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another role).
-  Ordering-service decides whether the order is the caller's and whether its status allows a cancel (a customer may cancel while it is PLACED or
-  CONFIRMED); expected refusals come back as CancelOrderRejected, not as errors. The result is the order's new status.
+  A customer cancels one of their own orders. Needs a bearer token (UNAUTHENTICATED without one). Ordering-service decides who is acting, from
+  whose order it is: a customer may cancel their own order while it is PLACED or CONFIRMED; a vendor's token on its own order is a vendor cancel
+  (the queue display uses vendorOrderAction for that); a role that is neither is FORBIDDEN. Expected refusals come back as CancelOrderRejected,
+  not as errors. The result is the order's new status.
   """
   cancelOrder(input: CancelOrderInput!): CancelOrderPayload!
   "Places a test order for the caller. Needs a bearer token. Expected failures come back as PlaceOrderRejected, not as errors."
