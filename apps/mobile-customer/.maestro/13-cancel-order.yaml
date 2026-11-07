@@ -1,0 +1,48 @@
+# ORD-011: a customer cancels their own order from the order screen while it is placed or confirmed. A made-to-order item is used so the stock budget of
+# the other flows is not touched. The question comes first ("Keep it" sends nothing), then the cancel; the screen then shows what ordering says.
+# (Named 13- so it runs before 14-refused-session, which must be the last flow because it restarts the issuer.)
+appId: com.bakerymarketplace.mobile
+name: A customer cancels their order from the order screen
+---
+- launchApp:
+    clearState: true
+- runFlow: subflows/login.yaml
+- tapOn:
+    id: listing-Oat Milk Latte
+- tapOn:
+    id: add-to-order
+- tapOn:
+    id: to-checkout
+- assertVisible:
+    id: checkout
+- tapOn:
+    id: place-order
+# A plain order confirms itself.
+- assertVisible:
+    id: order-headline
+- assertVisible: Order confirmed
+- assertVisible:
+    id: cancel-order
+# The question comes first; "Keep it" sends nothing and the order is as it was.
+- tapOn:
+    id: cancel-order
+- assertVisible:
+    id: cancel-question
+- tapOn:
+    id: cancel-keep
+- assertNotVisible:
+    id: cancel-question
+- assertVisible: Order confirmed
+# Now cancel it.
+- tapOn:
+    id: cancel-order
+- tapOn:
+    id: cancel-confirm
+- assertVisible: Order cancelled
+- assertVisible:
+    id: cancel-note
+- assertVisible: Your order was cancelled.
+- assertVisible: "Status: CANCELLED"
+# Nothing is left to cancel.
+- assertNotVisible:
+    id: cancel-order
