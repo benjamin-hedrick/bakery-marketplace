@@ -32,10 +32,12 @@ public sealed class VendorStatusStore
     public const string Partition = "_vendor-status";
 
     private readonly IRepository<VendorStatusDocument> _repository;
+    private readonly CatalogService.Services.ListingCache? _cache;
 
-    public VendorStatusStore(IRepository<VendorStatusDocument> repository)
+    public VendorStatusStore(IRepository<VendorStatusDocument> repository, CatalogService.Services.ListingCache? cache = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _cache = cache;
     }
 
     public async Task<bool> IsVerifiedAsync(string vendorId, CancellationToken ct = default)
@@ -75,6 +77,13 @@ public sealed class VendorStatusStore
             LastSequence = sequence,
             UpdatedAt = occurredAt,
         }, Partition, ct);
+
+        // A verification change decides which vendors' listings are public: drop the cached vendor list and that vendor's cached listings (WI-CAT-003).
+        if (_cache is not null)
+        {
+            await _cache.InvalidateVerifiedVendorsAsync();
+            await _cache.InvalidateVendorAsync(vendorId);
+        }
         return true;
     }
 }

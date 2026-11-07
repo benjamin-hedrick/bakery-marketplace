@@ -31,6 +31,7 @@ public sealed class ListingService
     private readonly ILogger<ListingService> _logger;
     private readonly ITagRegistry _tags;
     private readonly TagOptions _tagLimits;
+    private readonly ListingCache? _cache;
 
     /// <summary>Re-reads and retries a conditional save this many times before reporting a conflict.</summary>
     public const int MaxSaveAttempts = 20;
@@ -42,8 +43,10 @@ public sealed class ListingService
         TimeProvider time,
         ILogger<ListingService> logger,
         ITagRegistry? tags = null,
-        TagOptions? tagLimits = null)
+        TagOptions? tagLimits = null,
+        ListingCache? cache = null)
     {
+        _cache = cache;
         _listings = listings;
         _vendors = vendors;
         _events = events;
@@ -57,7 +60,8 @@ public sealed class ListingService
 
     /// <summary>
     /// Published listings of verified vendors, ordered by id. <paramref name="after"/> is the id of the last item of the
-    /// previous page. The repository contract is single-partition, so this reads one partition per verified vendor;
+    /// previous page. The repository contract is single-partition, so this reads one partition per verified vendor, through the listing cache
+    /// (<see cref="ListingCache"/>, WI-CAT-003) when there is one;
     /// fine at first-slice scale, to be revisited if the vendor count grows. <paramref name="include"/>, when given, narrows the listings
     /// <b>before</b> paging, so a filtered page is still full and the cursor still means "after this id" (the personalized browse uses it to
     /// hide conflicting items).
@@ -66,14 +70,8 @@ public sealed class ListingService
         int limit, string? after, CancellationToken ct = default, Func<ListingDocument, bool>? include = null)
     {
         var all = new List<ListingDocument>();
-        foreach (var vendorId in await _vendors.VerifiedVendorIdsAsync(ct))
-        {
-            await foreach (var l in _listings.QueryAsync(
-                               vendorId, q => q.Where(x => x.Status == ListingStatuses.Published), ct))
-            {
-                all.Add(l);
-            }
-        }
+        foreach (var vendorId in await VerifiedVendorIdsAsync(ct))
+            all.AddRange(await PublishedListingsAsync(vendorId, ct));
 
         var ordered = all.Where(l => include is null || include(l)).OrderBy(l => l.Id, StringComparer.Ordinal)
             .Where(l => after is null || string.CompareOrdinal(l.Id, after) > 0)
@@ -91,13 +89,33 @@ public sealed class ListingService
     /// </summary>
     public async Task<ListingDocument?> GetPublicAsync(string id, CancellationToken ct = default)
     {
-        foreach (var vendorId in await _vendors.VerifiedVendorIdsAsync(ct))
+        foreach (var vendorId in await VerifiedVendorIdsAsync(ct))
         {
-            var found = await _listings.GetAsync(id, vendorId, ct);
-            if (found is { Status: ListingStatuses.Published }) return found;
+            var found = (await PublishedListingsAsync(vendorId, ct)).FirstOrDefault(l => l.Id == id);
+            if (found is not null) return found;
         }
         return null;
     }
+
+    // The two reads every public listing read starts from, through the cache when there is one (WI-CAT-003). What comes back may be shared
+    // with other requests: read only.
+    private Task<IReadOnlyList<string>> VerifiedVendorIdsAsync(CancellationToken ct) =>
+        _cache is null
+            ? _vendors.VerifiedVendorIdsAsync(ct)
+            : _cache.VerifiedVendorIdsAsync(t => _vendors.VerifiedVendorIdsAsync(t), ct);
+
+    private Task<IReadOnlyList<ListingDocument>> PublishedListingsAsync(string vendorId, CancellationToken ct) =>
+        _cache is null ? LoadPublishedAsync(vendorId, ct) : _cache.PublishedListingsAsync(vendorId, t => LoadPublishedAsync(vendorId, t), ct);
+
+    private async Task<IReadOnlyList<ListingDocument>> LoadPublishedAsync(string vendorId, CancellationToken ct)
+    {
+        var published = new List<ListingDocument>();
+        await foreach (var l in _listings.QueryAsync(vendorId, q => q.Where(x => x.Status == ListingStatuses.Published), ct))
+            published.Add(l);
+        return published;
+    }
+
+    private Task InvalidateAsync(string vendorId) => _cache?.InvalidateVendorAsync(vendorId) ?? Task.CompletedTask;
 
     // ---- vendor writes ------------------------------------------------------------------------
 
@@ -153,6 +171,7 @@ public sealed class ListingService
         Apply(doc, request, now);
         if (doc.Status == ListingStatuses.Published) _events.Raise(doc, ListingEventTypes.Published); // stored with the listing (register item 30)
         doc = await _listings.SaveAsync(doc, vendorId, ct);
+        await InvalidateAsync(vendorId);
 
         await _events.PublishInlineAsync(doc);
         return new ListingResult(ListingOutcome.Created, doc);
@@ -183,6 +202,7 @@ public sealed class ListingService
             var saved = await _listings.SaveIfUnchangedAsync(existing, existing.VendorId, ct);
             if (saved is not null)
             {
+                await InvalidateAsync(existing.VendorId); // any edit: price, name, tags, allergens, limits, threshold, published or not
                 await _events.PublishInlineAsync(saved);
                 return new ListingResult(ListingOutcome.Ok, saved);
             }
@@ -215,6 +235,7 @@ public sealed class ListingService
                 });
 
             var wasLowOrOut = StockPolicy.IsLowOrOut(existing);
+            var statusBefore = StockPolicy.StatusOf(existing);
             existing.AvailableQuantity = (int)next;
             existing.UpdatedAt = _time.GetUtcNow();
             existing.Version++;
@@ -222,6 +243,8 @@ public sealed class ListingService
             var saved = await _listings.SaveIfUnchangedAsync(existing, existing.VendorId, ct);
             if (saved is not null)
             {
+                // Only a change of status is visible to customers; the cached quantity may drift (see ListingCache).
+                if (StockPolicy.StatusOf(saved) != statusBefore) await InvalidateAsync(existing.VendorId);
                 await _events.PublishInlineAsync(saved);
                 return new ListingResult(ListingOutcome.Ok, saved);
             }
