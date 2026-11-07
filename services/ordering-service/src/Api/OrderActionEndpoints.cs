@@ -37,6 +37,8 @@ public static class OrderActionEndpoints
         return result.Outcome switch
         {
             OrderActionOutcome.Done => Results.Ok(OrderDto.From(result.Order!.Order)),
+            // Handed over: a strategy completes the order moments later; the body is the order as it is now (WI-ORD-003).
+            OrderActionOutcome.Accepted => Results.Json(OrderDto.From(result.Order!.Order), statusCode: StatusCodes.Status202Accepted),
             OrderActionOutcome.NotFound => Results.Json(new ApiError("not_found", "Order not found."), statusCode: StatusCodes.Status404NotFound),
             _ => Results.Json(
                 new ApiError(result.Code ?? "conflict", result.Message ?? "The action cannot be done now.", CurrentStatus: result.CurrentStatus?.ToString()),

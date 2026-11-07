@@ -135,13 +135,18 @@ public sealed class OrderActionApiTests : IAsyncLifetime
     {
         var id = await PlaceOrderAsync();
 
-        foreach (var (action, status) in new[] { ("confirm", "Confirmed"), ("start-preparation", "InPreparation"), ("ready", "ReadyForFulfillment"), ("complete", "Completed") })
+        foreach (var (action, status) in new[] { ("confirm", "Confirmed"), ("start-preparation", "InPreparation"), ("ready", "ReadyForFulfillment") })
         {
             var response = await Post(_vendor, id, action);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(status, (await JsonOf(response)).GetProperty("status").GetString());
         }
 
+        // Handed over is accepted, not done: the pickup strategy completes the order moments later (WI-ORD-003).
+        var handedOver = await Post(_vendor, id, "complete");
+        Assert.Equal(HttpStatusCode.Accepted, handedOver.StatusCode);
+        Assert.Equal("ReadyForFulfillment", (await JsonOf(handedOver)).GetProperty("status").GetString());
+        for (var i = 0; i < 100 && await StatusAsync(id) != "Completed"; i++) await Task.Delay(50);
         Assert.Equal("Completed", await StatusAsync(id)); // the customer sees it too
         Assert.Empty(_catalog.To("DELETE", "/catalog/stock/reservations")); // no stock released on the way
     }

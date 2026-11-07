@@ -31,7 +31,16 @@ public class OrderActionTests
             OrderStatus.ReadyForFulfillment => 3,
             _ => 4,
         };
-        foreach (var step in steps.Take(needed)) Assert.Equal(OrderActionOutcome.Done, (await f.Actions.ActAsync(id, TheVendor, step)).Outcome);
+        foreach (var step in steps.Take(needed))
+        {
+            if (step == OrderAction.Complete)
+            {
+                // Handed over: ordering publishes a request, the pickup strategy answers, ordering completes (WI-ORD-003).
+                Assert.Equal(OrderActionOutcome.Accepted, (await f.Actions.ActAsync(id, TheVendor, step)).Outcome);
+                await f.DeliverFulfillmentEventsAsync();
+            }
+            else Assert.Equal(OrderActionOutcome.Done, (await f.Actions.ActAsync(id, TheVendor, step)).Outcome);
+        }
         return id;
     }
 
@@ -47,10 +56,15 @@ public class OrderActionTests
         var id = await InStatusAsync(f, OrderStatus.Completed);
 
         Assert.Equal(OrderStatus.Completed, (await StoredAsync(f, id)).Status);
+        var orderEvents = f.Events.Published.Where(p => p.AggregateId == id && p.EventType.StartsWith("Order") && !p.EventType.StartsWith("OrderFulfillment")).ToList();
         Assert.Equal(
             [OrderEventTypes.Placed, OrderEventTypes.Confirmed, OrderEventTypes.PreparationStarted, OrderEventTypes.ReadyForFulfillment, OrderEventTypes.Completed],
-            f.Events.Published.Select(p => p.EventType));
-        Assert.Equal([1L, 2, 3, 4, 5], f.Events.Published.Select(p => p.Sequence));
+            orderEvents.Select(p => p.EventType));
+        Assert.Equal([1L, 2, 3, 4, 5], orderEvents.Select(p => p.Sequence));
+        // The completion went through the seam: a request, then the strategy's answer, and only then the order's own event.
+        Assert.Equal(
+            [FulfillmentEventTypes.ConfirmationRequested, FulfillmentEventTypes.Completed],
+            f.Events.Published.Where(p => p.EventType.StartsWith("OrderFulfillment")).Select(p => p.EventType));
         Assert.Empty((await f.Store.GetAsync(id, "customer-1"))!.Document.Outbox);
         Assert.Empty(f.Catalog.ReleaseCalls); // moving forward never releases stock
     }

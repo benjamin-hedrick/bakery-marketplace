@@ -40,10 +40,16 @@ public record OrderCustomizedPayload(
     IReadOnlyList<LineItemPayload> UpdatedLineItems
 );
 
+/// <summary>
+/// The pickup strategy scheduled the window the customer requested (WI-ORD-003). <c>VendorId</c> and <c>CustomerId</c> were added
+/// 2026-11-08 (additive, optional) so the notification service does not have to call back into Ordering.
+/// </summary>
 public record PickupWindowScheduledPayload(
     string OrderId,
     DateTimeOffset WindowStart,
-    DateTimeOffset WindowEnd
+    DateTimeOffset WindowEnd,
+    string? VendorId = null,
+    string? CustomerId = null
 );
 
 /// <summary>Who cancelled an order (docs/architecture/order-lifecycle.md).</summary>
@@ -97,8 +103,17 @@ public record OrderCancelledPayload(
     string? CustomerId = null
 );
 
+/// <summary>
+/// The pickup strategy tells the customer-facing side that the order can be collected (WI-ORD-003). <c>VendorId</c>, <c>CustomerId</c>,
+/// the window and <c>Instructions</c> were added 2026-11-08 (additive, optional), like the lifecycle events' ids on 2026-11-01.
+/// </summary>
 public record OrderReadyForPickupPayload(
-    string OrderId
+    string OrderId,
+    string? VendorId = null,
+    string? CustomerId = null,
+    DateTimeOffset? WindowStart = null,
+    DateTimeOffset? WindowEnd = null,
+    string? Instructions = null
 );
 
 public record OrderCompletedPayload(

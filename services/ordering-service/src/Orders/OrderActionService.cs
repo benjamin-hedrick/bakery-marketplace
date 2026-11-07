@@ -1,3 +1,4 @@
+using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
 using OrderingService.Checkout;
 using OrderingService.Domain;
@@ -23,6 +24,9 @@ public enum OrderActionOutcome
 {
     Done,
 
+    /// <summary>The request was published and a fulfillment strategy will answer; the order is unchanged for now (<c>complete</c>, WI-ORD-003).</summary>
+    Accepted,
+
     /// <summary>No such order for this caller: it does not exist or is someone else's (the two look the same).</summary>
     NotFound,
 
@@ -42,6 +46,7 @@ public sealed partial class OrderActionService(
     OrderStore orders,
     ICatalogGateway catalog,
     OrderEventPublisher eventPublisher,
+    IEventPublisher events,
     TimeProvider time,
     ILogger<OrderActionService> logger)
 {
@@ -49,6 +54,8 @@ public sealed partial class OrderActionService(
 
     public async Task<OrderActionResult> ActAsync(string orderId, OrderCaller caller, OrderAction action, CancellationToken ct = default)
     {
+        if (action == OrderAction.Complete) return await RequestCompletionAsync(orderId, caller, ct);
+
         for (var attempt = 0; attempt < MaxAttempts; attempt++)
         {
             var (stored, asVendor) = await LoadAsync(orderId, caller, action, ct);
@@ -80,6 +87,36 @@ public sealed partial class OrderActionService(
     }
 
     /// <summary>
+    /// "Handed over" (WI-ORD-003, ADR-0001): Ordering does not complete the order itself. It checks that the order is the vendor's and is
+    /// <c>ReadyForFulfillment</c>, publishes <c>OrderFulfillmentConfirmationRequested</c> and returns <see cref="OrderActionOutcome.Accepted"/>;
+    /// the fulfillment strategy answers with <c>OrderFulfillmentCompleted</c> and <see cref="FulfillmentCompletionHandler"/> completes the order.
+    /// Nothing is stored here, so there is no outbox entry; a failed publish fails the request and the vendor presses again. Two presses
+    /// publish two requests and the order is completed once.
+    /// </summary>
+    private async Task<OrderActionResult> RequestCompletionAsync(string orderId, OrderCaller caller, CancellationToken ct)
+    {
+        var (stored, _) = await LoadAsync(orderId, caller, OrderAction.Complete, ct);
+        if (stored is null) return new OrderActionResult(OrderActionOutcome.NotFound, Code: "not_found", Message: "Order not found.");
+
+        var order = stored.Order;
+        if (order.Status != OrderStatus.ReadyForFulfillment)
+        {
+            LogOrderRefusedInStatus(logger, orderId, OrderAction.Complete, order.Status);
+            return new OrderActionResult(
+                OrderActionOutcome.Conflict, Code: "invalid_transition", Message: $"Cannot complete an order that is {order.Status}.", CurrentStatus: order.Status);
+        }
+
+        var now = time.GetUtcNow();
+        await events.PublishAsync(
+            new DomainEventEnvelope<OrderFulfillmentConfirmationRequestedPayload>(
+                Guid.NewGuid(), FulfillmentEventTypes.ConfirmationRequested, 1, now, "Order", order.Id, order.SequenceNumber,
+                new OrderFulfillmentConfirmationRequestedPayload(order.Id, order.VendorId, order.CustomerId, order.FulfillmentType, now)),
+            ct);
+        LogOrderCompletionRequested(logger, orderId);
+        return new OrderActionResult(OrderActionOutcome.Accepted, stored);
+    }
+
+    /// <summary>
     /// Finds the order the caller owns and says in which capacity. Who is acting is decided by which side of the order the caller owns, never
     /// by anything in the request. Only a cancel can come from the customer; every other action is the vendor's.
     /// </summary>
@@ -101,7 +138,7 @@ public sealed partial class OrderActionService(
             case OrderAction.Confirm: order.Confirm(now); break;
             case OrderAction.StartPreparation: order.StartPreparation(now); break;
             case OrderAction.MarkReady: order.MarkReady(now); break;
-            case OrderAction.Complete: order.Complete(now); break; // moves behind PickupFulfillment when ORD-003 lands
+            case OrderAction.Complete: throw new InvalidOperationException("Complete goes through the fulfillment strategy (RequestCompletionAsync).");
             case OrderAction.Decline: order.Cancel(OrderCancelActor.Vendor, OrderCancelReason.VendorDeclined, now); break;
             case OrderAction.Cancel when asVendor:
                 // A vendor cancelling an order they have not yet accepted is a decline; later it is a cancellation.
@@ -136,6 +173,9 @@ public sealed partial class OrderActionService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: {Action} done, now {Status}")]
     private static partial void LogOrderDoneNow(ILogger logger, string orderId, OrderingService.Orders.OrderAction action, BakeryMarketplace.EventSchemas.OrderStatus status);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: completion requested, waiting for the fulfillment strategy")]
+    private static partial void LogOrderCompletionRequested(ILogger logger, string orderId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stock reservation for {OrderId} could not be released; it needs cleanup")]
     private static partial void LogStockReservationForCouldNotBe(ILogger logger, Exception exception, string orderId);
