@@ -29,7 +29,7 @@ async function gql(request: APIRequestContext, query: string, variables: object 
 
 const PLACE = `mutation($input: PlaceOrderInput!) { placeOrder(input: $input) { __typename
   ... on PlaceOrderSuccess { order { id status total { cents } } }
-  ... on PlaceOrderRejected { code } } }`;
+  ... on PlaceOrderRejected { code fields { field } } } }`;
 const plain = (quantity = 1) => ({
   idempotencyKey: `smoke-${randomUUID()}`,
   paymentMethodId: 'pm-alice-ok',
