@@ -101,6 +101,7 @@ const NEXT = {
   START_PREPARATION: ['CONFIRMED', 'IN_PREPARATION'],
   MARK_READY: ['IN_PREPARATION', 'READY_FOR_FULFILLMENT'],
   COMPLETE: ['READY_FOR_FULFILLMENT', 'COMPLETED'],
+  CANCEL: [['CONFIRMED', 'IN_PREPARATION', 'READY_FOR_FULFILLMENT'], 'CANCELLED'], // an order the vendor has accepted; a new one is declined
 };
 
 async function vendorOrderAction(res, req, query, variables) {
@@ -114,7 +115,8 @@ async function vendorOrderAction(res, req, query, variables) {
     send(res, 200, { data: { vendorOrderAction: { __typename: 'VendorOrderActionRejected', code } } });
   if (state.actionMode === 'notfound' || !found) return rejected('NOT_FOUND');
   const [from, to] = NEXT[action] ?? [];
-  if (state.actionMode === 'conflict' || found.status !== from) return rejected('NOT_ALLOWED_NOW');
+  const allowed = Array.isArray(from) ? from.includes(found.status) : found.status === from;
+  if (state.actionMode === 'conflict' || !allowed) return rejected('NOT_ALLOWED_NOW');
   found.status = to;
   found.sequence = (found.sequence ?? 1) + 1;
   found.updatedAt = new Date().toISOString();

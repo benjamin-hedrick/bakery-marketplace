@@ -1,7 +1,7 @@
 // Which buttons a vendor's order card offers (WI-QUE-004). A hint only: ordering-service decides whether an action is allowed, who may do it and
 // what it changes. The words are display text; the codes are the BFF's enum.
 
-export type VendorAction = 'CONFIRM' | 'DECLINE' | 'START_PREPARATION' | 'MARK_READY' | 'COMPLETE';
+export type VendorAction = 'CONFIRM' | 'DECLINE' | 'START_PREPARATION' | 'MARK_READY' | 'COMPLETE' | 'CANCEL';
 
 export interface ActionButton {
   action: VendorAction;
@@ -10,14 +10,18 @@ export interface ActionButton {
   confirmText?: string;
 }
 
+// A new order is declined; one the vendor has accepted can still be cancelled (ordering allows it from CONFIRMED, IN_PREPARATION and READY_FOR_FULFILLMENT:
+// ingredients run out, the customer does not come). Both ask a second time, because neither can be taken back.
+const CANCEL: ActionButton = { action: 'CANCEL', label: 'Cancel', confirmText: 'Cancel this order?' };
+
 const ACTIONS_BY_STATUS: Record<string, ActionButton[]> = {
   PLACED: [
     { action: 'CONFIRM', label: 'Accept' },
     { action: 'DECLINE', label: 'Decline', confirmText: 'Decline this order?' },
   ],
-  CONFIRMED: [{ action: 'START_PREPARATION', label: 'Start preparing' }],
-  IN_PREPARATION: [{ action: 'MARK_READY', label: 'Mark ready' }],
-  READY_FOR_FULFILLMENT: [{ action: 'COMPLETE', label: 'Handed over' }],
+  CONFIRMED: [{ action: 'START_PREPARATION', label: 'Start preparing' }, CANCEL],
+  IN_PREPARATION: [{ action: 'MARK_READY', label: 'Mark ready' }, CANCEL],
+  READY_FOR_FULFILLMENT: [{ action: 'COMPLETE', label: 'Handed over' }, CANCEL],
 };
 
 /** The buttons for an order in this status; none for a status this screen knows no action for. */
