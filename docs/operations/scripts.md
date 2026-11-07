@@ -65,7 +65,7 @@ Ports: 3000 customer web, 3100 queue display, 4000 mock BFF (browser suites), 41
 | Command | What it does |
 |---|---|
 | `node scripts/dev/measure-latency.mjs [--reads 50] [--orders 20]` | Sequential latency (p50, p95, max) of reads and checkout against a **running** demo. |
-| `node scripts/dev/load-test.mjs --minutes 3` | Load and soak of the live vendor queue on the real stack (`WI-SEC-005`); the long run is in `docs/evidence/WI-SEC-005/`. |
+| `node scripts/dev/load-test.mjs --minutes 3 [--bff-rate-limit 600 [--client-addresses]]` | Load and soak of the live vendor queue on the real stack (`WI-SEC-005`); the long run is in `docs/evidence/WI-SEC-005/`. |
 | `node scripts/ci/zap-scan.mjs` | OWASP ZAP baseline of both web apps and an API scan of the BFF (Docker; unauthenticated). |
 | `node scripts/ci/sonar-scan.mjs [--keep]` | SonarQube Community Build static analysis of the committed tree (C# and TypeScript) in Docker; prints the quality gate and issue counts; `--keep` leaves the server on :9000. No account; nothing leaves the machine. |
 
