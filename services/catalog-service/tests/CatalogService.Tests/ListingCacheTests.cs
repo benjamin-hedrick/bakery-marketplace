@@ -448,7 +448,7 @@ public sealed class ListingCacheTests
         var stale = rig.BrowseAsync();
         await WaitUntilAsync(() => rig.Listings.Queries == held);
         await rig.Service.UpdateAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950));
-        var fresh = await rig.BrowseAsync(); // starts its own load; the held one is still held
+        var fresh = await rig.BrowseAsync().WaitAsync(TimeSpan.FromSeconds(5)); // starts its own load; the held one is still held (a join would wait here)
 
         Assert.Equal(950, fresh.Single().PriceCents);
         Assert.False(stale.IsCompleted);
