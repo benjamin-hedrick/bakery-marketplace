@@ -1,4 +1,4 @@
-> **Status:** 3 of 10 items done (CUST-005, CUST-006 and CUST-008 Ready, CUST-007 In review, CUST-009 In review, MOB-001 In review, MOB-002 In review; WEB-001 is superseded and not counted)
+> **Status:** 3 of 11 items done (CUST-005, CUST-006 and CUST-008 Ready, CUST-007 In review, CUST-009 In review, CUST-010 In review, MOB-001 In review, MOB-002 In review; WEB-001 is superseded and not counted)
 
 ```
 Epic ID:            EPIC-WEB-CUSTOMER
@@ -17,6 +17,7 @@ Constituent work items:
   - WI-CUST-006 (Service Implementation — personalized allergen highlighting on browse) — shared with EPIC-SEARCH, added 2026-09-14 (Batch 6, M4)
   - WI-CUST-008 (Service Implementation — allergens in the cart and at checkout) — shared with EPIC-PREFERENCES, added 2026-11-04
   - WI-CUST-009 (Service Implementation — a fresh stock check when adding to the order) — shared with EPIC-CACHING, added 2026-11-07
+  - WI-CUST-010 (Service Implementation — the customer's order status stays current by polling) — shared with EPIC-QUEUE-DISPLAY, added 2026-11-07
 Status:              3 of 8 items done (CUST-005, CUST-006 and CUST-008 Ready, CUST-007 In review, MOB-001 Ready; WEB-001 is superseded and not counted)
 ```
 
