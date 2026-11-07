@@ -30,9 +30,13 @@ public sealed class CatalogFactory : WebApplicationFactory<Program>
     private static readonly RsaSecurityKey SigningKey = new(RSA.Create(2048)) { KeyId = "test-key" };
     private static readonly RsaSecurityKey OtherKey = new(RSA.Create(2048)) { KeyId = "other-key" };
 
+    /// <summary>Extra host settings for one test (for instance <c>Cache:Backend</c>), set before the first request builds the host.</summary>
+    public Dictionary<string, string?> HostSettings { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Events:Backend", "inmemory"); // read by Program.cs before the host is built, so it must be a host setting
+        foreach (var (key, value) in HostSettings) builder.UseSetting(key, value);
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Auth:Authority"] = Issuer,
