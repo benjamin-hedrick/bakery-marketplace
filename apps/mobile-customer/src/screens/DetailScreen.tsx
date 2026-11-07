@@ -1,9 +1,10 @@
-import { addLine } from '@bakery/customer-core';
+import { ADD_REFUSAL_TEXT, addLine, decideAdd } from '@bakery/customer-core';
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { gql } from '../api';
 import { cartStore } from '../cart';
 import { LISTING, type ListingDetailData } from '../queries';
+import { readFreshStock } from '../stock';
 import { Button, Loading, Notice, colors, money, styles } from '../ui';
 
 const MESSAGES: Record<string, string> = {
@@ -18,6 +19,7 @@ export function DetailScreen(props: { id: string; onAdded: () => void }) {
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     gql<ListingDetailData>(LISTING, { id: props.id })
@@ -33,8 +35,20 @@ export function DetailScreen(props: { id: string; onAdded: () => void }) {
   const picked = data.modifiers.filter((m) => chosen.has(m.id));
   const unit = data.price.cents + picked.reduce((s, m) => s + m.priceDelta.cents, 0);
 
-  function add() {
-    if (!data) return;
+  // Read the stock again, then decide from that read (customer-core `decideAdd`; WI-CUST-009). A read that failed adds nothing and says so. Advice
+  // only: checkout's atomic reservation is still the authority.
+  async function add() {
+    if (!data || checking) return;
+    setChecking(true);
+    setMessage(null);
+    const read = await readFreshStock(props.id);
+    setChecking(false);
+    const decision = decideAdd(read);
+    if (!decision.allowed) {
+      setMessage(ADD_REFUSAL_TEXT[decision.refusal]);
+      if (read.kind === 'listing') setData({ ...data, stock: { ...data.stock, ...read.stock } as typeof data.stock }); // the screen follows the read
+      return;
+    }
     const result = addLine(cartStore.get(), data.vendorId, {
       listingId: data.id,
       name: data.name,
@@ -42,7 +56,7 @@ export function DetailScreen(props: { id: string; onAdded: () => void }) {
       currency: data.price.currency,
       modifiers: picked.map((m) => ({ id: m.id, name: m.name, priceDeltaCents: m.priceDelta.cents })),
       quantity,
-      maxPerOrder: data.stock.maxPerOrder,
+      maxPerOrder: decision.maxPerOrder,
     });
     if ('error' in result) return setMessage(MESSAGES[result.error] ?? 'This could not be added.');
     cartStore.update(() => result.cart);
@@ -83,7 +97,12 @@ export function DetailScreen(props: { id: string; onAdded: () => void }) {
       </View>
       <Text style={{ color: colors.muted }}>{money({ cents: unit * quantity, currency: data.price.currency })}</Text>
       {message ? <Notice text={message} testID="detail-message" /> : null}
-      <Button label={soldOut ? 'Sold out' : 'Add to order'} testID="add-to-order" onPress={add} disabled={soldOut} />
+      <Button
+        label={soldOut ? 'Sold out' : checking ? 'Checking stock…' : 'Add to order'}
+        testID="add-to-order"
+        onPress={() => void add()}
+        disabled={soldOut || checking}
+      />
     </ScrollView>
   );
 }
