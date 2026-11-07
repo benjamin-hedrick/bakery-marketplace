@@ -519,7 +519,7 @@ union VendorOrderActionPayload = VendorOrderActionDone | VendorOrderActionReject
 type VendorOrderActionDone {
   "The VendorOrder global id the action was sent for."
   orderId: ID!
-  "The order's status after the action."
+  "The order's status after the action. For COMPLETE it is the status when the request was accepted (still READY_FOR_FULFILLMENT): a fulfillment strategy completes the order moments later, and the queue learns of it from the stream or the list."
   status: OrderStatus!
 }
 

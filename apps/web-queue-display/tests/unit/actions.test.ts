@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { actionsFor, OUTCOME_TEXT } from '../../src/lib/actions.ts';
+import { actionsFor, OUTCOME_TEXT, STILL_WAITING_MS, STILL_WAITING_TEXT } from '../../src/lib/actions.ts';
 
 describe('actionsFor', () => {
   test('offers what the vendor does next at each status', () => {
@@ -46,5 +46,12 @@ describe('actionsFor', () => {
     for (const text of Object.values(OUTCOME_TEXT))
       assert.doesNotMatch(text, /NOT_FOUND|NOT_ALLOWED|FORBIDDEN|INTERNAL|\d{3}/);
     assert.deepEqual(Object.keys(OUTCOME_TEXT).sort(), ['changed', 'failed', 'login-ended', 'missing']);
+  });
+});
+
+describe('waiting for a hand-over', () => {
+  test('the wait is long enough for a strategy to answer and short enough that a lost completion is no dead card', () => {
+    assert.ok(STILL_WAITING_MS >= 5_000 && STILL_WAITING_MS <= 30_000);
+    assert.doesNotMatch(STILL_WAITING_TEXT, /\d{3}|COMPLETE|READY_FOR/);
   });
 });

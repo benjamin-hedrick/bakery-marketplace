@@ -32,6 +32,13 @@ export function actionsFor(status: string): ActionButton[] {
 export type ActionOutcome =
   { kind: 'done' } | { kind: 'changed' } | { kind: 'missing' } | { kind: 'login-ended' } | { kind: 'failed' };
 
+/**
+ * "Handed over" is accepted, not done (WI-ORD-003): ordering publishes a request and a fulfillment strategy completes the order moments later.
+ * If the order still shows its old status after this long, the buttons come back with a note, so a lost completion is never a dead card.
+ */
+export const STILL_WAITING_MS = 15_000;
+export const STILL_WAITING_TEXT = 'Still waiting. Please try again.';
+
 /** What the vendor is told for each outcome, in words (never a code or the service's text). */
 export const OUTCOME_TEXT: Record<Exclude<ActionOutcome['kind'], 'done'>, string> = {
   changed: 'This order has changed. The queue is up to date.',

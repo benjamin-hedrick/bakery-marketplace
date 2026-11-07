@@ -67,6 +67,8 @@ export const setMock = (state: {
   heartbeatMs?: number;
   /** How the mock answers a vendor action: ok (moves the order along), conflict, notfound, forbidden, error. */
   actionMode?: 'ok' | 'conflict' | 'notfound' | 'forbidden' | 'error';
+  completeMode?: 'ok' | 'lost';
+  completeDelayMs?: number;
   /** The mock answers an action after this many milliseconds (an action in flight). */
   actionDelayMs?: number;
   /** Makes the list answer with these orders instead of the live ones (a read that is behind the stream); null puts it back. */

@@ -3,7 +3,15 @@ import { graphql } from 'react-relay';
 import { commitMutation } from 'relay-runtime';
 import type { OrderActionsMutation, OrderActionsMutation$data } from '../__generated__/OrderActionsMutation.graphql';
 import { getBrowserEnvironment, UnauthenticatedError } from '../lib/relay/environment';
-import { actionsFor, OUTCOME_TEXT, type ActionButton, type ActionOutcome, type VendorAction } from '../lib/actions';
+import {
+  actionsFor,
+  OUTCOME_TEXT,
+  STILL_WAITING_MS,
+  STILL_WAITING_TEXT,
+  type ActionButton,
+  type ActionOutcome,
+  type VendorAction,
+} from '../lib/actions';
 
 // The vendor's actions on one order card (WI-QUE-004). The mutation's answer does not edit the board: the board asks for the list again and the
 // stream delivers the change, so there is one source of truth (sequence numbers decide, WI-QUE-003).
@@ -65,6 +73,17 @@ export function OrderActions({ orderId, reference, status, onSettled, onAnnounce
   }, []);
   // The question "Decline this order?" belongs to the status it was asked at: when the order moves on, it is no longer asked.
   const asking = askingAt?.status === status ? askingAt.action : null;
+
+  // An accepted action is waited for, not assumed: if the order still shows its old status after STILL_WAITING_MS, the buttons come back.
+  useEffect(() => {
+    if (sentFrom !== status) return;
+    const timer = setTimeout(() => {
+      setSentFrom(null);
+      setMessage(STILL_WAITING_TEXT);
+      onAnnounce(`Order ${reference}: ${STILL_WAITING_TEXT}`);
+    }, STILL_WAITING_MS);
+    return () => clearTimeout(timer);
+  }, [sentFrom, status, reference, onAnnounce]);
 
   const buttons = actionsFor(status);
   if (buttons.length === 0) return null;

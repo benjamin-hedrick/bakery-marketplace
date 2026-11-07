@@ -89,7 +89,8 @@ test('the vendor accepts, starts, readies and hands over an order from the butto
 
   await page.getByRole('button', { name: `Handed over order ${first.reference}` }).click();
   await expect.poll(() => inColumn(page, 'ready')).not.toContain(first.reference);
-  expect(await statusFor(customer, first.orderGid)).toBe('COMPLETED');
+  // Accepted first, completed by the pickup strategy moments later (WI-ORD-003): wait for it.
+  await expect.poll(() => statusFor(customer, first.orderGid)).toBe('COMPLETED');
 
   const second = await placeOrder(customer);
   await expect.poll(() => inColumn(page, 'new')).toContain(second.reference);
