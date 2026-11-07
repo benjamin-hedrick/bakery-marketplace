@@ -98,15 +98,30 @@ test('refreshing asks the server again, since the status moves on without the pa
   expect(requests).toHaveLength(1);
 });
 
-test('when the order cannot be loaded the page says so and offers to try again', async ({ page }) => {
+test('when the order cannot be loaded at all the page says so and offers to try again', async ({ page }) => {
   await placeOrder(page);
   await page.route('**/api/graphql', (route) => route.fulfill({ status: 500, body: 'boom' }));
-  await page.getByRole('button', { name: 'Refresh status' }).click();
+  await page.reload(); // a first read that fails: there is nothing to keep
   await expect(page.getByTestId('order-failed')).toContainText('could not load your order');
 
   await page.unroute('**/api/graphql');
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(page.getByTestId('order-status')).toBeVisible();
+});
+
+test('when a refresh fails after the order was loaded the page keeps the last status and says it could not refresh', async ({
+  page,
+}) => {
+  await placeOrder(page);
+  await page.route('**/api/graphql', (route) => route.fulfill({ status: 500, body: 'boom' }));
+  await page.getByRole('button', { name: 'Refresh status' }).click();
+  await expect(page.getByTestId('order-stale')).toContainText('could not refresh');
+  await expect(page.getByTestId('order-status')).toBeVisible(); // what the page knew is still on it
+  await expect(page.getByTestId('order-failed')).toHaveCount(0);
+
+  await page.unroute('**/api/graphql');
+  await page.getByRole('button', { name: 'Refresh status' }).click();
+  await expect(page.getByTestId('order-stale')).toHaveCount(0);
 });
 
 test('logging out drops everything the page learned, so the next person never sees this order', async ({ page }) => {

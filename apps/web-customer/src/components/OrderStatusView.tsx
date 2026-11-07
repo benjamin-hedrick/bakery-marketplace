@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { graphql, useMutation, useRelayEnvironment } from 'react-relay';
 import { fetchQuery } from 'relay-runtime';
 import type { OrderLineListingQuery } from '../__generated__/OrderLineListingQuery.graphql';
@@ -11,6 +11,7 @@ import {
   CANCEL_QUESTION,
   customerMayCancel,
   HEADLINES,
+  OrderPoller,
   referenceOf,
   time,
   when,
@@ -95,39 +96,72 @@ export function OrderStatusView({ id }: { id: string }) {
   const [cancelNote, setCancelNote] = useState<CancelOutcome | null>(null);
   const [commitCancel, cancelling] = useMutation<OrderStatusCancelMutation>(cancelMutation);
 
-  const load = useCallback(() => {
+  const [stale, setStale] = useState(false); // the last read failed: the page shows the last status it had
+  const poller = useRef<OrderPoller<Order | null> | null>(null);
+
+  // The status is read from the network and then kept current by polling while the order can still change (customer-core `OrderPoller`: every few
+  // seconds, one read at a time, paused while the tab is hidden, stopped once the order is completed or cancelled, slower after a failure). The names
+  // of the items do not change, so they are read once.
+  useEffect(() => {
     const options = { fetchPolicy: 'network-only' } as const;
-    fetchQuery<OrderStatusQuery>(environment, orderQuery, { id }, options)
-      .toPromise()
-      .then(async (data) => {
-        const order = data?.order;
-        if (!order) return setView({ state: 'missing' });
-        const names = new Map<string, { name: string; modifiers: ReadonlyMap<string, string> }>();
-        await Promise.all(
-          [...new Set(order.lineItems.map((l) => l.listingId))].map(
-            (listingId) =>
-              fetchQuery<OrderLineListingQuery>(environment, listingNamesQuery, { id: listingId }, options)
-                .toPromise()
-                .then((r) => {
-                  if (r?.listing)
-                    names.set(listingId, {
-                      name: r.listing.name,
-                      modifiers: new Map(r.listing.modifiers.map((m) => [m.id, m.name])),
-                    });
-                })
-                .catch(() => undefined), // a name that cannot be read is shown as a plain "Item"; the order itself is what matters
-          ),
-        );
-        setView({ state: 'ready', order, names });
-      })
-      .catch(() => setView({ state: 'failed' }));
+    let names: Names | null = null;
+
+    async function readNames(order: Order): Promise<Names> {
+      const found = new Map<string, { name: string; modifiers: ReadonlyMap<string, string> }>();
+      await Promise.all(
+        [...new Set(order.lineItems.map((l) => l.listingId))].map(
+          (listingId) =>
+            fetchQuery<OrderLineListingQuery>(environment, listingNamesQuery, { id: listingId }, options)
+              .toPromise()
+              .then((r) => {
+                if (r?.listing)
+                  found.set(listingId, {
+                    name: r.listing.name,
+                    modifiers: new Map(r.listing.modifiers.map((m) => [m.id, m.name])),
+                  });
+              })
+              .catch(() => undefined), // a name that cannot be read is shown as a plain "Item"; the order itself is what matters
+        ),
+      );
+      return found;
+    }
+
+    const p = new OrderPoller<Order | null>({
+      read: async () => {
+        const data = await fetchQuery<OrderStatusQuery>(environment, orderQuery, { id }, options).toPromise();
+        const order = data?.order ?? null;
+        if (order && names === null) names = await readNames(order);
+        return order;
+      },
+      statusOf: (order) => order?.status ?? null,
+      onValue: (order) => {
+        setStale(false);
+        setView(order ? { state: 'ready', order, names: names ?? new Map() } : { state: 'missing' });
+      },
+      // Before the first good read there is nothing to keep: say so. After it, keep what is shown and say it could not refresh.
+      onFailure: () => {
+        setView((v) => (v.state === 'ready' || v.state === 'missing' ? v : { state: 'failed' }));
+        setStale(true);
+      },
+      isVisible: () => document.visibilityState !== 'hidden',
+    });
+    poller.current = p;
+    p.start();
+    const shown = () => {
+      if (document.visibilityState === 'visible') p.refreshNow(); // the tab came back: do not wait for the next tick
+    };
+    document.addEventListener('visibilitychange', shown);
+    return () => {
+      document.removeEventListener('visibilitychange', shown);
+      p.stop();
+      poller.current = null;
+    };
   }, [environment, id]);
 
-  useEffect(load, [load]);
-
-  const reload = () => {
+  const reload = () => poller.current?.refreshNow(); // read now, without a "Loading" flash: the page stays as it is until the answer arrives
+  const tryAgain = () => {
     setView({ state: 'loading' });
-    load();
+    poller.current?.refreshNow();
   };
 
   function cancelOrder() {
@@ -155,7 +189,7 @@ export function OrderStatusView({ id }: { id: string }) {
     return (
       <section role="alert" data-testid="order-failed">
         <p>We could not load your order. It has not changed.</p>
-        <button type="button" onClick={reload}>
+        <button type="button" onClick={tryAgain}>
           Try again
         </button>
       </section>
@@ -205,6 +239,11 @@ export function OrderStatusView({ id }: { id: string }) {
       <p>
         <small>Test order: no payment was taken.</small>
       </p>
+      {stale ? (
+        <p role="status" data-testid="order-stale">
+          We could not refresh just now. This is the last status we have, and we will keep trying.
+        </p>
+      ) : null}
       <button type="button" onClick={reload}>
         Refresh status
       </button>
