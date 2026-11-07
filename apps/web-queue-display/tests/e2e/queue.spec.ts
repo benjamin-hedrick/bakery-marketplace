@@ -133,8 +133,14 @@ test('it asks again every few seconds, with the vendor token', async ({ page }) 
 
   // One step at a time: Relay shares one in-flight request between identical queries, so three polls in the same instant would be one.
   for (let step = 1; step <= 3; step++) {
-    await page.clock.runFor(POLL_MS);
-    await expect.poll(async () => (await mockRequests()).requests).toBeGreaterThanOrEqual(first + step);
+    // The next poll is scheduled only after the previous response is handled, so a single runFor can fire before the timer exists
+    // (seen on the slower CI agent). Advance the clock again on each retry until the request arrives.
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(POLL_MS);
+        return (await mockRequests()).requests;
+      })
+      .toBeGreaterThanOrEqual(first + step);
   }
   const { authorizations } = await mockRequests();
   expect(authorizations.every((a) => a?.startsWith('Bearer '))).toBe(true);
