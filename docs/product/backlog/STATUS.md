@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 55 |
 | In progress | 5 |
-| In review | 24 |
+| In review | 25 |
 | Built | 1 |
-| Ready | 5 |
+| Ready | 4 |
 | Proposed | 4 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -77,7 +77,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (local and resilient providers) and its tests |
 | [CACHE-004](WI-CACHE-004.md) | ChaosCacheProvider decorator + fallback proof tests | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (chaos provider) and its tests |
 | [CAT-001](WI-CAT-001.md) | Listing CRUD + modifier/allergy-flag model | EPIC-CATALOG | Done | evidence: merged `0c904b0`; `docs/evidence/WI-CAT-001/findings.md` |
-| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | EPIC-CATALOG | Ready |  |
+| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | EPIC-CATALOG | In review | built and run locally 2026-11-07 on `feature/listing-cache` (22 new tests; browse about 20 ms to about 3 ms at p50, `docs/evidence/WI-CAT-003/after-2026-11-07.md`); waiting for the lead's review of the stock-path diff (register 158 item 4) |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
