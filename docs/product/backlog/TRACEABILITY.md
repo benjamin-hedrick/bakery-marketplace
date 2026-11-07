@@ -30,7 +30,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | In review | `personalized.spec.ts`, `profile-page.spec.ts`, `conflictText.test.ts` | `maestro-flows-2026-11-04.md`, `ai-usage-2026-11-04.md`, `status-check-experiment-2026-10-30.md` |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | In review | `order-history.spec.ts`, `order-history.spec.ts`, `customer-orders.test.ts` and 1 more | `ai-usage-2026-11-04.md`, `baseline-2026-10-30.md`, `status-check-experiment-2026-10-30.md` |
 | [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | In review | `checkout-allergens.spec.ts`, `checkout-allergens.spec.ts`, `cartAllergens.test.ts` | `ai-usage-2026-11-04.md` |
-| [CUST-009](WI-CUST-009.md) | A fresh stock check when a customer adds an item to the order | In review | `stock.test.ts`, `add-stock-check.spec.ts`, `order-controls.spec.ts` and 1 more | *none* |
+| [CUST-009](WI-CUST-009.md) | A fresh stock check when a customer adds an item to the order | In review | `stock.test.ts`, `add-stock-check.spec.ts`, `order-controls.spec.ts` and 2 more | *none* |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |
@@ -69,6 +69,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | Done | *none* | `README.md`, `findings.md`, `findings.md` |
 | [PORT-002](WI-PORT-002.md) | Walking skeleton: Next.js SSR → GraphQL BFF → C# API | Done | `walking-skeleton.spec.ts` | `README.md`, `findings.md`, `findings.md` |
 | [PORT-003](WI-PORT-003.md) | Quality and CI baseline (Azure Pipelines) | Done | *none* | `README.md`, `findings.md`, `findings.md` and 2 more |
+| [PORT-004](WI-PORT-004.md) | Cache contract for the listing path (all three layers) | In review | `cache-headers.spec.ts`, `stale-cart-checkout.spec.ts` | `findings.md` |
 | [PORT-005](WI-PORT-005.md) | Verify trace propagation and safe logs | Done | `TracingTests.cs` | `README.md`, `findings.md`, `findings.md` and 2 more |
 | [PORT-006](WI-PORT-006.md) | Reconcile existing artifacts with ADR-0012 to ADR-0016 | Done | *none* | `baseline-2026-10-30.md` |
 | [PORT-007](WI-PORT-007.md) | First-slice domain/API contract and GraphQL mapping | Done | *none* | *none* |
