@@ -9,5 +9,6 @@ export * from './tagFilter.ts';
 export * from './money.ts';
 export * from './paymentMethod.ts';
 export * from './stockCheck.ts';
+export * from './orderCancel.ts';
 export * from './identity.ts';
 export * from './allergenCheck.ts';

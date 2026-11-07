@@ -1,11 +1,39 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { graphql, useRelayEnvironment } from 'react-relay';
+import { graphql, useMutation, useRelayEnvironment } from 'react-relay';
 import { fetchQuery } from 'relay-runtime';
 import type { OrderLineListingQuery } from '../__generated__/OrderLineListingQuery.graphql';
+import type { OrderStatusCancelMutation } from '../__generated__/OrderStatusCancelMutation.graphql';
 import type { OrderStatusQuery, OrderStatusQuery$data } from '../__generated__/OrderStatusQuery.graphql';
 import { formatMoney } from '@bakery/customer-core';
-import { HEADLINES, referenceOf, time, when } from '@bakery/customer-core';
+import {
+  CANCEL_OUTCOME_TEXT,
+  CANCEL_QUESTION,
+  customerMayCancel,
+  HEADLINES,
+  referenceOf,
+  time,
+  when,
+  type CancelOutcome,
+} from '@bakery/customer-core';
+
+// A customer cancels their own order (while it is placed or confirmed). The answer does not edit the page: the order is read again from the network, so
+// what is shown is what ordering says, whatever the answer was. A refusal is an expected answer, not an error.
+const cancelMutation = graphql`
+  mutation OrderStatusCancelMutation($input: CancelOrderInput!) {
+    cancelOrder(input: $input) {
+      __typename
+      ... on CancelOrderDone {
+        orderId
+        status
+      }
+      ... on CancelOrderRejected {
+        code
+        currentStatus
+      }
+    }
+  }
+`;
 
 const orderQuery = graphql`
   query OrderStatusQuery($id: ID!) {
@@ -63,6 +91,9 @@ const money = (m: { cents: number; currency: string }) => formatMoney(m);
 export function OrderStatusView({ id }: { id: string }) {
   const environment = useRelayEnvironment();
   const [view, setView] = useState<State>({ state: 'loading' });
+  const [asking, setAsking] = useState(false); // "Cancel this order?" is on screen
+  const [cancelNote, setCancelNote] = useState<CancelOutcome | null>(null);
+  const [commitCancel, cancelling] = useMutation<OrderStatusCancelMutation>(cancelMutation);
 
   const load = useCallback(() => {
     const options = { fetchPolicy: 'network-only' } as const;
@@ -98,6 +129,26 @@ export function OrderStatusView({ id }: { id: string }) {
     setView({ state: 'loading' });
     load();
   };
+
+  function cancelOrder() {
+    setAsking(false);
+    setCancelNote(null);
+    commitCancel({
+      variables: { input: { orderId: id } },
+      onCompleted: (data) => {
+        const result = data.cancelOrder;
+        setCancelNote(
+          result.__typename === 'CancelOrderDone'
+            ? 'cancelled'
+            : result.__typename === 'CancelOrderRejected' && result.code === 'NOT_FOUND'
+              ? 'missing'
+              : 'not_allowed_now',
+        );
+        reload(); // what is shown is what ordering now says, whatever the answer was
+      },
+      onError: () => setCancelNote('failed'), // nothing is known to have changed: the page stays as it is
+    });
+  }
 
   if (view.state === 'loading') return <p>Loading your order…</p>;
   if (view.state === 'failed') {
@@ -157,6 +208,28 @@ export function OrderStatusView({ id }: { id: string }) {
       <button type="button" onClick={reload}>
         Refresh status
       </button>
+      {customerMayCancel(order.status) ? (
+        asking ? (
+          <p role="group" aria-label="Cancel this order?" data-testid="cancel-question">
+            {CANCEL_QUESTION}{' '}
+            <button type="button" data-testid="cancel-confirm" onClick={cancelOrder}>
+              Yes, cancel the order
+            </button>{' '}
+            <button type="button" onClick={() => setAsking(false)}>
+              Keep it
+            </button>
+          </p>
+        ) : (
+          <button type="button" data-testid="cancel-order" disabled={cancelling} onClick={() => setAsking(true)}>
+            Cancel order
+          </button>
+        )
+      ) : null}
+      {cancelNote ? (
+        <p role={cancelNote === 'cancelled' ? 'status' : 'alert'} data-testid="cancel-note" data-outcome={cancelNote}>
+          {CANCEL_OUTCOME_TEXT[cancelNote]}
+        </p>
+      ) : null}
     </article>
   );
 }

@@ -12,6 +12,7 @@
 //   POST /__control {"stock": {"<service listing id>": {"status": "SOLD_OUT", "maxPerOrder": 2}}} changes what the public listing query says about an
 //   item's stock from now on (WI-CUST-009: a page that was loaded in stock, then the item sells out); {"failListingReads": true} makes the public
 //   `listing` query fail; {"resetStock": true} undoes both. GET /__reads also reports `listingReads`, how many times `listing` was asked.
+//   POST /__control {"orderStatus": "IN_PREPARATION"} moves every order held to that status (the bakery acting); {"failCancel": true} makes cancelOrder fail.
 //   `x-cart-check: fail` makes cartCheck fail with an internal error.
 //   `x-save-preferences: fail` makes savePreferences fail with an internal error; `rejected` answers SavePreferencesRejected.
 // Like the real BFF, placeOrder and order need a bearer token. Orders are kept in memory and an idempotency key returns the same order.
@@ -188,6 +189,34 @@ function readOrder({ id }, ctx) {
   if (!hasBearer(ctx)) throw unauthenticated();
   const found = orders.get(serviceId('Order', id) ?? '');
   return found ? toOrder(found) : null;
+}
+
+let failCancel = false; // POST /__control {"failCancel": true}: the next cancels fail with an internal error
+
+// A customer cancels their own order, with ordering's rule: only while it is PLACED or CONFIRMED. Anything else answers NOT_ALLOWED_NOW with the
+// status the order is in, and an id that is not an order of this mock answers NOT_FOUND, as the real BFF does.
+function cancelOrder({ input }, ctx) {
+  if (!hasBearer(ctx)) throw unauthenticated();
+  if (failCancel) throw new GraphQLError('The order could not be cancelled.', { extensions: { code: 'INTERNAL' } });
+  const found = orders.get(serviceId('Order', input.orderId) ?? '');
+  if (!found) {
+    return {
+      __typename: 'CancelOrderRejected',
+      code: 'NOT_FOUND',
+      message: 'That order could not be found.',
+      currentStatus: null,
+    };
+  }
+  if (found.status !== 'PLACED' && found.status !== 'CONFIRMED') {
+    return {
+      __typename: 'CancelOrderRejected',
+      code: 'NOT_ALLOWED_NOW',
+      message: 'This order can no longer be cancelled. It has changed.',
+      currentStatus: found.status,
+    };
+  }
+  found.status = 'CANCELLED';
+  return { __typename: 'CancelOrderDone', orderId: input.orderId, status: 'CANCELLED' };
 }
 
 // The customer's orders, newest first, paged by position (the cursor is the index of the next order). Like the real BFF it needs a bearer token.
@@ -391,6 +420,7 @@ function rootFor(fixture) {
     order: readOrder,
     orders: listOrders,
     placeOrder,
+    cancelOrder,
   };
 }
 
@@ -427,6 +457,10 @@ const server = http.createServer(async (req, res) => {
         createdAt: new Date(Date.UTC(2026, 0, 1, 12, i)).toISOString(),
       });
     }
+    // orderStatus: moves every order the mock holds to that status (the bakery acting), so a test can show the customer's view of it and a too-late cancel.
+    if (control.orderStatus) for (const o of orders.values()) o.status = String(control.orderStatus);
+    if ('failCancel' in control) failCancel = Boolean(control.failCancel);
+    if (control.resetOrders) failCancel = false;
     if (control.resetStock) {
       stockOverrides = {};
       failListingReads = false;
