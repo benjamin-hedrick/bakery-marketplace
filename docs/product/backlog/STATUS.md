@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-107 specs.
+108 specs.
 
 | Status | Count |
 |---|---|
@@ -14,7 +14,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In progress | 5 |
 | In review | 24 |
 | Built | 1 |
-| Ready | 4 |
+| Ready | 5 |
 | Proposed | 4 |
 | Deferred | 12 |
 | Superseded | 2 |
@@ -54,7 +54,7 @@ Superseded and obsolete items are not counted.
 | EPIC-SHARED-TOOLING | 2 of 2 | TOOL-001, TOOL-002 |
 | EPIC-TAGS | 0 of 5 | TAG-001, TAG-002, TAG-003, TAG-004, TAG-005 |
 | EPIC-VENDOR-ONBOARDING | 0 of 2 | VEN-001, VEN-002 |
-| EPIC-WEB-CUSTOMER | 3 of 9 | CUST-002, CUST-003, CUST-004, CUST-005, CUST-006, CUST-007, CUST-008, MOB-001, MOB-002, WEB-001 |
+| EPIC-WEB-CUSTOMER | 3 of 10 | CUST-002, CUST-003, CUST-004, CUST-005, CUST-006, CUST-007, CUST-008, CUST-009, MOB-001, MOB-002, WEB-001 |
 
 Epics with no spec yet are listed, with their planned items, in `epic-catalog.md`.
 
@@ -77,7 +77,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (local and resilient providers) and its tests |
 | [CACHE-004](WI-CACHE-004.md) | ChaosCacheProvider decorator + fallback proof tests | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (chaos provider) and its tests |
 | [CAT-001](WI-CAT-001.md) | Listing CRUD + modifier/allergy-flag model | EPIC-CATALOG | Done | evidence: merged `0c904b0`; `docs/evidence/WI-CAT-001/findings.md` |
-| [CAT-003](WI-CAT-003.md) | Cache-aside integration for listing reads | EPIC-CATALOG | Ready |  |
+| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | EPIC-CATALOG | Ready |  |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
@@ -87,6 +87,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/order-history` (2026-11-04); the page, the BFF query and the ordering endpoint pass their tests and the real-stack journeys (29 passed), nothing is deployed; waiting for the lead's review |
 | [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | EPIC-WEB-CUSTOMER | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
+| [CUST-009](WI-CUST-009.md) | A fresh stock check when a customer adds an item to the order | EPIC-WEB-CUSTOMER | Ready |  |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
