@@ -13,6 +13,7 @@
 //   item's stock from now on (WI-CUST-009: a page that was loaded in stock, then the item sells out); {"failListingReads": true} makes the public
 //   `listing` query fail; {"resetStock": true} undoes both. GET /__reads also reports `listingReads`, how many times `listing` was asked.
 //   POST /__control {"orderStatus": "IN_PREPARATION"} moves every order held to that status (the bakery acting); {"failCancel": true} makes cancelOrder fail.
+//   {"failOrderReads": true} makes `order` fail; GET /__reads also reports `orderReads` (reset by resetOrders).
 //   `x-cart-check: fail` makes cartCheck fail with an internal error.
 //   `x-save-preferences: fail` makes savePreferences fail with an internal error; `rejected` answers SavePreferencesRejected.
 // Like the real BFF, placeOrder and order need a bearer token. Orders are kept in memory and an idempotency key returns the same order.
@@ -185,8 +186,12 @@ async function placeOrder({ input }, ctx) {
   return { __typename: 'PlaceOrderSuccess', order: toOrder(order) };
 }
 
+let orderReads = 0; // how many times `order` was asked, so a test can see the page polls, and stops
+let failOrderReads = false; // POST /__control {"failOrderReads": true}: `order` fails with an internal error
 function readOrder({ id }, ctx) {
   if (!hasBearer(ctx)) throw unauthenticated();
+  orderReads++;
+  if (failOrderReads) throw new GraphQLError('The order could not be read.', { extensions: { code: 'INTERNAL' } });
   const found = orders.get(serviceId('Order', id) ?? '');
   return found ? toOrder(found) : null;
 }
@@ -460,7 +465,12 @@ const server = http.createServer(async (req, res) => {
     // orderStatus: moves every order the mock holds to that status (the bakery acting), so a test can show the customer's view of it and a too-late cancel.
     if (control.orderStatus) for (const o of orders.values()) o.status = String(control.orderStatus);
     if ('failCancel' in control) failCancel = Boolean(control.failCancel);
-    if (control.resetOrders) failCancel = false;
+    if ('failOrderReads' in control) failOrderReads = Boolean(control.failOrderReads);
+    if (control.resetOrders) {
+      failCancel = false;
+      failOrderReads = false;
+      orderReads = 0;
+    }
     if (control.resetStock) {
       stockOverrides = {};
       failListingReads = false;
@@ -488,7 +498,7 @@ const server = http.createServer(async (req, res) => {
     seenAuthorizations.length = 0;
     return send(200, { ok: true });
   }
-  if (req.url === '/__reads' && req.method === 'GET') return send(200, { preferenceReads, listingReads });
+  if (req.url === '/__reads' && req.method === 'GET') return send(200, { preferenceReads, listingReads, orderReads });
   if (req.url === '/healthz') return send(200, { ok: true });
   if (req.url !== '/graphql' || req.method !== 'POST') return send(404, { error: 'not found' });
 
