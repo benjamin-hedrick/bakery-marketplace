@@ -20,7 +20,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | Done | `LocalCacheProviderTests.cs`, `ResilientCacheProviderTests.cs` | *none* |
 | [CACHE-004](WI-CACHE-004.md) | ChaosCacheProvider decorator + fallback proof tests | Done | `ChaosCacheProviderTests.cs` | *none* |
 | [CAT-001](WI-CAT-001.md) | Listing CRUD + modifier/allergy-flag model | Done | `ListingApiTests.cs` | `README.md`, `findings.md` |
-| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `after-2026-11-07.md`, `baseline-2026-11-07.md` |
+| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `after-2026-11-07.md`, `baseline-2026-11-07.md`, `ai-usage-2026-11-07.md` |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | Done | `ListingStockTests.cs`, `ConcurrencyContractTests.cs` | *none* |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | Done | `StockReservationTests.cs`, `BatchContractTests.cs` | *none* |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
@@ -30,8 +30,8 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CUST-006](WI-CUST-006.md) | Allergen conflicts on browse and detail | In review | `personalized.spec.ts`, `profile-page.spec.ts`, `conflictText.test.ts` | `maestro-flows-2026-11-04.md`, `ai-usage-2026-11-04.md`, `status-check-experiment-2026-10-30.md` |
 | [CUST-007](WI-CUST-007.md) | Customer order history list | In review | `order-history.spec.ts`, `order-history.spec.ts`, `customer-orders.test.ts` and 1 more | `ai-usage-2026-11-04.md`, `baseline-2026-10-30.md`, `status-check-experiment-2026-10-30.md` |
 | [CUST-008](WI-CUST-008.md) | Allergens in the cart and at checkout: show them, warn, and tell the bakery | In review | `checkout-allergens.spec.ts`, `checkout-allergens.spec.ts`, `cartAllergens.test.ts` | `ai-usage-2026-11-04.md` |
-| [CUST-009](WI-CUST-009.md) | A fresh stock check when a customer adds an item to the order | In review | `stock.test.ts`, `add-stock-check.spec.ts`, `order-controls.spec.ts` and 2 more | *none* |
-| [CUST-010](WI-CUST-010.md) | The customer's order status stays current by polling | In review | *none* | *none* |
+| [CUST-009](WI-CUST-009.md) | A fresh stock check when a customer adds an item to the order | In review | `stock.test.ts`, `add-stock-check.spec.ts`, `order-controls.spec.ts` and 2 more | `ai-usage-2026-11-07.md` |
+| [CUST-010](WI-CUST-010.md) | The customer's order status stays current by polling | In review | *none* | `ai-usage-2026-11-07.md` |
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |
@@ -48,8 +48,8 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [MGMT-005](WI-MGMT-005.md) | Draft the budget / cost estimate | In review | *none* | *none* |
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | Done | *none* | *none* |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | Done | *none* | *none* |
-| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | In review | *none* | `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` |
-| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | `identity.test.ts`, `flow-control.test.mjs`, `SeedCustomerProfilesTests.cs` | `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` |
+| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | In review | *none* | `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md`, `ai-usage-2026-11-04-to-06.md` |
+| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | `identity.test.ts`, `flow-control.test.mjs`, `SeedCustomerProfilesTests.cs` | `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md`, `ai-usage-2026-11-04-to-06.md` |
 | [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | In review | `api.test.ts`, `register.mjs`, `session.test.ts` and 1 more | `maestro-flows-2026-11-05.md`, `unit-tests-2026-11-05.md` |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `README.md`, `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |
@@ -59,19 +59,19 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | Done | *none* | *none* |
 | [ORD-001](WI-ORD-001.md) | Checkout (payment stubbed) | Done | `CheckoutApiTests.cs`, `CheckoutServiceTests.cs` | *none* |
 | [ORD-002](WI-ORD-002.md) | Order aggregate + lifecycle states | Done | `OrderLifecycleTests.cs` | *none* |
-| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In progress | `PickupWindowApiTests.cs` | `baseline-2026-10-30.md` |
+| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In progress | `PickupWindowApiTests.cs` | `ai-usage-2026-11-07.md`, `baseline-2026-10-30.md` |
 | [ORD-004](WI-ORD-004.md) | FulfillmentStrategy interface (ACL boundary) | Done | `FulfillmentContractsTests.cs` | *none* |
 | [ORD-005](WI-ORD-005.md) | Publish Order domain events via event backbone | Done | `OrderEventTests.cs`, `OutboxHostTests.cs`, `OutboxTests.cs` | *none* |
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | Done | `CosmosOrderStoreTests.cs`, `OrderPersistenceTests.cs` | *none* |
 | [ORD-007](WI-ORD-007.md) | Order action endpoints (confirm, decline, start, ready, complete, cancel) | Done | `OrderActionApiTests.cs`, `OrderActionTests.cs` | *none* |
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | Done | `journey.spec.ts`, `stack.spec.ts`, `vendor-queue.spec.ts` and 2 more | *none* |
 | [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | In review | `order-allergens.spec.ts`, `order-allergens.test.ts`, `OrderAllergenApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
-| [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | In review | `checkout.spec.ts`, `paymentMethod.test.ts`, `SeedCustomerProfilesTests.cs` and 6 more | *none* |
-| [ORD-011](WI-ORD-011.md) | Cancel buttons: a customer cancels from the order page, a vendor cancels an accepted order from the queue | In review | `cancel.test.ts` | *none* |
+| [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | In review | `checkout.spec.ts`, `paymentMethod.test.ts`, `SeedCustomerProfilesTests.cs` and 6 more | `README.md`, `ai-usage-2026-11-04-to-06.md`, `ai-usage-2026-11-07.md` |
+| [ORD-011](WI-ORD-011.md) | Cancel buttons: a customer cancels from the order page, a vendor cancels an accepted order from the queue | In review | `cancel.test.ts` | `ai-usage-2026-11-07.md` |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | Done | *none* | `README.md`, `findings.md`, `findings.md` |
 | [PORT-002](WI-PORT-002.md) | Walking skeleton: Next.js SSR → GraphQL BFF → C# API | Done | `walking-skeleton.spec.ts` | `README.md`, `findings.md`, `findings.md` |
 | [PORT-003](WI-PORT-003.md) | Quality and CI baseline (Azure Pipelines) | Done | *none* | `README.md`, `findings.md`, `findings.md` and 2 more |
-| [PORT-004](WI-PORT-004.md) | Cache contract for the listing path (all three layers) | In review | `cache-headers.spec.ts`, `stale-cart-checkout.spec.ts` | `findings.md` |
+| [PORT-004](WI-PORT-004.md) | Cache contract for the listing path (all three layers) | In review | `cache-headers.spec.ts`, `stale-cart-checkout.spec.ts` | `findings.md`, `ai-usage-2026-11-07.md` |
 | [PORT-005](WI-PORT-005.md) | Verify trace propagation and safe logs | Done | `TracingTests.cs` | `README.md`, `findings.md`, `findings.md` and 2 more |
 | [PORT-006](WI-PORT-006.md) | Reconcile existing artifacts with ADR-0012 to ADR-0016 | Done | *none* | `baseline-2026-10-30.md` |
 | [PORT-007](WI-PORT-007.md) | First-slice domain/API contract and GraphQL mapping | Done | *none* | *none* |
