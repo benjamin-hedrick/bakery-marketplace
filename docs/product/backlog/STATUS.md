@@ -11,8 +11,8 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 55 |
-| In progress | 5 |
-| In review | 29 |
+| In progress | 4 |
+| In review | 30 |
 | Built | 1 |
 | Ready | 2 |
 | Proposed | 4 |
@@ -123,7 +123,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
 | [ORD-001](WI-ORD-001.md) | Checkout (payment stubbed) | EPIC-ORDERING | Done | evidence: `services/ordering-service` and its tests; the verification below was run on 2026-10-28 |
 | [ORD-002](WI-ORD-002.md) | Order aggregate + lifecycle states | EPIC-ORDERING | Done | evidence: `services/ordering-service/src/Domain/Order.cs` and `OrderingService.Tests` (lifecycle, cancellation, events); lifecycle in `docs/architecture/order-lifecycle.md` |
-| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | EPIC-ORDERING | In progress | remaining: pickup windows are built (2026-10-28); `PickupFulfillment` itself is designed and agreed (2026-11-07) and is the first build of the next session; one decision is open (decision 2 below) |
+| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | EPIC-ORDERING | In review | built and run locally 2026-11-08 on `feature/listing-cache` (pickup windows 2026-10-28; the strategy, the `consumerName` on the subscriber interface, the 202 `complete`, the BFF and vendor screen, the notifications); not deployed; see "As built" below for what was and was not run |
 | [ORD-004](WI-ORD-004.md) | FulfillmentStrategy interface (ACL boundary) | EPIC-ORDERING | Done | evidence: `services/ordering-service` (the fulfillment seam) and its tests |
 | [ORD-005](WI-ORD-005.md) | Publish Order domain events via event backbone | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | EPIC-ORDERING | Done | evidence: the Outcome note under this banner; `services/ordering-service` |
@@ -305,12 +305,12 @@ Accepted: 22 · Superseded: 1
 | Resolved | 57 |
 | Accepted | 9 |
 | Tracking | 12 |
-| Open | 58 |
+| Open | 57 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
 | Done | 1 |
 | Diagnosed | 1 |
-| Built | 1 |
+| Built | 2 |
 | Part | 1 |
 | Triaged | 1 |
