@@ -1,4 +1,5 @@
 using BakeryMarketplace.Auth;
+using BakeryMarketplace.Caching;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.Logging;
@@ -110,6 +111,34 @@ builder.Services.AddSingleton<ITagRegistry>(TagRegistry.LoadEmbedded());
 builder.Services.Configure<TagOptions>(builder.Configuration.GetSection("Tags"));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<TagOptions>>().Value);
 builder.Services.AddSingleton<TagProjector>(); // which tags a response may show (public: active today; owner: all they assigned, marked)
+// The listing cache (ADR-0002, ADR-0014 layer 1, WI-CAT-003). Cache:Backend is "local" (in-process, the default, no dependency) or "redis" (the cache
+// Redis, ResilientCacheProvider in front of it: an outage falls back to the local provider). ListingCache:TtlSeconds, 60 by default, 0 turns it off.
+builder.Services.Configure<ListingCacheOptions>(builder.Configuration.GetSection("ListingCache"));
+builder.Services.AddLocalCacheProvider();
+var cacheBackend = builder.Configuration["Cache:Backend"] ?? "local";
+if (string.Equals(cacheBackend, "redis", StringComparison.OrdinalIgnoreCase))
+{
+    // abortConnect=false: the service starts and the resilient provider serves from the local fallback if the cache Redis is not up yet.
+    var cacheRedis = builder.Configuration["Cache:Redis:ConnectionString"] ?? "localhost:6380";
+    if (!cacheRedis.Contains("abortConnect", StringComparison.OrdinalIgnoreCase)) cacheRedis += ",abortConnect=false";
+    builder.Services.AddRedisCacheProvider(cacheRedis);
+    builder.Services.AddResilientCacheProvider();
+    builder.Services.AddSingleton(sp => new ListingCache(
+        sp.GetRequiredService<ResilientCacheProvider>(),
+        sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ListingCacheOptions>>(),
+        sp.GetRequiredService<ILogger<ListingCache>>()));
+}
+else if (string.Equals(cacheBackend, "local", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton(sp => new ListingCache(
+        sp.GetRequiredService<LocalCacheProvider>(),
+        sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ListingCacheOptions>>(),
+        sp.GetRequiredService<ILogger<ListingCache>>()));
+}
+else
+{
+    throw new InvalidOperationException("Cache:Backend must be 'local' or 'redis'.");
+}
 builder.Services.AddSingleton<VendorStatusStore>();
 builder.Services.Configure<CatalogOutboxOptions>(builder.Configuration.GetSection("Outbox"));
 builder.Services.AddSingleton<ListingEventPublisher>();

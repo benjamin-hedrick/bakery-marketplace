@@ -44,6 +44,7 @@ public sealed class StockReservationService
     private readonly VendorStatusStore _vendors;
     private readonly ListingEventPublisher _events;
     private readonly TimeProvider _time;
+    private readonly ListingCache? _cache;
 
     public StockReservationService(
         IRepository<ListingDocument> listings,
@@ -51,8 +52,10 @@ public sealed class StockReservationService
         IBatchFactory batches,
         VendorStatusStore vendors,
         ListingEventPublisher events,
-        TimeProvider time)
+        TimeProvider time,
+        ListingCache? cache = null)
     {
+        _cache = cache;
         _listings = listings;
         _reservations = reservations;
         _batches = batches;
@@ -106,6 +109,7 @@ public sealed class StockReservationService
             var batch = _batches.CreateBatch(vendorId);
             var crossedIntoLow = new List<ListingDocument>();
             var lines = new List<ReservationLineDocument>();
+            var statusChanged = false; // a customer-visible change of any listing: the cached copy must go (see ListingCache)
             foreach (var (listingId, quantity) in wanted)
             {
                 var doc = docs[listingId];
@@ -113,9 +117,11 @@ public sealed class StockReservationService
                 if (limited)
                 {
                     var wasLowOrOut = StockPolicy.IsLowOrOut(doc);
+                    var statusBefore = StockPolicy.StatusOf(doc);
                     doc.AvailableQuantity -= (int)quantity;
                     doc.UpdatedAt = now;
                     doc.Version++;
+                    statusChanged |= StockPolicy.StatusOf(doc) != statusBefore;
                     if (!wasLowOrOut && StockPolicy.IsLowOrOut(doc))
                     {
                         _events.Raise(doc, ListingEventTypes.LowStockDetected); // stored in the same batch as the decrement (register item 30)
@@ -140,6 +146,7 @@ public sealed class StockReservationService
 
             if (await batch.ExecuteAsync(ct))
             {
+                if (statusChanged && _cache is not null) await _cache.InvalidateVendorAsync(vendorId);
                 foreach (var doc in crossedIntoLow) await _events.PublishInlineAsync(doc);
                 return new ReservationResult(ReservationOutcome.Reserved, reservation);
             }
@@ -160,12 +167,15 @@ public sealed class StockReservationService
 
             var now = _time.GetUtcNow();
             var batch = _batches.CreateBatch(vendorId);
+            var statusChanged = false;
             foreach (var line in reservation.Lines.Where(l => l.Limited))
             {
                 // Only stock that was actually taken comes back, and only into a listing that is still limited-stock.
                 var doc = await _listings.GetAsync(line.ListingId, vendorId, ct);
                 if (doc?.AvailableQuantity is not { } current) continue;
+                var statusBefore = StockPolicy.StatusOf(doc);
                 doc.AvailableQuantity = (int)Math.Min((long)current + line.Quantity, StockPolicy.MaxQuantity);
+                statusChanged |= StockPolicy.StatusOf(doc) != statusBefore;
                 doc.UpdatedAt = now;
                 doc.Version++;
                 batch.ReplaceIfUnchanged(doc);
@@ -175,7 +185,11 @@ public sealed class StockReservationService
             reservation.TimeToLiveSeconds = (int)StockReservationDocument.ReleasedRetention.TotalSeconds;
             batch.ReplaceIfUnchanged(reservation);
 
-            if (await batch.ExecuteAsync(ct)) return new ReservationResult(ReservationOutcome.Released, reservation);
+            if (await batch.ExecuteAsync(ct))
+            {
+                if (statusChanged && _cache is not null) await _cache.InvalidateVendorAsync(vendorId);
+                return new ReservationResult(ReservationOutcome.Released, reservation);
+            }
         }
         return new ReservationResult(ReservationOutcome.Conflict);
     }
