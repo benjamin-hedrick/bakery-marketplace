@@ -233,4 +233,38 @@ public abstract class EventTransportContractTests
         Assert.Single(receivedByOrderPlacedSub);
         Assert.Equal(orderPlacedType, receivedByOrderPlacedSub[0].EventType);
     }
+
+    [Fact]
+    public async Task TwoNamedConsumersOfOneEventTypeEachReceiveEveryMessage()
+    {
+        // WI-ORD-003: a second consumer inside one service gets its own group and must not split the messages with the first.
+        var (publisher, subscriber) = CreateTransportPair();
+        var type = TestEventType;
+        var first = new List<string>();
+        var second = new List<string>();
+        var both = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void Check() { lock (first) lock (second) if (first.Count == 3 && second.Count == 3) both.TrySetResult(); }
+
+        await subscriber.SubscribeAsync<string>(type, (e, _) => { lock (first) first.Add(e.Payload); Check(); return Task.CompletedTask; }, consumerName: "consumer-a");
+        await subscriber.SubscribeAsync<string>(type, (e, _) => { lock (second) second.Add(e.Payload); Check(); return Task.CompletedTask; }, consumerName: "consumer-b");
+
+        foreach (var p in new[] { "m1", "m2", "m3" }) await publisher.PublishAsync(MakeEnvelope(p));
+        await both.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(["m1", "m2", "m3"], first.Order());
+        Assert.Equal(["m1", "m2", "m3"], second.Order());
+    }
+
+    [Fact]
+    public async Task SubscribingTwiceWithOneConsumerNameIsRefused()
+    {
+        var (_, subscriber) = CreateTransportPair();
+        var type = TestEventType;
+        await subscriber.SubscribeAsync<string>(type, (_, _) => Task.CompletedTask, consumerName: "same");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            subscriber.SubscribeAsync<string>(type, (_, _) => Task.CompletedTask, consumerName: "same"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            subscriber.SubscribeBatchAsync<string>(type, (_, _) => Task.FromResult<IReadOnlyCollection<Guid>>([]), consumerName: "same"));
+    }
 }

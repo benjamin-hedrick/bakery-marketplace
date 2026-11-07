@@ -107,6 +107,39 @@ public sealed class RedisStreamDeliveryTests : IDisposable
     }
 
     [RedisFact]
+    public async Task ANamedConsumerInsideOneServiceHasItsOwnGroupAndTheDefaultConsumerKeepsItsGroupName()
+    {
+        var type = NewEventType();
+        var transport = Transport("ordering-service");
+        var named = new List<string>();
+        var plain = new List<string>();
+        await transport.SubscribeAsync<string>(type, (e, _) => { lock (plain) plain.Add(e.Payload); return Task.CompletedTask; });
+        await transport.SubscribeAsync<string>(type, (e, _) => { lock (named) named.Add(e.Payload); return Task.CompletedTask; }, consumerName: "pickup-fulfillment");
+
+        for (var i = 1; i <= 5; i++) await transport.PublishAsync(Envelope(type, $"m{i}"));
+        await Eventually(() => Count(plain) == 5 && Count(named) == 5);
+
+        Assert.Equal(["m1", "m2", "m3", "m4", "m5"], plain.Order());
+        Assert.Equal(["m1", "m2", "m3", "m4", "m5"], named.Order());
+        var groups = _redis.Value.GetDatabase().StreamGroupInfo($"events:{type}").Select(g => g.Name).Order().ToArray();
+        Assert.Equal([$"cg:ordering-service:{type}", $"cg:ordering-service:pickup-fulfillment:{type}"], groups);
+    }
+
+    [RedisFact]
+    public async Task ADeadLetterNamesTheNamedConsumerThatGaveUp()
+    {
+        var type = NewEventType();
+        var transport = Transport("ordering-service", attempts: 2);
+        await transport.SubscribeAsync<string>(type, (_, _) => throw new InvalidOperationException("always fails"), consumerName: "pickup-fulfillment");
+
+        await transport.PublishAsync(Envelope(type, "poison"));
+        await Eventually(() => _redis.Value.GetDatabase().StreamLength($"events:{type}:dead-letter") == 1);
+
+        var dead = _redis.Value.GetDatabase().StreamRange($"events:{type}:dead-letter").Single();
+        Assert.Equal("pickup-fulfillment", dead.Values.First(v => v.Name == "consumer").Value);
+    }
+
+    [RedisFact]
     public async Task TwoInstancesOfOneServiceShareTheWorkAndEachMessageIsHandledOnce()
     {
         var type = NewEventType();
