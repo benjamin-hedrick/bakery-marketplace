@@ -384,6 +384,12 @@ type Mutation {
   VendorOrderActionRejected, not as errors. The result is the order's new status: the queue learns of the change from the stream or the list.
   """
   vendorOrderAction(input: VendorOrderActionInput!): VendorOrderActionPayload!
+  """
+  A customer cancels one of their own orders. Needs a customer's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another role).
+  Ordering-service decides whether the order is the caller's and whether its status allows a cancel (a customer may cancel while it is PLACED or
+  CONFIRMED); expected refusals come back as CancelOrderRejected, not as errors. The result is the order's new status.
+  """
+  cancelOrder(input: CancelOrderInput!): CancelOrderPayload!
   "Places a test order for the caller. Needs a bearer token. Expected failures come back as PlaceOrderRejected, not as errors."
   placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
 }
@@ -474,6 +480,37 @@ enum VendorOrderAction {
   START_PREPARATION
   MARK_READY
   COMPLETE
+  "Cancels an order the vendor has already accepted (ordering allows it from CONFIRMED, IN_PREPARATION and READY_FOR_FULFILLMENT). A new order is declined, not cancelled."
+  CANCEL
+}
+
+input CancelOrderInput {
+  "An Order global id (the customer's own order)."
+  orderId: ID!
+}
+
+union CancelOrderPayload = CancelOrderDone | CancelOrderRejected
+
+type CancelOrderDone {
+  "The Order global id the cancel was sent for."
+  orderId: ID!
+  "The order's status after the cancel (CANCELLED)."
+  status: OrderStatus!
+}
+
+"An expected refusal. The message is fixed client-safe text."
+type CancelOrderRejected {
+  code: CancelOrderRejectionCode!
+  message: String!
+  "For NOT_ALLOWED_NOW: where the order is now, when ordering said."
+  currentStatus: OrderStatus
+}
+
+enum CancelOrderRejectionCode {
+  "No such order for this customer (a missing and another customer's order look the same)."
+  NOT_FOUND
+  "The order's status does not allow a cancel now (it is being prepared, or it is already completed or cancelled)."
+  NOT_ALLOWED_NOW
 }
 
 union VendorOrderActionPayload = VendorOrderActionDone | VendorOrderActionRejected
