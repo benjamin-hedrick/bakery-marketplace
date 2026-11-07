@@ -12,6 +12,12 @@ public static class ListingEndpoints
     public const int DefaultPageSize = 20;
     public const int MaxPageSize = 100;
 
+    /// <summary>
+    /// The public listing reads carry stock, so nothing downstream may reuse an answer without asking again (ADR-0014 layer 3, WI-PORT-004): explicit, not
+    /// a framework default. They are not <c>private</c> because they are the same for everyone; the personalized reads are <c>private, no-store</c>.
+    /// </summary>
+    public const string PublicCacheControl = "no-cache";
+
     public static IEndpointRouteBuilder MapListingEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/catalog/listings");
@@ -20,8 +26,9 @@ public static class ListingEndpoints
         // ?tag=a&tag=b narrows to the listings that carry ALL the tags on the listing itself (WI-TAG-003). The cache headers are the unfiltered browse's.
         group.MapGet("/", async (
             int? limit, string? after, string[]? tag, ListingService svc, TagProjector tags,
-            ITagRegistry registry, TimeProvider time, TagOptions limits, CancellationToken ct) =>
+            ITagRegistry registry, TimeProvider time, TagOptions limits, HttpContext http, CancellationToken ct) =>
         {
+            http.Response.Headers.CacheControl = PublicCacheControl;
             var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
             var (filter, filterErrors) = TagFilter.Parse(tag, registry, time, limits);
             if (filterErrors.Count > 0) return ToError(new ListingResult(ListingOutcome.Invalid, Errors: filterErrors));
@@ -29,8 +36,9 @@ public static class ListingEndpoints
             return Results.Ok(new ListingPage(items.Select(l => ListingDto.From(l, tags)).ToList(), next));
         }).AllowAnonymous();
 
-        group.MapGet("/{id}", async (string id, ListingService svc, TagProjector tags, CancellationToken ct) =>
+        group.MapGet("/{id}", async (string id, ListingService svc, TagProjector tags, HttpContext http, CancellationToken ct) =>
         {
+            http.Response.Headers.CacheControl = PublicCacheControl;
             var listing = await svc.GetPublicAsync(id, ct);
             return listing is null ? NotFound() : Results.Ok(ListingDto.From(listing, tags));
         }).AllowAnonymous();
