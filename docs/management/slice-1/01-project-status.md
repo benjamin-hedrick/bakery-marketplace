@@ -1,5 +1,7 @@
 # Slice 1: project status
 
+> **Status:** Snapshot · 2026-10-29, written at the end of slice 1 and not maintained since. For what is built and what is next read [the current plan](../../product/backlog/current-plan.md) and [STATUS.md](../../product/backlog/STATUS.md); the item numbers S1-xx and N-xx are still used by the [roadmap](../../product/roadmap.md).
+
 **As of 2026-10-29 (after the `S1-09` evidence merged to `main`).** Companion documents: [plan and critical path](02-plan-and-critical-path.md), [prioritized backlog](03-prioritized-backlog.md). Scope is the first-slice contract (`docs/architecture/first-slice-contract.md`): **login, browse, customize, choose a pickup window, test checkout, confirmation and status**, through Next.js, the GraphQL BFF and the C# services, with CI and a trace.
 
 Status words follow the repo rule: nothing is called working unless it was run. "Verified" says where.

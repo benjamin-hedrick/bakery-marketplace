@@ -2,6 +2,8 @@
 
 > **Status:** Adopted plan · status checked 2026-10-30.
 
+> **Update 2026-11-08:** the increments are done; the AI-assisted testing experiment stays deferred by decision (`WI-QA-003`); the flake baseline (620 runs, 0 failures), the metrics script, Maestro flows for the Android app and the security checks (audit, ZAP, Sonar, secret scan) have been run locally. See `docs/testing.md`.
+
 | Part of the plan | State |
 |---|---|
 | Increments 1 to 4 (walking skeleton, listing, options and pickup, checkout) | Done in slice 1 |

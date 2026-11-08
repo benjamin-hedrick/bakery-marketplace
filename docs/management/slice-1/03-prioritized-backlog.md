@@ -1,5 +1,7 @@
 # Prioritized backlog with estimates
 
+> **Status:** Snapshot · 2026-10-29, written at the end of slice 1 and not maintained since. For what is built and what is next read [the current plan](../../product/backlog/current-plan.md) and [STATUS.md](../../product/backlog/STATUS.md); the item numbers S1-xx and N-xx are still used by the [roadmap](../../product/roadmap.md).
+
 **As of 2026-10-29.** Companion to the [status](01-project-status.md) and the [plan and critical path](02-plan-and-critical-path.md). This is a planning view; the authoritative status of a work item is the banner on its spec, collected in `docs/product/backlog/STATUS.md`, and unreconciled findings stay in `docs/governance/open-items-register.md`. New IDs here (`S1-xx`) are planning handles; each becomes a `WI-*.md` file (or maps onto an existing one) when picked up.
 
 ## Estimating scale

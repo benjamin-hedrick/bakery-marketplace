@@ -2,6 +2,8 @@
 
 > **Status:** Adopted plan · status checked 2026-10-30.
 
+> **Update 2026-11-08:** the pipeline now has ten jobs and a separate dev pipeline was written and rehearsed (`WI-DEP-001`, ADR-0020); a dependency audit, a dynamic scan and a static scan run locally and are not pipeline jobs yet (`WI-SEC-004`, register 162). Nothing is deployed.
+
 Observability: built as planned (one trace across the web server, the BFF, ordering and the catalog; safe logs; a data-safety scan; local Aspire dashboard, collector and Jaeger as compose profiles). The browser hop is untraced and no controlled-failure trace is recorded (`docs/evidence/slice-1/findings.md`, register 42 and 82). CI/CD: Azure Pipelines is the single system; the GitHub placeholder was removed on 2026-10-28 after the Azure run was green. Security scanning, deployment gates and post-deploy smoke tests are not built.
 
 > **Adopted 2026-10-26** from the portfolio planning packet. Decisions referenced here are recorded in ADR-0012 to ADR-0016; this file holds the implementation approach, not the decisions. See `RECONCILIATION-DISPOSITIONS-2026-10-26.md`.

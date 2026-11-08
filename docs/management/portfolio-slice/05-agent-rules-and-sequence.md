@@ -2,6 +2,8 @@
 
 > **Status:** Adopted plan · status checked 2026-10-30. The rules are still followed (they are in `CLAUDE.md` and `docs/process/`); the sequence below is mostly done.
 
+> **Update 2026-11-08:** phases 0 to 5 are done locally (including mobile and notifications); the AI-assisted testing experiment is deferred by decision (`WI-QA-003`).
+
 | Phase | State |
 |---|---|
 | 0 Inspect, adopt ADRs, reconcile docs, pin runtimes, SSR/Relay proof | Done, except the exact Node LTS pin (engines say Node 24 or later) and the documentation reconciliation, which `WI-PORT-006` pass 2 is finishing |
