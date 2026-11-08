@@ -1,6 +1,6 @@
 # Bounded Context Map
 
-> **Status:** Current · checked 2026-10-30. This is the domain design. Only the Catalog and Ordering contexts are implemented (in `catalog-service` and `ordering-service`); see `docs/architecture/c4/container.md`.
+> **Status:** Current · checked 2026-10-30, built state updated 2026-11-08. This is the domain design. Implemented, locally: **Catalog** and **Ordering** (in `catalog-service` and `ordering-service`); **Preferences** (the allergen profile, inside `catalog-service`, ADR-0022); **Search** only as the personalized read of listings with conflicts (`catalog-service`, `WI-SRCH-001`); the **Pickup Fulfillment** strategy (a consumer of order events inside `ordering-service`, `WI-ORD-003`); and **Notifications** (`notification-service`, with no real provider). Vendor Onboarding, Admin and Moderation, Payments (a stub), Reviews and Advertising are design only. See `docs/architecture/c4/container.md` and `component-services.md`.
 
 ## Strategic classification
 

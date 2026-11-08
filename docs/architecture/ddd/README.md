@@ -1,10 +1,10 @@
 # Domain-Driven Design Artifacts
 
-> **Status:** Current · updated 2026-10-30
+> **Status:** Current · updated 2026-11-08 (the built-state column; the artifacts themselves were checked on 2026-10-30)
 
 | File | What it holds | Built or only designed |
 |---|---|---|
-| `bounded-contexts.md` | The context map: 13 contexts, their classification and integration patterns. ADR-0009 maps them onto 4 services | Catalog and Ordering are implemented; the other contexts are design only |
+| `bounded-contexts.md` | The context map: 13 contexts, their classification and integration patterns. ADR-0009 maps them onto 4 services | Catalog, Ordering, Preferences, pickup fulfillment, Notifications and the personalized read of Search are implemented locally; the others are design only (see the status line of the file) |
 | `glossary.md` | The ubiquitous language: actors, terms, key domain events, the scoped-out B2B supplier | Language for the whole domain |
 | `event-storming.md` | Four process flows (Command, Aggregate, Event, Policy, Read Model) that surfaced four previously unnamed events | A design model: see the built-state table in the order-lifecycle flow |
 
