@@ -6,6 +6,7 @@
 
 | Record | What it shows |
 |---|---|
+| [`WI-SEC-004/dependency-audit-2026-11-07.md`](WI-SEC-004/dependency-audit-2026-11-07.md) | The first dependency audit (`npm audit` of six projects, NuGet advisories) and eight CycloneDX SBOMs: no critical or high advisory, 25 moderate in dev tooling and Expo build tooling, three deprecated test packages. |
 | [`cross-browser/mock-backed-2026-11-06.md`](cross-browser/mock-backed-2026-11-06.md) | The second full cross-browser run (customer app 663 of 665, queue display 296 of 300) and the fixes and targeted re-runs that followed; the clean full repeat is a later checkpoint |
 | [`cross-browser/diagnosis-2026-11-06.md`](cross-browser/diagnosis-2026-11-06.md) | The 13 Firefox and WebKit failures of the first cross-browser run classified: 4 test flaws and 1 reporting difference, no app defect; nothing fixed |
 | [`sonar/triage-2026-11-06.md`](sonar/triage-2026-11-06.md) | The second local SonarQube scan (15 bugs, 35 vulnerabilities, 224 code smells) and the triage of each rule: false positives, accepted, fixed, and left for the lead |

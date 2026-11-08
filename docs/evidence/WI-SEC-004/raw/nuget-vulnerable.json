@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "parameters": "--vulnerable --include-transitive",
+  "sources": [
+    "https://api.nuget.org/v3/index.json"
+  ],
+  "projects": [
+    {
+      "path": "C:/git/bakery-marketplace/services/admin-service/src/AdminService.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/services/catalog-service/src/CatalogService.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/services/notification-service/src/NotificationService.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/services/ordering-service/src/OrderingService.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/services/catalog-service/tests/CatalogService.Tests/CatalogService.Tests.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/services/notification-service/tests/NotificationService.Tests/NotificationService.Tests.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/services/ordering-service/tests/OrderingService.Tests/OrderingService.Tests.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Auth/BakeryMarketplace.Auth.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Caching/BakeryMarketplace.Caching.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Data/BakeryMarketplace.Data.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Eventing/BakeryMarketplace.Eventing.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.EventSchemas/BakeryMarketplace.EventSchemas.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Logging/BakeryMarketplace.Logging.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.MockOidcHost/BakeryMarketplace.MockOidcHost.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Secrets/BakeryMarketplace.Secrets.csproj"
+    },
+    {
+      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Seed/BakeryMarketplace.Seed.csproj"
+    }
+  ]
+}
