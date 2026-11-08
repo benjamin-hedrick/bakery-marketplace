@@ -1,34 +1,15 @@
 # Security policy
 
-## What this repository is
+This is a demonstration and reference project. It runs on a developer machine only: nothing is deployed, there are no real users, no real payments, and the identity provider is a local mock. Even so, a report is welcome if you find a vulnerability in the code, the configuration or the documentation, such as a secret that should not be there.
 
-A portfolio project: a pickup-based bakery and coffee marketplace, built to show architecture and engineering practice. **Nothing is deployed.** Everything runs locally, with a mock identity issuer, test payments and seeded data. There is no production system, no real customer data and no real payment provider behind it.
+## How to report
 
-## Reporting a vulnerability
+Please do not open a public issue for a security problem. On the repository's **Security** tab, choose **Report a vulnerability** to send a private report to the maintainer. If that button is not shown, open an issue that says only that you have a security report, without details, and the maintainer will arrange a private channel.
 
-If you find a security problem in the code, the configuration or the documentation, please report it privately and do not open a public issue.
+## What to expect
 
-- Use GitHub's **private vulnerability reporting**: the "Report a vulnerability" button on the repository's Security tab.
-- Include what you found, where (file and line, or the steps to reproduce) and what you think the impact is.
+This is a one-person project with no service level. A report will be read and answered on a best-effort basis, and a confirmed problem will be fixed or recorded in `docs/governance/open-items-register.md`.
 
-This is a one-person project, so there is no service level. I will aim to acknowledge a report within a week and to say what I will do about it.
+## Scope and known limits
 
-## What is in scope
-
-- Flaws in the shared libraries and services: authentication and ownership checks, input validation, rate limiting, session handling, the browser hardening headers.
-- Secrets or personal data committed to the repository by mistake.
-- Dependencies with a known vulnerability that the dependency audit missed.
-
-## What is not in scope
-
-- The mock OIDC issuer, the seeded customers and the local test credentials: they are meant for local use only and are documented as such.
-- Anything that needs a deployment that does not exist.
-- Findings from an automated scanner without a demonstrated impact.
-
-## What the repository already does
-
-The threat model, the scans that have been run (secret scan over the full history, dependency audit, SBOMs, an OWASP ZAP baseline) and their results are recorded, with their limits, in [the threat model](docs/architecture/threat-model.md) and the evidence folder (`docs/evidence/`). Please read them before reporting a known limitation.
-
-## Supported versions
-
-Only the `main` branch is maintained.
+The local development secrets and the Cosmos DB emulator's published key are not secrets; see `docs/evidence/secret-scan-2026-10-30.md`. Known gaps (service-to-service authentication, the mock issuer, the payment stub) are recorded in the register and the ADRs.

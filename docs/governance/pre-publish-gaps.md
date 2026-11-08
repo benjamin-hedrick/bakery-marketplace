@@ -49,7 +49,7 @@ Method: one folder at a time, a findings list per folder (stale, wrong, missing,
 
 ## Scans of 2026-11-08 (secrets and sanitization)
 
-Full-history secret scan (gitleaks, 426 commits): no findings. Sanitization: local paths in three evidence and history files fixed (the raw NuGet JSON, the test-reliability findings, the review resume and peer-copy pages); the author e-mail and name on every commit and in `LICENSE` are accepted by the lead. `SECURITY.md` added and linked from the README. No employer, client or colleague names were searched for (none were given); add them to a grep if any exist.
+Full-history secret scan (gitleaks, 426 commits): no findings. Sanitization: local paths in three evidence and history files fixed (the raw NuGet JSON, the test-reliability findings, the review resume and peer-copy pages); the author e-mail and name on every commit and in `LICENSE` are accepted by the lead. `SECURITY.md` already existed and is kept as written; it is now linked from the README. No employer, client or colleague names were searched for (none were given); add them to a grep if any exist.
 
 ## Before the repository is public
 
