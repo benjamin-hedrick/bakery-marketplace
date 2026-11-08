@@ -30,6 +30,9 @@ import { Button, Checkbox, Loading, Notice, colors, money, styles } from '../ui'
 type Window = { start: string; end: string };
 type Problem = { text: string; code?: string } | null;
 
+/** Two rows of a button (about 45 high) and the gap between them: the most a seeded customer has. */
+const PAYMENT_AREA_HEIGHT = 100;
+
 export function CheckoutScreen(props: { onPlaced: (orderId: string) => void; onBack: () => void }) {
   const cart = useCart();
   const [windows, setWindows] = useState<Window[] | null>(null);
@@ -238,25 +241,37 @@ export function CheckoutScreen(props: { onPlaced: (orderId: string) => void; onB
           <Button label="Try again" testID="payment-methods-retry" onPress={loadMethods} />
         </Notice>
       ) : null}
-      {!methods && !methodsFailed ? <Text style={styles.muted}>Loading payment methods…</Text> : null}
       {methods && methods.length === 0 ? (
         <Notice tone="info" text={NO_PAYMENT_METHODS_TEXT} testID="no-payment-methods" />
       ) : null}
-      {methods && methods.length > 0 ? (
-        <View style={{ gap: 8 }} testID="payment-methods">
-          {methods.map((m, i) => (
-            <Button
-              key={m.id}
-              testID={`payment-${i}`}
-              kind={methodId === m.id ? 'primary' : 'plain'}
-              label={`${methodId === m.id ? '✓ ' : ''}${m.description}`}
-              onPress={() => {
-                setPickedMethod(m.id);
-                setProblem(null);
-              }}
-            />
-          ))}
-        </View>
+      {/* The loading line and the list share a fixed-height area (two rows, the most a seeded customer has; more scroll), so the list
+          arriving never moves Place order and a tap cannot land on a method by accident (register 161). The notices above need no such
+          area: with no method chosen, Place order is off and a tap on it does nothing. */}
+      {(!methods && !methodsFailed) || (methods && methods.length > 0) ? (
+        <ScrollView
+          nestedScrollEnabled
+          style={{ height: PAYMENT_AREA_HEIGHT }}
+          contentContainerStyle={{ gap: 8 }}
+          testID="payment-area"
+        >
+          {!methods ? <Text style={styles.muted}>Loading payment methods…</Text> : null}
+          {methods && methods.length > 0 ? (
+            <View style={{ gap: 8 }} testID="payment-methods">
+              {methods.map((m, i) => (
+                <Button
+                  key={m.id}
+                  testID={`payment-${i}`}
+                  kind={methodId === m.id ? 'primary' : 'plain'}
+                  label={`${methodId === m.id ? '✓ ' : ''}${m.description}`}
+                  onPress={() => {
+                    setPickedMethod(m.id);
+                    setProblem(null);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+        </ScrollView>
       ) : null}
 
       {problem ? <Notice text={problem.text} testID="checkout-rejection" /> : null}

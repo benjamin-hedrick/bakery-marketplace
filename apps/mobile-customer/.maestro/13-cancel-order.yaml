@@ -15,7 +15,7 @@ name: A customer cancels their order from the order screen
     id: to-checkout
 - assertVisible:
     id: checkout
-# Wait for the saved payment methods (the list pushes the place button down when it arrives) and choose the accepted card explicitly.
+# Wait for the saved payment methods (the list now has a fixed-height area, so the place button no longer moves when it arrives; register 161) and choose the accepted card explicitly.
 - assertVisible:
     id: payment-methods
 - tapOn:
