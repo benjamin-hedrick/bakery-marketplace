@@ -7,12 +7,6 @@ using OrderingService.Persistence;
 
 namespace OrderingService.Outbox;
 
-/// <summary>How many of an order's pending events were published, and whether publishing stopped early.</summary>
-public sealed record PublishResult(int Published, bool Failed, bool Parked = false)
-{
-    public static readonly PublishResult Nothing = new(0, false);
-}
-
 /// <summary>
 /// Publishes an order's pending events through <see cref="IEventPublisher"/> and then removes them from the outbox (WI-ORD-005, ADR-0003).
 /// Delivery is at-least-once: if the process stops after publishing but before the cleanup, the same events are published again with the
@@ -54,37 +48,25 @@ public sealed partial class OrderEventPublisher(
         }
     }
 
-    public async Task<PublishResult> PublishPendingAsync(StoredOrder stored, CancellationToken ct = default)
+    public async Task<OutboxPublishResult> PublishPendingAsync(StoredOrder stored, CancellationToken ct = default)
     {
-        if (stored.Document.ParkedAt is not null) return PublishResult.Nothing; // parked: waits for an operator (register item 74)
+        if (stored.Document.ParkedAt is not null) return OutboxPublishResult.Nothing; // parked: waits for an operator (register item 74)
 
         var pending = stored.Document.Outbox.OrderBy(e => e.SequenceNumber).ToList();
-        if (pending.Count == 0) return PublishResult.Nothing;
+        if (pending.Count == 0) return OutboxPublishResult.Nothing;
 
-        var published = new List<string>();
-        var failed = false;
-        OutboxEntryDocument? failedEntry = null;
-        foreach (var entry in pending)
-        {
-            try
-            {
-                if (!Senders.TryGetValue(entry.EventType, out var send))
-                    throw new InvalidOperationException($"No payload type is known for event type '{entry.EventType}'.");
-                await send(entry, stored.Order.Id, events, ct);
-                published.Add(entry.EventId);
-            }
-            catch (Exception e) when (e is not OperationCanceledException)
-            {
-                LogOrderEventPublishFailed(logger, e, entry.EventType, entry.SequenceNumber, stored.Order.Id);
-                failed = true;
-                failedEntry = entry;
-                break; // later events wait: they must not overtake this one
-            }
-        }
+        var outcome = await OutboxPublishing.PublishInOrderAsync(
+            pending,
+            e => e.EventId,
+            (entry, token) => Senders.TryGetValue(entry.EventType, out var send)
+                ? send(entry, stored.Order.Id, events, token)
+                : throw new InvalidOperationException($"No payload type is known for event type '{entry.EventType}'."),
+            (entry, e) => LogOrderEventPublishFailed(logger, e, entry.EventType, entry.SequenceNumber, stored.Order.Id),
+            ct);
 
-        if (published.Count > 0) await RemoveAsync(stored, published, ct);
-        var parked = failedEntry is not null && await RecordFailureAsync(stored, failedEntry, ct);
-        return new PublishResult(published.Count, failed, parked);
+        if (outcome.PublishedIds.Count > 0) await RemoveAsync(stored, outcome.PublishedIds, ct);
+        var parked = outcome.Failed is not null && await RecordFailureAsync(stored, outcome.Failed, ct);
+        return new OutboxPublishResult(outcome.PublishedIds.Count, outcome.Failed is not null, parked);
     }
 
     /// <summary>
@@ -124,7 +106,7 @@ public sealed partial class OrderEventPublisher(
     }
 
     /// <summary>Removes the published entries. If the order changed meanwhile, re-reads it and tries again; failing to clean up is safe (a repeat is deduped).</summary>
-    private async Task RemoveAsync(StoredOrder stored, List<string> publishedIds, CancellationToken ct)
+    private async Task RemoveAsync(StoredOrder stored, IReadOnlyList<string> publishedIds, CancellationToken ct)
     {
         var current = stored;
         for (var attempt = 0; attempt < MaxCleanupAttempts; attempt++)

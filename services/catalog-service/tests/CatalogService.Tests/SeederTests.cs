@@ -24,7 +24,7 @@ public sealed class SeederTests : IAsyncLifetime
         _subscriptions = new VendorEventSubscriptions(_transport, store, NullLogger<VendorEventSubscriptions>.Instance);
         _service = new ListingService(
             _listings, store,
-            new ListingEventPublisher(_transport, _listings, Options.Create(new CatalogOutboxOptions()), TimeProvider.System, NullLogger<ListingEventPublisher>.Instance),
+            new ListingEventPublisher(_transport, _listings, Options.Create(new OutboxOptions()), TimeProvider.System, NullLogger<ListingEventPublisher>.Instance),
             TimeProvider.System, NullLogger<ListingService>.Instance);
         _seeder = new Seeder(_listings, _transport);
     }

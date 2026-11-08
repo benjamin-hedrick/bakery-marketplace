@@ -75,7 +75,7 @@ public sealed class CosmosCatalogTests : IAsyncLifetime
         var status = new CosmosRepository<VendorStatusDocument>(container);
         await status.SaveAsync(new VendorStatusDocument { Id = Vendor, Verified = true, LastSequence = 1 }, VendorStatusStore.Partition);
         var vendors = new VendorStatusStore(status);
-        var options = Options.Create(new CatalogOutboxOptions());
+        var options = Options.Create(new OutboxOptions());
         _publisher = new ListingEventPublisher(_events, _listings, options, _time, NullLogger<ListingEventPublisher>.Instance);
         _relay = new ListingOutboxRelay(_listings, _publisher, options, _time, NullLogger<ListingOutboxRelay>.Instance);
         _service = new ListingService(_listings, vendors, _publisher, _time, NullLogger<ListingService>.Instance);
@@ -117,7 +117,7 @@ public sealed class CosmosCatalogTests : IAsyncLifetime
         _events.Fail = true;
         var created = (await _service!.CreateAsync(Vendor, Request())).Listing!;
         _time.Now = _time.Now.AddMinutes(1);
-        for (var i = 1; i < new CatalogOutboxOptions().MaxPublishAttempts; i++) await _relay!.SweepOnceAsync(default);
+        for (var i = 1; i < new OutboxOptions().MaxPublishAttempts; i++) await _relay!.SweepOnceAsync(default);
 
         var parked = (await _listings!.GetAsync(created.Id, Vendor))!;
         var found = await _publisher!.FindParkedAsync(10);

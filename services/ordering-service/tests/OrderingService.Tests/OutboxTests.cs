@@ -1,3 +1,4 @@
+using BakeryMarketplace.Eventing;
 using System.Diagnostics;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.EventSchemas;
@@ -134,7 +135,7 @@ public class OutboxTests
 
         var result = await publisher.PublishPendingAsync(updated);
 
-        Assert.Equal(new PublishResult(2, false), result);
+        Assert.Equal(new OutboxPublishResult(2, false), result);
         Assert.Equal([OrderEventTypes.Placed, OrderEventTypes.Confirmed], events.Published.Select(p => p.EventType));
         Assert.Equal(updated.Document.Outbox.Select(e => Guid.Parse(e.EventId)), events.Published.Select(p => p.EventId));
         Assert.All(events.Published, p => Assert.Equal("order-1", p.AggregateId));
@@ -158,14 +159,14 @@ public class OutboxTests
 
         var result = await publisher.PublishPendingAsync(updated);
 
-        Assert.Equal(new PublishResult(1, true), result);
+        Assert.Equal(new OutboxPublishResult(1, true), result);
         Assert.Equal([OrderEventTypes.Placed], events.Published.Select(p => p.EventType)); // PreparationStarted did not jump the queue
         var stored = (await store.GetAsync("order-1", "customer-1"))!;
         Assert.Equal([OrderEventTypes.Confirmed, OrderEventTypes.PreparationStarted], stored.Document.Outbox.Select(e => e.EventType));
 
         events.FailOnlyType = null;
         var retry = await publisher.PublishPendingAsync(stored);
-        Assert.Equal(new PublishResult(2, false), retry);
+        Assert.Equal(new OutboxPublishResult(2, false), retry);
         Assert.Equal(
             [OrderEventTypes.Placed, OrderEventTypes.Confirmed, OrderEventTypes.PreparationStarted], events.Published.Select(p => p.EventType));
         Assert.Equal(3, events.Published.Select(p => p.EventId).Distinct().Count());
@@ -210,7 +211,7 @@ public class OutboxTests
 
         var result = await publisher.PublishPendingAsync(created);
 
-        Assert.Equal(new PublishResult(0, true), result);
+        Assert.Equal(new OutboxPublishResult(0, true), result);
         Assert.Empty(events.Published);
         Assert.Single((await store.GetAsync("order-1", "customer-1"))!.Document.Outbox);
     }
@@ -297,14 +298,14 @@ public class OutboxTests
         var (store, events, publisher) = NewPublisher();
         var created = (await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1"))!;
         events.Fail = true;
-        var last = new PublishResult(0, false);
+        var last = new OutboxPublishResult(0, false);
 
         for (var i = 0; i < new OutboxOptions().MaxPublishAttempts; i++)
         {
             last = await publisher.PublishPendingAsync((await store.GetAsync("order-1", "customer-1"))!);
         }
 
-        Assert.Equal(new PublishResult(0, true, true), last);
+        Assert.Equal(new OutboxPublishResult(0, true, true), last);
         var parked = (await store.GetAsync("order-1", "customer-1"))!;
         Assert.NotNull(parked.Document.ParkedAt);
         Assert.Null(parked.Document.PendingSince); // out of the relay's query
@@ -322,7 +323,7 @@ public class OutboxTests
 
         var result = await publisher.PublishPendingAsync((await store.GetAsync("order-1", "customer-1"))!);
 
-        Assert.Equal(PublishResult.Nothing, result);
+        Assert.Equal(OutboxPublishResult.Nothing, result);
         Assert.Empty(events.Published);
         Assert.Empty(await store.FindPendingAsync(At(1000), 10));
         Assert.Equal("order-1", Assert.Single(await store.FindParkedAsync(10)).Order.Id);
