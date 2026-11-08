@@ -32,7 +32,7 @@ This record reconciles three things: the demo the lead pictured against what is 
 | # | Decision | Answer |
 |---|---|---|
 | 1 | "Handed over" completes eventually (202), with a "still waiting, try again" note after about 15 s on the vendor screen | **Accepted** |
-| 2 | How a second consumer inside ordering-service gets its own consumer group: a second transport identity, or a consumer name on `SubscribeAsync` | **Open.** Recommendation: the consumer name (the silent message-splitting trap cannot be tested without Redis otherwise). To be decided at the start of the build. |
+| 2 | How a second consumer inside ordering-service gets its own consumer group: a second transport identity, or a consumer name on `SubscribeAsync` | **Decided and built 2026-11-07:** the consumer name (`WI-ORD-003`; recorded in the note of 2026-11-08 on ADR-0003). Was open when this record was written. |
 | 3 | The confirmation request is a plain integration event published by the endpoint, not an Order event through the outbox | **Accepted** (plain event) |
 | 4 | The customer's "ready" message moves to `OrderReadyForPickup` now (payload gains optional fields) | **Accepted** (now) |
 | 5 | ADR-0001's amendment note, `order-lifecycle.md`, `WI-ORD-003` and `WI-ORD-007` are updated | **Done today** (as plans, not as built) |
@@ -49,6 +49,6 @@ This record reconciles three things: the demo the lead pictured against what is 
 ## D. Not run, not decided, still open
 
 - **Not run:** all fifteen Maestro flows in one cold run (flows 07, 13 and 14 and the new cancel flow passed on their own); the container smoke of the new journeys (the host smoke passed 62 of 62); polling on the real stack; `mobile-demo.mjs` with the vendor screen; a person clicking through the vendor steps of the demo.
-- **Open decision:** `WI-ORD-003` decision 2 above.
+- **Open decision:** none now: `WI-ORD-003` decision 2 was decided and built the same day.
 - **Found, recorded in `WI-ORD-011`, not fixed:** on Android, the checkout's saved payment methods load after the screen opens and push the place button down; a tap at that instant can land on a payment button (register 161).
 - **Register:** 158 (listing cache, stock-path review by the lead), 159 (resolved), 160 (this record's open items), 161 (the layout jump).

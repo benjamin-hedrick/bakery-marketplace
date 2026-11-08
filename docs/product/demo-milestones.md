@@ -4,7 +4,7 @@
 
 ## M1: Environment up: done
 
-Redis Streams, the Cosmos emulator and the mock identity issuer start with `docker compose`; the catalog and ordering services answer `/health`. Items: `AUTH-005`, `DEV-001`, `DEV-002`, `DEV-004`, `DATA-002`, `EVT-003`, `CACHE-002`, `AUTH-002`. The original exit test also named all four services; `admin-service` and `notification-service` are empty scaffolds and run nothing.
+Redis Streams, the Cosmos emulator and the mock identity issuer start with `docker compose`; the catalog and ordering services answer `/health`. Items: `AUTH-005`, `DEV-001`, `DEV-002`, `DEV-004`, `DATA-002`, `EVT-003`, `CACHE-002`, `AUTH-002`. The original exit test also named all four services; `admin-service` is an empty scaffold; `notification-service` was built later and runs in the `apps` profile (`WI-NOT-001`).
 
 **How to see it:** [Run slice 1](../operations/local-dev.md), verified in a fresh clone on 2026-10-30.
 
@@ -36,7 +36,7 @@ Vendor verification and listing moderation are API-only even after M2 and M4. No
 
 ## Not part of any milestone
 
-Real payment, notifications, reviews, sponsored placement and `web-admin` beyond M5 are deferred (see [scope](scope.md)).
+Real payment, reviews, sponsored placement and `web-admin` beyond M5 are deferred (see [scope](scope.md)). Notifications were built later (local sender only).
 
 ## What the September notes said to be careful about
 

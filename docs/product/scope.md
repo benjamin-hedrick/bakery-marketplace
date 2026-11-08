@@ -66,7 +66,7 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 
 | Artifact | Scope | State |
 |---|---|---|
-| Backlog: epics, work items, acceptance criteria | MVP | Done: [catalog](backlog/epic-catalog.md), 67 [specs](backlog/STATUS.md) |
+| Backlog: epics, work items, acceptance criteria | MVP | Done: [catalog](backlog/epic-catalog.md), 110 [specs](backlog/STATUS.md) |
 | Prioritization (MoSCoW or RICE) | MVP | Partly: the MVP legend above and the sized, prioritized list in [slice 1's backlog](../management/slice-1/03-prioritized-backlog.md); the pass is proposed: [`WI-PLAN-001`](backlog/WI-PLAN-001.md) |
 | Sprint plan (first 2 to 3 sprints) | MVP | Deferred, by decision on 2026-10-30 (iterative work, no sprint boundaries): [`WI-PLAN-002`](backlog/WI-PLAN-002.md). The slice 1 [plan and critical path](../management/slice-1/02-plan-and-critical-path.md) served instead |
 | Definition of ready | MVP | Done: [DoR](../process/definition-of-ready.md) |
@@ -78,7 +78,7 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 | Personas and jobs to be done | MVP | Done: [personas](personas.md) |
 | Competitive scan | MVP-lite | Proposed: [`WI-PROD-002`](backlog/WI-PROD-002.md) |
 | Monetization model | MVP-lite | Proposed: [`WI-PROD-003`](backlog/WI-PROD-003.md) |
-| Success metrics and OKRs | MVP | In review: [`WI-PROD-004`](backlog/WI-PROD-004.md); [OKRs](okrs.md) first version written, targets for the lead to set |
+| Success metrics and OKRs | MVP | Done: [`WI-PROD-004`](backlog/WI-PROD-004.md); [OKRs](okrs.md), targets set by the lead on 2026-11-06 |
 
 **Operations and SRE**
 
@@ -96,7 +96,7 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 |---|---|---|
 | Local development environment (compose and seed data) | MVP | Done and verified: [local development](../operations/local-dev.md) |
 | Configuration management and a feature-flag pattern | MVP | Partly: environment configuration is built; no feature flags exist |
-| Caching | MVP | Partly: the library is built and unused by any service |
+| Caching | MVP | Partly: the library is built and the catalog uses it for published listings (`WI-CAT-003`, In review); the layers are recorded in `WI-PORT-004` |
 | Reusable tooling (event schemas, logging and correlation helper) | MVP | Done: `tools/` |
 | Ephemeral or preview environments | MVP-lite | Not started |
 | Branching and release strategy, dependency and versioning policy | MVP | Partly: [branching](../process/branching-strategy.md) covers branches and versioning; no dependency policy |

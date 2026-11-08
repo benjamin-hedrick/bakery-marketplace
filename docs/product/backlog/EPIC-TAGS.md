@@ -11,7 +11,7 @@ Constituent work items:
   - WI-TAG-001 (Service Implementation — the tag registry and the closed allergen list)
   - WI-TAG-002 (Service Implementation — tags on listings and options, vendor assignment, visibility)
   - WI-TAG-003 (Service Implementation — filter the public browse by tag)
-  - WI-TAG-004 (Service Implementation — diet tags in the customer's profile) — Proposed
+  - WI-TAG-004 (Service Implementation — diet tags in the customer's profile)
   - WI-TAG-005 (Service Implementation — seasonal and themed surfaces, administrator editing) — Deferred
 Status:              0 of 5 items done (TAG-001 In review, TAG-002, TAG-003 and TAG-004 In review, TAG-005 Deferred)
 ```

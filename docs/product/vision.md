@@ -1,5 +1,7 @@
 # Vision One-Pager
 
+> **Status:** Current · the principles were written 2026-09-07 and have not changed; the section "Where the product stands" is dated 2026-10-30 and is read against the code on 2026-11-08 in [scope](scope.md).
+
 ## Problem
 
 Generic delivery marketplaces optimize for speed and coverage, not for trust and discovery. Customers with allergies or specific dietary preferences face real friction — and real risk — ordering from small local bakeries and coffee shops that don't run sophisticated systems. Meanwhile, small shops and home-based food makers have no accessible path to reach these customers online without adopting a heavyweight POS or delivery-platform stack built for a different problem.
@@ -33,7 +35,7 @@ A pickup-first marketplace that puts dietary safety and preference-matching at t
 
 Delivery/dispatch, B2B ingredient-supplier flow, full ad-bidding platform, multi-region scale — each documented as a deferred decision (see ADRs), not simply omitted.
 
-## Where the product stands against these principles (2026-10-30)
+## Where the product stands against these principles (read against the code 2026-11-08)
 
 Nothing is deployed and no customer has used it, so none of the success measures above has been measured (`docs/product/okrs.md`). Against the principles, in the local build:
 
