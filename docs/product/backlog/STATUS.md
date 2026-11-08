@@ -211,108 +211,22 @@ Accepted: 22 · Superseded: 1
 
 | Type | Count |
 |---|---|
-| Known limitation | 11 |
-| Verification gap | 9 |
-| Gap | 9 |
-| Process | 8 |
-| Tracking | 7 |
-| Not started | 6 |
-| Hardening | 6 |
-| Documentation drift | 5 |
-| Tech debt | 4 |
-| Decision | 4 |
-| Open decision | 3 |
-| Design gap | 3 |
-| Accepted risk | 2 |
-| Deferred architecture | 2 |
-| Deferred scope (by design) | 2 |
-| Done | 2 |
-| Planned tech swap | 2 |
-| Test isolation | 2 |
-| Missing capability | 2 |
-| Missing API | 2 |
-| Missing rule | 2 |
-| Follow-up | 2 |
-| Rough edge | 2 |
-| Open decision (IAM, needs the lead's approval) | 2 |
-| Deployment follow-up | 2 |
-| Planned work | 2 |
-| Tech debt / future work | 1 |
-| Future hardening | 1 |
-| Deferred scope / risk | 1 |
-| Deferred scope | 1 |
-| Scoped out (by design) | 1 |
-| Low-priority cosmetic cleanup | 1 |
-| Known limitation (v1) | 1 |
-| Open question | 1 |
-| Tech debt / latent defect | 1 |
-| Security defect (dev-only) | 1 |
-| Dependency risk | 1 |
-| Test isolation / verification gap | 1 |
-| Decision deviation | 1 |
-| Open work / cost | 1 |
-| Data-safety follow-up | 1 |
-| Contract gap | 1 |
-| Contract inconsistency | 1 |
-| Evidence gap | 1 |
-| Documentation reconciliation | 1 |
-| Decision to amend | 1 |
-| Policy | 1 |
-| Reconciliation | 1 |
-| Schema gap | 1 |
-| Low-priority gap | 1 |
-| Possible future feature (watch) | 1 |
-| Auth decision (human approval required) | 1 |
-| Contract follow-up | 1 |
-| Design follow-up | 1 |
-| Accepted edge case | 1 |
-| Inconsistency | 1 |
-| Test gap (suspected bug) | 1 |
-| Defect | 1 |
-| Deferred hardening | 1 |
-| Quality gate | 1 |
-| Latent defect | 1 |
-| Decision and requirement | 1 |
-| Product gap | 1 |
-| Design gap, auth decision (human approval required) | 1 |
-| Test defect, found by a pipeline run | 1 |
-| Residual risk | 1 |
-| Open decisions and verification | 1 |
-| Known limitation (race) | 1 |
-| Defect (security: unauthenticated denial of service) | 1 |
-| Design weakness | 1 |
-| Scaling limit and verification gap | 1 |
-| Decision record | 1 |
-| Data retention | 1 |
-| Scaling limit | 1 |
-| Pipeline reliability | 1 |
-| Tooling limitation | 1 |
-| Test limitation | 1 |
-| Defect (cosmetic) | 1 |
-| Design review | 1 |
-| Defect (auth logic) | 1 |
-| Question (behaviour) | 1 |
-| Finding (static analysis) | 1 |
-| Option (future) | 1 |
-| Process review (agenda) | 1 |
-| Scope gap | 1 |
-| Hardening gap | 1 |
-| Usability | 1 |
-| Decision and hardening | 1 |
-| Flaky test tooling | 1 |
+| Gap | 41 |
+| Deferred scope | 23 |
+| Limitation | 20 |
+| Decision | 18 |
+| Verification gap | 17 |
+| Process | 15 |
+| Defect | 9 |
+| Documentation drift | 8 |
+| Tracking | 8 |
+| Risk | 4 |
+| Other | 3 |
 
 | Item status | Count |
 |---|---|
 | Deferred | 16 |
-| Resolved | 62 |
+| Resolved | 64 |
 | Accepted | 9 |
-| Tracking | 12 |
-| Open | 58 |
-| Decided | 1 |
-| Partly | 1 |
-| First | 1 |
-| Done | 1 |
-| Diagnosed | 1 |
-| Built | 2 |
-| Part | 1 |
-| Triaged | 1 |
+| Tracking | 13 |
+| Open | 64 |

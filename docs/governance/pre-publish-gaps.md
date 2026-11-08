@@ -59,8 +59,6 @@ Method: every tracked Markdown file (343 of 343) was read in full against the co
 |---|---|---|
 | `docs/testing.md` | Links to `evidence/test-and-coverage-2026-11-08.md`, which does not exist yet (the only broken link) | Run `node scripts/ci/test-report.mjs --write` with Redis and the Cosmos emulator up |
 | Local development | The fresh-clone check of the page (status line says so) | Repeat the steps in a fresh clone |
-| `apps/mobile-customer/.maestro/` | Two flows are numbered 13 | Cosmetic; renumber only with the lead's agreement (the docs cite the names) |
-| The open-items register | Eight non-standard status words (First, Part, Diagnosed, Triaged, Built, Decided, Partly, Done) against the five in `docs/method/register-item-template.md`, and about seventy free-form Type values (the generated table in `STATUS.md` shows both) | Normalise, or group the table; a script change, so ask first |
 | ADR status lines | The status lines of ADR-0019, 0021, 0022 and 0023 are long sentences; the rule is a short line with the detail in a note | Shorten, keeping the text as a dated note |
 | ADR-0003 | The unreadable-entry and dead-letter point of the 2026-10-30 note was not re-checked against the transport | Check the transport, then amend the note |
 | Epic banners | The gate checks only "N of M"; the lists of items in each state go stale | Generate them, or drop the lists (a script change: ask first) |

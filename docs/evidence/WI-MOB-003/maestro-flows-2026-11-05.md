@@ -1,6 +1,6 @@
 # WI-MOB-003: the three new Maestro flows (2026-11-05)
 
-> **Current result (2026-11-05):** flows 10 to 13 of that day passed (4 of 4, first run). The flows were renumbered afterwards (the cancel flow and the no-payment-method flow were added; the issuer-restart flow is now the last, 14) and the test hook named here was removed by `WI-ORD-010`; all fifteen flows in one cold run have not been run.
+> **Current result (2026-11-05):** flows 10 to 13 of that day passed (4 of 4, first run). The flows were renumbered afterwards (the cancel flow and the no-payment-method flow were added; the issuer-restart flow is now the last, 15; the cancel flow is 13 and the no-payment-methods flow 14) and the test hook named here was removed by `WI-ORD-010`; all fifteen flows in one cold run have not been run.
 
 Part 2 of `WI-MOB-003` (the unit tests are in `unit-tests-2026-11-05.md`).
 

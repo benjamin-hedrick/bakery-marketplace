@@ -1,8 +1,8 @@
 > **Status:** In review · built and run locally 2026-11-05: 25 unit tests pass (`docs/evidence/WI-MOB-003/unit-tests-2026-11-05.md`; register 151 fixed with the lead's approval, register 152 open) and flows 11 to 13 pass with flow 10 (`docs/evidence/WI-MOB-003/maestro-flows-2026-11-05.md`; all 13 flows in one cold run not yet done). Waiting for: the lead's review of the token handling, register 152, and whether the app's unit tests join the pipeline (register 148)
 
-> **Update 2026-11-08 (documentation pass):** the app now has fifteen Maestro flows (the cancel and no-payment-method flows were added, and the issuer-restart flow runs last, as 14); the unit tests run in the pipeline's `mobile` job, which has not yet run on Azure.
+> **Update 2026-11-08 (documentation pass):** the app now has fifteen Maestro flows (the cancel and no-payment-method flows were added, and the issuer-restart flow runs last, as 15); the unit tests run in the pipeline's `mobile` job, which has not yet run on Azure.
 
-> **Numbering note (2026-11-07):** the refused-session flow is now `14-refused-session` (it was 13). `WI-ORD-010` added a no-payment-methods flow and it has to run before the issuer restart, so it took number 13. Mentions of "flow 13" below and in the 2026-11-05 evidence mean the refused-session flow.
+> **Numbering note (2026-11-08):** the refused-session flow was 13, then 14, and is now `15-refused-session`; the no-payment-methods flow is `14-no-payment-methods` and the cancel flow `13-cancel-order`, so no two flows share a number and the issuer restart stays last. Mentions of "flow 13" below and in the 2026-11-05 evidence mean the refused-session flow.
 
 ```
 WI ID:               MOB-003

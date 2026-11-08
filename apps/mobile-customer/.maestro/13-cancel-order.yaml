@@ -1,6 +1,6 @@
 # ORD-011: a customer cancels their own order from the order screen while it is placed or confirmed. A made-to-order item is used so the stock budget of
 # the other flows is not touched. The question comes first ("Keep it" sends nothing), then the cancel; the screen then shows what ordering says.
-# (Named 13- so it runs before 14-refused-session, which must be the last flow because it restarts the issuer.)
+# (Numbered below 15-refused-session, which must be the last flow because it restarts the issuer.)
 appId: com.bakerymarketplace.mobile
 name: A customer cancels their order from the order screen
 ---
