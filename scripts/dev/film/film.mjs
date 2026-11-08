@@ -8,8 +8,8 @@
 //     --no-phone  film the web customer and the queue only (no emulator, no Maestro)
 //     --keep      leave Docker and the emulator running afterwards
 //
-// STATUS: written 2026-11-07 and NEVER RUN (there was no recording in that session). Expect to fix selectors, timings and the Maestro hand-offs on the first
-// run; the places most likely to need it are marked "first run". Test tooling: it drives the apps from outside, the way the browser suites and the Maestro flows do.
+// STATUS: written 2026-11-07; first runs 2026-11-08 (web and queue alone, then with the phone): both finished and composed, see docs/operations/demo-film.md for what
+// is proven. Test tooling: it drives the apps from outside, the way the browser suites and the Maestro flows do.
 //
 // How it works. The director (this process) starts the stack, the queue display, the web app and the emulator, brings the Android app to its first screen
 // and only then starts the phone recorder (the film begins on the app, not on Android). It records the web customer's and the vendor's browsers with Playwright
@@ -47,11 +47,13 @@ const QUEUE = `http://localhost:${ports.queue}`;
 const SIZE = { width: 1280, height: 720 };
 const PAUSE = { read: 4000, short: 2500 }; // how long a viewer needs to read a screen / notice a change
 const VENDOR = { seenMs: 7000, stepMs: 6000, spacingMs: 5000 }; // an order must have been on the queue 7 s before it is touched; 6 s between steps of one order; 5 s between any two actions
+// Once the web order is completed and the phone order is cancelled, both screens are static and nobody gains from a slow queue: the rest goes at 2 s a step.
+const VENDOR_FAST = { seenMs: 2000, stepMs: 2000, spacingMs: 2000 };
 const BACKGROUND = [
-  // when (after the web and phone customers have both ordered), who, what. A plain order confirms itself; an option or a pickup time waits for the bakery.
+  // when (after the recording rolls, so the orders arrive while the phone customer is still signing in), who, what. A plain order confirms itself; an option or a pickup time waits for the bakery.
   {
-    afterBeat: 'both-ordered',
-    delayMs: 3000,
+    afterBeat: 'rolling',
+    delayMs: 6000,
     user: 'user-customer-1',
     method: 'pm-alice-ok',
     listing: 'listing-latte-001',
@@ -62,8 +64,8 @@ const BACKGROUND = [
     caption: 'More customers order at the same time',
   },
   {
-    afterBeat: 'both-ordered',
-    delayMs: 10000,
+    afterBeat: 'rolling',
+    delayMs: 14000,
     user: 'user-customer-avoiddairy',
     method: 'pm-avoiddairy-ok',
     listing: 'listing-sourdough-001',
@@ -74,8 +76,8 @@ const BACKGROUND = [
     caption: 'A pickup time waits for the bakery to accept',
   },
   {
-    afterBeat: 'both-ordered',
-    delayMs: 17000,
+    afterBeat: 'rolling',
+    delayMs: 22000,
     user: 'user-customer-sesame',
     method: 'pm-sesame-ok',
     listing: 'listing-sourdough-001',
@@ -233,7 +235,7 @@ async function placeBackgroundOrder(o) {
 }
 
 async function backgroundActor() {
-  await waitBeat('both-ordered', HARD_LIMIT_MS);
+  await waitBeat('rolling', HARD_LIMIT_MS);
   const started = Date.now();
   for (const o of BACKGROUND) {
     await sleep(Math.max(0, started + o.delayMs - Date.now()));
@@ -249,7 +251,6 @@ async function vendorAgent(page, done) {
   const firstSeen = new Map();
   const lastStep = new Map();
   let lastAny = 0;
-  let announced = false;
   while (!done.value) {
     const cards = await page
       .$$eval('[data-testid="queue-order"]', (els) =>
@@ -260,17 +261,16 @@ async function vendorAgent(page, done) {
       )
       .catch(() => []);
     const now = Date.now();
+    const T = beats.has('web-completed') && beats.has('phone-cancelled') ? VENDOR_FAST : VENDOR;
     for (const c of cards) if (!firstSeen.has(c.ref)) firstSeen.set(c.ref, now);
     const ready = cards
       .map((c) => ({ ...c, next: c.actions.find((a) => a !== 'CANCEL' && a !== 'DECLINE') }))
-      .filter(
-        (c) =>
-          c.next && now - firstSeen.get(c.ref) >= VENDOR.seenMs && now - (lastStep.get(c.ref) ?? 0) >= VENDOR.stepMs,
-      )
-      .sort((a, b) => firstSeen.get(a.ref) - firstSeen.get(b.ref));
-    if (ready.length && now - lastAny >= VENDOR.spacingMs) {
+      .filter((c) => c.next && now - firstSeen.get(c.ref) >= T.seenMs && now - (lastStep.get(c.ref) ?? 0) >= T.stepMs)
+      // a bakery answers a new order before it moves the others along (the customers are waiting on their screens); then the newest first, so that the
+      // two customers on screen (the last to order) are worked while the orders from earlier wait, and the earlier ones can be cleared quickly afterwards
+      .sort((a, b) => (b.next === 'CONFIRM') - (a.next === 'CONFIRM') || firstSeen.get(b.ref) - firstSeen.get(a.ref));
+    if (ready.length && now - lastAny >= T.spacingMs) {
       const c = ready[0];
-      if (!announced) ((announced = true), caption('The bakery works its queue; each customer sees every step', 7000));
       await page
         .locator(`[data-testid="queue-order"][data-reference="${c.ref}"] button[data-action="${c.next}"]`)
         .click({ timeout: 4000 })
@@ -289,6 +289,7 @@ async function vendorAgent(page, done) {
 /** Nora, tree-nut allergy, on the web: browse, the warning on the croissant, acknowledge, order, then follow the order to the end. */
 async function webCustomer(page) {
   await page.goto(WEB);
+  await sleep(3500); // the opening caption ("nothing yet" on the queue) is on screen first
   caption('Nora has a tree-nut allergy and is ordering on the web', 6000);
   await sleep(PAUSE.read);
   await page.getByTestId('listing').filter({ hasText: 'Almond Croissant' }).getByRole('link').click();
@@ -300,6 +301,10 @@ async function webCustomer(page) {
   await page.getByTestId('login-required').getByRole('button', { name: 'Log in' }).click();
   await page.getByRole('button', { name: /Login as Nora/ }).click(); // first run: the issuer page lists users by name; Nora is the tree-nut customer
   await page.getByRole('form', { name: 'Place your order' }).waitFor();
+  // Wait here for the phone customer to reach its warnings too (at most 30 s: the film goes on without it), so the caption is true of both screens.
+  await waitBeat('phone-warnings', 30000).catch(() =>
+    note('the phone did not reach its warnings within 30 s; going on without it'),
+  );
   caption('Both customers are warned about their allergies and must acknowledge them', 7000);
   await sleep(PAUSE.read + 2000);
   await page.getByRole('checkbox', { name: 'I have read this and still want to order' }).check();
@@ -307,12 +312,11 @@ async function webCustomer(page) {
   await page.getByRole('button', { name: 'Place test order' }).click();
   await page.waitForURL(/\/orders\/.+/);
   mark('web-ordered');
-  await waitBeat('phone-ordered', HARD_LIMIT_MS);
-  mark('both-ordered');
+  caption('The bakery works its queue; each customer sees every step', 7000);
   // The order page follows the order by itself (polling); the viewer watches the status change as the bakery works.
   await page.locator('[data-testid="order-status"][data-status="COMPLETED"]').waitFor({ timeout: HARD_LIMIT_MS });
   mark('web-completed');
-  await sleep(PAUSE.read);
+  await sleep(1500);
 }
 
 /**
@@ -433,14 +437,14 @@ async function main() {
   timeline.recordings.web = { startedAt: webStarted, dir: 'video/web' };
   if (!noPhone) timeline.recordings.phone = { dir: 'phone' };
   mark('rolling');
-  caption("Corner Bakery's live queue: nothing yet", 5000);
-  if (!noPhone) setTimeout(() => mark('go-phone'), 3000); // the phone starts its story a moment after the browsers
+  caption("Corner Bakery's live queue: nothing yet", 3000);
+  if (!noPhone) setTimeout(() => mark('go-phone'), 1500); // the phone starts its story a moment after the browsers (its sign-in then runs while the first orders arrive)
 
   // 4. the actors
   const done = { value: false, completed: 0 };
   const vendor = vendorAgent(vendorPage, done);
   const background = backgroundActor();
-  if (noPhone) mark('phone-ordered'); // nothing to wait for
+  if (noPhone) for (const b of ['phone-warnings', 'phone-ordered', 'phone-cancelled']) mark(b); // nothing to wait for
   const web = webCustomer(webPage);
   const limit = setTimeout(() => note('HARD LIMIT reached; stopping'), HARD_LIMIT_MS);
 
@@ -450,9 +454,9 @@ async function main() {
   while ((done.completed ?? 0) < EXPECTED_COMPLETED && Date.now() < endBy) await sleep(500);
   clearTimeout(limit);
   // Everything ordered is Completed (or cancelled): let the queue empty, hold the last screen for the viewer, then finish.
-  await sleep(PAUSE.read + 2000);
-  caption('Local demo: test payments', 6000);
-  await sleep(6000);
+  await sleep(1000);
+  caption('Local demo: test payments', 4500);
+  await sleep(4500);
   done.value = true;
   await vendor;
   timeline.recordings.endedAt = Date.now();
