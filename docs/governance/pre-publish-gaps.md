@@ -24,14 +24,14 @@
 
 ## AI collaboration: the evidence is thinner than the practice
 
-The record has the method, the errors and what caught them, and the cost and time of 15 sessions. It does not have, and the repository says so ("what is measured and what is not"):
+The record has the method, the errors and what caught them, and the cost and time of 16 sessions. It does not have, and the repository says so ("what is measured and what is not"):
 
 | # | Gap | A way to capture it |
 |---|---|---|
 | 11 | ~~Time saved against a hand-built baseline~~ **Closed 2026-11-08 by decision:** no comparison is planned; the record now says the repository was built iteratively with AI collaboration throughout and that the evidence is its records and controls (`ai-collaboration.md`, "How this repository was built") | Done |
 | 12 | ~~Rework and review cost~~ **Closed 2026-11-08 as a practice record:** the tuning of the process (the `CLAUDE.md` rule history with commits, guided work, spec-driven and contract-first development, pulling decisions up) is now a table with what prompted each change and its evidence; the rework saved is stated as not measured, and the correction-commit share is shown with why it is not a measure | Done (`ai-collaboration.md`, "How the process was tuned") |
 | 13 | Accepted and rejected suggestions: **reviewed 2026-11-08.** The error table has 23 rows, the lessons 36, the register 166 items and four reconciliation records; the documents are not all updated on every change, by design, and the review itself found the overview pages nine days behind (recorded as a row). Keep the practice: add a row whenever a lesson is recorded, and reconcile the table against the lessons and the register at each slice boundary | Ongoing; no tooling needed |
-| 14 | The usage records stop at the second session of 2026-11-07 | The lead will share the figures for the session of 2026-11-08 (the film and this pass); add them to the table in `ai-collaboration.md` and the evidence record |
+| 14 | ~~The usage records stop at the second session of 2026-11-07~~ **Recorded 2026-11-08:** the session of the film and this pass ($11.14) is in `docs/evidence/ai-usage-2026-11-08.md` and the table in `ai-collaboration.md`. The next session's figures go in the same way | Done; repeat per session |
 | 15 | ~~The AI-assisted testing experiment (`WI-QA-003`, row T-34)~~ **Decided 2026-11-08: stays deferred.** The spec page says so and records what is already done (AI-proposed cases, edge cases, boundaries and mutations; the lead's scenarios, seeded users and harness-versus-product decisions); the gap-catalog rows say Deferred; lessons L-35 and L-36 were added, since neither practice was in the lessons although both were in `CLAUDE.md` and the register | Done |
 
 ## The full repository pass
