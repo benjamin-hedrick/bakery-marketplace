@@ -17,4 +17,4 @@ Records of how the work was planned, sequenced and delegated earlier. They are k
 
 The reconciliation records that are still used as method evidence are in `docs/product/backlog/reconciliation/`.
 
-Two edits were made to the archived text on 2026-10-30: the names of three other repositories were replaced by the labels peer-A (a process framework), peer-B (an AI collaboration playbook) and peer-C (an older playbook), and one sentence in the activity log was reworded to avoid naming what was removed. Nothing else in the archived files was changed except the banners.
+Edits made to the archived text, apart from the banners: on 2026-10-30 the names of three other repositories were replaced by the labels peer-A (a process framework), peer-B (an AI collaboration playbook) and peer-C (an older playbook), and one sentence in the activity log was reworded to avoid naming what was removed; on 2026-11-08 the personal paths in the review records (the resume page and the copy-in register), and the same paths in the raw dependency-audit output, were replaced by relative ones, and a stray tool citation marker was removed from the worklog extract. Nothing else was changed.

@@ -76,7 +76,6 @@ correction the process is intended to surface before implementation.
 Microsoft identifies External ID as its current CIAM platform and says
 the core offer is free for the first 50,000 MAU; verify current
 pricing/features again immediately before implementation.
-citeturn0search0turn0search5
 
 ------------------------------------------------------------------------
 

@@ -1,5 +1,7 @@
 # Gate rehearsal: results reported 2026-10-31 and 2026-11-01
 
+> **Current result (2026-11-01):** the eight gate scenarios G1 to G8 are reported passed by the lead on the rehearsal pipeline, which only prints; nothing was applied to Azure and no real plan was run through the destroy guard.
+
 Procedure: [`prove-the-pipeline-gates.md`](../../operations/runbooks/prove-the-pipeline-gates.md). Reported by the human lead from Azure DevOps, who ran every scenario and approved every run; not observed by Claude. Run numbers were not tracked: some scenarios were run more than once, others passed first time, and the new pipeline had 14 runs in total at the time of this report. Individual run numbers are therefore not recorded here.
 
 | ID | Result | What was seen |

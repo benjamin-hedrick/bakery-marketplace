@@ -1,5 +1,7 @@
 # WI-CAT-001 Findings — Listing CRUD + modifier/allergy model
 
+> **Later (2026-11-08):** gaps 2 and 3 below were fixed afterwards: the consumer group is per service (register 29) and the catalog has an outbox (register 30, 2026-11-01). The test counts in the text (28, 104) are those of the day; see `docs/testing.md`.
+
 > **Current result (2026-10-30):** acceptance met. The catalog tests (104 in `CatalogService.Tests`) passed on 2026-10-30. The Cosmos and Redis paths were run end to end against the local emulator and Redis Streams (see below). Not deployed.
 
 **Date:** 2026-10-26 · **Branch:** `feature/CAT-001-listing-crud` · **Code:** `services/catalog-service/` · **Result:** acceptance criteria met against in-memory backends; Cosmos and Redis paths later run end to end against the local emulator and Redis Streams (WI-DEV-002, 2026-10-26)

@@ -1,5 +1,7 @@
 # WI-MOB-003: unit tests of the Android app's session and API logic (2026-11-05)
 
+> **Current result (2026-11-05):** 25 of 25 unit tests of the Android app's session and API logic passed; register 151 was fixed with the lead's approval and 152 is open. The tests run in the pipeline's `mobile` job, which was written and has not yet run on Azure.
+
 Part 1 of `WI-MOB-003` (the unit tests). The Maestro flows (refused session, failed checkout request, order edits) are part 2 and are not in this record.
 
 ## What ran

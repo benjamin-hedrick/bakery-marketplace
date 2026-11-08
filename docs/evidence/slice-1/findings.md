@@ -1,5 +1,7 @@
 # Slice 1 findings: the customer journey on the real local stack, and a trace through it
 
+> **Current result (2026-10-30):** the slice-1 journey passed 21 of 21 on the real stack, one checkout is one trace across the BFF, ordering and the catalog, and a scan of every exported span found no token, key or secret. Later runs (62 journeys on 2026-11-07) are in the newer records.
+
 **Date:** 2026-10-28 · **Branch:** `feature/slice-1-evidence` · **Status:** verified locally on the real stack; the pipeline run `#20261029.4` on Azure passed (reported by the human lead, section 5)
 
 Scope is `docs/architecture/first-slice-contract.md`: login, browse, customize, choose a pickup window, test checkout, confirmation and status. Plan and status: `docs/management/slice-1/`. Item numbers below are rows of `docs/governance/open-items-register.md`.
