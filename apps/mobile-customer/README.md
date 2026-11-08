@@ -26,7 +26,7 @@ node ../../scripts/dev/mobile-flows.mjs --flow 03    # one flow
 ```
 
 It boots the emulator if none is running, starts the backend, builds and installs the app, runs the fifteen flows in
-`.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order; an allergy warning that must be acknowledged; no allergy profile; a failed allergy check; an allergy only an option carries; an avoid that needs no acknowledgement; several allergies and choosing which to tell the bakery; a failed checkout request keeps the order and a retry places one order; changing quantities and removing lines; a customer with no saved payment method cannot place an order; a customer cancels their order from the order screen; a refused session returns to the login screen, which must run last because it restarts the issuer). The allergen flows log in as seeded customers whose saved profiles are seed data (`docs/operations/local-dev.md`, "Seeded customers"). Two steps call a small local control server that the runner starts (`scripts/lib/flow-control.mjs`: read a customer's newest order, count their orders, stop and start the BFF, restart the mock issuer), so those flows only work when started by the runner, not by `maestro test` alone and tears down what it started. The
+`.maestro/` (login, restart and logout; browse to detail; the order journey; a declined payment keeps the order; an allergy warning that must be acknowledged; no allergy profile; a failed allergy check; an allergy only an option carries; an avoid that needs no acknowledgement; several allergies and choosing which to tell the bakery; a failed checkout request keeps the order and a retry places one order; changing quantities and removing lines; a customer with no saved payment method cannot place an order; a customer cancels their order from the order screen; a refused session returns to the login screen, which must run last because it restarts the issuer). The allergen flows log in as seeded customers whose saved profiles are seed data (`docs/operations/local-dev.md`, "Seeded customers"). Two steps call a small local control server that the runner starts (`scripts/lib/flow-control.mjs`: read a customer's newest order, count their orders, stop and start the BFF, restart the mock issuer), so those flows only work when started by the runner, not by `maestro test` alone. The runner tears down what it started. The
 last result is recorded in `docs/evidence/WI-MOB-001/`; Maestro's own output goes to `artifacts/mobile/` (git-ignored).
 
 The demo (`node ../../scripts/dev/mobile-demo.mjs`) boots the emulator with its window, starts the backend **without** the test hook, builds a non-test
@@ -38,10 +38,10 @@ Every flow of a run shares one stack, so **stock is a budget**: the Almond Crois
 
 ```
 npm ci                                       # here, and in ../../packages/customer-core
-node ../../scripts/dev/mobile-stack.mjs      # the backend stack (test hook on) + adb reverse 5100 and 4100; Enter stops it
+node ../../scripts/dev/mobile-stack.mjs      # the backend stack + adb reverse 5100 and 4100; Enter stops it
 emulator -avd bakery_pixel -no-snapshot -no-boot-anim -gpu swiftshader_indirect -memory 2048
-EXPO_PUBLIC_TEST_HOOKS=1 npx expo prebuild --platform android --no-install   # generates android/ (git-ignored)
-cd android && EXPO_PUBLIC_TEST_HOOKS=1 ./gradlew app:assembleDebug -PreactNativeArchitectures=x86_64   # .\gradlew.bat on Windows
+npx expo prebuild --platform android --no-install   # generates android/ (git-ignored)
+cd android && ./gradlew app:assembleDebug -PreactNativeArchitectures=x86_64   # .\gradlew.bat on Windows
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
