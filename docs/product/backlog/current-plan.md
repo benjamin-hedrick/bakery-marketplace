@@ -28,7 +28,7 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 In this order, the lead deciding:
 
-1. **Close the documentation pass** (above), then the gaps it lists, before the repository is made public (the flip-day settings, register 93).
+1. **Close the documentation pass** (above), then the [pre-publish gaps](../../governance/pre-publish-gaps.md), before the repository is made public (the flip-day settings, register 93).
 2. **The vendor's listing and stock screens** are the largest product gap and have no spec yet: decide, then write one. Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens stay last.
 3. **The deployed dev environment** (`WI-DEP-001`, `N-02`): the next step is the lead's: run the bootstrap on Azure and approve the Entra and IAM work (ADR-0018 phase 2, `WI-AUTH-006`); costs start there. A manual, approved teardown with a runbook follows it.
 4. **Hardening and process:** the outbox and stock follow-ups (register 66, 67, 74), a latency budget (100), the decisions listed in register 162 (dependency upgrades, the pipeline audit job and its fail policy, container scanning), and the process-review proposals (register 130).
