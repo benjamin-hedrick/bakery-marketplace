@@ -2,7 +2,7 @@
 
 To show the slice to someone, use the one-command demo: [Demo](demo.md). Every script and command (start, stop, demo, test, gates) is indexed in [Scripts and commands](scripts.md).
 
-> **Status:** Current · "Run slice 1" verified 2026-10-30 by following it step by step in a fresh clone on Windows 11 (Docker Desktop). The rest was verified on 2026-10-26 to 2026-10-28 and is marked below. Nothing here is deployed. By default the application services are not containers, so you run them on the host against the ports below (the `apps` compose profile runs them as containers: `docker compose --profile apps up -d --build`, checked by `node scripts/ci/skeleton-smoke.mjs --containers`). **Not re-verified in a fresh clone since 2026-10-30**, although the page was edited several times after it (the sessions Redis, the seed's payment methods, the demo); the one-command demo (`node scripts/dev/demo.mjs`) is the path that is run regularly. A fresh-clone re-run is on the gaps list (`docs/governance/pre-publish-gaps.md`, item 9).
+> **Status:** Current · re-read against the code 2026-11-08 (the fresh-clone check is still to repeat); "Run slice 1" verified 2026-10-30 by following it step by step in a fresh clone on Windows 11 (Docker Desktop). The rest was verified on 2026-10-26 to 2026-10-28 and is marked below. Nothing here is deployed. By default the application services are not containers, so you run them on the host against the ports below (the `apps` compose profile runs them as containers: `docker compose --profile apps up -d --build`, checked by `node scripts/ci/skeleton-smoke.mjs --containers`). **Not re-verified in a fresh clone since 2026-10-30**, although the page was edited several times after it (the sessions Redis, the seed's payment methods, the demo); the one-command demo (`node scripts/dev/demo.mjs`) is the path that is run regularly. A fresh-clone re-run is on the gaps list (`docs/governance/pre-publish-gaps.md`, item 9).
 
 ## Run slice 1
 
@@ -71,7 +71,7 @@ curl -s -X POST localhost:4100/graphql -H 'content-type: application/json' \
 
 The identities are rows in `BakeryMarketplace.Auth`'s `MockUsers` (identity only, no logic); the deployed dev issuer, which lists customers only, lists all five. A catalog test (`SeedCustomerProfilesTests`) keeps the two lists in step and checks that each profile produces its case under the catalog's real conflict rules.
 
-**Run the journeys against this stack:** `cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run test:skeleton` (21 tests; they sign in as the mock users and place real orders). Two of them use the declined-payment hook, so the BFF must have been started with `ENABLE_TEST_HOOKS=1` (step 6); that is how it was started for the run recorded below.
+**Run the journeys against this stack:** `cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run test:skeleton` (62 tests on 2026-11-07; they sign in as the mock users and place real orders). A declined payment is a seeded payment method whose token fails ordering's rule (`WI-ORD-010`), so no test hook is needed.
 
 **Stop and reset:** stop the four processes, then `docker compose down`. Data is not persisted. Seeding twice changes nothing, so stock used by an earlier run stays used (for example the Almond Croissant sells out in the journeys); `docker compose down` and `up` again resets it.
 
@@ -110,6 +110,12 @@ All ports bind to `127.0.0.1` only. The mock issuer signs tokens for anyone who 
 | `mock-oidc` | 5100 (`MOCK_OIDC_PORT`) | 0006 | Built from `tools/BakeryMarketplace.MockOidcHost`. Default. Refuses to start in the Production environment |
 | `redis-cache` | 6380 (`REDIS_CACHE_PORT`) | 0002 | Profile `with-redis` only. Separate from `redis-events` so cache eviction can never touch the event streams |
 | `redis-sessions` | 6381 (`REDIS_SESSIONS_PORT`) | 0019 | Profile `with-redis` only. The web apps' session store, `noeviction`: a full store refuses new logins instead of ending existing sessions (register 118) |
+| catalog-service | 5200 | 0009 | Host process, or a container in the `apps` profile |
+| ordering-service | 5300 | 0009 | Host process, or a container in the `apps` profile |
+| notification-service | 5400 | 0009 | A container in the `apps` profile, or a host process with `Events__Backend=redis` |
+| GraphQL BFF | 4100 | 0013 | Host process, or a container in the `apps` profile |
+| web-customer | 3000 | 0012 | Host process, or a container in the `apps` profile |
+| web-queue-display | 3100 | 0021 | Host process only (no image yet) |
 
 ## Environment variables for services run on the host
 
@@ -142,7 +148,7 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 
 | Item | State |
 |---|---|
-| Default set is exactly `redis-events`, `cosmos`, `mock-oidc`; `--profile with-redis` adds `redis-cache`; all ports are loopback-bound | Verified (`docker compose config` and `docker compose ps`) |
+| Default set is exactly `redis-events`, `cosmos`, `mock-oidc`; `--profile with-redis` adds `redis-cache` and `redis-sessions`; all ports are loopback-bound | Verified (`docker compose config` and `docker compose ps`) |
 | `docker compose up`: mock-oidc image builds and runs; Redis (events and cache) healthy; Cosmos emulator reaches readiness | Verified |
 | Readiness script: UP/DOWN per service, exit 0 when up and 1 when down, no crash (fixed a Windows `process.exit()` crash found here) | Verified over repeated runs in both states |
 | Mock issuer container: serves discovery; tokens it issues are accepted by a real catalog-service (vendor → 201, customer → 403, garbage → 401) | Verified |
@@ -249,7 +255,7 @@ export Cosmos__ConnectionString="AccountEndpoint=http://localhost:8081/;AccountK
 dotnet run --project tools/BakeryMarketplace.Seed
 ```
 
-Writes 7 listings (6 Published, 1 Draft negative case) for `vendor-shop-001` and `vendor-indep-001` through `IRepository<T>`, and publishes `VendorVerified` (fixed event id, sequence 1) for both vendors. Ids and prices follow `first-slice-contract.md` §7. Re-running creates nothing and leaves existing listings untouched (including local edits). Refuses non-loopback Cosmos endpoints. `catalog-service` applies the vendor events from the stream whether it starts before or after the seed. Preference profiles are not seeded: no preference model or container exists yet (`WI-PREF-001`).
+Writes 7 listings (6 Published, 1 Draft negative case) for `vendor-shop-001` and `vendor-indep-001` through `IRepository<T>`, and publishes `VendorVerified` (fixed event id, sequence 1) for both vendors. Ids and prices follow `first-slice-contract.md` §7. Re-running creates nothing and leaves existing listings untouched (including local edits). Refuses non-loopback Cosmos endpoints. `catalog-service` applies the vendor events from the stream whether it starts before or after the seed. It also writes the customers' saved allergen profiles and payment methods (see "Seeded customers" and "Seeded payment methods" above).
 
 ## Known gaps in this environment
 
@@ -257,7 +263,7 @@ Writes 7 listings (6 Published, 1 Draft negative case) for `vendor-shop-001` and
 2. **Mock users and seed vendors (resolved 2026-10-27).** Ownership requires the token subject to equal the listing's `vendorId`. The issuer now also offers `vendor-shop-001` and `vendor-indep-001` as login users (role Vendor), matching the seeded vendors, so each can edit only its own listings. `user-vendor-1` remains but owns no seeded listings.
 3. **(Fixed 2026-10-28, `S1-06`; kept for the record.) The mock issuer's login page reflected query parameters unescaped** (`redirect_uri`, `state`, `code_challenge`; confirmed by sending a script payload). Dev-only and loopback-bound here, but it is a defect in `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs` (`WI-AUTH-005`); fix with HTML encoding.
 4. **The Redis Streams transport acknowledges messages it cannot deserialize without dead-lettering them** (register item 88; first noted as reconciliation finding B2). Not exercised here.
-5. **No Stripe CLI wiring** (no spec; part of `PAY-001`, backlog N-08) and **no application containers** (register item 71). The Next.js app, the BFF and the trace viewer exist and run on the host as described above.
+5. **No Stripe CLI wiring** (no spec; part of `PAY-001`, backlog N-08). Application containers exist in the `apps` profile (register item 71 resolved; the queue display has no image). The Next.js app, the BFF and the trace viewer exist and run on the host as described above.
 
 ## Rate limits (WI-RATE-001, register item 128)
 
