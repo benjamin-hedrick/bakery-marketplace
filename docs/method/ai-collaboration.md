@@ -139,6 +139,15 @@ Each Claude Code session's cost, time and size were copied by the lead from the 
 
 Read it with care. A session's wall-clock time is mostly the lead reading, deciding and waiting (API time is the assistant working: about one hour in seven). Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the cost by the 85 items gives about $2.30 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
 
+## AI-assisted testing
+
+A controlled experiment (a bounded requirement set, tests proposed under a task contract, results counted against a baseline) was planned in October and is **deferred by the lead's decision (2026-11-08)**; `WI-QA-003` says so. The practice has been part of the work throughout, without a baseline:
+
+- **The assistant proposes** test cases, edge cases, boundaries and mutations. Examples: the matching rules for allergen conflicts (`WI-SRCH-001`), the stock-status boundaries and every invalidation rule of the listing cache, each broken on purpose and shown to fail the intended tests (`WI-CAT-003`); generated-input tests with a fixed seed that found two defects in the BFF; mutation checks over slice 1 and in `WI-MOB-003`.
+- **The lead decides** what is worth testing and how. The lead weighed in on the scenarios, directed that each scenario gets its own seeded user instead of one user whose preferences change at run time (lesson L-35), and decided what belongs in a test harness and what is the product's own business logic (lesson L-36, `WI-ORD-010`).
+
+The open questions of that item are mostly about the process, planning and the rules for working with and delegating to AI, and those are recorded here, in the lessons and in the evidence.
+
 ## What is measured and what is not
 
 Measured: test counts and line coverage ([the test report](../evidence/README.md)), a browser flake baseline, real-stack timings, a mutation sample, the number of errors found by each control, and now the cost, time and size of each recorded session (above). **Not measured:** time saved against a hand-built baseline, the cost of review and rework, and how many AI suggestions were accepted or rejected. The AI-assisted testing experiment in the October plan (`docs/management/portfolio-slice/02-vertical-slice-and-quality.md`) has not been run, so there is no baseline. The speed and value described by the lead are experience; to turn them into evidence, a baseline would be defined first.

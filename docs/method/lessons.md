@@ -40,6 +40,8 @@
 | L-32 | Size a fixed placeholder from the real worst case, and run the flows around the state it holds | Observation |
 | L-33 | Stop a recorder before the thing it records goes away, and measure a still screen by the clock | Observation |
 | L-34 | Mark in the file itself what has never been run | Observation |
+| L-35 | Test state belongs in seed data: add users, do not change one user at run time | Validated by the flows that use it |
+| L-36 | A test harness drives the system from outside; the rules stay in the product | Observation, one case |
 
 ## L-01 A surprise is a trigger to ask what should change
 
@@ -178,3 +180,11 @@
 ## L-34 Mark in the file itself what has never been run
 
 **Situation.** The demo film's director, its phone flow and the video composer were written in a session that was not going to record anything. Only the dry run, the composer on synthetic input and the Maestro syntax check could be run. **Lesson.** Say so where the next reader will look: in each file's header ("written, never run; expect to fix selectors and timings on the first run"), in the plan document's "checked and not checked" table, in the register item and in the scripts index, with the first runs listed in order. A script that looks finished invites trust it has not earned. **Evidence.** `scripts/dev/film/film.mjs` header, `docs/operations/demo-film.md`. **Status.** Observation.
+
+## L-35 Test state belongs in seed data: add users, do not change one user at run time
+
+**Situation.** The first Android allergen flows reused one customer and changed that customer's allergen profile at run time, through an endpoint on the flow-control server that existed only for the test. The lead's direction was to add users instead of reusing one and changing its preferences. **Lesson.** Each state a flow needs is a named, self-describing seeded user (Nora: tree nut; Sam: sesame; Dana: avoids dairy; Max: dairy and tree nut, avoids gluten; Nia: no saved payment method), so a flow only logs in, and nothing in the product exists to set state for a test. A new scenario that needs a new state gets a new user, and its stock and orders are budgeted so flows do not disturb one another. **Evidence.** Commit `13f9e97` (the six allergen flows log in as seeded customers; the profile endpoint is removed from the control server; 10 of 10 flows pass), register item 150, the rule in `CLAUDE.md` of 2026-11-04, `docs/evidence/WI-MOB-002/`. **Status.** Validated by the flows that use it.
+
+## L-36 A test harness drives the system from outside; the rules stay in the product
+
+**Situation.** A declined payment was forced by a switch: a header, an environment flag and a branch in the payment stub that existed so tests could refuse an order. The lead decided that validating a payment method is business logic and belongs in the product: ordering validates the method's token, and a decline is a seeded payment method that fails the rule. **Lesson.** For each test aid, ask whether it reaches the system from outside (a runner, a stack script, seed data) or adds a branch to product code. The first is a harness and is fine; the second is moved into data or an interface that already exists. Where a test needs a behaviour, give the product the rule and the test the data. **Evidence.** Register item 150 (part 2), `WI-ORD-010` (reconciled with the lead's answers on 2026-11-06: token validation as ordering business logic), `tools/tests/BakeryMarketplace.Seed.Tests`, which checks the seeded methods against ordering's rule. **Status.** Observation, one case.
