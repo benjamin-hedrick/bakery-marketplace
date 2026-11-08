@@ -42,7 +42,7 @@ public record OrderCustomizedPayload(
 
 /// <summary>
 /// The pickup strategy scheduled the window the customer requested (WI-ORD-003). <c>VendorId</c> and <c>CustomerId</c> were added
-/// 2026-11-08 (additive, optional) so the notification service does not have to call back into Ordering.
+/// 2026-11-07 (additive, optional) so the notification service does not have to call back into Ordering.
 /// </summary>
 public record PickupWindowScheduledPayload(
     string OrderId,
@@ -105,7 +105,7 @@ public record OrderCancelledPayload(
 
 /// <summary>
 /// The pickup strategy tells the customer-facing side that the order can be collected (WI-ORD-003). <c>VendorId</c>, <c>CustomerId</c>,
-/// the window and <c>Instructions</c> were added 2026-11-08 (additive, optional), like the lifecycle events' ids on 2026-11-01.
+/// the window and <c>Instructions</c> were added 2026-11-07 (additive, optional), like the lifecycle events' ids on 2026-11-01.
 /// </summary>
 public record OrderReadyForPickupPayload(
     string OrderId,
