@@ -1,4 +1,4 @@
-> **Status:** 3 of 11 items done (CUST-005, CUST-006 and CUST-008 Ready, CUST-007 In review, CUST-009 In review, CUST-010 In review, MOB-001 In review, MOB-002 In review; WEB-001 is superseded and not counted)
+> **Status:** 3 of 11 items done (CUST-005, CUST-006 and CUST-008 In review, CUST-007 In review, CUST-009 In review, CUST-010 In review, MOB-001 In review, MOB-002 In review; WEB-001 is superseded and not counted)
 
 ```
 Epic ID:            EPIC-WEB-CUSTOMER
@@ -18,7 +18,7 @@ Constituent work items:
   - WI-CUST-008 (Service Implementation — allergens in the cart and at checkout) — shared with EPIC-PREFERENCES, added 2026-11-04
   - WI-CUST-009 (Service Implementation — a fresh stock check when adding to the order) — shared with EPIC-CACHING, added 2026-11-07
   - WI-CUST-010 (Service Implementation — the customer's order status stays current by polling) — shared with EPIC-QUEUE-DISPLAY, added 2026-11-07
-Status:              3 of 8 items done (CUST-005, CUST-006 and CUST-008 Ready, CUST-007 In review, MOB-001 Ready; WEB-001 is superseded and not counted)
+Status:              3 of 11 items done (CUST-005, CUST-006 and CUST-008 In review, CUST-007 In review, CUST-009 In review, CUST-010 In review, MOB-001 In review, MOB-002 In review; WEB-001 is superseded and not counted)
 ```
 
 > **Reconciliation note (2026-10-26).** ADR-0012 (Next.js Pages Router + SSR) supersedes ADR-0011, and ADR-0013 routes all browser data through a GraphQL BFF via Relay. Within this epic: `WI-WEB-001` is **SUPERSEDED** by `WI-PORT-001`/`WI-PORT-002`; `WI-CUST-002`–`006` are **ADJUSTED** (requirements retained; implementation and dependencies change, see each file's note). The epic's goal is unchanged. The "Related references" above (ADR-0011; ADR-0008 direct-to-service calls) are historical. Current references: ADR-0012, ADR-0013, ADR-0014, ADR-0006 (unchanged). See `docs/product/backlog/reconciliation/RECONCILIATION-DISPOSITIONS-2026-10-26.md`.

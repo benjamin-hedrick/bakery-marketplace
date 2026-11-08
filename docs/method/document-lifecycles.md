@@ -1,6 +1,6 @@
 # Document kinds and their lifecycles
 
-> **Status:** Draft · started 2026-10-30, extended as each clean-up step defines or confirms a kind. The overview for the lead is built from this file at the end of the clean-up. Rows marked *to confirm* have not been reviewed in this pass.
+> **Status:** Draft · started 2026-10-30, extended as each clean-up step defined or confirmed a kind; the clean-up is finished and the file was not finalised. Four rows are still marked *to confirm*: they have not been reviewed. Treat the rest as the working classification, not as a settled rule.
 
 Every kind of document in the repository, how it is born, how its status is kept, and how it ends. The point is that a reader (or an agent) can tell which documents to trust for what, and which to leave alone.
 
