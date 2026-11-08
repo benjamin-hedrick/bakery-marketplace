@@ -37,7 +37,7 @@ variable "app_identity_principal_id" {
 
 variable "deploy_principal_id" {
   type        = string
-  description = "Object id of the pipeline's apply identity. It is granted Key Vault Secrets Officer on this environment's vault, to create the placeholder secrets and to set the real values after apply. Approved by the lead 2026-10-31 as part of the role-assignment condition (register item 108)."
+  description = "Object id of the pipeline's apply identity. It is granted Key Vault Secrets Officer on this environment's vault, to create the placeholder secrets and to set the real values after apply. Part of the role-assignment condition (approved 2026-10-31) (register item 108)."
 }
 
 variable "location" {
@@ -73,7 +73,7 @@ variable "cosmos_free_tier" {
 
 variable "issuer_mode" {
   type        = string
-  description = "mock: deploy the mock issuer as a container app and derive every issuer address from it (register item 102, lead's decision 2026-10-31). entra: use the three settings below, which are then required (N-02)."
+  description = "mock: deploy the mock issuer as a container app and derive every issuer address from it (register item 102, decided 2026-10-31). entra: use the three settings below, which are then required (N-02)."
   default     = "mock"
 
   validation {

@@ -134,7 +134,7 @@ describe('the issuer cannot be reached', () => {
     assert.equal(await app.session.currentAccessToken(), 'access-3');
   });
 
-  // Register 151 (fixed 2026-11-05 with the lead's approval): a 5xx from the issuer used to count as a refusal and delete the refresh token.
+  // Register 151 (fixed 2026-11-05): a 5xx from the issuer used to count as a refusal and delete the refresh token.
   test('an issuer 5xx is an outage, not a refusal: the token is kept', async () => {
     seedRefreshToken();
     fakeFetch(() => ({ status: 503, json: {} }));

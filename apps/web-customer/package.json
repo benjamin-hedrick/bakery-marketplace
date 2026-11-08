@@ -2,7 +2,7 @@
   "name": "@bakery/web-customer",
   "version": "0.0.0",
   "private": true,
-  "description": "WI-PORT-001 proof: Next.js Pages Router + Relay SSR against a mock GraphQL server",
+  "description": "The customer web app: browse, cart, checkout and order status on Next.js (Pages Router) with Relay, through the GraphQL BFF",
   "engines": {
     "node": ">=24"
   },

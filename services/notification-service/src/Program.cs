@@ -11,20 +11,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Traces (ADR-0016): exported only when OTEL_EXPORTER_OTLP_ENDPOINT is set; includes the batch consumer spans of the event transport.
 builder.Services.AddBakeryTelemetry(builder.Configuration, "notification-service");
 
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:5173" };
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontendOrigin", policy =>
-    {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
-
 // Events (ADR-0003). As in ordering, the backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory". The consumer group is
 // named for this service, so it receives every order event independently of the vendor queue (register item 29). Events:MaxStreamLength
 // trims the streams; with this consumer's backlog far below it, a limit is safe (register item 75).
@@ -73,7 +59,6 @@ builder.Services.AddHostedService<OrderEventSubscriptions>();
 var app = builder.Build();
 
 app.UseCorrelationId();
-app.UseCors("AllowFrontendOrigin");
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 

@@ -17,7 +17,7 @@ export type AddDecision = { allowed: true; maxPerOrder: number | null } | { allo
 
 /**
  * Whether the item may be added now, and the limit per order to hold it to. Only IN_STOCK and LOW can be added; a status this code does not know is
- * treated as unavailable, not guessed to be fine. When the read failed nothing is added: the customer is told and may try again (the lead's decision,
+ * treated as unavailable, not guessed to be fine. When the read failed nothing is added: the customer is told and may try again (decision,
  * 2026-11-07), so an item the customer could not be told about is never put in the order silently.
  */
 export function decideAdd(read: FreshStockRead): AddDecision {

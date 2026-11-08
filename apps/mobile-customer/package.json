@@ -1,6 +1,7 @@
 {
   "name": "mobile-customer",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "description": "The customer Android app (Expo): sign-in with PKCE, menu, cart, checkout and order status, through the GraphQL BFF",
   "main": "index.ts",
   "dependencies": {
     "@bakery/customer-core": "file:../../packages/customer-core",

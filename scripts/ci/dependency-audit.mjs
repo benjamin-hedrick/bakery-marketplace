@@ -11,7 +11,7 @@
 //      written to <out>/sbom/. The .NET tool is installed into <out>/tools at a pinned version.
 //   4. A summary, <out>/summary.md, and the raw audit output in <out>/raw/.
 //
-// Policy (proposed, the lead decides; docs/evidence/WI-SEC-004/): exit 1 when a PRODUCTION dependency has a high or critical advisory, or a
+// Policy (proposed, to be confirmed; docs/evidence/WI-SEC-004/): exit 1 when a PRODUCTION dependency has a high or critical advisory, or a
 // NuGet package has any known vulnerability; moderate and low advisories in development tooling are reported, not failed. Exit 2 when an
 // audit could not run (no network, no registry answer): an audit that did not run is not a pass.
 // Needs network access to the npm registry and nuget.org, `npm ci` already run in each project, and the .NET SDK.

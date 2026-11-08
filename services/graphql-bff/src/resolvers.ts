@@ -125,8 +125,8 @@ const VENDOR_ORDER_FILTER: Record<string, string> = {
   CANCELLED: 'Cancelled',
 };
 
-/** A vendor's orders. A 401 from ordering means the token was not accepted; a 403 means its role is not a vendor's. */
-async function vendorCall<T>(ctx: Context, call: (authorization: string) => Promise<T>): Promise<T> {
+/** A call to ordering with the caller's token, for a vendor's or a customer's own data: ordering decides the role and whose data it is. A 401 means the token was not accepted; a 403 means its role is not allowed for this call. */
+async function callWithToken<T>(ctx: Context, call: (authorization: string) => Promise<T>): Promise<T> {
   if (!ctx.authorization) throw unauthenticated();
   try {
     return await call(ctx.authorization);
@@ -137,20 +137,16 @@ async function vendorCall<T>(ctx: Context, call: (authorization: string) => Prom
   }
 }
 
-/**
- * A customer's own data. The token goes to ordering unchanged, which decides the role and whose data it is. A 401 from ordering means the token
- * was not accepted; a 403 means its role is not a customer's.
- */
-const customerCall = vendorCall;
-
 /** The caller's own order. */
 async function readOrder(serviceId: string, ctx: Context) {
-  const o = await customerCall(ctx, (authorization) => ctx.ordering.getOrder(serviceId, authorization, ctx.trace));
+  const o = await callWithToken(ctx, (authorization) => ctx.ordering.getOrder(serviceId, authorization, ctx.trace));
   return o ? toOrder(o) : null;
 }
 
 async function readVendorOrder(serviceId: string, ctx: Context) {
-  const o = await vendorCall(ctx, (authorization) => ctx.ordering.getVendorOrder(serviceId, authorization, ctx.trace));
+  const o = await callWithToken(ctx, (authorization) =>
+    ctx.ordering.getVendorOrder(serviceId, authorization, ctx.trace),
+  );
   return o ? toVendorOrder(o) : null;
 }
 
@@ -161,7 +157,7 @@ async function readVendorOrder(serviceId: string, ctx: Context) {
  */
 export const subscriptionRoot = {
   async vendorOrderChanged(_args: unknown, ctx: Context) {
-    const events = await vendorCall(ctx, (authorization) =>
+    const events = await callWithToken(ctx, (authorization) =>
       ctx.ordering.openVendorOrderStream(authorization, ctx.trace, ctx.signal),
     );
     return (async function* () {
@@ -295,7 +291,7 @@ async function vendorOrderAction(args: { input: { orderId: string; action: strin
   const serviceId = serviceIdFor('VendorOrder', args.input.orderId);
   if (serviceId === null) return actionRejected('NOT_FOUND', 'That order could not be found.');
 
-  const result = await vendorCall(ctx, (authorization) =>
+  const result = await callWithToken(ctx, (authorization) =>
     ctx.ordering.orderAction(serviceId, action, authorization, ctx.trace),
   );
   if (result.kind === 'done') {
@@ -332,7 +328,7 @@ async function cancelOrder(args: { input: { orderId: string } }, ctx: Context) {
   if (!ctx.authorization) throw unauthenticated();
   if (serviceId === null) return cancelRejected('NOT_FOUND', 'That order could not be found.');
 
-  const result = await customerCall(ctx, (authorization) =>
+  const result = await callWithToken(ctx, (authorization) =>
     ctx.ordering.orderAction(serviceId, 'cancel', authorization, ctx.trace),
   );
   if (result.kind === 'done') {
@@ -367,7 +363,7 @@ async function savePreferences(
   args: { input: { allergies: string[]; avoid: string[]; prefer?: string[] | null } },
   ctx: Context,
 ) {
-  const result = await customerCall(ctx, (authorization) =>
+  const result = await callWithToken(ctx, (authorization) =>
     ctx.catalog.savePreferences(
       {
         allergies: args.input.allergies,
@@ -424,7 +420,7 @@ async function cartCheck(args: { lines: { listingId: string; optionIds: string[]
     decoded[i] === null ? [] : [{ listingId: decoded[i] as string, optionIds: l.optionIds }],
   );
   // Always asked, even with nothing to send: the catalog is what checks the caller's role, and that must hold for every call.
-  const answers = await customerCall(ctx, (authorization) => ctx.catalog.checkCart(toSend, authorization, ctx.trace));
+  const answers = await callWithToken(ctx, (authorization) => ctx.catalog.checkCart(toSend, authorization, ctx.trace));
   if (answers.length !== toSend.length)
     throw new DownstreamError('catalog returned a different number of cart lines than were sent');
 
@@ -452,7 +448,7 @@ export const rootValue = {
     ctx: Context,
   ) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
-    const page = await customerCall(ctx, (authorization) =>
+    const page = await callWithToken(ctx, (authorization) =>
       ctx.catalog.listPersonalized(
         { limit: first, after: args.after ?? undefined, hideConflicts: args.hideConflicts ?? false },
         authorization,
@@ -468,14 +464,14 @@ export const rootValue = {
   async personalizedListing(args: { id: string }, ctx: Context) {
     const serviceId = serviceIdFor('Listing', args.id);
     if (serviceId === null) return null;
-    const found = await customerCall(ctx, (authorization) =>
+    const found = await callWithToken(ctx, (authorization) =>
       ctx.catalog.getPersonalized(serviceId, authorization, ctx.trace),
     );
     return found ? toPersonalized(found) : null;
   },
   async preferences(_args: unknown, ctx: Context) {
     return toPreferences(
-      await customerCall(ctx, (authorization) => ctx.catalog.getPreferences(authorization, ctx.trace)),
+      await callWithToken(ctx, (authorization) => ctx.catalog.getPreferences(authorization, ctx.trace)),
     );
   },
   vendorOrderAction,
@@ -519,14 +515,14 @@ export const rootValue = {
   },
   /** The caller's saved payment methods (WI-ORD-010): an id and a description each. Ordering-service never sends the token, so the BFF cannot pass it on. */
   async paymentMethods(_args: unknown, ctx: Context) {
-    const methods = await customerCall(ctx, (authorization) =>
+    const methods = await callWithToken(ctx, (authorization) =>
       ctx.ordering.listPaymentMethods(authorization, ctx.trace),
     );
     return methods.map((m) => ({ id: m.id, description: m.description }));
   },
   async orders(args: { first?: number; after?: string | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
-    const page = await customerCall(ctx, (authorization) =>
+    const page = await callWithToken(ctx, (authorization) =>
       ctx.ordering.listOrders({ limit: first, after: args.after ?? undefined }, authorization, ctx.trace),
     );
     const edges = page.items.map((o) => ({ cursor: o.id, node: toOrder(o) }));
@@ -538,7 +534,7 @@ export const rootValue = {
   async vendorOrders(args: { status?: string | null; first?: number; after?: string | null }, ctx: Context) {
     const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
     const status = args.status ? VENDOR_ORDER_FILTER[args.status] : undefined;
-    const page = await vendorCall(ctx, (authorization) =>
+    const page = await callWithToken(ctx, (authorization) =>
       ctx.ordering.listVendorOrders({ status, limit: first, after: args.after ?? undefined }, authorization, ctx.trace),
     );
     const edges = page.items.map((o) => ({ cursor: o.id, node: toVendorOrder(o) }));

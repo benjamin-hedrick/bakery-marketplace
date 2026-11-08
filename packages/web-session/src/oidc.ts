@@ -1,7 +1,7 @@
 import type { SessionConfig } from './config.ts';
 
 // The server's side of the login (ADR-0019): the authorize address, the code exchange and the refresh, against the issuer's token endpoint
-// (`<issuer>/token`, the mock issuer's layout). A public client with PKCE (the lead's decision), so no secret is sent. Nothing a token endpoint
+// (`<issuer>/token`, the mock issuer's layout). A public client with PKCE (a decision of the project, ADR-0019), so no secret is sent. Nothing a token endpoint
 // says is copied into an error: the fixed reason codes below are all a caller gets.
 
 export interface TokenSet {
