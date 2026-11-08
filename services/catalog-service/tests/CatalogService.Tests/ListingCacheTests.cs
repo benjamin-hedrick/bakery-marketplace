@@ -86,7 +86,7 @@ public sealed class ListingCacheTests
             Cache = new ListingCache(provider, Options.Create(new ListingCacheOptions { TtlSeconds = ttlSeconds }), NullLogger<ListingCache>.Instance);
             Vendors = new VendorStatusStore(_status, Cache);
             var publisher = new ListingEventPublisher(
-                new InMemoryEventTransport(), Listings, Options.Create(new CatalogOutboxOptions()), time, NullLogger<ListingEventPublisher>.Instance);
+                new InMemoryEventTransport(), Listings, Options.Create(new OutboxOptions()), time, NullLogger<ListingEventPublisher>.Instance);
             Service = new ListingService(Listings, Vendors, publisher, time, NullLogger<ListingService>.Instance, cache: Cache);
             Uncached = new ListingService(Listings, new VendorStatusStore(_status), publisher, time, NullLogger<ListingService>.Instance);
             Reservation = new StockReservationService(Listings, reservations, new FakeBatchFactory(database), Vendors, publisher, time, Cache);

@@ -42,7 +42,7 @@ public sealed class ListingOutboxTests
         public FakeRepository<StockReservationDocument> Reservations { get; }
         public FlakyEvents Events { get; } = new();
         public ManualTime Time { get; } = new(new DateTimeOffset(2026, 11, 1, 12, 0, 0, TimeSpan.Zero));
-        public CatalogOutboxOptions Options { get; } = new();
+        public OutboxOptions Options { get; } = new();
         public ListingEventPublisher Publisher { get; }
         public ListingOutboxRelay Relay { get; }
         public ListingService Service { get; }
@@ -204,7 +204,7 @@ public sealed class ListingOutboxTests
 
         var result = await rig.Publisher.PublishPendingAsync(await rig.StoredAsync(created.Id));
 
-        Assert.Equal(new ListingPublishResult(1, true), result);
+        Assert.Equal(new OutboxPublishResult(1, true), result);
         Assert.Equal([ListingEventTypes.Published], rig.Events.Published.Select(p => p.EventType));
         Assert.Equal(ListingEventTypes.LowStockDetected, Assert.Single((await rig.StoredAsync(created.Id)).Outbox).EventType);
     }
@@ -253,8 +253,8 @@ public sealed class ListingOutboxTests
     [Fact]
     public void TheRelayDelayStaysAtTheBaseRateThenGrowsWhileIdleAndStopsAtTheMaximum()
     {
-        var options = new CatalogOutboxOptions { SweepSeconds = 5, MaxIdleSeconds = 60 };
-        double Seconds(int empty) => ListingOutboxRelay.NextDelay(options, empty, 0.5).TotalSeconds;
+        var options = new OutboxOptions { SweepSeconds = 5, MaxIdleSeconds = 60 };
+        double Seconds(int empty) => OutboxTiming.NextDelay(options, empty, 0.5).TotalSeconds;
 
         Assert.Equal(5, Seconds(0), 3);
         Assert.Equal(5, Seconds(2), 3);

@@ -109,7 +109,7 @@ else
     throw new InvalidOperationException("Cache:Backend must be 'local' or 'redis'.");
 }
 builder.Services.AddSingleton<VendorStatusStore>();
-builder.Services.Configure<CatalogOutboxOptions>(builder.Configuration.GetSection("Outbox"));
+builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection("Outbox"));
 builder.Services.AddSingleton<ListingEventPublisher>();
 builder.Services.AddHostedService<ListingOutboxRelay>();
 builder.Services.AddSingleton<ListingService>();

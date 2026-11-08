@@ -64,7 +64,7 @@ public sealed class ListingCacheRedisTests
         await status.SaveAsync(new VendorStatusDocument { Id = vendor, Verified = true, LastSequence = 1 }, VendorStatusStore.Partition);
         var time = TimeProvider.System;
         var publisher = new ListingEventPublisher(
-            new InMemoryEventTransport(), listings, Options.Create(new CatalogOutboxOptions()), time, NullLogger<ListingEventPublisher>.Instance);
+            new InMemoryEventTransport(), listings, Options.Create(new OutboxOptions()), time, NullLogger<ListingEventPublisher>.Instance);
         var service = new ListingService(listings, new VendorStatusStore(status), publisher, time, NullLogger<ListingService>.Instance);
         var created = await service.CreateAsync(vendor, new ListingRequest(
             "Country Sourdough", "A loaf", "bread", 800,

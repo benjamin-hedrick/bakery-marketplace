@@ -8,46 +8,17 @@ using Microsoft.Extensions.Options;
 
 namespace CatalogService.Services;
 
-/// <summary>Bound from the <c>Outbox</c> configuration section (the same names as the ordering service's).</summary>
-public sealed class CatalogOutboxOptions
-{
-    /// <summary>The usual gap between sweeps when events have been turning up.</summary>
-    public int SweepSeconds { get; set; } = 5;
-
-    /// <summary>When sweeps keep finding nothing the gap grows, up to this many seconds.</summary>
-    public int MaxIdleSeconds { get; set; } = 60;
-
-    /// <summary>Events newer than this are left to the inline publish that is probably still running.</summary>
-    public int GraceSeconds { get; set; } = 3;
-
-    public int BatchSize { get; set; } = 50;
-
-    /// <summary>How long a request waits for its own inline publish before leaving the events to the relay. The change is already stored.</summary>
-    public int InlinePublishTimeoutSeconds { get; set; } = 2;
-
-    /// <summary>After this many failed attempts at one event, the listing's outbox is parked until an operator unparks it.</summary>
-    public int MaxPublishAttempts { get; set; } = 5;
-
-    public bool RelayEnabled { get; set; } = true;
-}
-
-/// <summary>How many of a listing's pending events were published, whether publishing stopped early, and whether the outbox is now parked.</summary>
-public sealed record ListingPublishResult(int Published, bool Failed, bool Parked = false)
-{
-    public static readonly ListingPublishResult Nothing = new(0, false);
-}
-
 /// <summary>
 /// The catalog's outbox (register item 30, ADR-0003): a change that raises an event stores the event in the listing document in the same
 /// write (<see cref="Raise"/>), the request then publishes it inline, and <see cref="ListingOutboxRelay"/> sends whatever the inline path
 /// missed. Delivery is at-least-once with a stable event id per listing, version and type, so consumers dedupe on the id. Events of one
 /// listing go out in version order and publishing stops at the first failure. An entry that keeps failing is counted and, at
-/// <see cref="CatalogOutboxOptions.MaxPublishAttempts"/>, the listing's outbox is parked (the rule of ordering's register item 74).
+/// <see cref="OutboxOptions.MaxPublishAttempts"/>, the listing's outbox is parked (the rule of ordering's register item 74).
 /// </summary>
 public sealed partial class ListingEventPublisher(
     IEventPublisher events,
     IRepository<ListingDocument> listings,
-    IOptions<CatalogOutboxOptions> options,
+    IOptions<OutboxOptions> options,
     TimeProvider time,
     ILogger<ListingEventPublisher> logger)
 {
@@ -68,7 +39,7 @@ public sealed partial class ListingEventPublisher(
 
     /// <summary>
     /// Publishes the document's pending events now, so consumers see them within moments. The change is already stored, so a failure or a
-    /// slow broker never fails the request or delays it beyond <see cref="CatalogOutboxOptions.InlinePublishTimeoutSeconds"/>: the events stay in
+    /// slow broker never fails the request or delays it beyond <see cref="OutboxOptions.InlinePublishTimeoutSeconds"/>: the events stay in
     /// the outbox and the relay sends them.
     /// </summary>
     public async Task PublishInlineAsync(ListingDocument stored)
@@ -84,30 +55,20 @@ public sealed partial class ListingEventPublisher(
         }
     }
 
-    public async Task<ListingPublishResult> PublishPendingAsync(ListingDocument stored, CancellationToken ct = default)
+    public async Task<OutboxPublishResult> PublishPendingAsync(ListingDocument stored, CancellationToken ct = default)
     {
-        if (stored.ParkedAt is not null || stored.Outbox.Count == 0) return ListingPublishResult.Nothing;
+        if (stored.ParkedAt is not null || stored.Outbox.Count == 0) return OutboxPublishResult.Nothing;
 
-        var published = new List<string>();
-        ListingOutboxEntry? failedEntry = null;
-        foreach (var entry in stored.Outbox.OrderBy(e => e.SequenceNumber).ThenBy(e => e.EventType, StringComparer.Ordinal))
-        {
-            try
-            {
-                await SendAsync(entry, stored.Id, ct);
-                published.Add(entry.EventId);
-            }
-            catch (Exception e) when (e is not OperationCanceledException)
-            {
-                LogListingEventPublishFailed(logger, e, entry.EventType, entry.SequenceNumber, stored.Id);
-                failedEntry = entry;
-                break; // later events wait: they must not overtake this one
-            }
-        }
+        var outcome = await OutboxPublishing.PublishInOrderAsync(
+            stored.Outbox.OrderBy(e => e.SequenceNumber).ThenBy(e => e.EventType, StringComparer.Ordinal),
+            e => e.EventId,
+            (entry, token) => SendAsync(entry, stored.Id, token),
+            (entry, e) => LogListingEventPublishFailed(logger, e, entry.EventType, entry.SequenceNumber, stored.Id),
+            ct);
 
-        if (published.Count > 0) await RemoveAsync(stored, published, ct);
-        var parked = failedEntry is not null && await RecordFailureAsync(stored, failedEntry, ct);
-        return new ListingPublishResult(published.Count, failedEntry is not null, parked);
+        if (outcome.PublishedIds.Count > 0) await RemoveAsync(stored, outcome.PublishedIds, ct);
+        var parked = outcome.Failed is not null && await RecordFailureAsync(stored, outcome.Failed, ct);
+        return new OutboxPublishResult(outcome.PublishedIds.Count, outcome.Failed is not null, parked);
     }
 
     /// <summary>Puts a parked listing back to work after the cause is fixed: clears the marker and the attempt counts. For an operator.</summary>
@@ -134,7 +95,7 @@ public sealed partial class ListingEventPublisher(
     }
 
     /// <summary>Removes the published entries. Re-reads and tries again if the listing changed meanwhile; a repeat publish is deduped by id.</summary>
-    private async Task RemoveAsync(ListingDocument stored, List<string> publishedIds, CancellationToken ct)
+    private async Task RemoveAsync(ListingDocument stored, IReadOnlyList<string> publishedIds, CancellationToken ct)
     {
         var current = stored;
         for (var attempt = 0; attempt < MaxStoreAttempts; attempt++)
@@ -223,57 +184,21 @@ public sealed partial class ListingEventPublisher(
 
 /// <summary>
 /// The safety net behind the inline publish: periodically finds listings that still have events pending (a crash between saving and
-/// publishing, a broker outage) and publishes them. It slows down while idle. Several instances may sweep at once; they can send the same
-/// event twice, which is harmless because the event id is the same.
+/// publishing, a broker outage) and publishes them. The loop and timing are shared (<see cref="OutboxRelayBase"/>). Several instances may sweep
+/// at once; they can send the same event twice, which is harmless because the event id is the same.
 /// </summary>
 public sealed partial class ListingOutboxRelay(
     IRepository<ListingDocument> listings,
     ListingEventPublisher publisher,
-    IOptions<CatalogOutboxOptions> options,
+    IOptions<OutboxOptions> options,
     TimeProvider time,
-    ILogger<ListingOutboxRelay> logger) : BackgroundService
+    ILogger<ListingOutboxRelay> logger) : OutboxRelayBase(options.Value, null, logger, "Catalog")
 {
-    private readonly CatalogOutboxOptions _options = options.Value;
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public override async Task<(int Found, int Published)> SweepOnceAsync(CancellationToken ct)
     {
-        if (!_options.RelayEnabled) return;
-
-        var empty = 0;
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                var (found, _) = await SweepOnceAsync(stoppingToken);
-                empty = found == 0 ? empty + 1 : 0;
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception e)
-            {
-                LogCatalogSweepFailed(logger, e);
-                empty = 0;
-            }
-
-            try
-            {
-                await Task.Delay(NextDelay(_options, empty, Random.Shared.NextDouble()), stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-        }
-    }
-
-    /// <summary>One pass: publish every listing that has had events pending longer than the grace period. Returns what it found and sent.</summary>
-    public async Task<(int Found, int Published)> SweepOnceAsync(CancellationToken ct)
-    {
-        var cutoff = time.GetUtcNow().AddSeconds(-_options.GraceSeconds).ToUnixTimeMilliseconds();
+        var cutoff = time.GetUtcNow().AddSeconds(-Options.GraceSeconds).ToUnixTimeMilliseconds();
         var pending = new List<ListingDocument>();
-        await foreach (var doc in listings.QueryAsync("", q => q.Where(d => d.PendingSince <= cutoff).Take(_options.BatchSize), ct)) pending.Add(doc);
+        await foreach (var doc in listings.QueryAsync("", q => q.Where(d => d.PendingSince <= cutoff).Take(Options.BatchSize), ct)) pending.Add(doc);
 
         var published = 0;
         foreach (var doc in pending) published += (await publisher.PublishPendingAsync(doc, ct)).Published;
@@ -281,24 +206,10 @@ public sealed partial class ListingOutboxRelay(
         if (pending.Count > 0)
         {
             // These are events the inline path did not deliver, so this line is the signal that a miss happened.
-            LogCatalogRelayPublished(logger, pending.Count, published);
+            LogCatalogRelayPublished(Logger, pending.Count, published);
         }
         return (pending.Count, published);
     }
-
-    /// <summary>The relay's timing as a pure function: the base rate for the first few quiet sweeps, then doubling up to the idle maximum, with jitter of about 20%.</summary>
-    public static TimeSpan NextDelay(CatalogOutboxOptions options, int consecutiveEmptySweeps, double jitter)
-    {
-        var baseSeconds = Math.Max(0.01, options.SweepSeconds);
-        var maxSeconds = Math.Max(baseSeconds, options.MaxIdleSeconds);
-        var seconds = consecutiveEmptySweeps <= 2
-            ? baseSeconds
-            : Math.Min(maxSeconds, baseSeconds * Math.Pow(2, consecutiveEmptySweeps - 2));
-        return TimeSpan.FromSeconds(seconds * (0.8 + 0.4 * Math.Clamp(jitter, 0, 1)));
-    }
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Catalog outbox sweep failed; it will be retried")]
-    private static partial void LogCatalogSweepFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog outbox relay: {Listings} listing(s) had unpublished events; {Published} event(s) published")]
     private static partial void LogCatalogRelayPublished(ILogger logger, int listings, int published);
