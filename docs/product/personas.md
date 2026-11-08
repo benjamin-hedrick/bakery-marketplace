@@ -1,5 +1,7 @@
 # Personas / Jobs-to-be-Done
 
+> **Status:** Current · written 2026-09-07; "served today" lines are in [scope](scope.md) and the [demo](../operations/demo.md). The personas drive decisions, not screens.
+
 One persona per actor already defined in `docs/architecture/ddd/glossary.md`. Courier is correctly not included — a v2/deferred actor per ADR-0001, not yet real.
 
 ## Customer — "Dana, the careful orderer"

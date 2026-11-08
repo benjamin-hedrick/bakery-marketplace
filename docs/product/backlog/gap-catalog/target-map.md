@@ -40,7 +40,7 @@ Priorities (lead, 2026-10-29): **P1** polished, consistent repo that can go publ
 | T-25 | API reference: OpenAPI for catalog and ordering (generated or hand-written for the public and service endpoints), the BFF schema, and contract tests between the BFF client and the spec | P1, A, B | None | endpoints in the facts sheet, `first-slice-contract.md` §8 | Create | L | Open | `WI-API-001` |
 | T-26 | Web data-fetching guide: SSR versus client, the Relay store rules, error and loading conventions, "when GraphQL, when REST", the three cache layers, how to add a screen | B | In ADR-0012/0013/0014 and `apps/web-customer/README.md` | those | Create | M | Open | `WI-DOC-003` |
 | T-27 | Measured NFR baseline: a repeatable latency/throughput run with recorded results (browse, checkout cold and warm), then update `nfrs.md` and `sla.md` | A, B | Two timings in slice findings | a small script, results in `evidence/` | Create + update | M | Partly | The latency run is scripted (`scripts/dev/measure-latency.mjs`; results in `docs/evidence/latency-2026-10-30.md` and `nfrs.md` section 8). Throughput is not measured; `sla.md` is unchanged because no target exists (register item 100) |
-| T-28 | Cache made real: `CAT-003` (cache-aside in catalog) and `PORT-004` (per-cache record for layers 1 to 3, stale and unauthorized-data tests) | B | Specs exist, unbuilt | ADR-0002/0014 | Build | L | Open | `WI-CAT-003`, `WI-PORT-004` (specs exist) |
+| T-28 | Cache made real: `CAT-003` (cache-aside in catalog) and `PORT-004` (per-cache record for layers 1 to 3, stale and unauthorized-data tests) | B | Specs exist, unbuilt | ADR-0002/0014 | Build | L | Done | `WI-CAT-003`, `WI-PORT-004` (built 2026-11-07, In review) |
 | T-29 | `tech-stack.md` rewrite with a Confirmed versus Built/Verified split and versions | P1, B | Out of date | facts sheet | Rewrite | M | Done | `docs/architecture/tech-stack.md` |
 
 ## Tier 1 (continued): quality and testing (A)
@@ -59,10 +59,10 @@ Priorities (lead, 2026-10-29): **P1** polished, consistent repo that can go publ
 
 | ID | Artifact | Serves | Exists? | Source | Action | Size | State | Tracked in |
 |---|---|---|---|---|---|---|---|---|
-| T-40 | One real runbook (Redis outage and outbox recovery; the cold-start checkout) | P1 | Placeholder README | slice findings, `ORD-005` evidence | Create | S | Open | `WI-OPS-002` |
+| T-40 | One real runbook (Redis outage and outbox recovery; the cold-start checkout) | P1 | Placeholder README | slice findings, `ORD-005` evidence | Create | S | Done | `WI-OPS-002`; `docs/operations/runbooks/event-broker-unavailable-during-checkout.md` |
 | T-41 | One postmortem (a staged game day or the flake series) and a chaos scenario with evidence (BAK-012) | P1, A | Placeholder README | test-reliability | Create | M | Open | `WI-LAUNCH-002`; the chaos scenario: catalog entry `EVT-004` |
 | T-42 | Risk register update (cold start, flakes, soft gate, event loss B2, AI test defects, no deployment, public-repo exposure) | P1 | Eleven risks, all September | register, evidence | Update | S | Done | `docs/management/risk-register.md` |
-| T-43 | `roadmap.md` and `okrs.md` made real (phases, slice 1 done, next work; the four vision measures and how each would be measured) | P1 | 3-line stubs | project plan, vision, N-items | Rewrite | M | Partly | `docs/product/roadmap.md` is written; OKRs: `WI-PROD-004` |
+| T-43 | `roadmap.md` and `okrs.md` made real (phases, slice 1 done, next work; the four vision measures and how each would be measured) | P1 | 3-line stubs | project plan, vision, N-items | Rewrite | M | Done | `docs/product/roadmap.md`; `docs/product/okrs.md` (`WI-PROD-004`, Done 2026-11-06) |
 | T-44 | Next-phases plan: the N-items re-ranked against the goals and priorities (see "Suggested order" below) | P1, P3 | `slice-1/03` ranks by September logic | `slice-1/03`, this map | Create | M | Partly | The candidate order is captured in `docs/product/roadmap.md`; the lead sets the priorities |
 | T-45 | GitHub Projects board seeded from the status table | P1 | Not created (register 12) | T-08 | Create after T-08 | S | Open | register item 12 |
 
@@ -70,19 +70,19 @@ Priorities (lead, 2026-10-29): **P1** polished, consistent repo that can go publ
 
 | ID | Artifact | Serves | Source | Size | State | Tracked in |
 |---|---|---|---|---|---|---|
-| T-50 | Vendor read side and queue display (`N-03`, `N-04`): the event consumer, the "strongest demo moment" in the plan, and a second web app that also proves the shared-code pattern | P3, A, B | `QUE-001/002`, register 29/75/76 | L | Open | `WI-QUE-001`, `WI-QUE-002`; register items 29, 75, 76 |
-| T-51 | Shared web package or design-system story (extract only what two apps share) | B | `PARKING-LOT` item, `lib/` | M-L | Open | `docs/product/backlog/PARKING-LOT.md` (shared web package item) |
+| T-50 | Vendor read side and queue display (`N-03`, `N-04`): the event consumer, the "strongest demo moment" in the plan, and a second web app that also proves the shared-code pattern | P3, A, B | `QUE-001/002`, register 29/75/76 | L | Done | `WI-QUE-001` to `WI-QUE-004`; register items 29, 75, 76 |
+| T-51 | Shared web package or design-system story (extract only what two apps share) | B | `PARKING-LOT` item, `lib/` | M-L | Partly | `packages/web-session`, `packages/customer-core` exist; no design system |
 | T-52 | Observability dashboard and alert rules against the monitoring policy (`OBS-003`) | P3, A | `monitoring-alerting.md`, collector configs | M | Open | catalog entry `OBS-003` |
-| T-53 | Dietary-safety personalization (`PREF-*`, `SRCH-001`, `CUST-005/006`): vision principle 1 end to end | P1, P3 | specs exist | L | Open | `WI-PREF-001`, `WI-PREF-002`, `WI-SRCH-001`, `WI-CUST-005`, `WI-CUST-006` |
+| T-53 | Dietary-safety personalization (`PREF-*`, `SRCH-001`, `CUST-005/006`): vision principle 1 end to end | P1, P3 | specs exist | L | Done | `WI-PREF-001`, `WI-SRCH-001`, `WI-CUST-005`, `WI-CUST-006` (built 2026-11-04, In review; `WI-PREF-002` was superseded) |
 | T-54 | Chaos scenarios as a visible capability beyond the cache (event duplication, out-of-order, broker outage) | A | worklog BAK-012, `EVT-004` | M | Open | catalog entry `EVT-004`; `WI-LAUNCH-002` |
 
 ## Tier 3: deployable (P4, P5)
 
 | ID | Artifact | Serves | Source | Size | State | Tracked in |
 |---|---|---|---|---|---|---|
-| T-60 | Hosting decision (ADR) and budget update (register 25) | P4 | ADR-0012/0013, budget | S | Open | register item 25; `WI-DEP-001` |
-| T-61 | Container images and a deploy stage for the four runtimes (catalog, ordering, BFF, web); time-zone data check (register 71) | P4 | Dockerfile exists only for the mock issuer | L | Open | register item 71; `WI-DEP-001` |
-| T-62 | Terraform dev environment with apply and destroy scripts, cost guard | P4 | `infra/` key vault module | L | Open | `WI-DEP-001` |
+| T-60 | Hosting decision (ADR) and budget update (register 25) | P4 | ADR-0012/0013, budget | S | Partly | ADR-0020 accepted; the budget is labelled; register item 25; `WI-DEP-001` |
+| T-61 | Container images and a deploy stage for the four runtimes (catalog, ordering, BFF, web); time-zone data check (register 71) | P4 | Dockerfiles for the four runtimes and the mock issuer (2026-10-31) | L | Partly | images and the Compose `apps` profile built; the deploy stage is written, never run; register item 71 resolved; `WI-DEP-001` |
+| T-62 | Terraform dev environment with apply and destroy scripts, cost guard | P4 | `infra/` key vault module | L | Partly | the foundation and dev stacks are written and pass `terraform validate` and mocked-provider tests; never applied; `WI-DEP-001` |
 | T-63 | Entra DEV: app registrations, role assignment, credential (`N-02`; **human approval, IAM**) | P4 | ADR-0018 | L | Open | register item 62; backlog N-02; `WI-AUTH-006` (human approval, IAM) |
 | T-64 | Post-deploy smoke running the journey against the deployed URL | P4, P5, A | `skeleton` job | M | Open | `WI-DEP-001` |
 | T-65 | Public demo, with teardown and spending limit | P5 | all above | M | Open | `WI-DEP-001` |

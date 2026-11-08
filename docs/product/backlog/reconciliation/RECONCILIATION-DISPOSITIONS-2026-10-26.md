@@ -78,3 +78,7 @@ C4 diagrams, `data-model-api-contracts.md` (GraphQL mapping section, after `WI-P
 
 - `open-items-register.md` #11 says the tooling packages aren't built, but `tools/` shows most of them are. This is pre-existing drift, outside this pass.
 - `WI-*.md` header `Status:` fields remain stale relative to `MASTER-BACKLOG-OUTLINE.md` (e.g. `WI-TOOL-002` says Ready but is Done). Per convention, the master outline is authoritative for status.
+
+## G. Update 2026-11-08
+
+Section E (the deferred pass-2 rows) was carried out as the October documentation review: see `docs/history/review-2026-10/closing-record.md`. The paths named above for the outline and the activity log have moved: the outline is `docs/history/backlog-outline-2026-10-29.md` and `epic-catalog.md`, and the log is `docs/history/ACTIVITY-LOG.md`. The record itself is unchanged.
