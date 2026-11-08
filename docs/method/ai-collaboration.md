@@ -76,7 +76,6 @@ The point of this table is the right-hand column. Each error was caught by a con
 | Writing a record, 2026-10-30 | A heredoc with backticks in it ran the backticked commands, including a 10-run test job, instead of writing them | The command timing out; the job was stopped and nothing in the tree had changed |
 | Writing evidence, 2026-10-30 | Text stated more than was measured: "flat, no drift" for runs that fell from 34.2 s to 31.4 s; a status listed as stale that did not state one; a cause for a 7 s timing that was not checked | Re-reading the claim against the output before committing |
 | A Compose variable, 2026-10-31 | A new service in the optional `apps` profile used `${ORDERING_CLIENT_SECRET:?...}` (required). Compose checks every variable in the file, including services that were not selected, so the pipeline's step that only starts Redis failed on a clean agent with no `.env`. It passed on the development machine because `.env` exists there | The Azure pull-request run (a clean agent), as in the earlier local-state findings; reproduced locally with an empty `--env-file`, fixed with an empty default (the service then stops at start-up and names the missing setting) |
-
 | A cache test, 2026-11-07 | A test waited with no time limit on a second request; with the code deliberately broken in a mutation check, the run hung for more than five minutes and left a process alive (lesson L-25) | The mutation check itself; every wait now has a limit and the rerun failed in 5 seconds |
 | A mock, 2026-11-07 | The mock BFF sent no `Cache-Control` while the real one always does, so a test was not checking what it claimed (L-26) | The test failing; the real BFF's own tests are now the reference |
 | An Android flow, 2026-11-07 | A tap landed on a payment button because the list loaded late and moved "Place order"; the refused card was chosen (L-27, register 161) | The first run of the flow; the layout was fixed and the flows around it re-run. A first fix that reserved too much room pushed the button off the screen and failed another flow (L-32) |
@@ -86,6 +85,7 @@ The point of this table is the right-hand column. Each error was caught by a con
 | The demo film's scripts, 2026-11-08 | The director deleted its own log folder, ended while the vendor was still working the queue, and a cancel lost a race with the vendor; two labels covered page text; captions overlapped | Running it and reading its timeline and frames (`docs/operations/demo-film.md`) |
 | Documentation drift, found by the pre-publish review of 2026-11-08 | The ADR index, the decision timeline, the patterns page, the NFRs, the evidence index, the test strategy, the roadmap, the current plan, the scope, the vision, the personas, the tech stack and several more still described the state of 2026-10-30, and two (NFRs, test strategy) said load, fuzz and dynamic scans had not run when they had. By design the documents are not all updated on every change (the register and the specs are, the overview pages are reconciled at slice boundaries); nine days of fast building outran that | A deliberate review pass against the code and the evidence, listed in `docs/governance/pre-publish-gaps.md` |
 | A shell heredoc, 2026-11-08 | An edit script was written through a heredoc, against the working convention (L-24) | Noticed on re-reading the rule; nothing was lost, and the next edits used the file tools |
+| The full documentation pass, 2026-11-08 (later session) | The pass first read status lines and dates, sampled specs and listed most files for "a second pass", which the lead corrected ("read and analyze them all"); a new file overwrote an existing `SECURITY.md` (restored from git); risk R-12 was marked Mitigated although register 98 showed the first checkout still took about 7 s after the warm-up; an empty heredoc hung a shell command; four commits cite a work item (`WI-PORT-005`) that is about tracing | The lead (the pass); `git diff` and a re-read of the register (the overwrite and R-12); the shell timeout; a later check of the work item ids (the commit references) |
 
 Seven of the ten test episodes recorded by 2026-10-30 were found by the clean Linux pipeline or container run and not on the development machine (`docs/evidence/test-reliability/findings.md`).
 
@@ -93,13 +93,13 @@ Seven of the ten test episodes recorded by 2026-10-30 were found by the clean Li
 
 - **A clean agent early.** Azure Pipelines, and `node scripts/ci/linux-check.mjs` for the .NET steps, because the development machine is Windows in one time zone with state left behind.
 - **Real-stack journeys** against the real services, issuer, database and event stream, not only mocks.
-- **Repeated runs as the bar for a fix.** "Five in a row" is a rule of thumb, not a statistic; the mock browser suite has since been run 10 times (570 executions, 0 failures).
+- **Repeated runs as the bar for a fix.** "Five in a row" is a rule of thumb, not a statistic; the mock browser suite has since been run 10 times (570 executions in the first baseline and 620 after the suite grew; 0 failures).
 - **Mutation checks.** A test is not evidence until it can fail. About ninety were run by hand over slice 1; the 2026-10-30 sample of 10 killed 9 and found one that tested the framework, not the project's code. No automated mutation tool is used.
 - **Contract tests against the real dependency**, with the known caveat that some fall back to fakes when the dependency is absent.
 - **Human approval gates** and the rule that the assistant stops at scope expansion.
 - **Reconciliation of specs against code,** and the rule that a spec describes what is true now.
 - **Reporting results as passed, failed, skipped or not run,** so a summary cannot hide a skip.
-- **Not yet enforced:** the documentation status check and link check run only when someone remembers (register item 90).
+- **Enforced in part:** the status, traceability and link checks run in `node scripts/ci/node-gates.mjs` and in the pipeline's `docs` job, which is a soft gate the lead reads (register item 90).
 
 ## Working conventions with the assistant
 
@@ -111,7 +111,7 @@ What has worked in this repository, stated as practice:
 - Keep scope narrow. If something needs a larger change, stop and flag it.
 - When a PR check fails, do not push a fix per error: reproduce locally, run every gate on the final tree, and push once.
 - Record what was found and not fixed, in the same change.
-- Do not push a branch whose earlier commits contain material that should not be public; push a squashed branch.
+- Do not push a branch whose earlier commits contain material that should not be public: a merge or a rebase merge keeps every pushed commit in `main`, so clean the commits first (rewrite or squash). The October review branch was handled that way (decision D-17); later branches were pushed and rebase-merged as they were.
 - On a Windows development machine with a bash-like shell: write a long script to a file and run it, because long heredocs containing quotes fail to parse; the shell may reset to the repository root between commands, so use absolute paths; Git warns that line endings will change, which is expected (`.gitattributes` normalizes them).
 
 ## What the sessions cost

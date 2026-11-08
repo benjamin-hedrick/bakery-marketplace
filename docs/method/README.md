@@ -18,4 +18,4 @@ How work is specified, tracked and recorded in this repository. Each file says w
 | `surprise-rule.md` | The reactive response, in any phase, when something was missed |
 | `document-lifecycles.md` | Every kind of document, how its status is kept and how it ends (draft; grows as the clean-up proceeds) |
 
-More is added here as the clean-up proceeds (lessons, decision checklists).
+The lessons and the decision checklists are written (`lessons.md`, `decision-checklists.md`); new ones are added as they are learned.

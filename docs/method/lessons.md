@@ -15,7 +15,7 @@
 | L-07 | Stating whether a task suits an agent should be explicit | Open |
 | L-08 | A clean agent finds what the development machine hides | Adopted |
 | L-09 | A test is not evidence until it can fail | Adopted by hand |
-| L-10 | A fact written in many places drifts; generate one | Adopted, enforcement open |
+| L-10 | A fact written in many places drifts; generate one | Adopted; the checks run in the pipeline as a soft gate |
 | L-11 | Handoffs fail in three ways; state each fact in the handoff | Adopted |
 | L-12 | Do not push a fix per failure; run every gate once | Adopted |
 | L-13 | Check an assumption about history before relying on it | Adopted |
@@ -42,6 +42,7 @@
 | L-34 | Mark in the file itself what has never been run | Observation |
 | L-35 | Test state belongs in seed data: add users, do not change one user at run time | Validated by the flows that use it |
 | L-36 | A test harness drives the system from outside; the rules stay in the product | Observation, one case |
+| L-37 | "Comprehensive" means every file read in full, with a finding or "no finding" for each | Observation, corrected by the lead |
 
 ## L-01 A surprise is a trigger to ask what should change
 
@@ -81,7 +82,7 @@
 
 ## L-10 A fact written in many places drifts; generate one
 
-**Situation.** Status, test counts and ADR counts were retyped in many documents, and most documents read in October were stale somewhere. **Lesson.** One source per kind of fact, generated where possible, with a check. **Evidence.** The October review; the generated `STATUS.md`. **Change.** `scripts/docs/status.mjs`. **Still open.** The check is not enforced anywhere (register 90), so it relies on someone running it. **Status.** Adopted, enforcement open.
+**Situation.** Status, test counts and ADR counts were retyped in many documents, and most documents read in October were stale somewhere. **Lesson.** One source per kind of fact, generated where possible, with a check. **Evidence.** The October review; the generated `STATUS.md`. **Change.** `scripts/docs/status.mjs`. **Still open.** The status, traceability and link checks run in `node scripts/ci/node-gates.mjs` and in the pipeline's `docs` job, which is a soft gate the lead reads (register 90); the prose mentions of a status are still unchecked (register 99). **Status.** Adopted; the check is a soft gate.
 
 ## L-11 Handoffs fail in three ways; state each fact in the handoff
 
@@ -188,3 +189,7 @@
 ## L-36 A test harness drives the system from outside; the rules stay in the product
 
 **Situation.** A declined payment was forced by a switch: a header, an environment flag and a branch in the payment stub that existed so tests could refuse an order. The lead decided that validating a payment method is business logic and belongs in the product: ordering validates the method's token, and a decline is a seeded payment method that fails the rule. **Lesson.** For each test aid, ask whether it reaches the system from outside (a runner, a stack script, seed data) or adds a branch to product code. The first is a harness and is fine; the second is moved into data or an interface that already exists. Where a test needs a behaviour, give the product the rule and the test the data. **Evidence.** Register item 150 (part 2), `WI-ORD-010` (reconciled with the lead's answers on 2026-11-06: token validation as ordering business logic), `tools/tests/BakeryMarketplace.Seed.Tests`, which checks the seeded methods against ordering's rule. **Status.** Observation, one case.
+
+## L-37 "Comprehensive" means every file read in full, with a finding or "no finding" for each
+
+**Situation.** The lead asked for a full pass over the repository before it is made public. The first folder pass read status lines, dates and numbers, sampled the specs and listed most of the remaining files for "a second pass", and the findings tables said "accept or read later". The lead corrected it: "we shouldn't be skimming or sampling, read and analyze them all". **Lesson.** When a task says comprehensive, full, every or all, build the inventory first (the count of files), read each file in full, record a finding or "no finding" per file, and say how many were read of how many. Do not defer files without the lead's agreement, and analyse every area before editing any of it. **Evidence.** The reading ledger of the pass (343 of 343 Markdown files read; the findings it produced are the commits that follow it), and the October review, whose own record says "sampling is not review" (`docs/history/review-2026-10/60-resume-here.md`, section 10). **Change.** The assistant's working notes; this entry. **Status.** Observation, corrected by the lead; the October review had already learned it once.
