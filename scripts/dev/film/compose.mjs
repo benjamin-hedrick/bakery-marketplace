@@ -123,21 +123,31 @@ function compose(runDir, outFile) {
   rmSync(capDir, { recursive: true, force: true });
   mkdirSync(capDir, { recursive: true });
   const draw = [];
-  timeline.captions.forEach((c, k) => {
-    writeFileSync(path.join(capDir, `c${k}.txt`), wrap(c.text));
-    const a = off(c.at).toFixed(2);
-    const b = (off(c.at) + c.ms / 1000).toFixed(2);
-    draw.push(
-      `drawtext=${fontOption()}textfile='captions/c${k}.txt':x=${L.text.x}:y=(h-text_h)/2:fontsize=44:line_spacing=12:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=18:enable='between(t,${a},${b})'`,
-    );
-  });
-  for (const [label, box] of [
-    ['Bakery queue (live)', L.vendor],
-    ['Web customer', L.web],
-    ['Phone customer', L.phone],
+  // One caption at a time: each is held only as long as it takes to read (at most what the director asked for) and starts
+  // after the previous one has gone, so a later one can be pushed back; a push of more than 3 s is reported so the director's timing can be tuned.
+  let shownUntil = 0;
+  [...timeline.captions]
+    .sort((x, y) => x.at - y.at)
+    .forEach((c, k) => {
+      writeFileSync(path.join(capDir, `c${k}.txt`), wrap(c.text));
+      const start = Math.max(off(c.at), shownUntil);
+      const hold = Math.min(c.ms / 1000, 2 + 0.065 * c.text.length);
+      if (start - off(c.at) > 3) log(`caption pushed back ${(start - off(c.at)).toFixed(1)} s: "${c.text}"`);
+      shownUntil = start + hold + 0.4;
+      const a = start.toFixed(2);
+      const b = (start + hold).toFixed(2);
+      draw.push(
+        `drawtext=${fontOption()}textfile='captions/c${k}.txt':x=${L.text.x}:y=(h-text_h)/2:fontsize=44:line_spacing=12:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=18:enable='between(t,${a},${b})'`,
+      );
+    });
+  // The vendor page's own heading sits at the top left of its frame, so its label goes to the empty middle of that header
+  for (const [label, box, dx] of [
+    ['Bakery queue (live)', L.vendor, 300],
+    ['Web customer', L.web, 10],
+    ['Phone customer', L.phone, 10],
   ])
     draw.push(
-      `drawtext=${fontOption()}text='${label}':x=${box.x + 10}:y=${box.y + 8}:fontsize=26:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=6`,
+      `drawtext=${fontOption()}text='${label}':x=${box.x + dx}:y=${box.y + 8}:fontsize=26:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=6`,
     );
 
   const stage = [

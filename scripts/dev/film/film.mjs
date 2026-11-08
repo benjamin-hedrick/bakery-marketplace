@@ -20,7 +20,7 @@
 // Order of teardown matters (register 163): the phone recorder is stopped and waited for BEFORE the emulator goes, or its last chunk is lost.
 import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -278,6 +278,7 @@ async function vendorAgent(page, done) {
           lastStep.set(c.ref, Date.now());
           lastAny = Date.now();
           note(`vendor: ${c.next} on ${c.ref}`);
+          if (c.next === 'COMPLETE') done.completed = (done.completed ?? 0) + 1;
         })
         .catch((e) => note(`vendor: ${c.next} on ${c.ref} did not click (${e.message.split('\n')[0]})`));
     }
@@ -367,7 +368,7 @@ async function stopPhoneRecorder() {
 async function main() {
   const problems = preflight().filter((p) => !p.startsWith('ffmpeg'));
   if (problems.length) throw new Error(`preflight failed:\n  - ${problems.join('\n  - ')}`);
-  rmSync(out, { recursive: true, force: true });
+  // `out` is timestamped and createStack has already made out/stack for the logs: do not remove it here
   mkdirSync(path.join(out, 'video'), { recursive: true });
   control = startControl();
 
@@ -436,7 +437,7 @@ async function main() {
   if (!noPhone) setTimeout(() => mark('go-phone'), 3000); // the phone starts its story a moment after the browsers
 
   // 4. the actors
-  const done = { value: false };
+  const done = { value: false, completed: 0 };
   const vendor = vendorAgent(vendorPage, done);
   const background = backgroundActor();
   if (noPhone) mark('phone-ordered'); // nothing to wait for
@@ -444,10 +445,13 @@ async function main() {
   const limit = setTimeout(() => note('HARD LIMIT reached; stopping'), HARD_LIMIT_MS);
 
   await Promise.race([Promise.all([web, phoneRun, background]), sleep(HARD_LIMIT_MS)]);
+  // The actors are done placing orders; the vendor still has to work the queue down (the hard limit bounds this too).
+  const endBy = webStarted + HARD_LIMIT_MS;
+  while ((done.completed ?? 0) < EXPECTED_COMPLETED && Date.now() < endBy) await sleep(500);
   clearTimeout(limit);
   // Everything ordered is Completed (or cancelled): let the queue empty, hold the last screen for the viewer, then finish.
   await sleep(PAUSE.read + 2000);
-  caption('Local demo: test payments, nothing deployed', 6000);
+  caption('Local demo: test payments', 6000);
   await sleep(6000);
   done.value = true;
   await vendor;

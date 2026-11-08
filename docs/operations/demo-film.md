@@ -23,7 +23,7 @@ The cast is seeded data. Nora (tree-nut allergy) is on the web, Max (dairy and t
 | 5 | Others order | A plain latte order from Alice confirms itself; Dana's sourdough with a pickup time waits for the bakery; Sam's sourdough with the seeds option carries a "sesame" allergy on its card. | "More customers order at the same time", "A pickup time waits for the bakery to accept", "An allergy told to the bakery shows on its card" |
 | 6 | The bakery works | The vendor agent accepts, starts, marks ready and hands over, oldest first, about five seconds apart. The web order page and the phone follow each step. | "The bakery works its queue; each customer sees every step" |
 | 7 | A cancel | When the phone shows "Order confirmed", Max waits a moment and cancels (within about four seconds, before the vendor's next step); his card leaves the queue. | |
-| 8 | Done | Everything else is handed over and shows as picked up. | "Local demo: test payments, nothing deployed" |
+| 8 | Done | Everything else is handed over and shows as picked up. | "Local demo: test payments" |
 
 Pickup-time and option orders wait for the bakery; plain orders confirm themselves (WI-ORD-008). The background orders are placed through the BFF with each customer's own token, the same request the apps send. Stock used: the croissant has 4 units (Nora 1, Max 1), the latte is made to order, the sourdough has 12.
 
