@@ -81,7 +81,7 @@ The identities are rows in `BakeryMarketplace.Auth`'s `MockUsers` (identity only
 |---|---|
 | Fresh `git clone` of the committed tree, steps 1 to 7 as written, with Docker images and package caches already warm | Everything healthy about 91 s after the first command (infrastructure 9 s, seed 15 s, web build about 60 s) |
 | `curl` checks and the GraphQL query above | 200 on all four health endpoints; three listings returned with prices in cents and stock status |
-| `npm run test:skeleton` against the hand-started stack | 21 passed in 16.8 s; the first journey took 9.1 s (cold issuer fetches, see `patterns.md` section 10) and the rest 0.3 to 1.1 s |
+| `npm run test:skeleton` against the hand-started stack | 21 passed in 16.8 s; the first journey took 9.1 s (cold issuer fetches, see `patterns.md` section 14) and the rest 0.3 to 1.1 s |
 | `npm run build` with `src/__generated__` deleted | Succeeded, so the build step compiles the Relay artifacts itself |
 
 **Not verified:** the first-ever run on a machine with nothing cached (image pulls, NuGet and npm downloads); Linux or macOS hosts; logging in and ordering by hand in a browser (the journeys do it with Playwright); a second run on the same stack.

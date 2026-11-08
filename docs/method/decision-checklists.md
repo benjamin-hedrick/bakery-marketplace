@@ -25,7 +25,7 @@
 | Which service owns each piece of shared mutable state (stock, an order), and when is it reserved and released? | Writing the order lifecycle: ADR-0017 |
 | How does one service authenticate to another, and what is the credential for each environment? | Ordering needing the catalog's stock endpoints: ADR-0018 |
 | What is the correlation mechanism across services and processes, and what must never be exported in a trace or a log? | The tracing work: ADR-0016, `nfrs.md` 3.6 |
-| What happens when each dependency is down: what does the user see, and was that tested against the real dependency or only a fake? | The fallback review: [patterns](../architecture/patterns.md), section 10 |
+| What happens when each dependency is down: what does the user see, and was that tested against the real dependency or only a fake? | The fallback review: [patterns](../architecture/patterns.md), sections 14 and 15 |
 | Which environment decisions are an environment target and which are a runtime fallback, and why? | Tests silently using fakes: [patterns](../architecture/patterns.md), "Two meanings of fallback" |
 | Money, time and identifiers: the representation of money, the time zone and daylight-saving rule for scheduled times, and who generates identifiers. | The first-slice contract: integer cents, UTC windows, an order id derived from the idempotency key |
 
