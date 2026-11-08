@@ -33,10 +33,10 @@ Targets were reviewed by the lead on 2026-11-06 (see the revision log). Nothing 
 
 | Key result | Target | Baseline | Collected by | Mark |
 |---|---|---|---|---|
-| KR3.1 Assistant errors recorded with the control that caught them | Every error recorded, each with a control | 15 rows in the table, each naming a control (`docs/method/ai-collaboration.md`; one row covers several errors). The table was last extended on 2026-10-31; errors found later (for example the `WI-QUE-003` flaws caught by the adversarial pass, items 133, 136 and 151) are in the register and the specs but not all in the table | The table in that document, kept up to date | Measured today |
+| KR3.1 Assistant errors recorded with the control that caught them | Every error recorded, each with a control | 23 rows in the table, each naming a control (`docs/method/ai-collaboration.md`; one row covers several errors). The table was extended on 2026-11-08 from the lessons record (L-24 to L-34) and the film runs; errors found by the adversarial pass of `WI-QUE-003` (register items 133, 136 and 151) are in the register and the specs but not all in the table | The table in that document, kept up to date | Measured today |
 | KR3.2 Errors caught by an automated control, not by review | Rising share; target set after a second sample | 7 of the 10 test episodes were found by the clean Linux pipeline or container run (`docs/evidence/test-reliability/findings.md`) | The reliability findings table | Measured today |
 | KR3.3 Baseline for AI-assisted testing defined and one comparison run (`WI-QA-003`) | Baseline defined, 1 run recorded | None: the experiment has not been run | The experiment record | Not yet measurable |
-| KR3.4 Time saved and rework cost | A method defined first | None: not measured (`ai-collaboration.md`, "What is measured and what is not") | To be defined | Not yet measurable |
+| KR3.4 Time saved and rework cost | A method defined first | Cost and time are recorded per session (15 sessions: $193.80, 9 h 20 min of assistant time, 67 h 44 min wall-clock, `ai-collaboration.md`, "What the sessions cost"); time saved against a hand-built baseline and rework cost are not measured | To be defined | Not yet measurable |
 
 ## O4. Technology and skills stay current through small experiments
 
