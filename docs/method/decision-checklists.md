@@ -9,7 +9,7 @@
 | Question | How it was answered here | Where recorded |
 |---|---|---|
 | **Zero trust or perimeter?** Is any component trusted on network position alone, or does every service re-check authentication and authorization itself? | Every service validates tokens and ownership itself, whatever sits in front. *Stated late:* it surfaced when an API gateway was chosen | ADR-0006, ADR-0008, `nfrs.md` 3.1 |
-| **Where do credentials live in transit?** Headers only, or cookies anywhere? (This decides whether CSRF mitigation is relevant.) | Authorization header only; the access token is held in browser memory; no cookie. A planned cookie session would reopen this | ADR-0006, `nfrs.md` 3.3, register 24 |
+| **Where do credentials live in transit?** Headers only, or cookies anywhere? (This decides whether CSRF mitigation is relevant.) | The browser holds an opaque HttpOnly session cookie only; the tokens stay on the web app's server, and the services still take `Authorization` headers (ADR-0019, the note on ADR-0006) | ADR-0006, `nfrs.md` 3.3, register 24 |
 | **Data sensitivity.** Is any handled data quasi-regulated (health-adjacent, financial)? | Dietary and allergy information is treated as quasi-health data; card data never reaches the services (PCI scope SAQ A) | Vision principle 1, `nfrs.md` 3.7 and 4 |
 | **Injection protection.** Is data access parameterized by default? | Yes: parameterized SDK queries only. *Stated late:* first written in the NFRs | `nfrs.md` 3.4 |
 | **Build or buy**, per major capability. What does the vendor not cover? | Payments bought (Stripe Connect); identity bought (Entra External ID); services, BFF and web built | ADR-0005, ADR-0006 |
@@ -37,7 +37,7 @@
 | **Legal and compliance.** An explicit in-or-out decision on terms of service and a privacy policy? Any regulated-data implication for the business, not only for the code? | *Not decided:* still an open decision, so silence has continued. It is a risk (R-09) and a backlog item (`GOV-002`) | `risk-register.md`, `epic-catalog.md` |
 | **Monetization and value model**, even simplified. Recorded once, not duplicated across epics? | A commission on each order and a simple sponsored flag; one spec (`WI-PROD-003`) is the single home, cross-listed once from the advertising epic | ADR-0005, `WI-PROD-003` |
 | **Stakeholders.** Who decides scope trade-offs, and is there a reporting cadence? | One lead decides; AI assistants contribute. The stakeholder plan and RACI are hypothetical (the RACI is deferred) | `stakeholder-communications-plan.md`, `WI-MGMT-003` |
-| **Success criteria.** A north-star metric, with features tracing to it? | A safety metric is named in the vision; objectives and key results are not written yet (`WI-PROD-004` is Ready) | `docs/product/vision.md`, `okrs.md` |
+| **Success criteria.** A north-star metric, with features tracing to it? | A safety metric is named in the vision; objectives and key results are written (`WI-PROD-004`, Done 2026-11-06) | `docs/product/vision.md`, `okrs.md` |
 
 **Added from this project's experience:**
 

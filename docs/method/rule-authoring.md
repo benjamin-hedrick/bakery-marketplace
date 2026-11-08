@@ -19,19 +19,19 @@ A departure from a default is recorded where it will be found: an open point on 
 
 ## The main rules, classified
 
-State on 2026-10-30. The right-hand column is the honest part.
+State on 2026-11-08 (rows revised from 2026-10-30). The right-hand column is the honest part.
 
 | Rule | Kind | Verified by | State |
 |---|---|---|---|
 | All Cosmos access uses parameterized SDK queries; no raw query strings (`nfrs.md` 3.4) | Hard | Review | Not automated; a lint rule or code search could close it |
-| No secrets in files | Hard | A git-ignored `.env`; secret validation tests; review | No secret scan of files or history yet (register 93) |
-| Test hooks are inert in Production; `ENABLE_TEST_HOOKS` is never set outside tests | Hard | Tests of the Production case; configuration | Automated for the payment hook; the flag is by convention |
+| No secrets in files | Hard | A git-ignored `.env`; secret validation tests; review | A gitleaks scan of the full history runs by hand (`node scripts/ci/secret-scan.mjs`) and in the pipeline's `secrets` job; clean on 2026-11-08 (`docs/evidence/secret-scan-2026-11-08.md`) |
+| Test hooks are inert in Production; `ENABLE_TEST_HOOKS` is never set outside tests | Hard | Tests of the Production case; configuration | The payment hook is gone (`WI-ORD-010`); `x-fixture` and `x-delay-ms` stay behind the flag, by convention |
 | Every service validates the token and ownership itself, whatever sits in front (zero trust, ADR-0006, ADR-0008) | Hard | Auth integration tests; real-stack journeys that send forged and wrong-role tokens | Partly automated; one gap found (register 85, issuer validation) |
 | No token, key or secret in a log line or an exported span | Hard | A log test in the BFF; a regression test on the catalog span; a one-time scan of exported spans | Partly automated |
 | Money is integer cents; the server computes the price, never the client | Hard | Pricing and checkout tests | Automated |
-| Order and cart data are never cached (ADR-0014) | Hard | Review; no cache is used by any service yet | Not automated |
+| Order and cart data are never cached (ADR-0014) | Hard | Review; the listing cache holds published listings only (`WI-CAT-003`) and the per-layer record is `WI-PORT-004` | Not automated |
 | A decision record's decision text is never edited | Hard | Reading the diff | Not automated |
-| Every spec has a status banner and the status table is current | Hard | `node scripts/docs/status.mjs --check` | A script exists; not enforced anywhere (register 90) |
+| Every spec has a status banner and the status table is current | Hard | `node scripts/docs/status.mjs --check` | Runs in `node-gates` and in the pipeline's `docs` job, a soft gate (register 90) |
 | Do not describe anything as working unless it was run; report passed, failed, skipped and not run separately | Hard | Review; the results summarizer keeps the counts separate | Partly automated |
 | Security, auth logic, IAM and RBAC changes and scope expansion need the lead's approval (`CLAUDE.md`) | Hard | The assistant stops; the lead reviews | A process rule; nothing enforces it mechanically |
 | Authenticated or personalized responses are `private, no-store` unless a reviewed policy shows otherwise (ADR-0014) | Default | Review; browser and BFF tests for the cases built | Departure needs a reviewed policy |

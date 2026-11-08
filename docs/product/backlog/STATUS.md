@@ -304,10 +304,10 @@ Accepted: 22 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 16 |
-| Resolved | 59 |
+| Resolved | 62 |
 | Accepted | 9 |
 | Tracking | 12 |
-| Open | 61 |
+| Open | 58 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |

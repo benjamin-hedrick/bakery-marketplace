@@ -17,10 +17,10 @@
 ```mermaid
 flowchart TB
   subgraph L4["Real stack (slowest, widest claim)"]
-    RS["Real-stack journeys: 21 tests<br/>browser, Next.js, BFF, both services, Cosmos, Redis, issuer"]
+    RS["Real-stack journeys: 62 tests, 2026-11-07<br/>browser, Next.js, BFF, both services, Cosmos, Redis, issuer"]
   end
   subgraph L3["Browser against a mock BFF"]
-    MB["Mock-backed browser suite: 62 tests<br/>the web app alone, hooks and fixtures, accessibility scans"]
+    MB["Mock-backed browser suite: 133 customer-app tests, 2026-11-06<br/>the web app alone, hooks and fixtures, accessibility scans"]
   end
   subgraph L2["Service and library tests"]
     SV["Service tests in process:<br/>catalog 104, ordering 337 (3 skipped)"]
@@ -40,8 +40,8 @@ flowchart TB
 | Shared libraries | `tools/tests` (7 projects) | 214 passed, 15 skipped | The adapters (cache, data, eventing, secrets, auth) against their contract tests, with a chaos decorator where resilience matters | The Cosmos adapters against Cosmos: they fall back to fakes by default (item 31); 15 emulator-gated tests are skipped | `dotnet` (Redis real, Cosmos not) |
 | Catalog service | `services/catalog-service/tests` | 104 | Listing rules, validation, stock, endpoints, hosted in process on in-memory backends | The Cosmos backend | `dotnet` |
 | Ordering service | `services/ordering-service/tests` | 337 passed, 3 skipped | The order aggregate and lifecycle, checkout and idempotency, pickup windows, outbox and relay, actions, authorization | The Cosmos store (emulator-gated, not run in CI) | `dotnet` |
-| Mock-backed browser | `apps/web-customer/tests/e2e` | 62 (57 on 2026-10-30, plus 5 accessibility scans) | The web app in a real browser: server rendering, hydration, login against a stubbed issuer, cart, checkout, order page, stock, error states, no console errors; the four page types have no automatically detectable WCAG 2.0/2.1 A and AA violation, in the light theme and (listings) the dark one | The real BFF, services or issuer; keyboard use, focus order, screen-reader wording | `web` |
-| Real-stack journeys | `apps/web-customer/tests/skeleton` | 21 | The whole slice: login through the real mock issuer, browse, order, confirmation, a declined payment (an invalid-token method), stock limits, payment methods, token validation by each service | A deployed environment; load; browsers other than Chromium | `skeleton` |
+| Mock-backed browser | `apps/web-customer/tests/e2e` | 133 on 2026-11-06 (62 on 2026-10-30, then the sessions, personalization and mobile work) | The web app in a real browser: server rendering, hydration, login against a stubbed issuer, cart, checkout, order page, stock, error states, no console errors; the four page types have no automatically detectable WCAG 2.0/2.1 A and AA violation, in the light theme and (listings) the dark one | The real BFF, services or issuer; keyboard use, focus order, screen-reader wording | `web` |
+| Real-stack journeys | `apps/web-customer/tests/skeleton` | 62 on 2026-11-07 (21 on 2026-10-30) | The whole slice: login through the real mock issuer, browse, order, confirmation, a declined payment (an invalid-token method), stock limits, payment methods, token validation by each service | A deployed environment; load; browsers other than Chromium | `skeleton` |
 
 Also run, not in the pipeline: SSR isolation (`npm run test:isolation`: 200 concurrent requests, two fixtures, no leakage), and mutation checks by hand (a sample of 10, about ninety over slice 1).
 

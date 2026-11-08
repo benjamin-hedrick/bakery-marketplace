@@ -6,8 +6,8 @@
 
 | Suite | Folder and config | Backend | Count | Run |
 |---|---|---|---|---|
-| Mock-backed | `tests/e2e`, `playwright.config.ts` | A mock BFF on `:4000` (`mock-bff/`), fixtures in `mock-bff/fixtures.mjs` | 62 | `npm run test:e2e` (builds, starts the mock and `next start`, runs Chromium) |
-| Real stack | `tests/skeleton`, `playwright.skeleton.config.ts` | The whole local stack: Compose, seed, catalog, ordering, BFF, the mock issuer | 21 | `node scripts/ci/skeleton-smoke.mjs` from the repository root, which starts and tears down everything |
+| Mock-backed | `tests/e2e`, `playwright.config.ts` | A mock BFF on `:4000` (`mock-bff/`), fixtures in `mock-bff/fixtures.mjs` | 133 (2026-11-06; the count moves, see `docs/testing.md`) | `npm run test:e2e` (builds, starts the mock and `next start`, runs Chromium) |
+| Real stack | `tests/skeleton`, `playwright.skeleton.config.ts` | The whole local stack: Compose, seed, catalog, ordering, BFF, the mock issuer | 62 (2026-11-07; see `docs/testing.md`) | `node scripts/ci/skeleton-smoke.mjs` from the repository root, which starts and tears down everything |
 
 Both use one worker, no retries and a production build (`next start`), because hydration warnings differ in `next dev` and a retry hides a flake. Run from `apps/web-customer`. Install the browser once with `npx playwright install chromium`.
 

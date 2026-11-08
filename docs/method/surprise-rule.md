@@ -33,7 +33,7 @@ Context completeness tries to prevent surprises. The rule exists because some of
 | The service boundaries had been decided by scaffolding four services | Plan, implement; solo | Drawing the container diagram | ADR-0009 |
 | Every service must validate its own tokens, whatever the gateway does | Plan; chat | Choosing an API gateway | ADR-0008, a note on ADR-0006, NFR 3.1 |
 | Who owns stock and when it is reserved | Plan; iterative with the lead | Writing the order lifecycle | ADR-0017, accepted that day |
-| How one service proves itself to another | Implement; iterative | Ordering needing the catalog's stock endpoints | ADR-0018 (proposed) |
+| How one service proves itself to another | Implement; iterative | Ordering needing the catalog's stock endpoints | ADR-0018 (accepted 2026-10-31) |
 | A rejected checkout spends its idempotency key | Review; real-stack run | The first browser journey against the real stack | The first-slice contract, section 6; the client takes a new key; register 81 |
 | Events that cannot be deserialized are dropped without dead-lettering | Review; reconciliation | A September check that stayed open | Register 88; a note on ADR-0003 |
 | Fixing failing PR checks one push at a time hid what else was failing | Implement, review; delegated pipeline | The lead, seeing two runs queued | A working practice: reproduce each failure, run every gate, push once (`docs/process/branching-strategy.md`) |
