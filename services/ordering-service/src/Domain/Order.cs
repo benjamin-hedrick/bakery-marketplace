@@ -4,7 +4,7 @@ namespace OrderingService.Domain;
 
 /// <summary>
 /// The Order aggregate (WI-ORD-002): lifecycle, invariants and the events each transition raises. Behaviour is specified in
-/// docs/architecture/order-lifecycle.md. It is in-memory only: persistence is <c>ORD-006</c>, publishing is <c>ORD-005</c>.
+/// docs/architecture/order-lifecycle.md. Persistence (<c>ORD-006</c>) and publishing through the outbox (<c>ORD-005</c>) sit around it, not inside it.
 /// <para>
 /// Fulfillment-agnostic (ADR-0001): <see cref="Fulfillment"/> is stored opaquely and handed to the fulfillment strategy inside the
 /// events (<c>OrderConfirmed</c>, <c>OrderReadyForFulfillment</c>); the Order never reads a pickup window itself. The strategy answers

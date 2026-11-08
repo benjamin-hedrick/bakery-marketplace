@@ -15,8 +15,8 @@ public class InMemoryEventTransport : IEventPublisher, IEventSubscriber
     public Task SubscribeAsync<T>(
         string eventType,
         Func<DomainEventEnvelope<T>, CancellationToken, Task> handler,
-        CancellationToken ct = default,
-        string? consumerName = null)
+        string? consumerName = null,
+        CancellationToken ct = default)
     {
         // Every handler receives every event (as for default consumers before consumer names existed); a named consumer is
         // additionally refused when its name is already in use for the event type, as in the Redis transport.
@@ -45,13 +45,13 @@ public class InMemoryEventTransport : IEventPublisher, IEventSubscriber
     public Task SubscribeBatchAsync<T>(
         string eventType,
         Func<IReadOnlyList<DomainEventEnvelope<T>>, CancellationToken, Task<IReadOnlyCollection<Guid>>> handler,
-        CancellationToken ct = default,
-        string? consumerName = null) =>
+        string? consumerName = null,
+        CancellationToken ct = default) =>
         SubscribeAsync<T>(eventType, async (envelope, token) =>
         {
             var failed = await handler(new[] { envelope }, token);
             if (failed.Count > 0) throw new InvalidOperationException($"Batch handler reported event {envelope.EventId} as failed.");
-        }, ct, consumerName);
+        }, consumerName, ct);
 
     public async Task PublishAsync<T>(DomainEventEnvelope<T> envelope, CancellationToken ct = default)
     {

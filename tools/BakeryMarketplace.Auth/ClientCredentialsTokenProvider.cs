@@ -43,7 +43,7 @@ public sealed class ServiceTokenException(string message, Exception? inner = nul
 /// obtained and the cached one has expired it throws, and there is no other source of tokens. If a refresh fails while the cached
 /// token is still valid, the cached token is used.
 /// </summary>
-public sealed class ClientCredentialsTokenProvider
+public sealed class ClientCredentialsTokenProvider : IDisposable
 {
     private readonly HttpClient _http;
     private readonly ClientCredentialsOptions _options;
@@ -60,6 +60,8 @@ public sealed class ClientCredentialsTokenProvider
         _time = time ?? TimeProvider.System;
         Validate(_options);
     }
+
+    public void Dispose() => _gate.Dispose();
 
     public async Task<string> GetTokenAsync(CancellationToken ct = default)
     {

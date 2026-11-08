@@ -18,7 +18,7 @@ public sealed class AllergenRegistryOptions
 /// list is the catalog's, so adding or retiring an allergen there changes what checkout accepts without a change in this service. If the list cannot be
 /// read and no recent copy is held, the checkout that needs it is refused as unavailable; an order is never recorded with an id nobody checked.
 /// </summary>
-public sealed class AllergenRegistry(ICatalogGateway catalog, IOptions<AllergenRegistryOptions> options, TimeProvider time)
+public sealed class AllergenRegistry(ICatalogGateway catalog, IOptions<AllergenRegistryOptions> options, TimeProvider time) : IDisposable
 {
     private sealed record Held(IReadOnlySet<string> Ids, DateTimeOffset FetchedAt);
 
@@ -26,6 +26,8 @@ public sealed class AllergenRegistry(ICatalogGateway catalog, IOptions<AllergenR
     private Held? _held;
 
     public int MaxRequestIds => options.Value.MaxRequestIds;
+
+    public void Dispose() => _gate.Dispose();
 
     /// <summary>The allergen ids on offer now (from the cache when fresh). Throws <see cref="DownstreamUnavailableException"/> when there is no fresh copy and the catalog cannot answer.</summary>
     public async Task<IReadOnlySet<string>> IdsAsync(CancellationToken ct = default)

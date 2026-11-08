@@ -379,7 +379,7 @@ public sealed class ListingCacheTests
         rig.Listings.AfterRead = _ => gate.Task;
         using var cts = new CancellationTokenSource();
 
-        var leader = rig.Service.BrowseAsync(100, null, cts.Token); // starts the load, then cancels
+        var leader = rig.Service.BrowseAsync(100, null, ct: cts.Token); // starts the load, then cancels
         var patient = rig.Service.BrowseAsync(100, null);
         await WaitUntilAsync(() => rig.Cache.Coalesced >= 1);
         await cts.CancelAsync();
@@ -521,7 +521,7 @@ public sealed class ListingCacheTests
         Assert.Equal(7, cached.LowStockThreshold);
 
         var tags = new TagProjector(TagRegistry.LoadEmbedded(), TimeProvider.System);
-        var json = JsonSerializer.Serialize(ListingDto.From(cached, tags), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var json = JsonSerializer.Serialize(ListingDto.From(cached, tags), JsonSerializerOptions.Web);
 
         // The public stock block is a status and the per-order limit: the exact quantity and the threshold are absent or null (never 42 or 7).
         var stock = JsonDocument.Parse(json).RootElement.GetProperty("stock");

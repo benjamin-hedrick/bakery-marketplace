@@ -1,7 +1,7 @@
 namespace CatalogService.Tags;
 
 /// <summary>
-/// The limits on how many tags a vendor may put on a listing and on an option (ADR-0022, WI-TAG-002). The lead's rule (2026-11-04) is that they are
+/// The limits on how many tags a vendor may put on a listing and on an option (ADR-0022, WI-TAG-002). Decided 2026-11-04: they are
 /// easy to adjust: this is the one place they live, bound from the <c>Tags</c> configuration section, and the validator, the tests and every message take
 /// them from here instead of repeating the numbers.
 /// </summary>

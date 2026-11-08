@@ -49,7 +49,7 @@ public sealed partial class OrderEventNotifier(
             var customerId = customerOf(e.Payload);
             if (string.IsNullOrEmpty(customerId))
             {
-                LogEventNamesNoCustomerNoNotification(logger, e.EventId, e.EventType);
+                LogEventWithoutCustomer(logger, e.EventId, e.EventType);
                 continue;
             }
             pending.Add((e, orderOf(e.Payload), customerId));
@@ -63,7 +63,7 @@ public sealed partial class OrderEventNotifier(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogContactsForEventsCouldNotBe(logger, ex, pending.Count);
+            LogContactsReadFailed(logger, ex, pending.Count);
             return pending.Select(p => p.Event.EventId).ToList();
         }
 
@@ -71,7 +71,7 @@ public sealed partial class OrderEventNotifier(
         {
             if (!found.TryGetValue(customerId, out var contact))
             {
-                LogOrderNoContactForTheCustomer(logger, orderId, e.EventId, e.EventType);
+                LogNoContactForCustomer(logger, orderId, e.EventId, e.EventType);
                 continue;
             }
             try
@@ -82,7 +82,7 @@ public sealed partial class OrderEventNotifier(
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                LogOrderEventCouldNotBeSent(logger, ex, orderId, e.EventId, e.EventType);
+                LogNotificationSendFailed(logger, ex, orderId, e.EventId, e.EventType);
                 failed.Add(e.EventId);
                 continue;
             }
@@ -96,25 +96,25 @@ public sealed partial class OrderEventNotifier(
         try { return await action(); }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogTheNotificationLedgerFailedContinuing(logger, ex, what);
+            LogNotificationLedgerFailed(logger, ex, what);
             return onFailure;
         }
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Event {EventId} ({EventType}) names no customer; no notification")]
-    private static partial void LogEventNamesNoCustomerNoNotification(ILogger logger, System.Guid eventId, string eventType);
+    private static partial void LogEventWithoutCustomer(ILogger logger, System.Guid eventId, string eventType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Contacts for {Count} events could not be read; they will be tried again")]
-    private static partial void LogContactsForEventsCouldNotBe(ILogger logger, Exception exception, int count);
+    private static partial void LogContactsReadFailed(ILogger logger, Exception exception, int count);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: no contact for the customer; event {EventId} ({EventType}) skipped")]
-    private static partial void LogOrderNoContactForTheCustomer(ILogger logger, string orderId, System.Guid eventId, string eventType);
+    private static partial void LogNoContactForCustomer(ILogger logger, string orderId, System.Guid eventId, string eventType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: event {EventId} ({EventType}) could not be sent; it will be tried again")]
-    private static partial void LogOrderEventCouldNotBeSent(ILogger logger, Exception exception, string orderId, System.Guid eventId, string eventType);
+    private static partial void LogNotificationSendFailed(ILogger logger, Exception exception, string orderId, System.Guid eventId, string eventType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The notification ledger failed ({What}); continuing")]
-    private static partial void LogTheNotificationLedgerFailedContinuing(ILogger logger, Exception exception, string what);
+    private static partial void LogNotificationLedgerFailed(ILogger logger, Exception exception, string what);
 }
 
 /// <summary>
@@ -126,26 +126,26 @@ public sealed partial class OrderEventSubscriptions(IEventSubscriber subscriber,
     /// <summary>The event types subscribed to; each needs a template in <see cref="TemplateMessageComposer"/>.</summary>
     public static readonly string[] EventTypes = ["OrderPlaced", "OrderConfirmed", "OrderPreparationStarted", FulfillmentEventTypes.ReadyForPickup, FulfillmentEventTypes.PickupWindowScheduled, "OrderCompleted", "OrderCancelled"];
 
-    public async Task StartAsync(CancellationToken ct)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         await subscriber.SubscribeBatchAsync<OrderPlacedPayload>("OrderPlaced",
-            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
+            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct: cancellationToken);
         await subscriber.SubscribeBatchAsync<OrderConfirmedPayload>("OrderConfirmed",
-            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
+            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct: cancellationToken);
         await subscriber.SubscribeBatchAsync<OrderPreparationStartedPayload>("OrderPreparationStarted",
-            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
+            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct: cancellationToken);
         await subscriber.SubscribeBatchAsync<OrderReadyForPickupPayload>(FulfillmentEventTypes.ReadyForPickup,
-            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
+            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct: cancellationToken);
         await subscriber.SubscribeBatchAsync<PickupWindowScheduledPayload>(FulfillmentEventTypes.PickupWindowScheduled,
-            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
+            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct: cancellationToken);
         await subscriber.SubscribeBatchAsync<OrderCompletedPayload>("OrderCompleted",
-            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
+            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct: cancellationToken);
         await subscriber.SubscribeBatchAsync<OrderCancelledPayload>("OrderCancelled",
-            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct);
+            (events, token) => notifier.HandleBatchAsync(events, p => p.OrderId, p => p.CustomerId, token), ct: cancellationToken);
         LogNotificationsAreSubscribed(logger);
     }
 
-    public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Notifications are subscribed to the order events and the pickup strategy's events")]
     private static partial void LogNotificationsAreSubscribed(ILogger logger);

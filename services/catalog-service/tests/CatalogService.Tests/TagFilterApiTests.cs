@@ -150,7 +150,7 @@ public sealed class TagFilterApiTests : IDisposable
     public async Task An_id_that_is_not_a_public_active_non_allergen_tag_is_refused_in_the_same_words_as_any_other(string id)
     {
         await SeedAsync();
-        if (id == "thanksgiving") _time.Now = DateTimeOffset.Parse("2026-10-31T12:00:00Z"); // the day before its window
+        if (id == "thanksgiving") _time.Now = DateTimeOffset.Parse("2026-10-31T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture); // the day before its window
 
         var response = await _app.CreateClient().GetAsync($"/catalog/listings?tag=vegan&tag={id}");
 
@@ -180,7 +180,7 @@ public sealed class TagFilterApiTests : IDisposable
     public async Task A_windowed_tag_can_be_filtered_by_only_inside_its_window(string today, bool allowed)
     {
         await SeedAsync();
-        _time.Now = DateTimeOffset.Parse($"{today}T12:00:00Z");
+        _time.Now = DateTimeOffset.Parse($"{today}T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
 
         var response = await _app.CreateClient().GetAsync("/catalog/listings?tag=thanksgiving");
 

@@ -79,7 +79,7 @@ public sealed partial class OrderActionService(
 
             if (action is OrderAction.Decline or OrderAction.Cancel) await ReleaseQuietlyAsync(saved.Order);
             await eventPublisher.PublishInlineAsync(saved);
-            LogOrderDoneNow(logger, orderId, action, saved.Order.Status);
+            LogOrderActionDone(logger, orderId, action, saved.Order.Status);
             return new OrderActionResult(OrderActionOutcome.Done, saved);
         }
 
@@ -164,7 +164,7 @@ public sealed partial class OrderActionService(
         }
         catch (Exception e)
         {
-            LogStockReservationForCouldNotBe(logger, e, order.Id);
+            LogStockReleaseFailed(logger, e, order.Id);
         }
     }
 
@@ -172,11 +172,11 @@ public sealed partial class OrderActionService(
     private static partial void LogOrderRefusedInStatus(ILogger logger, string orderId, OrderingService.Orders.OrderAction action, BakeryMarketplace.EventSchemas.OrderStatus status);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: {Action} done, now {Status}")]
-    private static partial void LogOrderDoneNow(ILogger logger, string orderId, OrderingService.Orders.OrderAction action, BakeryMarketplace.EventSchemas.OrderStatus status);
+    private static partial void LogOrderActionDone(ILogger logger, string orderId, OrderingService.Orders.OrderAction action, BakeryMarketplace.EventSchemas.OrderStatus status);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: completion requested, waiting for the fulfillment strategy")]
     private static partial void LogOrderCompletionRequested(ILogger logger, string orderId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stock reservation for {OrderId} could not be released; it needs cleanup")]
-    private static partial void LogStockReservationForCouldNotBe(ILogger logger, Exception exception, string orderId);
+    private static partial void LogStockReleaseFailed(ILogger logger, Exception exception, string orderId);
 }

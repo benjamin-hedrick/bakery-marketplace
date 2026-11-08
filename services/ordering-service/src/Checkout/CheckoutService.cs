@@ -154,7 +154,7 @@ public sealed partial class CheckoutService(
             if (created is not null)
             {
                 reserved = false; // the order now owns the reservation
-                LogOrderPlacedLineSCents(logger, orderId, order.Lines.Count, order.TotalCents);
+                LogOrderPlaced(logger, orderId, order.Lines.Count, order.TotalCents);
                 await eventPublisher.PublishInlineAsync(created);
                 return new CheckoutResult(CheckoutOutcome.Created, created);
             }
@@ -206,7 +206,7 @@ public sealed partial class CheckoutService(
         catch (Exception e)
         {
             // Open item 62: a reservation without an order needs a cleanup. Nothing here can do more than record it.
-            LogStockReservationForCouldNotBe(logger, e, orderId);
+            LogStockReleaseFailed(logger, e, orderId);
         }
     }
 
@@ -292,11 +292,11 @@ public sealed partial class CheckoutService(
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId} placed: {Lines} line(s), {TotalCents} cents")]
-    private static partial void LogOrderPlacedLineSCents(ILogger logger, string orderId, int lines, long totalCents);
+    private static partial void LogOrderPlaced(ILogger logger, string orderId, int lines, long totalCents);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId} refused: the payment token of method {PaymentMethodId} failed validation")]
     private static partial void LogPaymentMethodRefused(ILogger logger, string orderId, string paymentMethodId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stock reservation for {OrderId} could not be released; it needs cleanup")]
-    private static partial void LogStockReservationForCouldNotBe(ILogger logger, Exception exception, string orderId);
+    private static partial void LogStockReleaseFailed(ILogger logger, Exception exception, string orderId);
 }

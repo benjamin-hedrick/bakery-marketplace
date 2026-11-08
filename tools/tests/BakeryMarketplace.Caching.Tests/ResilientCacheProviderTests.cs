@@ -124,8 +124,8 @@ public sealed class ResilientCacheProviderTests
         {
             if (ShouldFail) throw new InvalidOperationException("Toggled to fail.");
             return _store.TryGetValue(key, out var v)
-                ? Task.FromResult(CacheResult<T>.Hit((T)v!))
-                : Task.FromResult(CacheResult<T>.Miss());
+                ? Task.FromResult(CacheResult.Hit((T)v!))
+                : Task.FromResult(CacheResult.Miss<T>());
         }
 
         public Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default)

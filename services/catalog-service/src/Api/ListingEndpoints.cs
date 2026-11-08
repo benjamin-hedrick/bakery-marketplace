@@ -32,7 +32,7 @@ public static class ListingEndpoints
             var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
             var (filter, filterErrors) = TagFilter.Parse(tag, registry, time, limits);
             if (filterErrors.Count > 0) return ToError(new ListingResult(ListingOutcome.Invalid, Errors: filterErrors));
-            var (items, next) = await svc.BrowseAsync(size, after, ct, filter.Count == 0 ? null : l => TagFilter.Matches(l, filter));
+            var (items, next) = await svc.BrowseAsync(size, after, filter.Count == 0 ? null : l => TagFilter.Matches(l, filter), ct);
             return Results.Ok(new ListingPage(items.Select(l => ListingDto.From(l, tags)).ToList(), next));
         }).AllowAnonymous();
 

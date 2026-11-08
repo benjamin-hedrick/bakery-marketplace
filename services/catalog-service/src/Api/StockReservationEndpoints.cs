@@ -87,7 +87,7 @@ public static partial class StockReservationEndpoints
 
             var result = await svc.ReserveAsync(
                 request.OrderId!, request.VendorId!, request.Lines!.Select(l => (l.ListingId!, l.Quantity!.Value)), ct);
-            LogStockReserveForOrderBy(log, request.OrderId, ServiceCaller.ClientId(http.User), result.Outcome);
+            LogStockReserved(log, request.OrderId, ServiceCaller.ClientId(http.User), result.Outcome);
 
             return result.Outcome switch
             {
@@ -136,7 +136,7 @@ public static partial class StockReservationEndpoints
             if (errors.Count > 0) return Invalid(errors);
 
             var result = await svc.ReleaseAsync(orderId, vendorId!, ct);
-            LogStockReleaseForOrderBy(log, orderId, ServiceCaller.ClientId(http.User), result.Outcome);
+            LogStockReleased(log, orderId, ServiceCaller.ClientId(http.User), result.Outcome);
 
             return result.Outcome switch
             {
@@ -157,8 +157,8 @@ public static partial class StockReservationEndpoints
         Results.Json(new ApiError(code, message), statusCode: StatusCodes.Status409Conflict);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Stock reserve for order {OrderId} by {Client}: {Outcome}")]
-    private static partial void LogStockReserveForOrderBy(ILogger logger, string? orderId, string? client, CatalogService.Services.ReservationOutcome outcome);
+    private static partial void LogStockReserved(ILogger logger, string? orderId, string? client, CatalogService.Services.ReservationOutcome outcome);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Stock release for order {OrderId} by {Client}: {Outcome}")]
-    private static partial void LogStockReleaseForOrderBy(ILogger logger, string orderId, string? client, CatalogService.Services.ReservationOutcome outcome);
+    private static partial void LogStockReleased(ILogger logger, string orderId, string? client, CatalogService.Services.ReservationOutcome outcome);
 }

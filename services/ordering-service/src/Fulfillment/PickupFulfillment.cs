@@ -69,16 +69,16 @@ public sealed class PickupFulfillment(IEventPublisher publisher)
 /// <summary>Starts the strategy's three subscriptions under its own consumer name.</summary>
 public sealed partial class PickupFulfillmentSubscriptions(IEventSubscriber subscriber, PickupFulfillment strategy, ILogger<PickupFulfillmentSubscriptions> logger) : IHostedService
 {
-    public async Task StartAsync(CancellationToken ct)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         var name = PickupFulfillment.ConsumerName;
-        await subscriber.SubscribeAsync<OrderConfirmedPayload>("OrderConfirmed", strategy.OnConfirmedAsync, ct, name);
-        await subscriber.SubscribeAsync<OrderReadyForFulfillmentPayload>("OrderReadyForFulfillment", strategy.OnReadyForFulfillmentAsync, ct, name);
-        await subscriber.SubscribeAsync<OrderFulfillmentConfirmationRequestedPayload>(FulfillmentEventTypes.ConfirmationRequested, strategy.OnConfirmationRequestedAsync, ct, name);
+        await subscriber.SubscribeAsync<OrderConfirmedPayload>("OrderConfirmed", strategy.OnConfirmedAsync, name, cancellationToken);
+        await subscriber.SubscribeAsync<OrderReadyForFulfillmentPayload>("OrderReadyForFulfillment", strategy.OnReadyForFulfillmentAsync, name, cancellationToken);
+        await subscriber.SubscribeAsync<OrderFulfillmentConfirmationRequestedPayload>(FulfillmentEventTypes.ConfirmationRequested, strategy.OnConfirmationRequestedAsync, name, cancellationToken);
         LogSubscribed(logger, name);
     }
 
-    public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     [LoggerMessage(Level = LogLevel.Information, Message = "The pickup fulfillment strategy is subscribed as consumer {Consumer}")]
     private static partial void LogSubscribed(ILogger logger, string consumer);

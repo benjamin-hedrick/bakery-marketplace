@@ -49,10 +49,10 @@ public sealed partial class LogNotificationSender(ILogger<LogNotificationSender>
     public Task SendAsync(Notification notification, CancellationToken ct = default)
     {
         NotificationChecks.Validate(notification);
-        LogNotificationForOrderEventProducedNot(logger, notification.OrderId, notification.EventType, notification.EventId);
+        LogNotificationProduced(logger, notification.OrderId, notification.EventType, notification.EventId);
         return Task.CompletedTask;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Notification for order {OrderId} ({EventType}, event {EventId}) produced; not delivered to a provider")]
-    private static partial void LogNotificationForOrderEventProducedNot(ILogger logger, string orderId, string eventType, System.Guid eventId);
+    private static partial void LogNotificationProduced(ILogger logger, string orderId, string eventType, System.Guid eventId);
 }

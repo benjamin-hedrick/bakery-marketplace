@@ -23,27 +23,27 @@ public sealed partial class VendorEventSubscriptions : IHostedService
         _logger = logger;
     }
 
-    public async Task StartAsync(CancellationToken ct)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _subscriber.SubscribeAsync<VendorVerifiedPayload>("VendorVerified", async (e, token) =>
         {
             var changed = await _store.ApplyAsync(e.Payload.VendorId, verified: true, e.SequenceNumber, e.OccurredAt, token);
-            LogVendorVerifiedFor(_logger, e.EventId, e.Payload.VendorId, changed ? "applied" : "ignored (duplicate or stale)");
-        }, ct);
+            LogVendorVerified(_logger, e.EventId, e.Payload.VendorId, changed ? "applied" : "ignored (duplicate or stale)");
+        }, ct: cancellationToken);
 
         await _subscriber.SubscribeAsync<VendorSuspendedPayload>("VendorSuspended", async (e, token) =>
         {
             var changed = await _store.ApplyAsync(e.Payload.VendorId, verified: false, e.SequenceNumber, e.OccurredAt, token);
             // The suspension reason is deliberately not logged: it is admin free text and may contain personal data.
-            LogVendorSuspendedFor(_logger, e.EventId, e.Payload.VendorId, changed ? "applied" : "ignored (duplicate or stale)");
-        }, ct);
+            LogVendorSuspended(_logger, e.EventId, e.Payload.VendorId, changed ? "applied" : "ignored (duplicate or stale)");
+        }, ct: cancellationToken);
     }
 
-    public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     [LoggerMessage(Level = LogLevel.Information, Message = "VendorVerified {EventId} for {VendorId}: {Result}")]
-    private static partial void LogVendorVerifiedFor(ILogger logger, System.Guid eventId, string vendorId, string result);
+    private static partial void LogVendorVerified(ILogger logger, System.Guid eventId, string vendorId, string result);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "VendorSuspended {EventId} for {VendorId}: {Result}")]
-    private static partial void LogVendorSuspendedFor(ILogger logger, System.Guid eventId, string vendorId, string result);
+    private static partial void LogVendorSuspended(ILogger logger, System.Guid eventId, string vendorId, string result);
 }

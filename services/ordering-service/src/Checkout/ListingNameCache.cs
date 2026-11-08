@@ -132,7 +132,7 @@ public sealed partial class ListingNameCache(
         catch (Exception e) when (e is DownstreamUnavailableException or HttpRequestException or TaskCanceledException)
         {
             _failedAt[id] = time.GetUtcNow();
-            LogTheCatalogCouldNotBeAsked(logger, id, e.GetType().Name);
+            LogListingNamesUnavailable(logger, id, e.GetType().Name);
             return _entries.TryGetValue(id, out var held) && time.GetUtcNow() - held.FetchedAt < MaxAge ? held : null;
         }
         finally
@@ -151,7 +151,7 @@ public sealed partial class ListingNameCache(
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The catalog could not be asked for the names of listing {ListingId}: {Error}")]
-    private static partial void LogTheCatalogCouldNotBeAsked(ILogger logger, string listingId, string error);
+    private static partial void LogListingNamesUnavailable(ILogger logger, string listingId, string error);
 }
 
 /// <summary>Runs <see cref="ListingNameCache.RefreshStaleAsync"/> on the configured interval (register item 113).</summary>
@@ -174,11 +174,11 @@ public sealed partial class ListingNameRefresher(ListingNameCache cache, IOption
             }
             catch (Exception e)
             {
-                LogTheListingNameRefreshFailedIt(logger, e);
+                LogListingNameRefreshFailed(logger, e);
             }
         }
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The listing name refresh failed; it will run again")]
-    private static partial void LogTheListingNameRefreshFailedIt(ILogger logger, Exception exception);
+    private static partial void LogListingNameRefreshFailed(ILogger logger, Exception exception);
 }

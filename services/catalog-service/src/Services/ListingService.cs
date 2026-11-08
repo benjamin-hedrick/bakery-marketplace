@@ -67,7 +67,7 @@ public sealed class ListingService
     /// hide conflicting items).
     /// </summary>
     public async Task<(IReadOnlyList<ListingDocument> Items, string? NextCursor)> BrowseAsync(
-        int limit, string? after, CancellationToken ct = default, Func<ListingDocument, bool>? include = null)
+        int limit, string? after, Func<ListingDocument, bool>? include = null, CancellationToken ct = default)
     {
         var all = new List<ListingDocument>();
         foreach (var vendorId in await VerifiedVendorIdsAsync(ct))
