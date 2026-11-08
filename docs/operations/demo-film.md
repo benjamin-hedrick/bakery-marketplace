@@ -39,7 +39,9 @@ Pickup-time and option orders wait for the bakery; plain orders confirm themselv
 
 The vendor agent needs no knowledge of the other actors: it acts on any order that has been in the queue for 7 seconds, six seconds between the steps of one order and five between any two actions; a new order is accepted before the others are moved along, then the newest order first. Once the web order is completed and the phone order cancelled, the rest of the queue goes at two seconds a step. The run ends when the web customer's order shows Completed and the background orders are in, plus a hold for the viewer; there is a four-minute hard limit.
 
-## Checked and not checked
+## Checked and not checked (the position of 2026-11-07, before the first run)
+
+This table was written before the film was run; the film was run, composed and committed on 2026-11-08 (see "Where it ended up" below). It is kept as the record of what was known on 2026-11-07.
 
 | Checked (2026-11-07) | Not checked |
 |---|---|
