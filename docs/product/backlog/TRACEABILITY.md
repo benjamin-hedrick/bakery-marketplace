@@ -59,7 +59,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | Done | *none* | *none* |
 | [ORD-001](WI-ORD-001.md) | Checkout (payment stubbed) | Done | `CheckoutApiTests.cs`, `CheckoutServiceTests.cs` | *none* |
 | [ORD-002](WI-ORD-002.md) | Order aggregate + lifecycle states | Done | `OrderLifecycleTests.cs` | *none* |
-| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In review | `vendor-actions.spec.ts`, `vendor-live.spec.ts`, `vendor-actions.test.ts` and 7 more | `ai-usage-2026-11-07.md`, `baseline-2026-10-30.md` |
+| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In review | `vendor-actions.spec.ts`, `vendor-live.spec.ts`, `vendor-actions.test.ts` and 7 more | `README.md`, `ai-usage-2026-11-07-b.md`, `ai-usage-2026-11-07.md` and 1 more |
 | [ORD-004](WI-ORD-004.md) | FulfillmentStrategy interface (ACL boundary) | Done | `FulfillmentContractsTests.cs` | *none* |
 | [ORD-005](WI-ORD-005.md) | Publish Order domain events via event backbone | Done | `OrderEventTests.cs`, `OutboxHostTests.cs`, `OutboxTests.cs` | *none* |
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | Done | `CosmosOrderStoreTests.cs`, `OrderPersistenceTests.cs` | *none* |
@@ -88,7 +88,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [RATE-001](WI-RATE-001.md) | First rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128) | In review | `rate-limit.spec.ts`, `rate-limit.test.ts`, `rate-limit.test.ts` | `run-2026-11-02.md`, `load-soak-2026-11-03.md`, `ai-usage-2026-11-02-b.md` |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | Built | *none* | `baseline-2026-10-30.md` |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | Done | *none* | *none* |
-| [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | In progress | *none* | `README.md`, `dependency-audit-2026-11-07.md`, `secret-scan-2026-10-30.md` |
+| [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | In progress | *none* | `README.md`, `dependency-audit-2026-11-07.md`, `ai-usage-2026-11-07-b.md` and 1 more |
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | In review | `security-headers.spec.ts`, `security-headers.spec.ts`, `fuzz.test.ts` and 3 more | `fuzz-2026-11-02.md`, `load-soak-2026-11-03.md`, `zap-2026-11-03.md` and 1 more |
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | In review | `personalized.spec.ts`, `ConflictMatcherTests.cs`, `PersonalizedListingApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | In review | `tags.spec.ts`, `TagApiTests.cs`, `TagRegistryTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
