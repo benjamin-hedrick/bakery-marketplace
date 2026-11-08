@@ -116,7 +116,7 @@ What has worked in this repository, stated as practice:
 
 ## What the sessions cost
 
-Each Claude Code session's cost, time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. Fifteen sessions are recorded (the planning in chat before the repository, the September delegation packets and the session of 2026-11-08 that ran the demo film and produced the documentation pass are not in this table).
+Each Claude Code session's cost, time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. Sixteen sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
 
 | Session | Work | Cost | API time | Wall-clock | Lines added |
 |---|---|---:|---:|---:|---:|
@@ -135,9 +135,10 @@ Each Claude Code session's cost, time and size were copied by the lead from the 
 | 2026-11-06 | register items and payment methods (`WI-ORD-010`) | $10.18 | 37 min | 4 h 5 min | 2,161 |
 | 2026-11-07 | CI fixes, the listing cache, cancel buttons, order polling | $24.38 | 49 min | 6 h 4 min | 3,850 |
 | 2026-11-07 (second) | the fulfillment strategy, the dependency audit, the demo film's scripts | $9.73 | 25 min | 3 h 46 min | 2,213 |
-| **Total** | | **$193.80** | **9 h 20 min** | **67 h 44 min** | **51,496** |
+| 2026-11-08 | the demo film's runs and the documentation pass | $11.14 | 33 min | 4 h 27 min | 1,076 |
+| **Total** | | **$204.94** | **9 h 53 min** | **72 h 11 min** | **52,572** |
 
-Read it with care. A session's wall-clock time is mostly the lead reading, deciding and waiting (API time is the assistant working: about one hour in seven). Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the cost by the 85 items gives about $2.30 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
+Read it with care. A session's wall-clock time is mostly the lead reading, deciding and waiting (API time is the assistant working: about one hour in seven). Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the cost by the 85 items gives about $2.40 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
 
 ## AI-assisted testing
 
