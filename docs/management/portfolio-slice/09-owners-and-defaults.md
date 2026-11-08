@@ -60,4 +60,4 @@ If it fails any of these, use a small in-repo implementation of the same pattern
 - Pin runtimes and package manager: **pinned in policy, exact versions recorded in `WI-PORT-001`**.
 - First GraphQL query and C# API contract: **drafted** in `docs/architecture/first-slice-contract.md`, pending approval.
 - Branch/PR workflow and evidence location: **done** (above).
-- Docker Compose verification: **open** (`WI-DEV-002`).
+- Docker Compose verification: **done 2026-10-26** (`WI-DEV-002`, `docs/operations/local-dev.md`).

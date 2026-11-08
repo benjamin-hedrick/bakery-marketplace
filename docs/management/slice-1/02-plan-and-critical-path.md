@@ -1,5 +1,7 @@
 # Slice 1: plan and critical path
 
+> **Status:** Snapshot · 2026-10-29, written at the end of slice 1 and not maintained since. For what is built and what is next read [the current plan](../../product/backlog/current-plan.md) and [STATUS.md](../../product/backlog/STATUS.md); the item numbers S1-xx and N-xx are still used by the [roadmap](../../product/roadmap.md).
+
 **As of 2026-10-29.** See also the [status](01-project-status.md) and the [prioritized backlog](03-prioritized-backlog.md) (item IDs `S1-xx` are defined there).
 
 **Sequencing is relative, not calendar-dated**, as in `docs/management/project-plan.md`: available hours per week are not decided, so there are no dates. Sizes are story points on a relative scale (backlog document); they order the work and show where the weight is, and are not a forecast.

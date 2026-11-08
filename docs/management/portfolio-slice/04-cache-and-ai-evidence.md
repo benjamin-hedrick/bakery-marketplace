@@ -2,6 +2,8 @@
 
 > **Status:** Adopted plan · status checked 2026-10-30. Two parts are out of date.
 
+> **Update 2026-11-08:** both out-of-date parts are now history: cache layer 1 is used by the catalog (`WI-CAT-003`) and the per-layer record exists (`WI-PORT-004`, both In review); evidence goes to `docs/evidence/` and the AI usage records, not to the activity log.
+
 - **Cache layers:** layer 1 (the server cache library) is built and unused by any service; layers 2 and 3 are documented in ADR-0014 but no per-cache record or test exists (`WI-PORT-004`, `WI-CAT-003` unbuilt). The cache review is register item 89.
 - **Evidence ledger:** the plan says entries go in `docs/history/ACTIVITY-LOG.md`. That log takes no new entries (register item 50). Evidence now goes in commit messages and pull request text, `docs/evidence/` for runs, and the register for findings; the AI-collaboration record is planned for `docs/method/`.
 

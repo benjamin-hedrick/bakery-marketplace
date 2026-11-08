@@ -2,6 +2,8 @@
 
 > **Status:** Adopted plan · status checked 2026-10-30. The first slice it describes is built and runs locally; Phase 4 of the evidence goals is not done.
 
+> **Update 2026-11-08:** the slice is built and was extended (vendor queue, notifications, personalization, an Android app, sessions, rate limits, a security pass, a listing cache, a deployment path written and checked locally, a demo film). The evidence goals of Phase 4 are done except the AI-assisted testing experiment, which stays deferred by the lead's decision of 2026-11-08 (`WI-QA-003`); see `docs/product/backlog/current-plan.md`. The goals table below is the October wording.
+
 **Where the evidence goals stand (2026-10-30)**
 
 | Goal | State |
