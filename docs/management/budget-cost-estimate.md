@@ -1,6 +1,6 @@
 # Budget / Cost Estimate
 
-> **Status:** Snapshot · the figures are the September 2026 estimate and were **not re-checked against current Azure pricing** on 2026-10-30. Rows changed since then are marked. Nothing is deployed and nothing has been billed, so every figure is a forecast, not a measurement.
+> **Status:** Snapshot · the figures are the September 2026 estimate and were **not re-checked against current Azure pricing**, on 2026-10-30 or on 2026-11-08 (when the page was re-read against the code: the cache and images text was updated; no price was). Rows changed since September are marked, and the deployed dev environment's lines (registry, state storage, budget alert) were added on 2026-10-31. Nothing is deployed and nothing has been billed, so every figure is a forecast, not a measurement.
 
 Infrastructure cost only. Labor/time investment is a separate axis this document doesn't estimate — see Open Points in `WI-MGMT-005`.
 
@@ -22,7 +22,7 @@ Infrastructure cost only. Labor/time investment is a separate axis this document
 | **Cache (Redis)** | **Basic C0, if enabled** | **~$16/month per environment it's enabled in** | The one real, non-zero line item — see below |
 | Stripe | Per-transaction, no monthly fee | $0 fixed / variable per transaction | Not a fixed budget line — scales with real transaction volume; $0 in test mode |
 
-**Total fixed monthly cost: ~$0–32/month on these assumptions, plus about $5–6 for the registry and state storage once a dev environment is deployed (added 2026-10-31, unverified)**, driven by how many environments enable managed Redis (ADR-0002 — dev uses the free local cache by default; staging/prod may enable managed Redis at ~$16/month each). Today no service uses a cache at all (the catalog cache-aside is not built), and the managed-Redis vendor is under reconsideration (register 22), so the one non-zero line may change.
+**Total fixed monthly cost: ~$0–32/month on these assumptions, plus about $5–6 for the registry and state storage once a dev environment is deployed (added 2026-10-31, unverified)**, driven by how many environments enable managed Redis (ADR-0002 — dev uses the free local cache by default; staging/prod may enable managed Redis at ~$16/month each). Today the catalog and the notification service use a cache, in process by default and the local cache Redis when asked (`WI-CAT-003`); nothing uses a managed Redis, and the managed-Redis vendor is under reconsideration (register 22), so the one non-zero line may change.
 
 ## The one real cost, precisely
 
@@ -41,7 +41,7 @@ None of these are close at the current target load — this section exists so a 
 ## Explicitly not estimated here
 
 - **Labor/time cost** — a personal/business decision about how many hours this project represents, which this document can't invent a number for
-- **Container images and a registry:** none exist (register 71); a registry is a cost line once images do
+- **Image storage beyond the registry line above, and container scanning:** the images exist (`WI-DEP-001`) and were built locally; none is in a registry, and no scanner has been run on them (`docs/evidence/WI-SEC-004/dependency-audit-2026-11-07.md`)
 - **CI build minutes:** the Azure Pipelines runs are limited to pull requests and manual runs to save minutes (`docs/process/quality-gates.md`); not costed
 - **Optional extras** (a custom domain, ~$12/year, is not required)
 

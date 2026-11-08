@@ -1,6 +1,10 @@
 # Monitoring / Alerting Plan
 
-> **Status:** Current as policy · checked 2026-10-30. No threshold below is implemented: there are no dashboards or alert rules, and nothing is deployed to monitor.
+> **Status:** Current as policy · checked 2026-10-30, compared with the telemetry that exists on 2026-11-08 (see "What exists today"). No threshold below is implemented: there are no dashboards or alert rules, and nothing is deployed to monitor.
+
+## What exists today (2026-11-08)
+
+Locally only: W3C trace context through the web servers, the BFF, ordering and catalog, exported over OpenTelemetry to an optional collector, Aspire dashboard or Jaeger (compose profiles; ADR-0016); and three metrics of the vendor live queue, `vendor_stream_delivery_delay_ms` (order change to screen), `vendor_stream_messages_sent` and `vendor_stream_closed_by_server` (ADR-0021). The 66-minute soak read the delay metric (p95 146 ms; `docs/evidence/WI-SEC-005/`). The other thresholds below have no metric yet, and nothing exports to Application Insights (register 37). The latency rows can be compared by hand with the measured figures in `docs/performance-and-nfrs.md`, which come from scripts, not from monitoring.
 
 **Policy layer, not implementation.** This document states *what* gets monitored and *when* an alert fires. Building the actual Application Insights dashboards and alert rules against these thresholds is `EPIC-OBSERVABILITY`'s job (`OBS-001`/`OBS-002`/`OBS-003`) — this document exists first, so that epic implements against real targets instead of guessing at them. (Note: `epic-catalog.md`'s `OBS-003` entry previously described itself as "feeding" this document — that direction was backwards and has been corrected there.)
 

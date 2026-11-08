@@ -2,7 +2,7 @@
 
 To show the slice to someone, use the one-command demo: [Demo](demo.md). Every script and command (start, stop, demo, test, gates) is indexed in [Scripts and commands](scripts.md).
 
-> **Status:** Current · "Run slice 1" verified 2026-10-30 by following it step by step in a fresh clone on Windows 11 (Docker Desktop). The rest was verified on 2026-10-26 to 2026-10-28 and is marked below. Nothing here is deployed; application services are not containers, so you run them on the host against the ports below.
+> **Status:** Current · "Run slice 1" verified 2026-10-30 by following it step by step in a fresh clone on Windows 11 (Docker Desktop). The rest was verified on 2026-10-26 to 2026-10-28 and is marked below. Nothing here is deployed. By default the application services are not containers, so you run them on the host against the ports below (the `apps` compose profile runs them as containers: `docker compose --profile apps up -d --build`, checked by `node scripts/ci/skeleton-smoke.mjs --containers`). **Not re-verified in a fresh clone since 2026-10-30**, although the page was edited several times after it (the sessions Redis, the seed's payment methods, the demo); the one-command demo (`node scripts/dev/demo.mjs`) is the path that is run regularly. A fresh-clone re-run is on the gaps list (`docs/governance/pre-publish-gaps.md`, item 9).
 
 ## Run slice 1
 
