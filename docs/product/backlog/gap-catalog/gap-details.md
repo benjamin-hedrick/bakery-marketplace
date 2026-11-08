@@ -99,7 +99,7 @@ Format for all: Mermaid in Markdown (already the repo convention, renders on Git
 | G-E07 | Link check and stale-phrase baseline of the whole docs tree (T-09) | script | S | Done | `docs/evidence/baseline-2026-10-30.md`, `scripts/docs/linkcheck.mjs` |
 | G-E08 | Accessibility smoke on the customer pages (the plan names it; the web lint has a11y rules) | axe through Playwright | M | Done | `apps/web-customer/tests/e2e/accessibility.spec.ts` (5 scans, axe-core 4.14.0); the first run found a missing document language and two missing titles, fixed |
 | G-E09 | Dependency audit and secret scan outputs recorded (`npm audit`, container scanner on history) | T-05, T-36 | S | Done (secret scan: `docs/evidence/secret-scan-2026-10-30.md`; dependency audit and SBOMs: `docs/evidence/WI-SEC-004/dependency-audit-2026-11-07.md`, `scripts/ci/dependency-audit.mjs`; a container image scanner was not run) | `WI-SEC-004` |
-| G-E10 | The AI-assisted testing experiment (protocol, baseline, results) | T-34 | L | Open | `WI-QA-003` |
+| G-E10 | The AI-assisted testing experiment (protocol, baseline, results) | T-34 | L | Deferred by decision 2026-11-08; the practice is recorded without a baseline | `WI-QA-003` (note at the top) |
 
 ## 7. Theories this repository can test (from the lessons log, the plans and the peer hypotheses)
 

@@ -27,7 +27,7 @@ The project is run the way a small product team would run one, by one lead with 
 - **Definitions of Ready and Done and a verification policy** that says which checks each kind of change carries ([definition of ready](process/definition-of-ready.md), [definition of done](process/definition-of-done.md), [verification policy](process/verification-policy.md), [engineering standards](process/engineering-standards.md)).
 - **Quality gates** run before every push and again in the pipeline ([quality gates](process/quality-gates.md); ten pipeline jobs in [`azure-pipelines.yml`](../azure-pipelines.yml)).
 - **Approval gates:** security, authorization and IAM changes, and any widening of scope, need the lead's approval first ([`CLAUDE.md`](../CLAUDE.md), [AI collaboration](method/ai-collaboration.md)).
-- **Findings are never dropped:** anything found and not fixed goes into the [open-items register](governance/open-items-register.md) in the same change (166 items, each with a status), and what was learned goes into [the lessons](method/lessons.md) (34).
+- **Findings are never dropped:** anything found and not fixed goes into the [open-items register](governance/open-items-register.md) in the same change (166 items, each with a status), and what was learned goes into [the lessons](method/lessons.md) (36).
 
 ## Risk, governance and communication
 
