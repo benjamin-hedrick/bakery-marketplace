@@ -1,6 +1,6 @@
 # AI collaboration in this repository
 
-> **Status:** Current, expected to change · written 2026-10-30 from the repository's own records. It says how AI assistants are used here, what went wrong, and which control caught it. AI models and tooling are changing quickly, so this record is reviewed and revised as new information arrives (see "A moving target"). Its numbers are measurements; its judgments about speed and value are the lead's experience and are labelled as such.
+> **Status:** Current, expected to change · written 2026-10-30 from the repository's own records; the error table and the usage figures extended 2026-11-08. It says how AI assistants are used here, what went wrong, and which control caught it. AI models and tooling are changing quickly, so this record is reviewed and revised as new information arrives (see "A moving target"). Its numbers are measurements; its judgments about speed and value are the lead's experience and are labelled as such.
 
 The repository is an experiment in building a small product with AI assistants under human direction, while keeping practice and technology current. The lead decides and approves; AI assistants draft, implement, verify and record. Most of the code and documentation was written by an assistant (Claude Code in interactive sessions, after an earlier phase of planning in chat) and reviewed by the lead.
 
@@ -53,7 +53,16 @@ The point of this table is the right-hand column. Each error was caught by a con
 | Writing evidence, 2026-10-30 | Text stated more than was measured: "flat, no drift" for runs that fell from 34.2 s to 31.4 s; a status listed as stale that did not state one; a cause for a 7 s timing that was not checked | Re-reading the claim against the output before committing |
 | A Compose variable, 2026-10-31 | A new service in the optional `apps` profile used `${ORDERING_CLIENT_SECRET:?...}` (required). Compose checks every variable in the file, including services that were not selected, so the pipeline's step that only starts Redis failed on a clean agent with no `.env`. It passed on the development machine because `.env` exists there | The Azure pull-request run (a clean agent), as in the earlier local-state findings; reproduced locally with an empty `--env-file`, fixed with an empty default (the service then stops at start-up and names the missing setting) |
 
-Seven of the ten test episodes were found by the clean Linux pipeline or container run and not on the development machine (`docs/evidence/test-reliability/findings.md`).
+| A cache test, 2026-11-07 | A test waited with no time limit on a second request; with the code deliberately broken in a mutation check, the run hung for more than five minutes and left a process alive (lesson L-25) | The mutation check itself; every wait now has a limit and the rerun failed in 5 seconds |
+| A mock, 2026-11-07 | The mock BFF sent no `Cache-Control` while the real one always does, so a test was not checking what it claimed (L-26) | The test failing; the real BFF's own tests are now the reference |
+| An Android flow, 2026-11-07 | A tap landed on a payment button because the list loaded late and moved "Place order"; the refused card was chosen (L-27, register 161) | The first run of the flow; the layout was fixed and the flows around it re-run. A first fix that reserved too much room pushed the button off the screen and failed another flow (L-32) |
+| Mutation checks, 2026-11-04 and 2026-11-07 | One was applied backwards and passed; one did not build so nothing was evaluated (L-29) | A run that printed 15 tests where 23 were expected; a command that would have discarded uncommitted work was refused |
+| A schema comment, 2026-11-07 | It said another role would be refused; the service accepts either role and decides from who owns the order (L-30) | Planning a real-stack test of the behaviour |
+| Dates and remote state, 2026-11-07 | "2026-11-08" was written in about ten documents for work done that day, and merged branches were reported as still on the remote when only stale tracking references showed them (L-31) | Found after the fact; the date was corrected in commit `ec47b70`, and the remote is now checked with `git fetch --prune` first |
+| The demo film's scripts, 2026-11-08 | The director deleted its own log folder, ended while the vendor was still working the queue, and a cancel lost a race with the vendor; two labels covered page text; captions overlapped | Running it and reading its timeline and frames (`docs/operations/demo-film.md`) |
+| A shell heredoc, 2026-11-08 | An edit script was written through a heredoc, against the working convention (L-24) | Noticed on re-reading the rule; nothing was lost, and the next edits used the file tools |
+
+Seven of the ten test episodes recorded by 2026-10-30 were found by the clean Linux pipeline or container run and not on the development machine (`docs/evidence/test-reliability/findings.md`).
 
 ## The controls that did the catching
 
@@ -80,9 +89,34 @@ What has worked in this repository, stated as practice:
 - Do not push a branch whose earlier commits contain material that should not be public; push a squashed branch.
 - On a Windows development machine with a bash-like shell: write a long script to a file and run it, because long heredocs containing quotes fail to parse; the shell may reset to the repository root between commands, so use absolute paths; Git warns that line endings will change, which is expected (`.gitattributes` normalizes them).
 
+## What the sessions cost
+
+Each Claude Code session's cost, time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. Fifteen sessions are recorded (the planning in chat before the repository, the September delegation packets and the session of 2026-11-08 that ran the demo film and produced the documentation pass are not in this table).
+
+| Session | Work | Cost | API time | Wall-clock | Lines added |
+|---|---|---:|---:|---:|---:|
+| A (date not recorded) | an earlier session | $9.59 | 37 min | 4 h 20 min | 2,720 |
+| B, 2026-10-31 | the dev-environment and teardown work | $2.88 | 12 min | 3 h 19 min | 1,224 |
+| C, 2026-11-01 | browser sessions and the vendor queue's read side | $34.81 | 1 h 27 min | 12 h 59 min | 11,083 |
+| D, 2026-11-02 | the live vendor queue | $21.33 | 1 h 5 min | 6 h 28 min | 6,992 |
+| E, 2026-11-02 evening | vendor actions, rate limits, the security and quality pass | $13.81 | 41 min | 5 h 58 min | 3,462 |
+| F, 2026-11-03 | the notification service | $2.44 | 12 min | 1 h 30 min | 1,252 |
+| G, 2026-11-03 to 04 | order history, start of personalization | $14.07 | 42 min | 3 h 34 min | 4,761 |
+| H, 2026-11-04 | the rest of personalization | $18.82 | 1 h 3 min | 3 h 44 min | 7,529 |
+| 2026-11-04 | the mobile spike | $2.05 | 9 min | 1 h 17 min | 184 |
+| 2026-11-04 | the Android app build | $22.90 | 50 min | 5 h 19 min | 3,243 |
+| 2026-11-05 | static analysis and documents | $1.34 | 6 min | 46 min | 198 |
+| 2026-11-06 | the register walk-through | $5.47 | 25 min | 4 h 35 min | 624 |
+| 2026-11-06 | register items and payment methods (`WI-ORD-010`) | $10.18 | 37 min | 4 h 5 min | 2,161 |
+| 2026-11-07 | CI fixes, the listing cache, cancel buttons, order polling | $24.38 | 49 min | 6 h 4 min | 3,850 |
+| 2026-11-07 (second) | the fulfillment strategy, the dependency audit, the demo film's scripts | $9.73 | 25 min | 3 h 46 min | 2,213 |
+| **Total** | | **$193.80** | **9 h 20 min** | **67 h 44 min** | **51,496** |
+
+Read it with care. A session's wall-clock time is mostly the lead reading, deciding and waiting (API time is the assistant working: about one hour in seven). Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the cost by the 85 items gives about $2.30 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
+
 ## What is measured and what is not
 
-Measured: test counts, a browser flake baseline, real-stack timings, a mutation sample, the number of errors found by each control. **Not measured:** time saved, the cost of review and rework, how many AI suggestions were accepted or rejected. The AI-assisted testing experiment in the October plan (`docs/management/portfolio-slice/02-vertical-slice-and-quality.md`) has not been run, so there is no baseline. The speed and value described by the lead are experience; to turn them into evidence, a baseline would be defined first.
+Measured: test counts and line coverage ([the test report](../evidence/README.md)), a browser flake baseline, real-stack timings, a mutation sample, the number of errors found by each control, and now the cost, time and size of each recorded session (above). **Not measured:** time saved against a hand-built baseline, the cost of review and rework, and how many AI suggestions were accepted or rejected. The AI-assisted testing experiment in the October plan (`docs/management/portfolio-slice/02-vertical-slice-and-quality.md`) has not been run, so there is no baseline. The speed and value described by the lead are experience; to turn them into evidence, a baseline would be defined first.
 
 ## Not exercised
 
