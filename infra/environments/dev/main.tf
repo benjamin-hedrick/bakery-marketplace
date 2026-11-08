@@ -19,7 +19,7 @@ locals {
     Lifetime    = "disposable"
   })
 
-  # Secrets whose real value never passes through Terraform or its state (ADR-0020, decision 4; chosen by the lead on 2026-10-31).
+  # Secrets whose real value never passes through Terraform or its state (ADR-0020, decision 4).
   # Terraform creates each with a placeholder and ignores later changes; a pipeline step sets the real value with "az keyvault secret set".
   placeholder_secrets = toset(["cosmos-connection-string", "ordering-client-secret", "session-encryption-key"])
   placeholder_value   = "set-after-apply"
@@ -234,7 +234,7 @@ resource "azurerm_cosmosdb_sql_container" "preferences" {
 }
 
 # ---- The apps ---------------------------------------------------------------------------------------------------------------------------
-# Redis for the event backbone: internal only, no persistence, torn down with the environment (chosen by the lead on 2026-10-31).
+# Redis for the event backbone: internal only, no persistence, torn down with the environment.
 resource "azurerm_container_app" "redis" {
   name                         = "redis-events"
   resource_group_name          = local.rg
@@ -423,7 +423,7 @@ resource "azurerm_container_app" "apps" {
   depends_on = [azurerm_container_app.redis, azurerm_container_app.mock]
 }
 
-# ---- The mock issuer (register item 102; the lead chose it for the first deployed dev environment on 2026-10-31) -------------------------
+# ---- The mock issuer (register item 102; chosen for the first deployed dev environment on 2026-10-31) -------------------------
 # Public https ingress, because the browser logs in here. It signs tokens for whoever asks, so it is held to MockOidcDeployment: it starts in
 # Production only with AllowDeployedDev, an https issuer, and the role list below (Customer only unless allowed_ips is set). Its ordering client
 # secret is the same Key Vault secret ordering presents; the post-apply step generates and stores it.

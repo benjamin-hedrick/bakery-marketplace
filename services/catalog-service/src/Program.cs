@@ -17,20 +17,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Tracing (ADR-0016, WI-PORT-005): exports over OTLP only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
 builder.Services.AddBakeryTelemetry(builder.Configuration, "catalog-service");
 
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:5173" };
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontendOrigin", policy =>
-    {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
-
 // Auth (ADR-0006): JWT bearer + role policies from the shared library; Authority/Audience come from config, so the
 // local mock issuer and Entra External ID are a config swap. Plain-HTTP metadata is allowed only in Development.
 builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !builder.Environment.IsDevelopment());
@@ -152,7 +138,6 @@ builder.Services.AddHostedService<VendorEventSubscriptions>();
 var app = builder.Build();
 
 app.UseCorrelationId();
-app.UseCors("AllowFrontendOrigin");
 app.UseAuthentication();
 app.UseAuthorization();
 

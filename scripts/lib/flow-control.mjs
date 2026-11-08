@@ -6,7 +6,7 @@
 //   POST /bff/stop     /bff/start                              takes the BFF away and brings it back (waits until it answers), for the "check failed" flow
 //   POST /issuer/restart                                       restarts the mock issuer's container so it forgets its refresh tokens (WI-MOB-003, "refused session" flow)
 //
-// It is test tooling, local only, and it is on the list to be reviewed (register item 150): the lead's rule is not to build functionality only to close a gap in testing.
+// It is test tooling, local only, and it is on the list to be reviewed (register item 150): the project's rule is not to build functionality only to close a gap in testing (CLAUDE.md).
 // The customers' saved allergen profiles are NOT set here any more: they are seed data (tools/BakeryMarketplace.Seed, SeedData.CustomerProfiles) for customers of the mock
 // identity, and a flow logs in as the customer whose profile it needs. It listens on 127.0.0.1 and signs in as the customer asked for the way the app does
 // (authorization code, PKCE S256, the public client bakery-mobile and the app's registered redirect address), so it needs no new endpoint or secret on the issuer.

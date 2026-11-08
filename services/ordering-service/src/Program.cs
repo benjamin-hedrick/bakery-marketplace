@@ -15,20 +15,6 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:5173" };
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontendOrigin", policy =>
-    {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
-
 // Tracing (ADR-0016): exports over OTLP only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
 builder.Services.AddBakeryTelemetry(builder.Configuration, "ordering-service", VendorOrderStreamHub.MeterName);
 
@@ -143,7 +129,6 @@ builder.Services.AddSingleton<OrderActionService>(); // WI-ORD-007
 var app = builder.Build();
 
 app.UseCorrelationId();
-app.UseCors("AllowFrontendOrigin");
 app.UseAuthentication();
 app.UseAuthorization();
 

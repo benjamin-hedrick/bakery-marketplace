@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: `BakeryMarketplace.slnx` and the projects it lists
 
+> **Update 2026-11-08 (code review):** the per-service CORS policy (a default origin of the Vite dev server, with credentials) was removed from all four services: browsers reach the services through the GraphQL BFF and the web apps' servers, never directly.
+
 ```
 WI ID:               DEV-001
 Title:                Scaffold the base .NET solution and project structure

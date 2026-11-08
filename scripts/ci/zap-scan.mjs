@@ -4,7 +4,7 @@
 //   - the customer app (http://localhost:3000) and the vendor's queue display (http://localhost:3100): the baseline scan (a spider and the passive
 //     rules: headers, cookies, information leaks). No attack requests.
 //   - the GraphQL BFF (http://localhost:4100/graphql): the API scan with the GraphQL importer, which also sends attack requests (active rules).
-// All three are the lead's own system running on this machine. The scan is unauthenticated: it sees what an anonymous visitor sees, not what a
+// All three are this project's own services running on this machine. The scan is unauthenticated: it sees what an anonymous visitor sees, not what a
 // logged-in vendor sees (no login script for ZAP exists yet), so it says nothing about the pages behind a login.
 //
 //   node scripts/ci/zap-scan.mjs [--keep] [--image ghcr.io/zaproxy/zaproxy:stable] [--spider-minutes 1]

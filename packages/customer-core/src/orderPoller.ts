@@ -1,4 +1,4 @@
-// How a customer's order page keeps its status current (the lead's decision, 2026-11-07: polling for the customer; the vendor's screen has the push
+// How a customer's order page keeps its status current (decision of 2026-11-07: polling for the customer; the vendor's screen has the push
 // mechanism, ADR-0021). The rules, with no React, Relay or network in them, so they are tested with a fake clock and shared by the web app and the
 // Android app:
 //  - read at once, then every few seconds while the order can still change; stop for good once it is completed or cancelled;

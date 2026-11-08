@@ -2,7 +2,7 @@
   "name": "@bakery/web-queue-display",
   "version": "0.0.0",
   "private": true,
-  "description": "WI-QUE-002: the live order queue display for a vendor's counter or kitchen screen",
+  "description": "The vendor's live order queue for a counter or kitchen screen: live by push with polling as the fallback, and the vendor's order actions",
   "engines": {
     "node": ">=24"
   },
