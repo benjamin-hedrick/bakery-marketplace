@@ -14,13 +14,13 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [AUTH-002](WI-AUTH-002.md) | Per-service resource-ownership check pattern + reference application | Done | `ResourceOwnershipHandlerTests.cs` | `findings.md` |
 | [AUTH-005](WI-AUTH-005.md) | Local mock OIDC issuer — token minting + PKCE authorization-code flow | Done | `MockOidcMiddlewareIntegrationTests.cs` | *none* |
 | [AUTH-006](WI-AUTH-006.md) | Service-to-service authentication (OAuth2 client credentials) | In progress | `ClientCredentialsIssuerTests.cs` | *none* |
-| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | In progress | `RefreshTokenGrantTests.cs` | `findings.md`, `ai-usage-2026-11-01.md` |
+| [AUTH-007](WI-AUTH-007.md) | Browser sessions: a server-side session behind an HttpOnly cookie (backlog N-01) | In progress | `RefreshTokenGrantTests.cs` | `README.md`, `findings.md`, `ai-usage-2026-11-01.md` |
 | [CACHE-001](WI-CACHE-001.md) | Define CacheProvider interface + shared contract test suite | Done | `CacheProviderContractTests.cs` | *none* |
 | [CACHE-002](WI-CACHE-002.md) | RedisCacheProvider implementation | Done | `RedisCacheProviderTests.cs` | *none* |
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | Done | `LocalCacheProviderTests.cs`, `ResilientCacheProviderTests.cs` | *none* |
 | [CACHE-004](WI-CACHE-004.md) | ChaosCacheProvider decorator + fallback proof tests | Done | `ChaosCacheProviderTests.cs` | *none* |
 | [CAT-001](WI-CAT-001.md) | Listing CRUD + modifier/allergy-flag model | Done | `ListingApiTests.cs` | `README.md`, `findings.md` |
-| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `after-2026-11-07.md`, `baseline-2026-11-07.md`, `ai-usage-2026-11-07.md` |
+| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `README.md`, `after-2026-11-07.md`, `baseline-2026-11-07.md` and 1 more |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | Done | `ListingStockTests.cs`, `ConcurrencyContractTests.cs` | *none* |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | Done | `StockReservationTests.cs`, `BatchContractTests.cs` | *none* |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
@@ -35,7 +35,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |
-| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | In progress | `MockOidcFixedIssuerTests.cs` | `environment-stack-2026-10-31.md`, `images-and-compose-2026-10-31.md`, `terraform-foundation-and-gate-rehearsal-2026-10-31.md` and 3 more |
+| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | In progress | `MockOidcFixedIssuerTests.cs` | `README.md`, `environment-stack-2026-10-31.md`, `images-and-compose-2026-10-31.md` and 4 more |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | Done | *none* | *none* |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | Done | *none* | `findings.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | Done | `walking-skeleton.spec.ts`, `SeederTests.cs` | `findings.md`, `findings.md` |
@@ -48,9 +48,9 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [MGMT-005](WI-MGMT-005.md) | Draft the budget / cost estimate | In review | *none* | *none* |
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | Done | *none* | *none* |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | Done | *none* | *none* |
-| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | In review | *none* | `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md`, `ai-usage-2026-11-04-to-06.md` |
-| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | `identity.test.ts`, `flow-control.test.mjs`, `SeedCustomerProfilesTests.cs` | `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md`, `ai-usage-2026-11-04-to-06.md` |
-| [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | In review | `api.test.ts`, `register.mjs`, `session.test.ts` and 1 more | `maestro-flows-2026-11-05.md`, `unit-tests-2026-11-05.md` |
+| [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | In review | *none* | `README.md`, `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` and 1 more |
+| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | `identity.test.ts`, `flow-control.test.mjs`, `SeedCustomerProfilesTests.cs` | `README.md`, `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` and 1 more |
+| [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | In review | `api.test.ts`, `register.mjs`, `session.test.ts` and 1 more | `README.md`, `maestro-flows-2026-11-05.md`, `unit-tests-2026-11-05.md` |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `README.md`, `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | In review | *none* | `README.md`, `ai-usage-2026-11-03.md` |
@@ -83,13 +83,13 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [QUE-001](WI-QUE-001.md) | Order-status read-model (event-fed, not direct query) | Done | `vendor-orders.test.ts`, `VendorOrderReadModelTests.cs` | *none* |
 | [QUE-002](WI-QUE-002.md) | web-queue-display app — live UI | Done | `queue.spec.ts` | `ai-usage-2026-11-01.md` |
 | [QUE-003](WI-QUE-003.md) | Live updates to the vendor queue: push over a stream, polling kept (backlog N-04, ADR-0021) | Done | `vendor-live.spec.ts`, `live.spec.ts`, `graphql-stream.test.ts` and 6 more | `README.md`, `graphql-sse-review-2026-11-02.md`, `real-stack-2026-11-02.md` and 3 more |
-| [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | In review | `vendor-actions.spec.ts`, `actions.spec.ts`, `queue.spec.ts` and 1 more | `real-stack-2026-11-02.md`, `ai-usage-2026-11-02-b.md` |
+| [QUE-004](WI-QUE-004.md) | The vendor's actions in the queue display: confirm, decline, start, ready, complete | In review | `vendor-actions.spec.ts`, `actions.spec.ts`, `queue.spec.ts` and 1 more | `README.md`, `real-stack-2026-11-02.md`, `ai-usage-2026-11-02-b.md` |
 | [QUE-005](WI-QUE-005.md) | Allergens on the vendor's order card | In review | `queue-allergens.spec.ts`, `allergens.spec.ts`, `allergens.test.ts` | `ai-usage-2026-11-04.md` |
-| [RATE-001](WI-RATE-001.md) | First rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128) | In review | `rate-limit.spec.ts`, `rate-limit.test.ts`, `rate-limit.test.ts` | `run-2026-11-02.md`, `load-soak-2026-11-03.md`, `ai-usage-2026-11-02-b.md` |
+| [RATE-001](WI-RATE-001.md) | First rate limits: per address and per login at the web apps, a coarse backstop at the BFF (register item 128) | In review | `rate-limit.spec.ts`, `rate-limit.test.ts`, `rate-limit.test.ts` | `README.md`, `run-2026-11-02.md`, `load-soak-2026-11-03.md` and 1 more |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | Built | *none* | `baseline-2026-10-30.md` |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | Done | *none* | *none* |
 | [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | In progress | *none* | `README.md`, `dependency-audit-2026-11-07.md`, `ai-usage-2026-11-07-b.md` and 1 more |
-| [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | In review | `security-headers.spec.ts`, `security-headers.spec.ts`, `fuzz.test.ts` and 3 more | `fuzz-2026-11-02.md`, `load-soak-2026-11-03.md`, `zap-2026-11-03.md` and 1 more |
+| [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | In review | `security-headers.spec.ts`, `security-headers.spec.ts`, `fuzz.test.ts` and 3 more | `README.md`, `fuzz-2026-11-02.md`, `load-soak-2026-11-03.md` and 2 more |
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | In review | `personalized.spec.ts`, `ConflictMatcherTests.cs`, `PersonalizedListingApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | In review | `tags.spec.ts`, `TagApiTests.cs`, `TagRegistryTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | In review | `tags.spec.ts`, `listing-tags.spec.ts`, `TagAssignmentApiTests.cs` and 2 more | `ai-usage-2026-11-04.md` |

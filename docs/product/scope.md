@@ -1,6 +1,6 @@
 # Scope: features and artifacts, and where each stands
 
-> **Status:** Current · written 2026-10-30, state column refreshed 2026-11-05. Moved from the repository's original `portfolio-plan.md` (September 2026, now in `docs/history/portfolio-plan-2026-09.md`): the scope decisions and the MVP legend are the original's; the "State" columns are new and say what exists in the repository on this date. "Built" means built and run locally. Nothing is deployed.
+> **Status:** Current · written 2026-10-30, state column refreshed 2026-11-05, two rows corrected 2026-11-08 (payments, `PickupFulfillment`). Moved from the repository's original `portfolio-plan.md` (September 2026, now in `docs/history/portfolio-plan-2026-09.md`): the scope decisions and the MVP legend are the original's; the "State" columns are new and say what exists in the repository on this date. "Built" means built and run locally. Nothing is deployed.
 
 A pickup-based marketplace connecting customers with local bakeries and coffee shops and with independent or homemade vendors, with dietary preference matching, order customization, a live order-queue display and sponsored placement in search. Designed so delivery and dispatch can be added without building them in v1. The project exists to show end-to-end ownership across architecture, engineering lead, product, digital product management, operations and platform roles.
 
@@ -28,10 +28,10 @@ State words: **Built** (runs locally), **Partly**, **Stub** (a named stand-in), 
 | Vendor onboarding and verification | MVP | Stub | Vendors are seeded and marked verified by an event the seed script publishes (`VEN-001`, `VEN-002` are Ready) |
 | Notifications and background processing | MVP | Built (local) | `notification-service` consumes order events and sends through a sender adapter; no real provider (`NOT-001`, `NOT-002`, In review) |
 | Admin and moderation console | MVP-lite | Not started | `admin-service` is an empty scaffold |
-| Payments and vendor payouts | MVP-lite | Stub | A named stub approves every payment; no Stripe code |
+| Payments and vendor payouts | MVP-lite | Stub | A named stub judges a customer's saved payment method by its token rule (`WI-ORD-010`); no Stripe code, no money moves |
 | Reviews and trust | MVP-lite | Not started | |
 | Full ad platform (bidding, ad analytics) | Deferred | Deferred | ADR only |
-| Delivery and dispatch (courier, ETA, cold chain) | Deferred | Deferred | The fulfillment seam is built (ADR-0001); `PickupFulfillment` is not |
+| Delivery and dispatch (courier, ETA, cold chain) | Deferred | Deferred | The fulfillment seam is built (ADR-0001) and `PickupFulfillment` runs behind it as its own consumer (`WI-ORD-003`, In review); delivery itself is not |
 | B2B small-supplier flow | Deferred | Deferred | Scoped out in the domain glossary |
 | Full multi-region scale and disaster recovery | Deferred | Deferred | Named in the NFRs |
 
