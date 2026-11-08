@@ -51,4 +51,4 @@ See `docs/process/definition-of-done.md`. Item-specific addition: verify the ful
 Yes. Fully specified by ADR-0006/0011 plus the acceptance criteria above; the login page's UI is deliberately minimal (a pick-list, not a designed experience).
 
 **Open Points (working)**
-- [ ] No refresh-token support anywhere in this flow — promoted to `docs/governance/open-items-register.md` (item #24) rather than left here, since it's a real v1 limitation that outlives this item
+- [x] No refresh-token support anywhere in this flow **Resolved 2026-11-02:** the issuer has a refresh grant and the browser and Android sessions use it (ADR-0019, ADR-0023); register 24 is resolved. -- — promoted to `docs/governance/open-items-register.md` (item #24) rather than left here, since it's a real v1 limitation that outlives this item

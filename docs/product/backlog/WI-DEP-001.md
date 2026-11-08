@@ -44,4 +44,4 @@ See `docs/process/definition-of-done.md`.
 Partial; identity and IAM changes need the lead's approval.
 
 **Open Points (working)**
-- [ ] Whether the lead wants this at all (the trigger is the lead's decision).
+- [x] Whether the lead wants this at all (the trigger is the lead's decision). **Resolved:** the lead picked it up; see the banner for what is done and what remains.

@@ -61,4 +61,4 @@ Yes. Specified by ADR-0003 and ADR-0004 and the data contract; the open points a
 **Data touched**: `order-status-readmodel` container
 
 **Open Points (working)**
-- [ ] `customerName`: orders carry the customer id from the token, not a name, and no service holds one yet. Show the short order reference instead, or defer the field until a profile exists.
+- [x] `customerName`: orders carry the customer id **Resolved:** the vendor card shows the short order reference and no customer name. -- from the token, not a name, and no service holds one yet. Show the short order reference instead, or defer the field until a profile exists.

@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: acceptance met; the open point (relative sequencing) was settled in `docs/management/project-plan.md`
 
+> **Update 2026-11-08 (documentation pass):** `ACTIVITY-LOG.md` and `project-log.md` named below were closed and archived (`docs/history/`); the plan's current-status marker is read against `STATUS.md` and the evidence instead.
+
 ```
 WI ID:               MGMT-001
 Title:                Draft the execution-level project plan
@@ -47,4 +49,4 @@ See `docs/process/definition-of-done.md`. Item-specific addition: every phase's 
 Yes, with one flagged exception. Phase structure and current-status marker are fully derivable from existing artifacts. Whether to add real calendar-date targets (vs. staying relative) is a genuine business/pacing decision this item can't resolve on its own — flagged as an Open Point rather than assumed.
 
 **Open Points (working)**
-- [ ] Relative phase sequencing vs. real calendar-date targets — needs a decision on available pace (hours/week), not invented here
+- [x] Relative phase sequencing vs. real calendar-date targets **Resolved:** relative sequencing, settled in `docs/management/project-plan.md`. -- — needs a decision on available pace (hours/week), not invented here

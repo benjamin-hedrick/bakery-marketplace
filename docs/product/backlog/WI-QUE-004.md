@@ -69,6 +69,6 @@ Full for the build. Flag, do not choose: any change to `packages/web-session` (s
 
 **Open Points (working)**
 - [x] Register item 133 (the board's list could overwrite a newer pushed change). **Resolved 2026-11-02:** the lead approved changing `WI-QUE-003`'s board logic; fixed with a merge by sequence.
-- [ ] Vendor cancel after confirmation: left out. The lead decides whether and when (stock and customer consequences).
-- [ ] Whether "Handed over" should wait for the customer's pickup confirmation (`WI-ORD-003`). Until then the vendor's complete is the only completion.
+- [x] Vendor cancel after confirmation: left out. **Resolved 2026-11-07:** built as `WI-ORD-011`. -- The lead decides whether and when (stock and customer consequences).
+- [x] Whether "Handed over" should wait for the customer's pickup confirmation **Resolved 2026-11-07:** "Handed over" is a request the pickup strategy answers (`WI-ORD-003`, a 202). -- (`WI-ORD-003`). Until then the vendor's complete is the only completion.
 - [ ] Should Decline take a reason? Ordering takes none in v1 (the reason code is fixed).

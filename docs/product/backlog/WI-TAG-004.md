@@ -29,7 +29,7 @@ Vegetarian, vegan, halal and kosher are claims a vendor makes, so they cannot be
 **Out of scope**
 - Allergens (they are `PREF-001` and `SRCH-001`); interests in occasion, season or theme tags; any filtering the customer did not ask for.
 
-**Requirements / Acceptance Criteria** (outline; to be completed when the decision is made)
+**Requirements / Acceptance Criteria** (the plan as written before the decisions of 2026-11-04; as built, the outcome note above applies: the match is its own field, `dietMatches`, not a new severity)
 - The profile gains `prefer` (diet tag ids, validated against the registry). A listing "not marked" for a preferred diet is shown with a quiet, accessible note; one marked is shown with the bakery's claim. A preference never hides a listing unless the customer turns on the hide toggle for it.
 - The composition rule: a configured item is marked for a diet only if the item has the tag and no chosen option contradicts it. How an option contradicts a claim (an explicit "breaks" marker, or an option that must carry the tag) is decided here and recorded as an amendment to ADR-0022.
 - The cart check (`SRCH-001`) applies the same rule to the options actually chosen.

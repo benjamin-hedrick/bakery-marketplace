@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: the Outcome note under this banner; `tools/BakeryMarketplace.Seed`
 
+> **Update 2026-11-08 (documentation pass):** the seed now also writes the customers' saved allergen profiles and payment methods (`docs/operations/local-dev.md`, "Seeded customers"); the text below says preference profiles were deferred.
+
 ```
 WI ID:               DEV-004
 Title:                Seed / fixture data script

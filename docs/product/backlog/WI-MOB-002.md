@@ -48,7 +48,7 @@ See `docs/process/definition-of-done.md`.
 Yes. The wording and gating rules are in the shared package; the lead reviews the safety wording (an allergy warning must never imply safety).
 
 **Open Points (working)**
-- [ ] How a flow gives a test customer an allergy profile (a `savePreferences` call from a Maestro script, or a seeded mock user): decided at build time, the lead reviews. Needs a second mock user or a reset, because the profile persists in the local Cosmos for the life of the stack.
+- [x] How a flow gives a test customer an allergy profile **Resolved 2026-11-04:** seeded mock customers (the lead rejected a run-time call). -- (a `savePreferences` call from a Maestro script, or a seeded mock user): decided at build time, the lead reviews. Needs a second mock user or a reset, because the profile persists in the local Cosmos for the life of the stack.
 
 **As built (2026-11-04)**
 - `apps/mobile-customer/src/allergens.ts` (the hook, the app's version of the web's `useCheckoutAllergens`: tags, each listing's allergens, the profile, the cart check; read fresh whenever the cart's items or options change, nothing stored), `CartScreen` (what each line contains), `CheckoutScreen` (warnings, acknowledgement, "no profile", "check failed", "Tell the bakery"; the allergens go into the order and into the idempotency fingerprint), `App.tsx` and `src/auth/session.ts` ("Signed in as").

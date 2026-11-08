@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: `docs/architecture/c4/context.md`, `container.md`
 
+> **Update 2026-11-08 (documentation pass):** the body is the September plan: the identity provider is Microsoft Entra External ID (ADR-0006 note), there are 23 ADRs, and the container and component pages were redrawn to the built services on 2026-11-08 (`docs/architecture/c4/`).
+
 ```
 WI ID:               ARCH-001
 Title:                C4 Diagrams — System Context + Container

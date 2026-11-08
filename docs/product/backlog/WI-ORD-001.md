@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: `services/ordering-service` and its tests; the verification below was run on 2026-10-28
 
+> **Update 2026-11-08 (documentation pass):** the optional `X-Test-Payment: decline` header named in the body was replaced by saved payment methods (`WI-ORD-010`): checkout names a payment method and the payment stub judges its token. There is no test header or hook now.
+
 ```
 WI ID:               ORD-001
 Title:                Checkout (payment stubbed)
