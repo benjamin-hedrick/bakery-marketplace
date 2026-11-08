@@ -1,5 +1,7 @@
 # WI-AUTH-007 Findings: browser sessions on the web apps' servers
 
+> **Current result (2026-11-02):** both web apps log in through the server-side session and the real-stack journeys passed (23 on the host stack). The security review the definition of done requires, the first Azure run of the `session` job and the applied dev environment are not done (`docs/product/backlog/STATUS.md`).
+
 **Date:** 2026-11-02 · **Branch:** `feature/vendor-order-detail` · **Code:** `packages/web-session/`, `apps/web-customer/`, `apps/web-queue-display/`, `tools/BakeryMarketplace.Auth/` · **Decision:** ADR-0019
 
 ## Result

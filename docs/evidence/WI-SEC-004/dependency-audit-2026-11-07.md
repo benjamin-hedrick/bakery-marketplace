@@ -8,7 +8,7 @@
 - **The SBOMs list production dependencies only** (npm `--omit dev`; NuGet with test projects excluded). `graphql-bff` has two components because it has two production dependencies (`graphql`, `graphql-sse`). The four .NET SBOMs include the shared `tools/` libraries through project references. `admin-service` is a scaffold and still has 33 components because it references the shared libraries.
 - **What the audit does not cover:** container base images (no scanner was run on the Compose or Dockerfile images), licence review, the Terraform provider versions, and anything not in a lock file. `G-E06` (`terraform validate` and `plan` on the Key Vault module) is a different part of `WI-SEC-004` and was not part of this run.
 
-Run: 2026-11-07T23:58:31.605Z · commit db1e928 · node v25.9.0
+Run: 2026-11-07T23:58:31.605Z · commit db1e928 · node v25.9.0 (the summary below was regenerated with `--no-sbom`, which is why its SBOM section says Skipped; the eight SBOMs of the first run are in `sbom/`)
 Command: `node scripts/ci/dependency-audit.mjs` (raw output in `raw/`)
 
 ## npm (critical / high / moderate / low)

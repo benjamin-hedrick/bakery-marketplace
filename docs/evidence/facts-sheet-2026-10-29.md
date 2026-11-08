@@ -1,5 +1,7 @@
 # As-built facts sheet (2026-10-29)
 
+> **Current result (2026-11-08):** a snapshot of 2026-10-29: the counts, the endpoint list and "no application containers" were true that day and are not maintained. Later counts are in the generated test record and `docs/testing.md`; what is built now is in `docs/product/backlog/current-plan.md`.
+
 The ground truth every document claim is checked against in the review pass. Provenance per row: **RUN** = executed in this session; **READ** = read from code, config or a command's listing in this session; **CLAIM** = stated by a document, not verified. Nothing here says a deployed or cloud environment works: none was run.
 
 ## Environment of the checks

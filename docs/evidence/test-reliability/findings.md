@@ -1,5 +1,7 @@
 # Test reliability: flakes and "passed here, failed there" (2026-10-26 to 2026-10-29)
 
+> **Current result (2026-10-29):** ten episodes (flakes and "passed here, failed there"), seven found only on a clean agent; no data series existed then. The browser suite has since been repeated 10 times by script (620 executions, 0 failures, `quality-report-2026-10-30.md`).
+
 **Status:** reconstructed 2026-10-29. Not recorded at the time as a series; the sources are commit messages and the assistant's reports in the working sessions (local Claude Code transcripts, not committed). Counts such as "2 of 4 runs" are those reports, not measurements saved as data. `scripts/ci/summarize-results.mjs` can record flaky retries per run, but nothing here was captured that way, so there is no trend (see "What is missing").
 
 Two kinds of failure appear, and they need different cures. A **flake** is the same code giving different results (timing, ordering, parallelism). An **environment leak** is a test that passed only because of something left on the developer's machine, and fails on a clean agent every time. The Azure pipeline found most of the second kind, which is the main argument for running every change on a clean Linux agent.

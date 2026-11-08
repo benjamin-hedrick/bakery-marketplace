@@ -118,7 +118,7 @@ Consequences for the review: G2 gaps are ranked against these five, in this orde
 
 ## Goal A: test automation and quality architecture
 
-Capabilities to demonstrate (supplied by the lead, 2026-10-29; the mapping below is the record): own the test-automation vision for cloud and mobile systems, build reusable frameworks, put automated tests into CI/CD (Azure DevOps preferred), mentor, report quality metrics (flake risk, execution performance, release gates), take an AI-first approach.
+Capabilities to demonstrate (set by the lead, 2026-10-29; the mapping below is the record): test automation and quality architecture for web and mobile systems: reusable frameworks, automated tests in CI/CD (Azure DevOps), quality metrics (flake risk, execution time, release gates) and an AI-assisted approach.
 
 | Requirement | Evidence in the repo (checked by reading, not re-run) | Gap | Tags |
 |---|---|---|---|
@@ -128,16 +128,16 @@ Capabilities to demonstrate (supplied by the lead, 2026-10-29; the mapping below
 | Black and white box, test strategy | Test layers exist (unit, adapter contract tests, service, browser) | **No test-strategy document** naming the layers, what each proves, and what is deliberately not tested | G2 G3 |
 | CI/CD, Azure DevOps | `azure-pipelines.yml` (format, lint, build, .NET, BFF, mock browser tests, real-stack smoke); green run `#20261029.4` | Soft gate only (register 45); `ubuntu-26.04` half open (44) | G2 |
 | Quality metrics: flake risk, execution time, release gates | `scripts/ci/summarize-results.mjs` writes per-run JSON with passed/failed/skipped and time; `docs/process/quality-gates.md` defines the evidence format; about 90 mutation checks reported in slice 1 | **No trend across runs and no flake measurement** (the JSON is per run, nothing aggregates it); release gates are listed but not expressed as a pass/fail policy; no report that leadership could read | G2 G3 G4 |
-| Mentoring, code review, design reviews, tech talks | `docs/process/engineering-standards.md`, definition of done/ready (to review) | No review guide or onboarding path for a test framework; no short design-review or "tech talk" artifact | G3 |
+| Review and onboarding practice | `docs/process/engineering-standards.md`, definition of done/ready (to review) | No review guide or onboarding path for a test framework; no short design-review artifact | G3 |
 | AI-first automation | The whole repo is AI-assisted; approvals recorded; `docs/management/portfolio-slice/04-cache-and-ai-evidence.md` | No page that states how AI was used for tests (generation, mutation-check loop, review), what it got wrong, and the guardrails. This is the differentiator for priority 1 | G2 G3 |
-| Jira, XRay, Confluence, Claude, GitHub | GitHub, Claude: yes. Backlog is Markdown plus a planned GitHub Project | No Jira/XRay/Confluence equivalent; a requirement-to-test traceability table (work item to tests) would show the XRay idea without the tool | G3 |
-| Technical writing, outcome metrics for leadership | ADRs, evidence files, status documents | Findings are strong but scattered; one front-door narrative is missing (D-2) | G2 |
+| Tracking and traceability tools | GitHub and Claude are used. Backlog is Markdown plus a planned GitHub Project | No requirement-to-test table existed; a traceability table (work item to tests) would show the idea without a tracking tool | G3 |
+| Technical writing and outcome metrics | ADRs, evidence files, status documents | Findings are strong but scattered; one front-door narrative is missing (D-2) | G2 |
 
 Implication for the next phases (G4): the slice-1 plan fits this role well on the web side. The cheapest additions that raise coverage are documentary and analytic (a test-strategy page, a framework guide, a quality-metrics report with a flake trend, an AI-in-testing page, a traceability table), then one small Maestro or mobile proof. None needs a deployment.
 
 ## Goal B: web platform and client data fetching (GraphQL/REST, Relay)
 
-Capabilities to demonstrate (supplied by the lead, 2026-10-29): set technical direction for the web layer product engineers build on, with a focus on client data fetching in a hybrid GraphQL/REST environment; caching, consistency, latency and developer ergonomics; Node, SSR, Relay; reusable patterns, standards and documentation; design system and code health; mentoring and cross-team influence. Also to show: how AI collaboration is controlled, and why the approach was chosen.
+Capabilities to demonstrate (set by the lead, 2026-10-29): a web layer with a clear technical direction, with a focus on client data fetching in a hybrid GraphQL/REST environment; caching, consistency, latency and developer ergonomics; Node, SSR, Relay; reusable patterns, standards and documentation; design system and code health. Also to show: how AI collaboration is controlled, and why the approach was chosen.
 
 | Requirement | Evidence in the repo (read, not re-run) | Gap | Tags |
 |---|---|---|---|
@@ -147,7 +147,7 @@ Capabilities to demonstrate (supplied by the lead, 2026-10-29): set technical di
 | Node, SSR | Next.js Pages Router, SSR only for public listing pages; Node BFF (75 tests); hand-rolled OTLP in the Node tiers (register 36) | Authenticated SSR deferred (26); no streaming or caching strategy for SSR | G3 |
 | Reusable patterns, standards, documentation; paved paths | One app; shared code is local (`lib/auth`, `lib/cart`, `lib/relay`) | **No shared web package, no design system, no component library, no "paved path" guide.** `web-admin` and `web-queue-display` are empty, so reuse across apps is not demonstrated | G3 G4 |
 | Code health, developer experience | Prettier, ESLint, typecheck, Relay compile in CI; mock GraphQL server and a mock-backed browser suite (57 tests) | No documented developer workflow for adding a screen or a field (schema change to Relay artifact to test) | G2 G3 |
-| Leadership, mentoring, architecture reviews | ADRs with dated amendments, reconciliation records, `architecture-review.md` | Hypothetical-team artifacts (RACI, review guide) absent (D-3) | G3 |
+| Architecture review practice | ADRs with dated amendments, reconciliation records, `architecture-review.md` | Hypothetical-team artifacts (RACI, review guide) absent (D-3) | G3 |
 | Collaboration with AI, explaining your approach | Same asset as goal A: approvals, mutation checks, reconciliation | The AI-collaboration page (goal A) serves both goals; add an account of decisions the human lead made versus delegated | G2 |
 
 ## What the two goals share (input to G4)

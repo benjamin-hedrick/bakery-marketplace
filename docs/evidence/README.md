@@ -1,6 +1,6 @@
 # Evidence
 
-> **Status:** Current · written 2026-10-30, index completed 2026-11-08 (records from 2026-10-31 to 2026-11-07 added). An evidence record is a snapshot of something that was run or measured: it begins with a "Current result" line and a date, and it is not edited afterwards except to correct it. A newer run is a new record. The ones below are listed newest first within each group.
+> **Status:** Current · written 2026-10-30, index completed 2026-11-08 (records from 2026-10-31 to 2026-11-07 added). An evidence record is a snapshot of something that was run or measured: it begins with a "Current result" line and a date, and it is not edited afterwards except to correct it. A newer run is a new record.
 
 ## Runs and measurements
 
