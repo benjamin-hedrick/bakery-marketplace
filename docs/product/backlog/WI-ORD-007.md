@@ -1,6 +1,6 @@
 > **Status:** Done · evidence: the Outcome note under this banner; `services/ordering-service`
 
-> **Built note (2026-11-08):** the change below is built (`WI-ORD-003`): `complete` checks the order, publishes `OrderFulfillmentConfirmationRequested` and answers 202 with the order as it is; the order becomes `Completed` moments later through the fulfillment seam. 404 and 409 are as before.
+> **Built note (2026-11-07):** the change below is built (`WI-ORD-003`): `complete` checks the order, publishes `OrderFulfillmentConfirmationRequested` and answers 202 with the order as it is; the order becomes `Completed` moments later through the fulfillment seam. 404 and 409 are as before.
 
 > **Reconciliation note (2026-11-07) — ADJUSTED (planned, since built, see above).** `complete` will change when `WI-ORD-003` is built: it will check the order, publish `OrderFulfillmentConfirmationRequested` and answer **202** with the order as it is, and the order becomes `Completed` moments later through the fulfillment seam. The other five actions are unchanged. See `WI-ORD-003.md` and `docs/architecture/order-lifecycle.md`.
 
