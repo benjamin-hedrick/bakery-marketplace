@@ -47,9 +47,9 @@ Also run, not in the pipeline: SSR isolation (`npm run test:isolation`: 200 conc
 
 ## Deliberately not tested
 
-- **Load, soak, fuzz and dynamic scanning.** Planned as checkpoints (register items 128 and 129, `verification-policy.md`); none has run. One measured baseline exists ([`nfrs.md`](../architecture/nfrs.md) section 8); there is no load test and no target has been proved at scale (`WI-QA-002`).
+- **Load and capacity at scale.** Load, soak, generated-input and dynamic-scan runs exist for the local stack (`WI-SEC-005`, 2026-11-02 to 11-03: a 66-minute soak with five live screens and a restart, generated-input tests, two OWASP ZAP scans; [`nfrs.md`](../architecture/nfrs.md) section 8). They are one machine and a light load: no several-replica run, no production-sized database, no proof of a target at scale (`WI-QA-002`). Fuzzing guided by coverage is not done.
 - **Anything deployed.** Nothing is deployed, so there are no post-deploy checks.
-- **Other browsers and real devices.** Browsers: Chromium only by default; the cross-browser matrix is a scheduled checkpoint (`verification-policy.md` section 4). Mobile: the Android customer app has Maestro flows on an emulator, run locally with `node scripts/dev/mobile-flows.mjs` (`WI-MOB-001`, `docs/evidence/WI-MOB-001/`); no iOS, no real device, not in the pipeline (register 148).
+- **Other browsers and real devices.** Browsers: Chromium by default; Firefox, WebKit and phone-profile projects have been run against the mock-backed suites (second full run 2026-11-06: customer app 663 of 665, queue display 296 of 300, `docs/evidence/cross-browser/`), not the real-stack journeys, and a clean full repeat is a scheduled checkpoint (`verification-policy.md` section 4). Mobile: the Android customer app has fifteen Maestro flows on an emulator, run locally with `node scripts/dev/mobile-flows.mjs` (`WI-MOB-001` to `WI-MOB-003`, `docs/evidence/WI-MOB-*`), and unit tests of its session and API logic that run in the pipeline's `mobile` job; no iOS, no real device, the flows are not in the pipeline (register 148).
 - **Payment.** The processor is a stub; no provider is exercised.
 - **Real identity.** The issuer is a local mock; the real provider's behaviour is not tested.
 - **The Cosmos adapters against Cosmos, in CI.** Emulator-gated tests exist and are run by hand.
