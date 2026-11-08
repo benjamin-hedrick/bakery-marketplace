@@ -23,7 +23,7 @@ Planning assumptions, informed by the target-load numbers in `nfrs.md` §1 (50 p
 
 | Path | Target (p95) | Target (p99) | Notes |
 |---|---|---|---|
-| Browse / search (catalog-service) | < 500 ms | < 1,000 ms | Cache-assisted per ADR-0002 in the design; today no service uses the cache (the catalog cache-aside is not built) |
+| Browse / search (catalog-service) | < 500 ms | < 1,000 ms | Cache-assisted per ADR-0002: the catalog's listing cache is built (`WI-CAT-003`, 2026-11-07); locally the BFF listings query is p50 about 3 ms with it and about 20 ms without, one machine and a small catalog (`docs/evidence/WI-CAT-003/after-2026-11-07.md`) |
 | Cart / customization (catalog-service, ordering-service) | < 500 ms | < 1,000 ms | The cart is held in the browser (no cart endpoint, first-slice decision D-2) |
 | Checkout (ordering-service → Stripe) | < 1,500 ms | < 3,000 ms | Higher target — includes an external round-trip to Stripe (ADR-0005). Today the payment is a stub, so the target has never been tested with the call it was set for |
 | Order status / queue display (ordering-service, event-fed read-model) | best-effort, not request/response | — | Bounded by event-delivery characteristics (ADR-0003's at-least-once, no cross-aggregate ordering guarantee), not a latency SLA in the traditional sense — see Known Failure Modes below |

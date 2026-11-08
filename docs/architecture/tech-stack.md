@@ -12,22 +12,22 @@
 
 ## Stack, by concern
 
-| Concern | Technology | Decision | Build state (2026-10-30) |
+| Concern | Technology | Decision | Build state (2026-11-08) |
 |---|---|---|---|
-| Services | C# on .NET 10, ASP.NET Core Web API | ADR-0010 (amended 2026-10-28 from .NET 8) | `catalog-service` and `ordering-service` built; `admin-service` and `notification-service` are empty scaffolds |
-| Compute hosting | Azure Container Apps (consumption plan) | Confirmed, no ADR | Not built; no container images exist (register 71) |
-| Frontend | React, TypeScript, Next.js Pages Router; server rendering for public listing pages; Relay client | ADR-0012 (supersedes 0011) | `apps/web-customer` implements slice 1; `web-admin` and `web-queue-display` are empty |
-| Frontend and BFF hosting | A Node-capable host (Static Web Apps no longer fits); Container Apps is the default candidate | Open (register 25) | Not built |
+| Services | C# on .NET 10, ASP.NET Core Web API | ADR-0010 (amended 2026-10-28 from .NET 8) | `catalog-service`, `ordering-service` and `notification-service` built and run locally; `admin-service` is an empty scaffold |
+| Compute hosting | Azure Container Apps (consumption plan) | Confirmed, no ADR | Not deployed; container images and a Compose profile that runs the whole stack are built (`WI-DEP-001`) |
+| Frontend | React, TypeScript, Next.js Pages Router; server rendering for public listing pages; Relay client; Expo for the Android app | ADR-0012 (supersedes 0011), ADR-0023 | `apps/web-customer`, `apps/web-queue-display` and the Android app `apps/mobile-customer` are built and run locally; `web-admin` is empty |
+| Frontend and BFF hosting | A Node-capable host (Static Web Apps no longer fits); Container Apps is the default candidate | Open (register 25) | Not deployed; the images are built |
 | GraphQL BFF | Node.js and TypeScript; the browser's only API entry point; calls services directly locally, through APIM in the cloud | ADR-0013 | Built (`services/graphql-bff`) |
-| Event backbone | Azure Event Grid (cloud), Redis Streams (local) | ADR-0003 | Redis Streams transport and an outbox in ordering are built; Event Grid and the chaos transport are not |
-| Primary data store | Azure Cosmos DB (SQL API), one container per bounded context | ADR-0004 | Repositories built and run against the vNext emulator; no Azure Cosmos account; containers `catalog` and `orders` only |
-| Cache | Managed Redis, environment-conditional; the vendor is under reconsideration (register 22) | ADR-0002, ADR-0014 | The `tools` library is built and tested; no service uses a cache yet |
+| Event backbone | Azure Event Grid (cloud), Redis Streams (local) | ADR-0003 | Redis Streams transport, an outbox in ordering and consumers in the catalog, ordering and notification services are built; Event Grid and the chaos transport are not |
+| Primary data store | Azure Cosmos DB (SQL API), one container per bounded context | ADR-0004 | Repositories built and run against the vNext emulator; no Azure Cosmos account |
+| Cache | Managed Redis, environment-conditional; the vendor is under reconsideration (register 22) | ADR-0002, ADR-0014 | The `tools` library is built and tested; the catalog's listing cache uses it (`WI-CAT-003`: in-process by default, Redis with `Cache:Backend=redis`) and so does the notification service's contact cache |
 | Observability | OpenTelemetry with W3C Trace Context; OpenTelemetry Collector to Application Insights in the cloud | ADR-0016 | Instrumented in the BFF, the web server and both services; local collector, Aspire and Jaeger as compose profiles; Application Insights not built (register 37) |
-| Auth | Microsoft Entra External ID (successor to Azure AD B2C); service callers use OAuth2 client credentials | ADR-0006 (amended), ADR-0018 (Proposed) | A mock OIDC issuer and the shared validation middleware are built; Entra is not configured; the DEV credential type is open (register 62) |
+| Auth | Microsoft Entra External ID (successor to Azure AD B2C); service callers use OAuth2 client credentials | ADR-0006 (amended), ADR-0018, ADR-0019 (browser sessions), ADR-0023 (native sign-in) | A mock OIDC issuer, the shared validation middleware, server-side browser sessions and the Android PKCE sign-in are built; Entra is not configured; the DEV credential type is open (register 62) |
 | Payments | Stripe Connect (Express accounts) | ADR-0005 | A named stub only (`IPaymentProcessor`); no Stripe code |
 | Secrets | Azure Key Vault via managed identity | ADR-0007 | A Terraform module exists in `infra/modules/key_vault`; never planned or applied; services read config and a git-ignored `.env` |
 | API gateway | Azure API Management, Consumption tier, with every service still validating tokens itself | ADR-0008 (amended by 0013) | Not built |
-| Infrastructure as code | Terraform (`azurerm`), per-environment folders `dev`, `staging`, `prod` under `infra/environments` | Confirmed, no ADR | The Key Vault module only |
+| Infrastructure as code | Terraform (`azurerm`), per-environment folders `dev`, `staging`, `prod` under `infra/environments` | Confirmed, no ADR | A foundation stack and a dev-environment stack (ADR-0020), including the Key Vault module; validated locally with mocked providers, never planned against or applied to Azure |
 | Source control | GitHub | Confirmed | In use |
 | CI/CD | Azure Pipelines (`azure-pipelines.yml`); GitHub stays source control | ADR-0015 | The pipeline exists and the lead reported a green run on 2026-10-29; it is a soft manual gate, not a required check; no deployment stage |
 

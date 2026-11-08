@@ -9,7 +9,7 @@ One persona per actor already defined in `docs/architecture/ddd/glossary.md`. Co
 **JTBD**: *When I'm ordering food for my family online, I want allergy information to be impossible to miss, so I can order confidently without a phone call to double-check.*
 **Connects to**: vision principle 1 (dietary safety first-class), the Preferences & Dietary Safety bounded context, the north-star safety metric in the glossary.
 
-**Served today (2026-10-30):** Customer: can browse listings with allergen flags and stock states, order with a stubbed payment, and see the order status. Preference profiles and conflict highlighting are not built; there is no order history list.
+**Served today (2026-11-08):** Customer: can browse listings with allergen flags, tags and stock states, save an allergen profile and see conflicts, acknowledge allergy warnings at checkout, order with a saved test payment method, watch and cancel the order and see the order history, on the web and on Android.
 
 ## Shop — "Marcus, the neighborhood bakery owner"
 
@@ -18,7 +18,7 @@ One persona per actor already defined in `docs/architecture/ddd/glossary.md`. Co
 **JTBD**: *When a customer places an order, I want to see it on my counter display immediately, so I can start preparing it without checking a phone or tablet constantly.*
 **Connects to**: the live order-queue display (`EPIC-QUEUE-DISPLAY`), the event-driven backbone that feeds it (ADR-0003).
 
-**Served today (2026-10-30):** Shop: has API endpoints for listings, stock and the order actions (confirm, prepare, ready, complete, cancel). There is no shop interface and no live queue display.
+**Served today (2026-11-08):** Shop: has a live order-queue screen with accept, decline, start, ready, hand over and cancel, showing each order's allergens, and API endpoints for listings and stock. There is no screen for managing listings and no onboarding flow.
 
 ## Independent Vendor — "Priya, the home baker"
 
@@ -27,7 +27,7 @@ One persona per actor already defined in `docs/architecture/ddd/glossary.md`. Co
 **JTBD**: *When I want to sell my baking to real customers, I want a clear, guided verification process built for someone like me, so I can start selling without feeling like an afterthought on a platform designed for someone else.*
 **Connects to**: the Vendor Onboarding & Verification context explicitly modeling `VendorType` (Shop | Independent) as a first-class distinction, not a bolted-on edge case (vision principle 3, glossary).
 
-**Served today (2026-10-30):** Independent vendor: exists as a seeded vendor with the same API. There is no onboarding or verification flow; verification is simulated by an event the seed script publishes.
+**Served today (2026-11-08):** Independent vendor: exists as a seeded vendor with the same API. There is no onboarding or verification flow; verification is simulated by an event the seed script publishes.
 
 ## Admin — "Sam, the platform moderator"
 
