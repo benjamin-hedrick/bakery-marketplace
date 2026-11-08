@@ -1,13 +1,18 @@
 # Bakery/Coffee Marketplace — Portfolio Docs
 
-> **Status:** Current · rewritten 2026-10-30, refreshed 2026-11-05. This page replaced `project-log.md` as the map of what exists and where.
+> **Status:** Current · rewritten 2026-10-30, refreshed 2026-11-08. This page replaced `project-log.md` as the map of what exists and where.
 
-A pickup-based bakery and coffee marketplace, built to show architecture, product and engineering ownership. Slice 1 (login, browse with stock, cart, test checkout, order status) and the work since (live vendor queue, notifications, order history, allergen profiles, an Android app) run locally; nothing is deployed. Do not read a document here as proof that something works unless it points to a run; see the evidence below.
+A pickup-based bakery and coffee marketplace, built to show architecture, product and engineering ownership. Slice 1 (login, browse with stock, cart, test checkout, order status) and the work since (a live vendor queue with the vendor's actions, notifications, order history, allergen profiles, a listing cache, an Android app and a demo film) run locally; nothing is deployed. Do not read a document here as proof that something works unless it points to a run; see the evidence below.
 
 ## Where things are
 
 | You want | Go to |
 |---|---|
+| To see it running in two minutes | [The demo film](operations/demo/demo-film.mp4) (104 seconds; [how it was made](operations/demo-film.md)) |
+| The testing approach, what ran and what it showed, and coverage | [Testing](testing.md) |
+| Performance, scalability and the non-functional requirements, measured | [Performance, scalability and NFRs](performance-and-nfrs.md) |
+| How the work is planned, tracked and governed | [Delivery and project management](delivery.md) |
+| How AI assistants were used, what went wrong and what caught it | [AI collaboration](method/ai-collaboration.md) |
 | What is built and what is next | [Current plan](product/backlog/current-plan.md) |
 | The status of every work item, epic and ADR | [Status](product/backlog/STATUS.md) (generated) |
 | Why it is shaped this way | [ADRs](architecture/adr/README.md), [decision timeline and how the phases ran](architecture/decision-timeline.md), [C4 diagrams](architecture/c4/README.md), [domain model](architecture/ddd/README.md) |
