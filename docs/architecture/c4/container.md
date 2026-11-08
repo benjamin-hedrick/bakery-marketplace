@@ -1,6 +1,6 @@
 # Container Diagram
 
-> **Status:** Current · rewritten 2026-10-30 from the code, `docker-compose.yml`, `first-slice-contract.md` and `docs/evidence/slice-1/findings.md`. The first diagram is what runs today, on a developer machine. The second is the target shape from the ADRs, none of it deployed.
+> **Status:** Current · rewritten 2026-10-30 from the code, `docker-compose.yml`, `first-slice-contract.md` and `docs/evidence/slice-1/findings.md`; updated 2026-11-08 (the notification service, the vendor queue display, the catalog's listing cache, preferences and tags, and the consumers of the order events are now drawn as built). The first diagram is what runs today, on a developer machine. The second is the target shape from the ADRs, none of it deployed.
 
 The bounded-context-to-service mapping is decided in ADR-0009 (13 contexts onto 4 services, with the modular-monolith rule). The request through these containers, step by step, is in [the request path](../request-path.md).
 
@@ -27,13 +27,17 @@ flowchart LR
         MOB["App: login (PKCE, system browser),<br/>refresh token in the Keystore, access token in memory,<br/>plain fetch to the BFF with Authorization: Bearer;<br/>cart and order logic from packages/customer-core"]
     end
 
-    BFF["services/graphql-bff — Node/TypeScript, :4100<br/>GraphQL schema, Relay global ids,<br/>error mapping; no business rules"]
+    subgraph QUEUE["apps/web-queue-display — Next.js, :3100 (WI-QUE-002 to 004)"]
+        QD["Vendor login (server-side session),<br/>live order queue by server-sent events<br/>with polling as the fallback,<br/>accept, decline, start, ready, hand over"]
+    end
+
+    BFF["services/graphql-bff — Node/TypeScript, :4100<br/>GraphQL schema, Relay global ids,<br/>error mapping, request limits; no business rules"]
 
     subgraph SVC["C# services — ASP.NET Core, net10.0"]
-        CAT["catalog-service :5200<br/>listings, stock, vendor status<br/>(hosts the Catalog context; Search, Ads and Preferences are planned)"]
-        ORD["ordering-service :5300<br/>Order aggregate, checkout, vendor and<br/>customer actions, outbox relay"]
+        CAT["catalog-service :5200<br/>listings, stock, vendor status, listing cache,<br/>allergen profiles, tags and personalized reads<br/>(hosts the Catalog, Preferences and Search reads)"]
+        ORD["ordering-service :5300<br/>Order aggregate, checkout, vendor and<br/>customer actions, outbox relay, vendor read model,<br/>live stream, pickup fulfillment"]
+        NOT["notification-service<br/>consumes order events, sends through an adapter<br/>(local only: the sender logs)"]
         ADM["admin-service<br/>(empty scaffold)"]
-        NOT["notification-service<br/>(empty scaffold)"]
     end
 
     OIDC["Mock OIDC issuer :5100<br/>PKCE login for users,<br/>client-credentials for services,<br/>signs JWTs, serves JWKS"]
@@ -41,7 +45,7 @@ flowchart LR
     subgraph STORES["docker-compose.yml infrastructure"]
         COSMOS[("Cosmos DB vNext emulator :8081<br/>containers: catalog (/vendorId),<br/>orders (/customerId)")]
         REDISEV[("Redis Streams :6379<br/>domain events")]
-        REDISCACHE[("Redis cache :6380<br/>profile with-redis;<br/>no service uses it yet")]
+        REDISCACHE[("Redis cache :6380<br/>profile with-redis;<br/>used when Cache__Backend=redis,<br/>otherwise an in-process cache")]
         REDISSESS[("Redis sessions :6381<br/>profile with-redis;<br/>web login sessions, noeviction")]
     end
 
@@ -62,8 +66,11 @@ flowchart LR
     CSR -->|"GraphQL via same-origin /api/graphql<br/>Authorization: Bearer"| SSR
     SSR -->|"public queries (no token), SSR"| BFF
     SSR -->|"API route"| BFF
-    BFF -->|"REST: listings"| CAT
-    BFF -->|"REST: checkout, orders, pickup windows<br/>token forwarded"| ORD
+    VENDOR(["Vendor<br/>(browser)"]) --> QD
+    QD -->|"login redirect, then token exchange"| OIDC
+    QD -->|"GraphQL and event stream<br/>token attached on the server"| BFF
+    BFF -->|"REST: listings, preferences, tags"| CAT
+    BFF -->|"REST: checkout, orders, vendor orders and actions,<br/>the vendor stream; token forwarded"| ORD
     ORD -->|"REST: listing read, stock reserve and release<br/>service token (client credentials)"| CAT
     ORD -.->|"fetches signing keys"| OIDC
     CAT -.->|"fetches signing keys"| OIDC
@@ -71,7 +78,11 @@ flowchart LR
     CAT --> COSMOS
     ORD --> COSMOS
     ORD -->|"outbox relay publishes<br/>OrderPlaced, OrderConfirmed, ..."| REDISEV
+    ORD -->|"consumes its own events (vendor read model,<br/>pickup fulfillment)"| REDISEV
+    NOT -->|"consumes the order events in batches"| REDISEV
     CAT -->|"publishes ListingPublished, LowStockDetected;<br/>consumes VendorVerified, VendorSuspended"| REDISEV
+    CAT -->|"listing cache"| REDISCACHE
+    NOT -->|"sent ledger, contact cache"| REDISCACHE
     SEED --> COSMOS
     SEED -->|"VendorVerified"| REDISEV
     BFF -.->|"OTLP/HTTP spans"| COLL
@@ -81,19 +92,20 @@ flowchart LR
     COLL --> ASPIRE
     COLL --> JAEGER
 
-    class SSR,CSR,MOB,BFF,CAT,ORD,OIDC,SEED built
-    class ADM,NOT,REDISCACHE scaffold
+    class SSR,CSR,MOB,QD,BFF,CAT,ORD,NOT,OIDC,SEED built
+    class ADM scaffold
     class COSMOS,REDISEV,COLL,ASPIRE,JAEGER infra
 ```
 
 **Reading it**
 - **Every service validates the token itself** (zero trust, ADR-0006): the BFF forwards the customer's bearer token unchanged, and `ordering-service` and `catalog-service` each check signature, issuer, audience and role, then ownership. There is no gateway yet, so nothing sits between the BFF and the services.
 - **Service callers use their own token.** `ordering-service` calls the catalog's stock endpoints with a client-credentials token whose app role is `Stock.Reserve` (ADR-0018, local phase only).
-- **Events leave ordering through an outbox**: they are stored in the same write as the order and published inline, with a relay sweeping any that missed (`WI-ORD-005`). **Nothing consumes the order events yet**, so the queue read-model (`QUE-001`) and notifications have nothing wired.
-- **The catalog publishes and consumes events too.** It listens for `VendorVerified` and `VendorSuspended`, which only the seed script publishes today because no admin or onboarding service exists.
+- **Events leave ordering through an outbox**: they are stored in the same write as the order and published inline, with a relay sweeping any that missed (`WI-ORD-005`). Three things consume them: ordering itself (the vendor read model behind the queue and its live stream, and the pickup fulfillment strategy), and the notification service (batches, a sender adapter that only logs).
+- **The catalog publishes and consumes events too.** It listens for `VendorVerified` and `VendorSuspended`, which only the seed script publishes today because no admin or onboarding service exists. Its `ListingPublished` and `LowStockDetected` have no consumer yet.
 - **Tracing is optional.** Services export OTLP only when an endpoint is configured; the three tracing containers are compose profiles. The browser itself is not traced, so a trace begins at the web server or the BFF.
-- **Dashed grey boxes:** `admin-service` and `notification-service` contain only `Program.cs`; the cache Redis runs under a profile but no service reads it (the catalog cache-aside, `WI-CAT-003`, is not built).
-- **Not drawn because they do not exist:** `web-admin`, `web-queue-display`, API Management, Key Vault, Stripe, any cloud environment.
+- **Dashed grey box:** `admin-service` contains only `Program.cs`. The cache Redis runs under a compose profile; without `Cache__Backend=redis` the catalog (`WI-CAT-003`) and the notification service use an in-process cache.
+- **Not drawn because they do not exist:** `web-admin`, API Management, Key Vault, Stripe, a real notification provider, any cloud environment.
+- **Components inside the three C# services** are in [the component diagrams](component-services.md).
 
 ## 2. Target shape (decided in ADRs, not built, nothing deployed)
 
@@ -162,10 +174,10 @@ flowchart TB
 - A real identity provider (Entra External ID) replaces the mock issuer; services get app registrations for service-to-service calls, with the DEV credential type still open (ADR-0018, register 62).
 - API Management sits between the BFF and the services; locally the BFF calls the services directly. Every service still validates the token itself.
 - Event Grid replaces Redis Streams; Redis Streams stays the local transport (ADR-0003).
-- A managed Redis cache is actually used by the catalog (cache-aside, `WI-CAT-003`) and the three cache layers of ADR-0014 are owned.
-- Key Vault, Stripe, `web-admin`, `web-queue-display`, and a consumer for the order events (the queue read-model and notifications) all arrive.
+- A managed Redis cache is used by the catalog (the listing cache, `WI-CAT-003`, already built against the local cache Redis) and the three cache layers of ADR-0014 are owned.
+- Key Vault, Stripe, `web-admin`, a real notification provider and an admin service arrive; the queue display and the consumers of the order events already run locally.
 - Where the Next.js server and the BFF run is undecided (register item 25).
 
 ## Within a service
 
-Co-located contexts (for example Catalog and Preferences inside `catalog-service`) still talk through the same interfaces and events they would use if they were separate services (ADR-0009's modular-monolith rule). These diagrams show service-level boxes only; a component diagram for `ordering-service` and `catalog-service` is planned (the architecture pass).
+Co-located contexts (for example Catalog and Preferences inside `catalog-service`) still talk through the same interfaces and events they would use if they were separate services (ADR-0009's modular-monolith rule). These diagrams show service-level boxes only; the components of the ordering, catalog and notification services are in [component-services.md](component-services.md).
