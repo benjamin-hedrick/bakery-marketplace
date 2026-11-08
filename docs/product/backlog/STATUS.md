@@ -207,7 +207,7 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-162 numbered items in `docs/governance/open-items-register.md` (highest number 162).
+164 numbered items in `docs/governance/open-items-register.md` (highest number 164).
 
 | Type | Count |
 |---|---|
@@ -236,6 +236,7 @@ Accepted: 22 · Superseded: 1
 | Rough edge | 2 |
 | Open decision (IAM, needs the lead's approval) | 2 |
 | Deployment follow-up | 2 |
+| Planned work | 2 |
 | Tech debt / future work | 1 |
 | Future hardening | 1 |
 | Deferred scope / risk | 1 |
@@ -296,17 +297,17 @@ Accepted: 22 · Superseded: 1
 | Process review (agenda) | 1 |
 | Scope gap | 1 |
 | Hardening gap | 1 |
-| Planned work | 1 |
 | Usability | 1 |
 | Decision and hardening | 1 |
+| Flaky test tooling | 1 |
 
 | Item status | Count |
 |---|---|
 | Deferred | 17 |
-| Resolved | 57 |
+| Resolved | 58 |
 | Accepted | 9 |
 | Tracking | 12 |
-| Open | 58 |
+| Open | 59 |
 | Decided | 1 |
 | Partly | 1 |
 | First | 1 |
