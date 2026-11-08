@@ -8,7 +8,8 @@
 // Needs ffmpeg and ffprobe (winget install Gyan.FFmpeg; found on PATH or in the winget package folder). Reads <run>/timeline.json: the wall-clock start of each recording and of
 // each phone chunk, and the captions. Every source is put on one timeline measured from the earliest start. The phone's screenrecord writes frames only when the screen
 // changes, so each chunk is padded at its end to its wall-clock length; gaps between chunks and before the first one are black.
-// STATUS: written 2026-11-07; only --selftest has been run (and not against real recordings): the sync accuracy of real recordings is unchecked (register 163).
+// The film starts when the last recording has started (the earlier lead of the others is cut off). STATUS: written 2026-11-07; run on real recordings 2026-11-08 (web, queue and phone);
+// sync was read off one event (a cancellation) at about a second; no finer measurement (register 163).
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -85,8 +86,13 @@ function compose(runDir, outFile) {
   const end = rec.endedAt ?? Math.max(...starts) + 60000;
   const D = Math.ceil(((end - t0) / 1000) * 10) / 10 + 1;
   const off = (ms) => Math.max(0, (ms - t0) / 1000);
+  // The film itself starts when the LAST of the recordings has started, so it never opens on a phone that is still being set up or a browser that is still blank;
+  // the sources stay aligned on the earliest start and the front is cut off the finished picture (the captions are measured from the film's start).
+  const tFilm = Math.max(...starts);
+  const S = (tFilm - t0) / 1000;
+  const fromFilm = (ms) => Math.max(0, (ms - tFilm) / 1000);
   log(
-    `timeline: ${D.toFixed(1)} s from the earliest start; ${chunks.length} phone chunk(s); ${timeline.captions.length} caption(s)`,
+    `timeline: ${(D - S).toFixed(1)} s (${S.toFixed(1)} s before the last recording started are cut); ${chunks.length} phone chunk(s); ${timeline.captions.length} caption(s)`,
   );
 
   const inputs = [path.join(runDir, rec.vendor.file), path.join(runDir, rec.web.file)];
@@ -130,9 +136,9 @@ function compose(runDir, outFile) {
     .sort((x, y) => x.at - y.at)
     .forEach((c, k) => {
       writeFileSync(path.join(capDir, `c${k}.txt`), wrap(c.text));
-      const start = Math.max(off(c.at), shownUntil);
+      const start = Math.max(fromFilm(c.at), shownUntil);
       const hold = Math.min(c.ms / 1000, 2 + 0.065 * c.text.length);
-      if (start - off(c.at) > 3) log(`caption pushed back ${(start - off(c.at)).toFixed(1)} s: "${c.text}"`);
+      if (start - fromFilm(c.at) > 3) log(`caption pushed back ${(start - fromFilm(c.at)).toFixed(1)} s: "${c.text}"`);
       shownUntil = start + hold + 0.4;
       const a = start.toFixed(2);
       const b = (start + hold).toFixed(2);
@@ -140,14 +146,14 @@ function compose(runDir, outFile) {
         `drawtext=${fontOption()}textfile='captions/c${k}.txt':x=${L.text.x}:y=(h-text_h)/2:fontsize=44:line_spacing=12:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=18:enable='between(t,${a},${b})'`,
       );
     });
-  // The vendor page's own heading sits at the top left of its frame, so its label goes to the empty middle of that header
-  for (const [label, box, dx] of [
+  // The vendor page's own heading sits at the top left of its frame, so its label goes to the empty middle of that header; the phone's label goes to the bottom, clear of its status bar
+  for (const [label, box, dx, dy = 8] of [
     ['Bakery queue (live)', L.vendor, 300],
     ['Web customer', L.web, 10],
-    ['Phone customer', L.phone, 10],
+    ['Phone customer', L.phone, 10, L.phone.h - 50],
   ])
     draw.push(
-      `drawtext=${fontOption()}text='${label}':x=${box.x + dx}:y=${box.y + 8}:fontsize=26:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=6`,
+      `drawtext=${fontOption()}text='${label}':x=${box.x + dx}:y=${box.y + dy}:fontsize=26:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=6`,
     );
 
   const stage = [
@@ -157,7 +163,7 @@ function compose(runDir, outFile) {
     `[a][web]overlay=${L.web.x}:${L.web.y}[b]`,
   ];
   stage.push(parts.length ? `[b][phone]overlay=${L.phone.x}:${L.phone.y}[c]` : '[b]null[c]');
-  stage.push(`[c]${draw.join(',')}[out]`);
+  stage.push(`[c]trim=start=${S.toFixed(3)},setpts=PTS-STARTPTS,${draw.join(',')}[out]`);
 
   const outPath = path.resolve(runDir, outFile);
   const argv = [
@@ -180,7 +186,7 @@ function compose(runDir, outFile) {
     '-movflags',
     '+faststart',
     '-t',
-    String(D),
+    String(D - S),
     outPath,
   ];
   const r = spawnSync(ffmpeg(), argv, { cwd: runDir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -191,14 +197,14 @@ function compose(runDir, outFile) {
     '-v',
     'error',
     '-ss',
-    String(Math.min(20, D / 2)),
+    String(Math.min(20, (D - S) / 2)),
     '-i',
     outPath,
     '-frames:v',
     '1',
     poster,
   ]);
-  log(`written ${outPath} (${D.toFixed(0)} s) and ${poster}`);
+  log(`written ${outPath} (${(D - S).toFixed(0)} s) and ${poster}`);
   return outPath;
 }
 

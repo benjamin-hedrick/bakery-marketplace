@@ -1,8 +1,8 @@
 # The demo film's phone customer (register 163, docs/operations/demo-film.md): Max, a seeded customer with dairy and tree-nut allergies and a gluten avoid, orders the
-# Almond Croissant with extra almonds, sees the warnings, acknowledges them, orders, waits for the bakery to accept, and then cancels.
-# NOT a test: nothing here is asserted for its own sake, and the pauses are for a viewer. The film director (scripts/dev/film/film.mjs) starts it, waits for "phone-ready",
-# releases it with "go-phone" and answers the pauses; FILM_URL is passed with -e. The first screen is the sign-in screen the app is already showing; the flow
-# restarts the app so the recording shows its splash screen. NEVER RUN (written 2026-11-07); expect to adjust on the first run.
+# Almond Croissant with extra almonds, sees the warnings, acknowledges them, orders, and then cancels before the bakery has accepted.
+# NOT a test: nothing here is asserted for its own sake, and the pauses are for a viewer (shortened 2026-11-08 after the first film run, which was too slow). The film
+# director (scripts/dev/film/film.mjs) starts it, waits for "phone-ready", releases it with "go-phone" and answers the pauses; FILM_URL is passed with -e. The first
+# screen is the sign-in screen the app is already showing; the flow restarts the app so the recording shows its splash screen.
 appId: com.bakerymarketplace.mobile
 name: Demo film, phone customer (Max)
 ---
@@ -18,7 +18,7 @@ name: Demo film, phone customer (Max)
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=3500
+      CALL: /pause?ms=2000
 - runFlow:
     file: ../subflows/login.yaml
     env:
@@ -28,34 +28,39 @@ name: Demo film, phone customer (Max)
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=3500
+      CALL: /pause?ms=2000
 - tapOn:
     id: listing-Almond Croissant
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=3000
+      CALL: /pause?ms=1500
 - tapOn:
     id: option-Extra almonds.*
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=2500
+      CALL: /pause?ms=1500
 - tapOn:
     id: add-to-order
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=4000
+      CALL: /pause?ms=2000
 - tapOn:
     id: to-checkout
 - assertVisible:
     id: conflict-0
+# The director holds the web customer at its own warnings until this arrives, so the caption about both customers' warnings is true of both screens.
+- runScript:
+    file: scripts/film-call.js
+    env:
+      CALL: /beat?name=phone-warnings
 # The warnings, long enough to read.
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=7000
+      CALL: /pause?ms=5000
 - scrollUntilVisible:
     element:
       id: acknowledge
@@ -65,7 +70,7 @@ name: Demo film, phone customer (Max)
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=2500
+      CALL: /pause?ms=1500
 - scrollUntilVisible:
     element:
       id: place-order
@@ -77,20 +82,19 @@ name: Demo film, phone customer (Max)
     file: scripts/film-call.js
     env:
       CALL: /beat?name=phone-ordered
-# The bakery accepts when its queue gets to this order (a few seconds, by the vendor agent); a plain confirmation is already there.
-- extendedWaitUntil:
-    visible: Order confirmed
-    timeout: 120000
+# Max changes his mind while the order is still "Order received": a customer can cancel until the bakery starts preparing, and the vendor agent does not touch a new
+# order for 7 s. (The first version waited for "Order confirmed" first; with the vendor working the newest orders first, the bakery had already started preparing by
+# the time the phone showed the confirmation, and the cancel was refused: register 163.)
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=2500
+      CALL: /pause?ms=3000
 - tapOn:
     id: cancel-order
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=1500
+      CALL: /pause?ms=1000
 - tapOn:
     id: cancel-confirm
 - assertVisible: Order cancelled
@@ -101,4 +105,4 @@ name: Demo film, phone customer (Max)
 - runScript:
     file: scripts/film-call.js
     env:
-      CALL: /pause?ms=6000
+      CALL: /pause?ms=4000

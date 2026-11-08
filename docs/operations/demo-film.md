@@ -22,7 +22,7 @@ The cast is seeded data. Nora (tree-nut allergy) is on the web, Max (dairy and t
 | 4 | Orders arrive | Both orders appear on the queue within a second. | |
 | 5 | Others order | A plain latte order from Alice confirms itself; Dana's sourdough with a pickup time waits for the bakery; Sam's sourdough with the seeds option carries a "sesame" allergy on its card. | "More customers order at the same time", "A pickup time waits for the bakery to accept", "An allergy told to the bakery shows on its card" |
 | 6 | The bakery works | The vendor agent accepts, starts, marks ready and hands over, oldest first, about five seconds apart. The web order page and the phone follow each step. | "The bakery works its queue; each customer sees every step" |
-| 7 | A cancel | When the phone shows "Order confirmed", Max waits a moment and cancels (within about four seconds, before the vendor's next step); his card leaves the queue. | |
+| 7 | A cancel | Max cancels while his order still shows "Order received" (about four seconds after ordering, before the bakery has accepted it); his card leaves the queue. | |
 | 8 | Done | Everything else is handed over and shows as picked up. | "Local demo: test payments" |
 
 Pickup-time and option orders wait for the bakery; plain orders confirm themselves (WI-ORD-008). The background orders are placed through the BFF with each customer's own token, the same request the apps send. Stock used: the croissant has 4 units (Nora 1, Max 1), the latte is made to order, the sourdough has 12.
@@ -63,6 +63,6 @@ The vendor agent needs no knowledge of the other actors: it acts on any order th
 ## Known risks and choices
 
 - Memory: Docker, the Cosmos emulator, the emulator, three Node apps and two Chromium contexts at once. Close other applications first; run step 2 before step 3.
-- A race in the story: Max confirms his cancel about four seconds after his order shows "Order confirmed" (2.5 s, the question, 1.5 s); the vendor agent's next step on that order (start preparing, which a customer can no longer cancel after) comes six seconds after it accepted. A cancel that loses the race gets a 409 and the flow fails; lengthen the vendor's step gap or shorten Max's pauses if it happens.
+- A race in the story, hit on 2026-11-08: the first version had Max wait for "Order confirmed" before cancelling. The phone only shows the confirmation some seconds after the vendor accepts, and once the vendor agent works the newest orders first it had already started preparing (which a customer can no longer cancel after) by then: the cancel was refused and the flow failed. Max now cancels while the order is still "Order received"; the vendor agent does not touch a new order for 7 s, and a customer can cancel until preparation starts.
 - The vendor's login and the first page load are not filmed (a stored login is reused for the recorded browser).
 - Nothing is faked: the data is the seed, the services are the real ones, the payment is the test stub. The end caption says so.
