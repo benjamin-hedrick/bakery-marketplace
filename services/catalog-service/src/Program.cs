@@ -71,24 +71,7 @@ else
 
 // Events (ADR-0003). The backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory" (tests and throwaway runs). There is no
 // default, because silently falling back to in-memory would drop every event while looking healthy.
-var eventsBackend = builder.Configuration["Events:Backend"];
-if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
-{
-    var redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
-    var transport = new RedisStreamsEventTransport(redis, maxStreamLength: builder.Configuration.GetValue<int?>("Events:MaxStreamLength"), serviceName: "catalog-service");
-    builder.Services.AddSingleton<IEventPublisher>(transport);
-    builder.Services.AddSingleton<IEventSubscriber>(transport);
-}
-else if (string.Equals(eventsBackend, "inmemory", StringComparison.OrdinalIgnoreCase))
-{
-    var transport = new InMemoryEventTransport();
-    builder.Services.AddSingleton<IEventPublisher>(transport);
-    builder.Services.AddSingleton<IEventSubscriber>(transport);
-}
-else
-{
-    throw new InvalidOperationException("Events:Backend must be set to 'redis' or 'inmemory'. There is no default, so events are never lost silently.");
-}
+builder.Services.AddBakeryEvents(builder.Configuration, "catalog-service");
 
 builder.Services.AddSingleton(TimeProvider.System);
 // The tag registry (ADR-0022) is data shipped with the service; a bad file stops the start here, naming the entry.

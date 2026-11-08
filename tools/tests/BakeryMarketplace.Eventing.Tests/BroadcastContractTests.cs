@@ -134,7 +134,7 @@ public abstract class BroadcastContractTests
         var inbox = new Inbox();
         await using var s = await sub.SubscribeAsync(channel, inbox.Add);
 
-        var sent = Enumerable.Range(0, 50).Select(i => i.ToString()).ToArray();
+        var sent = Enumerable.Range(0, 50).Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
         foreach (var m in sent) await pub.PublishAsync(channel, m);
 
         Assert.Equal(sent, await inbox.WaitForAsync(sent.Length));
@@ -156,7 +156,7 @@ public abstract class BroadcastContractTests
             Interlocked.Increment(ref done);
         });
 
-        for (var i = 0; i < 5; i++) await pub.PublishAsync(channel, i.ToString());
+        for (var i = 0; i < 5; i++) await pub.PublishAsync(channel, i.ToString(System.Globalization.CultureInfo.InvariantCulture));
         var until = DateTime.UtcNow + Wait;
         while (Volatile.Read(ref done) < 5 && DateTime.UtcNow < until) await Task.Delay(10);
 

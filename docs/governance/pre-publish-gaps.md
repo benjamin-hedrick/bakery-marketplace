@@ -60,7 +60,7 @@ Method: every tracked Markdown file (343 of 343) was read in full against the co
 | `docs/testing.md` | Links to `evidence/test-and-coverage-2026-11-08.md`, which does not exist yet (the only broken link) | Run `node scripts/ci/test-report.mjs --write` with Redis and the Cosmos emulator up |
 | Local development | The fresh-clone check of the page (status line says so) | Repeat the steps in a fresh clone |
 | ADR status lines | The status lines of ADR-0019, 0021, 0022 and 0023 are long sentences; the rule is a short line with the detail in a note | Shorten, keeping the text as a dated note |
-| ADR-0003 | Checked 2026-11-08 against the transport: an unreadable entry is still acknowledged and dropped, and errors are not logged (finding R2-1) | Fix the transport, then amend the note |
+| ADR-0003 | Checked 2026-11-08 against the transport: an unreadable entry was acknowledged and dropped and errors were not logged (finding R2-1); fixed the same day and the ADR amended | Done |
 | Epic banners | The gate checks only "N of M"; the lists of items in each state go stale | Generate them, or drop the lists (a script change: ask first) |
 | `docs/method/ai-collaboration.md` | The usage table lacks the long session of this pass; the lead supplies the figures | Record them in a new `ai-usage-` file |
 | `docs/management/portfolio-slice/` | The goals table in `00` and the rows in `02`, `03`, `04`, `05` keep the October wording under a dated update | Accept, or rewrite when a Phase 4 plan is written |

@@ -14,23 +14,7 @@ builder.Services.AddBakeryTelemetry(builder.Configuration, "notification-service
 // Events (ADR-0003). As in ordering, the backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory". The consumer group is
 // named for this service, so it receives every order event independently of the vendor queue (register item 29). Events:MaxStreamLength
 // trims the streams; with this consumer's backlog far below it, a limit is safe (register item 75).
-var eventsBackend = builder.Configuration["Events:Backend"];
-IConnectionMultiplexer? redis = null;
-if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
-{
-    redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
-    var transport = new RedisStreamsEventTransport(
-        redis, maxStreamLength: builder.Configuration.GetValue<int?>("Events:MaxStreamLength"), serviceName: "notification-service");
-    builder.Services.AddSingleton<IEventSubscriber>(transport);
-}
-else if (string.Equals(eventsBackend, "inmemory", StringComparison.OrdinalIgnoreCase))
-{
-    builder.Services.AddSingleton<IEventSubscriber>(new InMemoryEventTransport());
-}
-else
-{
-    throw new InvalidOperationException("Events:Backend must be set to 'redis' or 'inmemory'. There is no default, so events are never lost silently.");
-}
+var redis = builder.Services.AddBakeryEvents(builder.Configuration, "notification-service");
 
 // Cache (ADR-0002): in process unless Cache:Backend is "redis", then Redis with the in-process cache as the fallback when it is down.
 builder.Services.AddMemoryCache();
