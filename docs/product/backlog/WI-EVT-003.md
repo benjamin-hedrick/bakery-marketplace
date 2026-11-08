@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: `tools/BakeryMarketplace.Eventing` (Redis Streams transport) and its tests
 
+> **Update 2026-11-08 (documentation pass):** consumer groups are now named per service, and a consumer name on the subscribe call gives a second consumer in one service its own group (register 29; the note of 2026-11-08 on ADR-0003).
+
 ```
 WI ID:               EVT-003
 Title:                RedisStreamsPublisher / RedisStreamsSubscriber implementation

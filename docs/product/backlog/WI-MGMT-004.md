@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: `docs/process/engineering-standards.md`
 
+> **Update 2026-11-08 (documentation pass):** `docs/project-log.md` was archived on 2026-10-30; a new contributor now starts at `docs/index.md`, `docs/product/backlog/current-plan.md` and `STATUS.md`.
+
 ```
 WI ID:               MGMT-004
 Title:                Draft engineering standards (PR/review guidelines, onboarding)

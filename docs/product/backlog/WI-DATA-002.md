@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests
 
+> **Update 2026-11-08 (documentation pass):** the code now holds five Cosmos containers: `catalog`, `orders`, `vendor-orders`, `payment-methods` and `preferences` (`docs/architecture/adr/0004-data-store-choice.md`, note of 2026-11-08). The list of containers in "Data touched" below is the September design.
+
 ```
 WI ID:               DATA-002
 Title:                CosmosRepository<T> implementation

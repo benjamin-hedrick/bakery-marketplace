@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: merged `c945b18`; verified under Docker, `docs/operations/local-dev.md`
 
+> **Update 2026-11-08 (documentation pass):** the Compose `apps` profile now also runs the catalog, ordering and notification services, the BFF and the customer web app as containers; the queue display runs on the host (`docs/operations/local-dev.md`).
+
 ```
 WI ID:               DEV-002
 Title:                Real docker-compose.yml

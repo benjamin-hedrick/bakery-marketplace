@@ -1,5 +1,7 @@
 > **Status:** Done · evidence: `docs/architecture/data-model-api-contracts.md`
 
+> **Update 2026-11-08 (documentation pass):** browsers reach the services through the GraphQL BFF, not API Management, and several sections are design only; the page now carries a status banner listing the divergences (`docs/architecture/data-model-api-contracts.md`).
+
 ```
 WI ID:               ARCH-003
 Title:                Data Model / API Contracts (per service)

@@ -1,5 +1,7 @@
 > **Status:** In review · built and run locally 2026-11-04 (four Maestro flows pass on the emulator, `docs/evidence/WI-MOB-001/`); waiting for the lead's review of the auth changes (the issuer redirect rule, the token handling in the app) and decision on pushing; ADR-0023 accepted 2026-11-04
 
+> **Update 2026-11-08 (documentation pass):** the decline switch (`EXPO_PUBLIC_TEST_HOOKS`) named in the body was removed by `WI-ORD-010`: a declined payment is a seeded payment method that fails the stub's rule, and there is no test build.
+
 ```
 WI ID:               MOB-001
 Title:                Customer mobile app (Android, Expo) with Maestro flows

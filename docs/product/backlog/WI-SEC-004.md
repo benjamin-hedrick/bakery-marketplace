@@ -42,7 +42,7 @@ See `docs/process/definition-of-done.md`.
 Yes for the pipeline steps; reading the scan results is a human check.
 
 **Open Points (working)**
-- [ ] Whether the lead wants this at all (the trigger is the lead's decision).
+- [x] Whether the lead wants this at all (the trigger is the lead's decision). **Resolved:** the lead picked it up; see the banner for what is done and what remains.
 
 **As built (2026-11-07, the lead asked for the audit and SBOM)**
 - `scripts/ci/dependency-audit.mjs`: `npm audit --json` of the six npm projects (all dependencies and `--omit=dev`), `dotnet list package --vulnerable --include-transitive` and `--deprecated` over the root solution, CycloneDX 1.6 SBOMs (`@cyclonedx/cyclonedx-npm@6.0.1` and the `CycloneDX` .NET tool 6.3.1, both pinned) for the four npm apps and services and the four .NET services, and a summary. Policy proposed in the script header (exit 1 for a high or critical advisory in production npm dependencies or any vulnerable NuGet package; moderate dev-tooling advisories are reported, not failed; exit 2 when a step could not run, because an audit that did not run is not a pass). The policy is the lead's decision.

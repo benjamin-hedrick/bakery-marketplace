@@ -1,5 +1,7 @@
 > **Status:** In review · built and run locally 2026-11-05: 25 unit tests pass (`docs/evidence/WI-MOB-003/unit-tests-2026-11-05.md`; register 151 fixed with the lead's approval, register 152 open) and flows 11 to 13 pass with flow 10 (`docs/evidence/WI-MOB-003/maestro-flows-2026-11-05.md`; all 13 flows in one cold run not yet done). Waiting for: the lead's review of the token handling, register 152, and whether the app's unit tests join the pipeline (register 148)
 
+> **Update 2026-11-08 (documentation pass):** the app now has fifteen Maestro flows (the cancel and no-payment-method flows were added, and the issuer-restart flow runs last, as 14); the unit tests run in the pipeline's `mobile` job, which has not yet run on Azure.
+
 > **Numbering note (2026-11-07):** the refused-session flow is now `14-refused-session` (it was 13). `WI-ORD-010` added a no-payment-methods flow and it has to run before the issuer restart, so it took number 13. Mentions of "flow 13" below and in the 2026-11-05 evidence mean the refused-session flow.
 
 ```
@@ -56,5 +58,5 @@ See `docs/process/definition-of-done.md`.
 Yes for the tests and flows. Any change to the session code or the issuer goes to the lead before it is made.
 
 **Open Points (working)**
-- [ ] Whether the unit tests move into the node-gates `--tests` list and the pipeline's web job or stay local (the app is not in the pipeline, register 148): the lead decides.
-- [ ] How the "refused session" flow makes the issuer forget its tokens without a new endpoint on the issuer (a container restart orchestrated by the runner is the working assumption; a test-only endpoint would be an auth change and needs the lead).
+- [x] Whether the unit tests move into the node-gates **Resolved:** they run in the pipeline's `mobile` job (written, not yet run on Azure). -- `--tests` list and the pipeline's web job or stay local (the app is not in the pipeline, register 148): the lead decides.
+- [x] How the "refused session" flow makes the issuer forget its tokens **Resolved 2026-11-05:** the runner restarts the issuer container (`POST /issuer/restart` on the flow-control server). -- without a new endpoint on the issuer (a container restart orchestrated by the runner is the working assumption; a test-only endpoint would be an auth change and needs the lead).
