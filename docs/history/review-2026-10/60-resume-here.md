@@ -177,7 +177,7 @@ Check the backlog for ID collisions (`git grep`) before assigning final numbers.
 
 ## 11. Facts that exist only outside the repository
 
-- Memory notes (`C:\Users\Ben\.claude\projects\C--git-bakery-marketplace\memory\`): git workflow, register rule, PR troubleshooting pushes (batch fixes, run all gates, push once), portfolio priorities, peer repos and self-containment, and a pointer to this file.
+- Memory notes (`~/.claude/projects/C--git-bakery-marketplace/memory/`): git workflow, register rule, PR troubleshooting pushes (batch fixes, run all gates, push once), portfolio priorities, peer repos and self-containment, and a pointer to this file.
 - Earlier session transcripts (four files in the same project folder) hold the history behind the test-reliability record; the record cites commits, so the transcripts are not needed.
 - The capabilities to demonstrate were supplied in the session; only neutral goals A and B are in the repository (ledger).
 - The peer repositories (`peer-A`, `peer-B`, `peer-C`) are unchanged. The older playbook is obsolete and could be retired; its one unique paragraph is tracked as copy-in CI-50.

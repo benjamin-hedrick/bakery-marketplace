@@ -83,7 +83,7 @@ The peer repositories were read at these commits on 2026-10-29 and were not modi
 | Repository | Local path | Commit read | Files |
 |---|---|---|---|
 | peer-A | `peer-A` | `504bd7a` (2026-10-25) | 34 |
-| peer-B | `C:\git\peer-B` | `cf01355` (2026-10-25) | 30 |
-| peer-C | `C:\git\peer-C` | `7b52da1` (2026-09-05) | 7 |
+| peer-B | `peer-B` | `cf01355` (2026-10-25) | 30 |
+| peer-C | `peer-C` | `7b52da1` (2026-09-05) | 7 |
 
 The substance of what to copy is in the register rows (value, disposition, bakery target). The full text of the sources (for example `templates/work-item-template.md`, the two decision checklists, `handoff-integrity.md`, the delegation-packet templates, the permit templates) has **not** been copied into this repository: copying is the task of the edit plan's Step 11, after the lead confirms the register (decision R-12 in `doc-review/60-resume-here.md`). If the peer repositories move or change before then, restore the versions above from their git history.

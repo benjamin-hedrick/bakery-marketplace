@@ -6,19 +6,19 @@
   ],
   "projects": [
     {
-      "path": "C:/git/bakery-marketplace/services/admin-service/src/AdminService.csproj"
+      "path": "services/admin-service/src/AdminService.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/services/catalog-service/src/CatalogService.csproj"
+      "path": "services/catalog-service/src/CatalogService.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/services/notification-service/src/NotificationService.csproj"
+      "path": "services/notification-service/src/NotificationService.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/services/ordering-service/src/OrderingService.csproj"
+      "path": "services/ordering-service/src/OrderingService.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/services/catalog-service/tests/CatalogService.Tests/CatalogService.Tests.csproj",
+      "path": "services/catalog-service/tests/CatalogService.Tests/CatalogService.Tests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -40,7 +40,7 @@
       ]
     },
     {
-      "path": "C:/git/bakery-marketplace/services/notification-service/tests/NotificationService.Tests/NotificationService.Tests.csproj",
+      "path": "services/notification-service/tests/NotificationService.Tests/NotificationService.Tests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "path": "C:/git/bakery-marketplace/services/ordering-service/tests/OrderingService.Tests/OrderingService.Tests.csproj",
+      "path": "services/ordering-service/tests/OrderingService.Tests/OrderingService.Tests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -84,31 +84,31 @@
       ]
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Auth/BakeryMarketplace.Auth.csproj"
+      "path": "tools/BakeryMarketplace.Auth/BakeryMarketplace.Auth.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Caching/BakeryMarketplace.Caching.csproj"
+      "path": "tools/BakeryMarketplace.Caching/BakeryMarketplace.Caching.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Data/BakeryMarketplace.Data.csproj"
+      "path": "tools/BakeryMarketplace.Data/BakeryMarketplace.Data.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Eventing/BakeryMarketplace.Eventing.csproj"
+      "path": "tools/BakeryMarketplace.Eventing/BakeryMarketplace.Eventing.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.EventSchemas/BakeryMarketplace.EventSchemas.csproj"
+      "path": "tools/BakeryMarketplace.EventSchemas/BakeryMarketplace.EventSchemas.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Logging/BakeryMarketplace.Logging.csproj"
+      "path": "tools/BakeryMarketplace.Logging/BakeryMarketplace.Logging.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.MockOidcHost/BakeryMarketplace.MockOidcHost.csproj"
+      "path": "tools/BakeryMarketplace.MockOidcHost/BakeryMarketplace.MockOidcHost.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Secrets/BakeryMarketplace.Secrets.csproj"
+      "path": "tools/BakeryMarketplace.Secrets/BakeryMarketplace.Secrets.csproj"
     },
     {
-      "path": "C:/git/bakery-marketplace/tools/BakeryMarketplace.Seed/BakeryMarketplace.Seed.csproj"
+      "path": "tools/BakeryMarketplace.Seed/BakeryMarketplace.Seed.csproj"
     }
   ]
 }

@@ -39,7 +39,7 @@ Related, not failures of a test: Redis adapter tests silently fall back to in-me
 
 ## Where the underlying detail lives
 
-The rows above are distilled from the commit messages cited and from four Claude Code session transcripts kept on the lead's machine (`C:\Users\Ben\.claude\projects\C--git-bakery-marketplace\*.jsonl`, not in the repository). The transcripts hold the full diagnosis dialogue (hypotheses tried, commands run, counts). To re-find an episode, search the transcript for its test or file name; approximate locations (line numbers in the file, first eight characters of its name):
+The rows above are distilled from the commit messages cited and from four Claude Code session transcripts kept on the lead's machine (`~/.claude/projects/C--git-bakery-marketplace/*.jsonl`, not in the repository). The transcripts hold the full diagnosis dialogue (hypotheses tried, commands run, counts). To re-find an episode, search the transcript for its test or file name; approximate locations (line numbers in the file, first eight characters of its name):
 
 | Episode | Transcript | Approximate lines |
 |---|---|---|

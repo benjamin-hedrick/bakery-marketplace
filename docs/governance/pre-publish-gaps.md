@@ -47,6 +47,12 @@ Planned 2026-11-08 for the next session. The aim is to read every folder against
 
 Method: one folder at a time, a findings list per folder (stale, wrong, missing, unsafe to publish), fixes in one commit per folder, the gates before every push, and the register or this list for anything that cannot be fixed in the pass.
 
+## Scans of 2026-11-08 (secrets and sanitization)
+
+Full-history secret scan (gitleaks, 426 commits): no findings. Sanitization: local paths in three evidence and history files fixed (the raw NuGet JSON, the test-reliability findings, the review resume and peer-copy pages); the author e-mail and name on every commit and in `LICENSE` are accepted by the lead. `SECURITY.md` added and linked from the README. No employer, client or colleague names were searched for (none were given); add them to a grep if any exist.
+
 ## Before the repository is public
+
+On flip day, switch on **private vulnerability reporting** in the repository settings (`SECURITY.md` points to it).
 
 Sanitization, licence and the public-repository settings are tracked as register item 93 ("flip day"). The README links the film directly; check that GitHub plays it from the repository view on the day.
