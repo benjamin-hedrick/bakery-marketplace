@@ -82,10 +82,10 @@ graph LR
 | Element | State |
 |---|---|
 | Commands `PlaceOrder`, `ConfirmOrder`, `StartPreparation`, `MarkReady`, `CancelOrder` and the events `OrderPlaced`, `OrderConfirmed`, `OrderPreparationStarted`, `OrderReadyForFulfillment`, `OrderCompleted`, `OrderCancelled` | Built in the Order aggregate and the vendor and customer action endpoints. Orders with no option and no requested window confirm themselves at checkout |
-| `ConfirmPickup` and `OrderFulfillmentCompleted`, `PickupWindowScheduled`, `OrderReadyForPickup` (the `PickupFulfillment` policies) | Not built (`WI-ORD-003`); a vendor completes an order directly |
-| Policy "order-status-readmodel updates" and the read model | Not built (`WI-QUE-001`) |
-| Policies that notify the vendor or the customer | Not built (`notification-service` is a scaffold) |
-| Stripe authorize and capture | Not built; a named stub approves every payment (`PAY-001`) |
+| `ConfirmPickup` and `OrderFulfillmentCompleted`, `PickupWindowScheduled`, `OrderReadyForPickup` (the `PickupFulfillment` policies) | Built 2026-11-07 (`WI-ORD-003`, In review): `PickupFulfillment` is a separate consumer inside ordering; the vendor's hand-over answers 202 and the order completes on `OrderFulfillmentCompleted` |
+| Policy "order-status-readmodel updates" and the read model | Built (`WI-QUE-001`, with the live queue, `WI-QUE-003`) |
+| Policies that notify the vendor or the customer | The customer's messages are built (`notification-service`, `WI-NOT-001`, `NOT-002`, local sender only); the vendor is notified by the live queue, not a message |
+| Stripe authorize and capture | Not built; a named stub judges a saved payment method's token (`WI-ORD-010`) and no money moves |
 | "release authorization and stock" on cancel | Stock release is built; there is no authorization to release |
 | "eligible for review; triggers payout reconciliation" | Not built |
 
