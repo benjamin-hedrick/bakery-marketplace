@@ -28,13 +28,13 @@ For the order in which the decisions were made and changed, see [the decision ti
 |---|---|---|
 | [0001](0001-fulfillment-strategy-extensibility.md) | Pickup v1; delivery deferred behind an Anticorruption Layer (events only) | Accepted, amended 2026-10-30 and 2026-11-07 |
 | [0002](0002-cache-strategy.md) | Environment-conditional managed Redis with a local fallback | Accepted, amended 2026-09-11 to 2026-11-07 |
-| [0003](0003-event-driven-backbone.md) | Event Grid (cloud) and Redis Streams (local); at-least-once delivery; per-aggregate sequencing | Accepted, amended 2026-10-30 |
-| [0004](0004-data-store-choice.md) | Cosmos DB, one container per bounded context | Accepted, amended 2026-10-30 |
+| [0003](0003-event-driven-backbone.md) | Event Grid (cloud) and Redis Streams (local); at-least-once delivery; per-aggregate sequencing | Accepted, amended 2026-10-30 and 2026-11-08 |
+| [0004](0004-data-store-choice.md) | Cosmos DB, one container per bounded context | Accepted, amended 2026-10-30 and 2026-11-08 |
 | [0005](0005-payments-buy-vs-build.md) | Stripe Connect (Express accounts) | Accepted |
-| [0006](0006-auth-authz-model.md) | JWT validation by every service; role plus resource-ownership authorization; identity provider is Microsoft Entra External ID (the text says Azure AD B2C) | Accepted, amended 2026-09-11 to 2026-10-30 |
+| [0006](0006-auth-authz-model.md) | JWT validation by every service; role plus resource-ownership authorization; identity provider is Microsoft Entra External ID (the text says Azure AD B2C) | Accepted, amended 2026-09-11 to 2026-11-08 |
 | [0007](0007-secrets-management.md) | Key Vault with managed identity; eliminate the secret where possible | Accepted, amended 2026-10-26 and 2026-10-28 |
 | [0008](0008-api-gateway.md) | Azure API Management (Consumption) with zero-trust dual validation | Accepted, amended 2026-10-26 |
-| [0009](0009-bounded-context-service-mapping.md) | 13 bounded contexts onto 4 services, modular-monolith rule | Accepted |
+| [0009](0009-bounded-context-service-mapping.md) | 13 bounded contexts onto 4 services, modular-monolith rule | Accepted, noted 2026-11-08 |
 | [0010](0010-service-language-framework.md) | C# and ASP.NET Core Web API; .NET 10 since 2026-10-28 | Accepted, amended 2026-10-28 and 2026-10-30 |
 | [0011](0011-frontend-framework.md) | React (Vite) single-page app | Superseded by ADR-0012 |
 | [0012](0012-frontend-nextjs-ssr.md) | Next.js Pages Router; server rendering for public listing pages | Accepted (2026-10-26) |
@@ -45,7 +45,7 @@ For the order in which the decisions were made and changed, see [the decision ti
 | [0017](0017-stock-and-availability-ownership.md) | The catalog owns the stock counter; reserve at place, release on cancel | Accepted (2026-10-28) |
 | [0018](0018-service-to-service-authentication.md) | OAuth2 client credentials for service callers; DEV credential type pending | Accepted (2026-10-31) |
 | [0019](0019-browser-sessions.md) | A server-side session behind an HttpOnly cookie: renewal on the server, tokens out of the page, one implementation for both web apps | Accepted (2026-11-02) |
-| [0020](0020-deployment-pipeline-and-environments.md) | Build once, promote by digest, configure at deploy time; two stacks; gated infrastructure and application stages; a second, never-run UAT/Prod pipeline | Accepted (2026-10-31) |
+| [0020](0020-deployment-pipeline-and-environments.md) | Build once, promote by digest, configure at deploy time; two stacks; gated infrastructure and application stages; a second, never-run UAT/Prod pipeline | Accepted (2026-10-31), noted 2026-11-08 |
 | [0021](0021-live-updates-to-the-vendor-queue.md) | Push as a nudge over a stream (GraphQL subscription over SSE, Redis Pub/Sub fan-out) layered on polling, which stays | Accepted (2026-11-02) |
 | [0022](0022-tags.md) | Tags: a catalog-owned registry of kinds and tags (allergen, diet, occasion, season, theme), assigned to listings and options; visibility and windows enforced by the catalog | Accepted |
 | [0023](0023-native-app-sign-in.md) | Native app sign-in: Authorization Code with PKCE in the system browser, a private-use redirect scheme, the refresh token in the Android Keystore; the BFF and services are unchanged | Accepted (2026-11-04) |

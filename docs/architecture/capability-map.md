@@ -1,5 +1,7 @@
 # Capability Map / Business Architecture View
 
+> **Status:** Current · the business view drafted 2026-09-07 (`WI-ARCH-002`), read again 2026-11-08. It says what the business does, not what is built: for that see the [tech stack](tech-stack.md) and the [component page](c4/component-services.md).
+
 Business-facing companion to `docs/architecture/ddd/bounded-contexts.md` — same underlying system, organized by what the business *does* rather than by code boundary. This document re-groups existing decisions for a different audience (particularly the Executive Sponsor role in `docs/management/stakeholder-communications-plan.md`); it doesn't reclassify or redecide anything.
 
 ```mermaid

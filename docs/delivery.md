@@ -31,7 +31,7 @@ The project is run the way a small product team would run one, by one lead with 
 
 ## Risk, governance and communication
 
-[Risk register](management/risk-register.md) (20 risks, each traced to a decision, an evidence record or a register item) · [architecture review and change control](governance/architecture-review.md) · [review statement](governance/review-statement.md) · [stakeholder communications plan](management/stakeholder-communications-plan.md) and [budget](management/budget-cost-estimate.md) (labelled hypothetical: a one-person project) · [SLA/SLO](operations/sla.md), [monitoring plan](operations/monitoring-alerting.md), [runbooks](operations/runbooks/README.md).
+[Risk register](management/risk-register.md) (24 risks, each traced to a decision, an evidence record or a register item) · [architecture review and change control](governance/architecture-review.md) · [review statement](governance/review-statement.md) · [stakeholder communications plan](management/stakeholder-communications-plan.md) and [budget](management/budget-cost-estimate.md) (labelled hypothetical: a one-person project) · [SLA/SLO](operations/sla.md), [monitoring plan](operations/monitoring-alerting.md), [runbooks](operations/runbooks/README.md).
 
 ## Delivery in numbers
 
@@ -39,7 +39,7 @@ From the git history and the recorded sessions of the AI assistant ([AI collabor
 
 | | |
 |---|---|
-| Calendar span | 2026-09-04 to 2026-11-08, work on 25 days, 428 commits |
+| Calendar span | 2026-09-04 to 2026-11-08, work on 25 days, more than 430 commits |
 | Work items | 110 specs; 85 Done or In review |
 | Decisions | 23 ADRs |
 | Evidence records | one beside each run, indexed in [evidence](evidence/README.md) |

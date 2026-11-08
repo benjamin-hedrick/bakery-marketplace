@@ -184,7 +184,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0003](../../architecture/adr/0003-event-driven-backbone.md) | Event-Driven Backbone | Accepted | Accepted, amended 2026-10-30 |
 | [0004](../../architecture/adr/0004-data-store-choice.md) | Primary Data Store — Azure Cosmos DB (SQL API), Container-per-Context | Accepted | Accepted, amended 2026-10-30 |
 | [0005](../../architecture/adr/0005-payments-buy-vs-build.md) | Payments — Buy (Stripe Connect) Rather Than Build | Accepted | Accepted |
-| [0006](../../architecture/adr/0006-auth-authz-model.md) | Authentication & Authorization Model | Accepted | Accepted, amended 2026-09-11 to 2026-10-30 |
+| [0006](../../architecture/adr/0006-auth-authz-model.md) | Authentication & Authorization Model | Accepted | Accepted, amended 2026-09-11 to 2026-11-08 |
 | [0007](../../architecture/adr/0007-secrets-management.md) | Secrets Management | Accepted | Accepted, amended 2026-10-26 and 2026-10-28 |
 | [0008](../../architecture/adr/0008-api-gateway.md) | API Gateway — Azure API Management (Consumption Tier), Zero-Trust Dual Validation | Accepted | Accepted, amended 2026-10-26 |
 | [0009](../../architecture/adr/0009-bounded-context-service-mapping.md) | Bounded-Context-to-Service Mapping | Accepted | Accepted |

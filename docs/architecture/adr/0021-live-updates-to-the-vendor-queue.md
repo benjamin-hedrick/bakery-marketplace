@@ -1,6 +1,6 @@
 # ADR-0021: Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept)
 
-**Status:** Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age shortened. It amends ADR-0012 (the queue display is no longer polling only) and builds on ADR-0003, ADR-0006, ADR-0008 and ADR-0013. How the stream is authenticated depends on the renewal design of ADR-0019 (proposed); see decision 5.
+**Status:** Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age shortened. It amends ADR-0012 (the queue display is no longer polling only) and builds on ADR-0003, ADR-0006, ADR-0008 and ADR-0013. How the stream is authenticated depends on the renewal design of ADR-0019, which was accepted the same day; see decision 5.
 
 ## Context
 

@@ -1,6 +1,6 @@
 # ADR-0006: Authentication & Authorization Model
 
-**Status:** Accepted, amended 2026-09-11 to 2026-10-30
+**Status:** Accepted, amended 2026-09-11 to 2026-11-08
 
 ## Context
 
@@ -94,3 +94,7 @@ The decision is unchanged. Where the text above says Azure AD B2C, read Microsof
 ## Note, 2026-11-02: browser sessions (ADR-0019)
 
 ADR-0019 (Accepted 2026-11-02) changes where a browser app keeps its token. The "header-only, no cookies" rule above now applies **between the web app's server and the BFF and services**, which still receive `Authorization: Bearer` and validate it themselves. Between the browser and its own web app there is an opaque HttpOnly session cookie and no token in the page; the CSRF analysis above is answered by `SameSite=Lax` plus an `Origin` and `Content-Type: application/json` check on every state-changing request. Built in `packages/web-session` (WI-AUTH-007, phases 1 to 3, 2026-11-02): both web apps use it; the in-memory token, the browser-side PKCE and the missing refresh token (register item 24) are gone.
+
+## Note, 2026-11-08: the refresh grant
+
+The mock issuer gained a refresh-token grant on 2026-11-02 for the browser sessions of ADR-0019 and again for the Android app (ADR-0023). Both are covered by their own ADRs; the model here is unchanged.

@@ -6,7 +6,7 @@ Three paths cover slice 1: logging in, loading a public page, and placing and re
 
 ## 1. Logging in (Authorization Code with PKCE)
 
-The browser logs in on its own, and the access token lives in browser memory only (ADR-0006; a reload logs the user out, register item 24).
+The browser logs in through its web app's server, which holds the tokens in an encrypted server-side session and gives the browser only an opaque HttpOnly cookie (ADR-0019; a reload keeps the login). The first slice held the token in browser memory instead; ADR-0019 replaced that (register item 24).
 
 ```mermaid
 sequenceDiagram
@@ -104,7 +104,7 @@ sequenceDiagram
     O-->>G: order for the owner, 404 for anyone else
 ```
 
-**What the order does next.** A plain order (no option on any line, no requested window) confirms itself in the same write that places it (`WI-ORD-008`); an order with an option or a requested window stays `Placed` until the bakery acts through the vendor endpoints (`WI-ORD-007`). A failed publish does not fail the checkout: the order is stored with its events, and `OutboxRelay` sweeps and sends any that were missed. Nothing reads the published events yet.
+**What the order does next.** A plain order (no option on any line, no requested window) confirms itself in the same write that places it (`WI-ORD-008`); an order with an option or a requested window stays `Placed` until the bakery acts through the vendor endpoints (`WI-ORD-007`). A failed publish does not fail the checkout: the order is stored with its events, and `OutboxRelay` sweeps and sends any that were missed. When this path was traced (2026-10-28) nothing read the published events; since then the vendor read model, the fulfillment strategy and the notification service consume them (`docs/architecture/c4/component-services.md`).
 
 ## What travels on each hop
 

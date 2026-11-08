@@ -43,7 +43,7 @@ A service refuses to start rather than guess. `ordering-service`, `catalog-servi
 
 ## 3. Outbox with inline publish and a relay
 
-Raised domain events are stored inside the order document in the same write as the state change. Checkout then publishes them inline, waiting at most `InlinePublishTimeoutSeconds` (2 s) and leaving anything unsent for `OutboxRelay`, which sweeps every few seconds (5 s, backing off to 60 s when idle), skipping events newer than a 3 s grace period. A crashed instance's events wait at most the idle ceiling. Event ids are deterministic, so a double publish is harmless: consumers dedupe on `eventId` (ADR-0003). Applied in `ordering-service` (`WI-ORD-005`); the catalog has no outbox (register 30). Known limits: one stuck entry blocks that order's later events (74), the relay is not leased across instances (72), streams are never trimmed (75).
+Raised domain events are stored inside the order document in the same write as the state change. Checkout then publishes them inline, waiting at most `InlinePublishTimeoutSeconds` (2 s) and leaving anything unsent for `OutboxRelay`, which sweeps every few seconds (5 s, backing off to 60 s when idle), skipping events newer than a 3 s grace period. A crashed instance's events wait at most the idle ceiling. Event ids are deterministic, so a double publish is harmless: consumers dedupe on `eventId` (ADR-0003). Applied in `ordering-service` (`WI-ORD-005`) and, since 2026-11-01, in `catalog-service` for `ListingPublished` and `LowStockDetected` (`ListingEventPublisher`, `ListingOutboxRelay`; register 30). Known limits: one stuck entry blocks that order's later events (74), the relay is not leased across instances (72), streams are never trimmed (75).
 
 ## 4. Idempotent writes with a derived id
 
@@ -55,7 +55,7 @@ The catalog owns the stock counter (ADR-0017). A reservation is one atomic batch
 
 ## 6. Optimistic concurrency
 
-Entities that implement `IETagged` are saved with `SaveIfUnchangedAsync` (Cosmos If-Match). Listings use it; orders write through `OrderStore.TryUpdateAsync`. Other documents are still last-write-wins (register 30).
+Entities that implement `IETagged` are saved with `SaveIfUnchangedAsync` (Cosmos If-Match). Listings use it; orders write through `OrderStore.TryUpdateAsync`. The vendor status document is still last-write-wins (register 30).
 
 ## 7. Cache-aside on source data, with invalidation and a single flight
 
@@ -96,7 +96,7 @@ Every service validates the token and ownership itself, even behind a gateway (A
 | Technique | Where | Example |
 |---|---|---|
 | Shared contract tests | the libraries and the session store above | every transport, repository, cache and session store inherits one suite |
-| Real-stack journeys | `apps/web-customer/tests/skeleton`, `scripts/ci/skeleton-smoke.mjs` | 62 of 62 against the real services and issuer on 2026-11-07 |
+| Real-stack journeys | `apps/web-customer/tests/skeleton`, `scripts/ci/skeleton-smoke.mjs` | 62 of 62 against the real services and issuer on 2026-11-07 (`WI-ORD-003`) |
 | Mock-backed browser tests | `apps/web-customer/tests/e2e`, `apps/web-queue-display` | the customer app's suite repeated 10 times: 620 executions, 0 failures; run in Chromium, Firefox and WebKit |
 | Android flows | `apps/mobile-customer/.maestro` | fifteen Maestro flows on an emulator, run locally |
 | Generated-input tests | the BFF and the session package | a fixed seed; each property shown able to fail (`docs/evidence/WI-SEC-005/fuzz-2026-11-02.md`) |

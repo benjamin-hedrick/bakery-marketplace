@@ -38,8 +38,8 @@ graph LR
 
     VEND -->|Customer/Supplier: verified vendor + listing data| CAT
     CAT -->|Open Host Service: listing feed| SEARCH
-    PREF -->|Open Host Service: preference/allergy snapshot| SEARCH
-    PREF -->|Open Host Service: preference/allergy snapshot| ORD
+    PREF -->|"read in-process; snapshot event dropped 2026-11-04"| SEARCH
+    PREF -->|"allergens travel on the order, WI-ORD-009"| ORD
     ADS -.->|Partnership: sponsored-slot signal| SEARCH
     CAT -->|Customer/Supplier: sellable item + price| ORD
     ORD -->|ACL: order events, fulfillment strategy plugs in behind an interface| FUL

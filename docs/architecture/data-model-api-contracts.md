@@ -1,5 +1,7 @@
 # Data Model / API Contracts
 
+> **Status:** Target model with as-built notes · reviewed 2026-11-08. Where this page and the code disagree, the code and the services' READMEs win. Known divergences, none yet rewritten below: browsers reach the services through the GraphQL BFF, not through API Management (ADR-0013; APIM is not built); the vendor's order view was built as a vendor read model served by `GET /ordering/vendor/orders` and carries no customer name, not as `order-status-readmodel` with `GET /ordering/orders?vendorId=`; `PreferenceSnapshotPublished` was dropped (ADR-0022, 2026-11-04) and the profile is read in-process by the catalog; the notification service consumes the order events, not `LowStockDetected`; the `admin-service` section is design only (the service is a scaffold); `OrderCustomized` is unused. The first-slice mapping section and the S1 notes are as built.
+
 Concrete shapes for what ADR-0004 (containers) and ADR-0009 (service groupings) already decided. Field names match `docs/architecture/ddd/glossary.md` exactly. All Cosmos access goes through `Repository<T>` (ADR-0004); all endpoints route through Azure API Management (ADR-0008) with the usual zero-trust dual validation.
 
 **API versioning note**: endpoint paths below are illustrative, not a decided versioning scheme — API endpoint/URL versioning through APIM is still an open item (`docs/product/backlog/PARKING-LOT.md`). Don't read `/catalog/...` as a committed URL scheme.

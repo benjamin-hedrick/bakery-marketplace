@@ -48,3 +48,7 @@ This ADR makes that mapping explicit and formal, rather than leaving it as an im
 - ADR-0004 — same posture, applied to Cosmos DB's shared account
 - `docs/architecture/c4/container.md` — the diagram whose drafting surfaced this gap; the 🔶-flagged proposal there is now confirmed by this ADR
 - Process lesson: this sequencing gap (the mapping decided after scaffolding instead of before) was found by drawing the container diagram, a surprise (`docs/method/glossary.md`): the missing decision became this record. The proactive half is context completeness: before scaffolding, ask which structural decisions the scaffold would make implicitly and make them explicitly first.
+
+## Note, 2026-11-08: the preference snapshot was dropped
+
+This decision names Preferences as publishing a snapshot to Search and Ordering. That was dropped on 2026-11-04 (ADR-0022, `WI-PREF-002` superseded): the catalog reads the profile in-process and the allergens a customer tells a bakery travel on the order (`WI-ORD-009`). The service grouping itself is unchanged.
