@@ -1,6 +1,6 @@
 # Demo film: three screens, one live system
 
-> **Status:** Planned and scripted, **never run** · written 2026-11-07 (register 163). The recorder, the compositor's layout and the Maestro syntax were checked; the director (`film.mjs`) and the phone flow have not been run, and nothing has been recorded. This page is the plan to resume from: what the film shows, how the scripts work, what is unproven, and the order of the first runs.
+> **Status:** Current · scripted 2026-11-07 (register 163), run and composed 2026-11-08. The film is in the repository: [`docs/operations/demo/demo-film.mp4`](demo/demo-film.mp4), 104 seconds, a web customer, a phone customer and the bakery's live queue on one screen, local, test payments. This page says what the film shows, how the scripts work, what happened on the first runs and what is not proven.
 
 ## What it is for
 
@@ -21,7 +21,7 @@ The cast is seeded data. Nora (tree-nut allergy) is on the web, Max (dairy and t
 | 3 | Phone, allergy | Max signs in, opens the same croissant with Extra almonds, sees warnings for dairy, tree nuts and a note for gluten, ticks the acknowledgement and orders. | "Both customers are warned about their allergies and must acknowledge them" |
 | 4 | Orders arrive | Both orders appear on the queue within a second. | |
 | 5 | Others order | A plain latte order from Alice confirms itself; Dana's sourdough with a pickup time waits for the bakery; Sam's sourdough with the seeds option carries a "sesame" allergy on its card. | "More customers order at the same time", "A pickup time waits for the bakery to accept", "An allergy told to the bakery shows on its card" |
-| 6 | The bakery works | The vendor agent accepts, starts, marks ready and hands over, oldest first, about five seconds apart. The web order page and the phone follow each step. | "The bakery works its queue; each customer sees every step" |
+| 6 | The bakery works | The vendor agent accepts, starts, marks ready and hands over, about five seconds apart (newest orders first, so the two customers on screen are worked first). The web order page and the phone follow each step. | "The bakery works its queue; each customer sees every step" |
 | 7 | A cancel | Max cancels while his order still shows "Order received" (about four seconds after ordering, before the bakery has accepted it); his card leaves the queue. | |
 | 8 | Done | Everything else is handed over and shows as picked up. | "Local demo: test payments" |
 
@@ -35,9 +35,9 @@ Pickup-time and option orders wait for the bakery; plain orders confirm themselv
 | `scripts/dev/film/record-phone.mjs` | Records the emulator in chunks with `adb screenrecord`; started and stopped by the director. |
 | `apps/mobile-customer/.maestro/demo/phone-max.yaml` | Max's paced flow. Not a test. It calls the director (`scripts/film-call.js`) for its pauses and to say "phone-ready", "phone-ordered" and "phone-cancelled"; the director releases it with "go-phone" when the recording rolls. |
 | `scripts/dev/film/compose.mjs` | Puts the recordings on one timeline and makes one 1920×1080 MP4: the queue and the web customer stacked on the left, the captions in the middle, the phone on the right. `--selftest` composes synthetic recordings. |
-| Output | `artifacts/film/run-<time>/` (git-ignored): `timeline.json`, `video/`, `phone/`, `film.mp4`, `poster.png`. |
+| Output | `artifacts/film/run-<time>/` (git-ignored): `timeline.json`, `video/`, `phone/`, `film.mp4`, `poster.png`. The one film chosen for the repository is copied to `docs/operations/demo/demo-film.mp4`; the raw recordings stay out of git. |
 
-The vendor agent needs no knowledge of the other actors: it acts on any order that has been in the queue for 7 seconds, six seconds between the steps of one order and five between any two actions, oldest first. The run ends when the web customer's order shows Completed and the background orders are in, plus a hold for the viewer; there is a four-minute hard limit.
+The vendor agent needs no knowledge of the other actors: it acts on any order that has been in the queue for 7 seconds, six seconds between the steps of one order and five between any two actions; a new order is accepted before the others are moved along, then the newest order first. Once the web order is completed and the phone order cancelled, the rest of the queue goes at two seconds a step. The run ends when the web customer's order shows Completed and the background orders are in, plus a hold for the viewer; there is a four-minute hard limit.
 
 ## Checked and not checked
 
@@ -59,6 +59,8 @@ The vendor agent needs no knowledge of the other actors: it acts on any order th
 3. The same with the phone: `node scripts/dev/film/film.mjs --no-build` (the app is already installed on the emulator image; use no flag the first time). Fix the Maestro hand-offs.
 4. `node scripts/dev/film/compose.mjs --run artifacts/film/run-<time>`; look at it; measure the sync (a visible event on two screens, such as an order appearing on the queue and on the phone's status).
 5. Polish: caption wording, title and end cards, layout, length. Decide where it lives.
+
+**Where it ended up (2026-11-08).** All five steps were done: the `--no-phone` run twice, the full run with the phone four times, each composed and checked. What the runs found and fixed: the director deleted its own log folder at the start; it ended while the vendor was still working the queue; a label covered the vendor page's heading and another the phone's clock; captions overlapped and were held too long; and the phone's cancel lost a race with the vendor (see the risks below). The pacing was then tightened (shorter phone pauses, other customers' orders arriving while the phone signs in, captions re-timed, the vendor faster at the end) and the film starts when all three recordings are running. The lead watched the 104-second result and chose it; it is copied to `docs/operations/demo/demo-film.mp4` (1.9 MB, committed), made from the run of 2026-11-08T16-57-07. Sync between the screens was read off one event (the cancellation: the phone showed it about half a second before the card left the queue) and not measured more finely; the lead's own run on a cold machine is not done.
 
 ## Known risks and choices
 
