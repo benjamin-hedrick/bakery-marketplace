@@ -1,6 +1,6 @@
 # Quality gates and CI baseline
 
-> **Status:** Current · updated 2026-10-30 (test counts, the documentation checks and the enforcement summary were added; the rest dates from 2026-10-28 and is unchanged).
+> **Status:** Current · updated 2026-11-08. The commands table, the baseline table (a snapshot of 2026-10-30, kept as such) and the "Seen on Azure" section date from 2026-10-28 to 2026-10-31; the enforcement table and the lists of what is and is not a gate were brought up to date on 2026-11-08. **Current test counts and line coverage come from `node scripts/ci/test-report.mjs`** (the generated record is linked from [Testing](../testing.md)), not from the hand-typed table below.
 
 The testing approach is in [`test-strategy.md`](test-strategy.md). `WI-PORT-003`, ADR-0015. What the pipeline (`azure-pipelines.yml`) runs, the exact commands to reproduce each step locally, and what it does **not** cover. **The pipeline has run green on Azure DevOps** (reported by the human lead 2026-10-28; most recent recorded run `#20261029.4`, 2026-10-29, which included ordering-service and the browser journey; the deliberate Cosmos-adapter warning remains; not run on `ubuntu-26.04`). Every command below was also run locally (see `docs/evidence/WI-PORT-003/findings.md`).
 
@@ -42,9 +42,9 @@ Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config
 - **Docs, Markdown and `.graphql` are not formatted** (`.prettierignore`).
 - **Cosmos adapter tests** (`BakeryMarketplace.Data.Tests`): they do **not** run against Cosmos. They default to `https://localhost:8081`, the emulator speaks HTTP, and they fall back to `FakeRepository`; against the real emulator 3 of 4 fail. The pipeline logs a warning saying so. The fix was named `WI-DATA-003`, which has no spec (open item #31, still open on 2026-10-30).
 - **Redis adapter tests** fall back to in-memory fakes if the connection fails, with no signal. The pipeline starts Redis, uses `127.0.0.1` (see below) and fails the job if Redis saw fewer than 50 commands during the tests.
-- **Security scanning, deployment, post-deploy smoke, contract tests beyond those in the suites above, load/chaos**: not built.
+- **Not in the pipeline** (each run locally, with a record): the dependency audit and SBOMs (`scripts/ci/dependency-audit.mjs`, `WI-SEC-004`), the OWASP ZAP scan (`zap-scan.mjs`), SonarQube (`sonar-scan.mjs`), load and soak (`load-test.mjs`). **Not built:** container image scanning, deployment, post-deploy smoke, chaos beyond the contract tests' decorators.
 - **Playwright**: Chromium only. The Android app's Maestro flows are not a pipeline gate (local only, register 148); its format and typecheck are in `node scripts/ci/node-gates.mjs`. Node on the agent is 24.x; the PORT-001 proof ran on 25.9.
-- **Coverage**: none measured. Do not claim it.
+- **Coverage**: line coverage of the unit and service tests is measured by `node scripts/ci/test-report.mjs`, not in the pipeline. It does not include the browser suites or the Maestro flows (see [Testing](../testing.md)).
 
 ## Findings that shaped the pipeline
 
@@ -52,6 +52,8 @@ Rules go in one at a time; severity levels in `.editorconfig` and `eslint.config
 2. The Eventing Redis suite was not repeatable: tests shared one event type, hence one Redis consumer group, and competed for each other's messages. It was already failing on re-runs and became a frequent failure on a fresh Redis under .NET 10 (2 of 3 runs; 4 of 4 passed on .NET 8). **Fixed 2026-10-28**: every test uses event types of its own; 5 consecutive runs on one Redis pass. The silent fallback to fakes (finding 1) is still open (#35).
 
 ## Test baseline (2026-10-30)
+
+*A snapshot: the counts below are from 2026-10-30 and are not maintained. Current counts: `node scripts/ci/test-report.mjs`.*
 
 Run locally on a Windows machine from the committed tree, then again in a fresh clone (`docs/evidence/baseline-2026-10-30.md`). Passed, failed and skipped are separate.
 
@@ -78,15 +80,15 @@ Not run in the pipeline: the emulator-gated Cosmos tests, the real-stack journey
 | BFF format, lint, typecheck, tests | Yes (`bff` job) | Yes | No |
 | Web format, lint, typecheck, mock browser suite | Yes (`web` job) | Yes | No |
 | Session package format, typecheck, tests (real Redis) | Yes (`session` job; written 2026-11-02, **not yet run on Azure**) | Yes (format, typecheck, tests in `node-gates.mjs`) | No |
-| Android app format, typecheck, unit tests (session and API logic) | Yes (`mobile` job; written 2026-11-05, **not yet run on Azure**; no emulator, so the Maestro flows are not in the pipeline, register 148) | Yes (format, typecheck, tests in `node-gates.mjs`) | The 13 Maestro flows: local only (`node scripts/dev/mobile-flows.mjs`) |
+| Android app format, typecheck, unit tests (session and API logic) | Yes (`mobile` job; written 2026-11-05, **not yet run on Azure**; no emulator, so the Maestro flows are not in the pipeline, register 148) | Yes (format, typecheck, tests in `node-gates.mjs`) | The 15 Maestro flows: local only (`node scripts/dev/mobile-flows.mjs`) |
 | .NET tests with a hang timeout | Yes (`--blame-hang-timeout 5m` on the three `dotnet test` steps; added 2026-11-02, not yet run on Azure) | Yes (`linux-check.mjs`, 2 CPUs, 3 minutes) | No |
 | Queue display format, lint, typecheck, unit tests, mock browser suite | Yes (`queue` job; written 2026-11-02, **not yet run on Azure**) | Yes (format, lint, typecheck, unit tests in `node-gates.mjs`) | No |
 | Real-stack journeys | Yes (`skeleton` job) | `skeleton-smoke.mjs` | No |
 | Documentation status check | Yes, seen green on Azure 2026-10-31 (`docs` job) | `status.mjs --check`; also in `scripts/ci/node-gates.mjs` | No (soft gate) |
 | Link check | Yes, seen green on Azure 2026-10-31 (`docs` job): fails on a broken relative link only | `linkcheck.mjs --fail-on-broken-links` (0 broken links; 213 unresolved backtick paths are counted, not enforced); also in `node-gates.mjs` | No (soft gate) |
 | Diagram syntax | **No** | ad hoc | **No** |
-| Secret scan (full history) | Yes, seen green on Azure 2026-10-31 (`secrets` job) | `node scripts/ci/secret-scan.mjs` (gitleaks container, `.gitleaks.toml`); run locally, no leaks | No |
-| Dependency audit, SBOM | **No** (not built) | `npm audit` by hand | **No** |
+| Secret scan (full history) | Yes, seen green on Azure 2026-10-31 (`secrets` job) | `node scripts/ci/secret-scan.mjs` (gitleaks container, `.gitleaks.toml`); run locally, no leaks (latest: 2026-11-08, 426 commits, `docs/evidence/secret-scan-2026-11-08.md`) | No |
+| Dependency audit, SBOM | **No** (built 2026-11-07 as a local script; a pipeline job and its fail policy are the lead's decision, register 162) | `node scripts/ci/dependency-audit.mjs` | **No** |
 
 The documentation checks are now a pipeline job (register item 90, option a) and part of `node scripts/ci/node-gates.mjs`; being a soft gate, a reviewer still has to read the check. A git hook or a Claude Code hook (options b and c) were not added. Not enforced: broken backtick paths (a count, no threshold) and the Mermaid diagram syntax.
 

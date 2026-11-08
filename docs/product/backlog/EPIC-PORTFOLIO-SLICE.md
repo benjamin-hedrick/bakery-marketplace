@@ -1,4 +1,4 @@
-> **Status:** 6 of 7 items done (PORT-004 Ready)
+> **Status:** 6 of 7 items done (PORT-004 In review)
 
 ```
 Epic ID:            EPIC-PORTFOLIO-SLICE

@@ -34,6 +34,7 @@
 | [`latency-2026-10-30.md`](latency-2026-10-30.md) | Scripted latency of reads and checkout on the real stack, cold and warm; no budget to compare with |
 | [`status-check-experiment-2026-10-30.md`](status-check-experiment-2026-10-30.md) | A status changed on purpose: what the documentation checks catch and what they miss |
 | [`secret-scan-2026-10-30.md`](secret-scan-2026-10-30.md) | Secret scan of the full history and the working tree: no real secret; four public or dummy values allowlisted |
+| [`secret-scan-2026-11-08.md`](secret-scan-2026-11-08.md) | The pre-publish scan: 426 commits, no leaks; a search for local paths and personal data, and what was removed |
 | [`facts-sheet-2026-10-29.md`](facts-sheet-2026-10-29.md) | The as-built facts the documents quote (projects, endpoints, test counts, what was run and what was only read) |
 
 ## Per work item

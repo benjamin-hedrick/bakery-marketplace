@@ -47,14 +47,25 @@ Planned 2026-11-08 for the next session. The aim is to read every folder against
 
 Method: one folder at a time, a findings list per folder (stale, wrong, missing, unsafe to publish), fixes in one commit per folder, the gates before every push, and the register or this list for anything that cannot be fixed in the pass.
 
-## Findings of the folder pass (2026-11-08), not yet fixed
+## Findings of the folder pass (2026-11-08)
+
+Method: each folder was analysed first (status lines, dates, cross-checks against the code and the evidence), then edited once.
+
+**Fixed in the pass:** architecture (C4 container and component pages, DDD, threat model rows); management and operations (project plan, risk register, monitoring, budget and stakeholder plan labels); process and governance (`quality-gates.md`: current counts point to the generated record, the not-a-gate lists, the 15 flows; `review-statement.md`: ADR range, the audit, Sonar, the secret scan, the Android app); `document-lifecycles.md` status; two epic banners (the lists of Ready and In review items); the READMEs of the catalog, ordering, web-customer and queue display apps and of `tools/`; a new evidence record for the scan of 2026-11-08. `history/` was read and left as it is: it is labelled historical, the three peer repositories are anonymised, and the personal paths are gone.
+
+**Still open:**
 
 | Area | Finding | Fix |
 |---|---|---|
-| `apps/web-queue-display/README.md` | Says "display only; the only button is Log out" and "not run against the real stack"; the screen has accept, decline, start, ready and hand-over buttons (`WI-QUE-004`) and its real-stack journeys have run | Rewrite its status and "What it shows" in the apps pass |
 | Register 71 | Still Open ("no container image for ordering-service"); the images exist (`services/Dockerfile.dotnet`) | Record whether the time-zone data was checked in the container smoke, then resolve or restate |
-| `docs/operations/scripts.md` and `apps/mobile-customer/.maestro/` | Two flows are numbered 13 (`13-cancel-order`, `13-no-payment-methods`) | Cosmetic; renumber only with the lead's agreement (the docs cite the names) |
-| `docs/management/slice-1/`, `portfolio-slice/` | Snapshots of 2026-10-30; not individually re-read | Each carries a date; read in the management pass if time allows |
+| `docs/testing.md` and the README | "62 real-stack journeys" cites `WI-PORT-002`, whose record does not contain the figure; a static count of the skeleton specs gives fewer | Take the figure from the next `skeleton-smoke` run and cite that record |
+| `apps/mobile-customer/.maestro/` | Two flows are numbered 13 (`13-cancel-order`, `13-no-payment-methods`) | Cosmetic; renumber only with the lead's agreement (the docs cite the names) |
+| `docs/evidence/` | Five records lack the opening "Current result" line (`facts-sheet`, `WI-AUTH-007/findings`, `WI-DEP-001/gate-rehearsal`, `WI-MOB-003/maestro-flows` and `unit-tests`) | Add the line, or accept for records that open with a status banner |
+| `docs/product/backlog/epic-catalog.md` | Hand-written status words (register 87); only the regular form is checked | Leave, or generate; the lead decides |
+| Epic banners | The gate checks only "N of M"; the lists of items in each state go stale | Generate them, or drop the list (a script change: ask first) |
+| `docs/management/slice-1/`, `portfolio-slice/`, `docs/process/` (smaller pages), `docs/method/` (smaller pages) | Dated snapshots or definitions; read for status lines and numbers only, not line by line | Accept, or read in a second pass |
+| `docs/product/backlog/` specs (110) | Banners are checked by the gate; the body of each spec was not re-read | Sample the In review and Done specs against their evidence |
+| `services/*/README.md`, `apps/mobile-customer`, `packages/*`, `services/graphql-bff` | The READMEs of the BFF, mobile app, web-session and notification service were edited 2026-11-03 to 2026-11-07 and not re-read | A quick read against the code |
 
 ## Scans of 2026-11-08 (secrets and sanitization)
 
