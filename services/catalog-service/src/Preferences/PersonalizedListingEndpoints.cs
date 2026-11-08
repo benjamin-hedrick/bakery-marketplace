@@ -38,7 +38,7 @@ public static class PersonalizedListingEndpoints
             var size = Math.Clamp(limit ?? ListingEndpoints.DefaultPageSize, 1, ListingEndpoints.MaxPageSize);
             Func<Domain.ListingDocument, bool>? include = hideConflicts == true ? l => !ConflictMatcher.ItemConflicts(l, profile) : null;
 
-            var (items, next) = await listings.BrowseAsync(size, after, ct, include);
+            var (items, next) = await listings.BrowseAsync(size, after, include, ct);
             return Results.Ok(new PersonalizedListingPage(
                 items.Select(l => new PersonalizedListingDto(ListingDto.From(l, tags), ConflictMatcher.For(l, profile), DietMatcher.For(l, profile, registry, today))).ToList(), next));
         });

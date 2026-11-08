@@ -80,7 +80,7 @@ public sealed partial class VendorOrderProjection(
             if (vendorId is null)
             {
                 // An event from before the vendor id was added to the payloads, for an order the read model has not seen: there is no partition to put it in.
-                LogEventOfOrderCarriesNoVendor(logger, e.EventType, e.SequenceNumber, orderId);
+                LogEventWithoutVendor(logger, e.EventType, e.SequenceNumber, orderId);
                 return;
             }
 
@@ -117,7 +117,7 @@ public sealed partial class VendorOrderProjection(
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            LogTheLiveUpdateOfOrderCould(logger, e, saved.Id);
+            LogLiveUpdateFailed(logger, e, saved.Id);
         }
     }
 
@@ -128,8 +128,8 @@ public sealed partial class VendorOrderProjection(
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Event {EventType} #{Sequence} of order {OrderId} carries no vendor id and the order is not in the vendor read model; it was skipped")]
-    private static partial void LogEventOfOrderCarriesNoVendor(ILogger logger, string eventType, long sequence, string orderId);
+    private static partial void LogEventWithoutVendor(ILogger logger, string eventType, long sequence, string orderId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The live update of order {OrderId} could not be published; the vendor screen will catch up by polling")]
-    private static partial void LogTheLiveUpdateOfOrderCould(ILogger logger, Exception exception, string orderId);
+    private static partial void LogLiveUpdateFailed(ILogger logger, Exception exception, string orderId);
 }

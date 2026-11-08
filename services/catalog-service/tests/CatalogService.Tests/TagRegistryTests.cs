@@ -118,7 +118,7 @@ public sealed class TagRegistryTests
             Tag("gone", "theme", "\"retired\": true"),
             Tag("thanksgiving", "occasion", "\"activeFrom\": \"2026-11-01\", \"activeTo\": \"2026-11-28\""),
             Tag("from-only", "season", "\"activeFrom\": \"2026-12-01\"")));
-        string[] On(string date) => registry.PublicOn(DateOnly.Parse(date)).Select(t => t.Id).Order().ToArray();
+        string[] On(string date) => registry.PublicOn(DateOnly.Parse(date, System.Globalization.CultureInfo.InvariantCulture)).Select(t => t.Id).Order().ToArray();
 
         Assert.Equal(["always"], On("2026-10-31"));
         Assert.Equal(["always", "thanksgiving"], On("2026-11-01"));  // first day is in

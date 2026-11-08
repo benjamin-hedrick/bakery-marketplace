@@ -292,7 +292,7 @@ public sealed class TagAssignmentApiTests : IDisposable
             tags = new[] { "thanksgiving", "vegan" },
             modifiers = new[] { new { id = "mod-seeds", name = "Seed crust", priceDeltaCents = 100, allergens = Array.Empty<string>(), tags = new[] { "thanksgiving" } } },
         });
-        _time.Now = DateTimeOffset.Parse($"{today}T12:00:00Z");
+        _time.Now = DateTimeOffset.Parse($"{today}T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
 
         var pub = await PublicAsync(id);
 
@@ -309,7 +309,7 @@ public sealed class TagAssignmentApiTests : IDisposable
         var doc = (await Repo.GetAsync(id, _vendor))!;
         doc.Tags!.Add("old-diet"); // retired
         await Repo.SaveAsync(doc, _vendor);
-        _time.Now = DateTimeOffset.Parse("2026-12-05T12:00:00Z"); // after the Thanksgiving window
+        _time.Now = DateTimeOffset.Parse("2026-12-05T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture); // after the Thanksgiving window
 
         var own = await OwnAsync(vendor, id);
 

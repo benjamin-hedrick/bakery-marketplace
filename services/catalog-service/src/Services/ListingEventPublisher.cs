@@ -80,7 +80,7 @@ public sealed partial class ListingEventPublisher(
         }
         catch (Exception e)
         {
-            LogEventsOfListingWereNotPublished(logger, e, stored.Id);
+            LogListingEventsNotPublishedInline(logger, e, stored.Id);
         }
     }
 
@@ -99,7 +99,7 @@ public sealed partial class ListingEventPublisher(
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                LogEventOfListingCouldNotBe(logger, e, entry.EventType, entry.SequenceNumber, stored.Id);
+                LogListingEventPublishFailed(logger, e, entry.EventType, entry.SequenceNumber, stored.Id);
                 failedEntry = entry;
                 break; // later events wait: they must not overtake this one
             }
@@ -146,7 +146,7 @@ public sealed partial class ListingEventPublisher(
             if (fresh is null || !fresh.Outbox.Any(e => publishedIds.Contains(e.EventId))) return; // gone, or already cleaned by someone else
             current = fresh;
         }
-        LogListingPublishedEventsCouldNotBe(logger, stored.Id);
+        LogListingOutboxCleanupFailed(logger, stored.Id);
     }
 
     /// <summary>Counts the failed attempt in the stored listing and parks the outbox at the limit. Returns whether it is now parked.</summary>
@@ -171,7 +171,7 @@ public sealed partial class ListingEventPublisher(
                 {
                     if (current.ParkedAt is not null && !wasParked)
                     {
-                        LogListingEventFailedTimesTheListing(logger, stored.Id, failed.EventType, failed.SequenceNumber, options.Value.MaxPublishAttempts);
+                        LogListingEventParked(logger, stored.Id, failed.EventType, failed.SequenceNumber, options.Value.MaxPublishAttempts);
                     }
                     return current.ParkedAt is not null;
                 }
@@ -183,7 +183,7 @@ public sealed partial class ListingEventPublisher(
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            LogListingTheFailedAttemptCouldNot(logger, e, stored.Id);
+            LogListingAttemptCountFailed(logger, e, stored.Id);
         }
         return false;
     }
@@ -206,19 +206,19 @@ public sealed partial class ListingEventPublisher(
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Events of listing {ListingId} were not published inline; the outbox relay will send them")]
-    private static partial void LogEventsOfListingWereNotPublished(ILogger logger, Exception exception, string listingId);
+    private static partial void LogListingEventsNotPublishedInline(ILogger logger, Exception exception, string listingId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Event {EventType} #{Sequence} of listing {ListingId} could not be published; it stays pending")]
-    private static partial void LogEventOfListingCouldNotBe(ILogger logger, Exception exception, string eventType, long sequence, string listingId);
+    private static partial void LogListingEventPublishFailed(ILogger logger, Exception exception, string eventType, long sequence, string listingId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Listing {ListingId}: published events could not be removed from the outbox; they will be sent again with the same ids")]
-    private static partial void LogListingPublishedEventsCouldNotBe(ILogger logger, string listingId);
+    private static partial void LogListingOutboxCleanupFailed(ILogger logger, string listingId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Listing {ListingId}: event {EventType} #{Sequence} failed {Attempts} times; the listing's outbox is parked and will not be retried until it is unparked")]
-    private static partial void LogListingEventFailedTimesTheListing(ILogger logger, string listingId, string eventType, long sequence, int attempts);
+    private static partial void LogListingEventParked(ILogger logger, string listingId, string eventType, long sequence, int attempts);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Listing {ListingId}: the failed attempt could not be counted")]
-    private static partial void LogListingTheFailedAttemptCouldNot(ILogger logger, Exception exception, string listingId);
+    private static partial void LogListingAttemptCountFailed(ILogger logger, Exception exception, string listingId);
 }
 
 /// <summary>
@@ -253,7 +253,7 @@ public sealed partial class ListingOutboxRelay(
             }
             catch (Exception e)
             {
-                LogCatalogOutboxSweepFailedItWill(logger, e);
+                LogCatalogSweepFailed(logger, e);
                 empty = 0;
             }
 
@@ -281,7 +281,7 @@ public sealed partial class ListingOutboxRelay(
         if (pending.Count > 0)
         {
             // These are events the inline path did not deliver, so this line is the signal that a miss happened.
-            LogCatalogOutboxRelayListingSHad(logger, pending.Count, published);
+            LogCatalogRelayPublished(logger, pending.Count, published);
         }
         return (pending.Count, published);
     }
@@ -298,8 +298,8 @@ public sealed partial class ListingOutboxRelay(
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Catalog outbox sweep failed; it will be retried")]
-    private static partial void LogCatalogOutboxSweepFailedItWill(ILogger logger, Exception exception);
+    private static partial void LogCatalogSweepFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog outbox relay: {Listings} listing(s) had unpublished events; {Published} event(s) published")]
-    private static partial void LogCatalogOutboxRelayListingSHad(ILogger logger, int listings, int published);
+    private static partial void LogCatalogRelayPublished(ILogger logger, int listings, int published);
 }

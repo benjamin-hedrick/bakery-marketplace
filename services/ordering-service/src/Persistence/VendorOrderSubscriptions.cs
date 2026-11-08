@@ -11,19 +11,19 @@ namespace OrderingService.Persistence;
 /// </summary>
 public sealed partial class VendorOrderSubscriptions(IEventSubscriber subscriber, VendorOrderProjection projection, ILogger<VendorOrderSubscriptions> logger) : IHostedService
 {
-    public async Task StartAsync(CancellationToken ct)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await subscriber.SubscribeAsync<OrderPlacedPayload>(OrderEventTypes.Placed, projection.OnPlacedAsync, ct);
-        await subscriber.SubscribeAsync<OrderConfirmedPayload>(OrderEventTypes.Confirmed, projection.OnConfirmedAsync, ct);
-        await subscriber.SubscribeAsync<OrderPreparationStartedPayload>(OrderEventTypes.PreparationStarted, projection.OnPreparationStartedAsync, ct);
-        await subscriber.SubscribeAsync<OrderReadyForFulfillmentPayload>(OrderEventTypes.ReadyForFulfillment, projection.OnReadyForFulfillmentAsync, ct);
-        await subscriber.SubscribeAsync<OrderCompletedPayload>(OrderEventTypes.Completed, projection.OnCompletedAsync, ct);
-        await subscriber.SubscribeAsync<OrderCancelledPayload>(OrderEventTypes.Cancelled, projection.OnCancelledAsync, ct);
-        LogTheVendorOrderReadModelIs(logger);
+        await subscriber.SubscribeAsync<OrderPlacedPayload>(OrderEventTypes.Placed, projection.OnPlacedAsync, ct: cancellationToken);
+        await subscriber.SubscribeAsync<OrderConfirmedPayload>(OrderEventTypes.Confirmed, projection.OnConfirmedAsync, ct: cancellationToken);
+        await subscriber.SubscribeAsync<OrderPreparationStartedPayload>(OrderEventTypes.PreparationStarted, projection.OnPreparationStartedAsync, ct: cancellationToken);
+        await subscriber.SubscribeAsync<OrderReadyForFulfillmentPayload>(OrderEventTypes.ReadyForFulfillment, projection.OnReadyForFulfillmentAsync, ct: cancellationToken);
+        await subscriber.SubscribeAsync<OrderCompletedPayload>(OrderEventTypes.Completed, projection.OnCompletedAsync, ct: cancellationToken);
+        await subscriber.SubscribeAsync<OrderCancelledPayload>(OrderEventTypes.Cancelled, projection.OnCancelledAsync, ct: cancellationToken);
+        LogReadModelSubscribed(logger);
     }
 
-    public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     [LoggerMessage(Level = LogLevel.Information, Message = "The vendor order read model is subscribed to the six order events")]
-    private static partial void LogTheVendorOrderReadModelIs(ILogger logger);
+    private static partial void LogReadModelSubscribed(ILogger logger);
 }

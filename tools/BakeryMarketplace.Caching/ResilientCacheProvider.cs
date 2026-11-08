@@ -105,9 +105,9 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
 
     private void LogFallback(string operation, string key, Exception ex)
     {
-        LogCachePrimaryFailureOnForKey(_logger, ex, operation, key, _breaker.IsOpen);
+        LogCachePrimaryFailure(_logger, ex, operation, key, _breaker.IsOpen);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Cache primary failure on {Operation} for key '{Key}'. Falling back to local cache. BreakerOpen={BreakerOpen}")]
-    private static partial void LogCachePrimaryFailureOnForKey(ILogger logger, Exception exception, string operation, string key, bool breakerOpen);
+    private static partial void LogCachePrimaryFailure(ILogger logger, Exception exception, string operation, string key, bool breakerOpen);
 }

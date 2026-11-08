@@ -41,7 +41,7 @@ public class RedisCacheProvider : ICacheProvider
         // caller (ResilientCacheProvider) so its circuit breaker trips and falls back
         // to LocalCacheProvider, exactly as it already does for SetAsync/DeleteAsync/
         // ExistsAsync below. The previous version of this method caught all exceptions
-        // here and returned CacheResult<T>.Miss(), which made a real Redis outage
+        // here and returned CacheResult.Miss<T>(), which made a real Redis outage
         // indistinguishable from a normal cache miss: the breaker never tripped, no
         // fallback warning was ever logged, and reads silently stopped being served
         // from cache at all instead of failing over. Only genuine "this value isn't a
@@ -49,15 +49,15 @@ public class RedisCacheProvider : ICacheProvider
         RedisValue value = await _database.StringGetAsync(key);
         if (!value.HasValue || value.IsNull)
         {
-            return CacheResult<T>.Miss();
+            return CacheResult.Miss<T>();
         }
 
         try
         {
             T? deserialized = JsonSerializer.Deserialize<T>((string)value!, _jsonOptions);
             return deserialized is not null
-                ? CacheResult<T>.Hit(deserialized)
-                : CacheResult<T>.Miss();
+                ? CacheResult.Hit(deserialized)
+                : CacheResult.Miss<T>();
         }
         catch (JsonException)
         {
@@ -65,7 +65,7 @@ public class RedisCacheProvider : ICacheProvider
             // (e.g. a stale/incompatible shape written by an older version). This is a
             // data problem, not a connectivity problem, so it's correct to treat it as
             // a miss rather than trip the circuit breaker over it.
-            return CacheResult<T>.Miss();
+            return CacheResult.Miss<T>();
         }
     }
 

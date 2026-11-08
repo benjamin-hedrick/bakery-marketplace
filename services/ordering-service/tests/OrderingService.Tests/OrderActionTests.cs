@@ -56,7 +56,7 @@ public class OrderActionTests
         var id = await InStatusAsync(f, OrderStatus.Completed);
 
         Assert.Equal(OrderStatus.Completed, (await StoredAsync(f, id)).Status);
-        var orderEvents = f.Events.Published.Where(p => p.AggregateId == id && p.EventType.StartsWith("Order") && !p.EventType.StartsWith("OrderFulfillment")).ToList();
+        var orderEvents = f.Events.Published.Where(p => p.AggregateId == id && p.EventType.StartsWith("Order", StringComparison.Ordinal) && !p.EventType.StartsWith("OrderFulfillment", StringComparison.Ordinal)).ToList();
         Assert.Equal(
             [OrderEventTypes.Placed, OrderEventTypes.Confirmed, OrderEventTypes.PreparationStarted, OrderEventTypes.ReadyForFulfillment, OrderEventTypes.Completed],
             orderEvents.Select(p => p.EventType));
@@ -64,7 +64,7 @@ public class OrderActionTests
         // The completion went through the seam: a request, then the strategy's answer, and only then the order's own event.
         Assert.Equal(
             [FulfillmentEventTypes.ConfirmationRequested, FulfillmentEventTypes.Completed],
-            f.Events.Published.Where(p => p.EventType.StartsWith("OrderFulfillment")).Select(p => p.EventType));
+            f.Events.Published.Where(p => p.EventType.StartsWith("OrderFulfillment", StringComparison.Ordinal)).Select(p => p.EventType));
         Assert.Empty((await f.Store.GetAsync(id, "customer-1"))!.Document.Outbox);
         Assert.Empty(f.Catalog.ReleaseCalls); // moving forward never releases stock
     }

@@ -33,7 +33,7 @@ public sealed class OutboxOptions
 /// Lets the code that just failed to publish wake the relay now instead of waiting out its (possibly long, idle) delay. In memory and
 /// per instance by design: it is an accelerator for a miss this instance knows about, never a gate, because a crashed instance cannot signal.
 /// </summary>
-public sealed class OutboxSignal
+public sealed class OutboxSignal : IDisposable
 {
     private readonly SemaphoreSlim _signal = new(0, 1);
 
@@ -51,6 +51,8 @@ public sealed class OutboxSignal
 
     /// <summary>Waits up to <paramref name="delay"/> or until woken. Returns true when woken.</summary>
     public Task<bool> WaitAsync(TimeSpan delay, CancellationToken ct) => _signal.WaitAsync(delay, ct);
+
+    public void Dispose() => _signal.Dispose();
 }
 
 /// <summary>The relay's timing, as pure functions so they are easy to test.</summary>
@@ -105,7 +107,7 @@ public sealed partial class OutboxRelay(
             }
             catch (Exception e)
             {
-                LogOutboxSweepFailedItWillBe(logger, e);
+                LogOutboxSweepFailed(logger, e);
                 empty = 0; // something is wrong: keep the normal pace rather than backing off
             }
 
@@ -132,14 +134,14 @@ public sealed partial class OutboxRelay(
         if (pending.Count > 0)
         {
             // These are events the inline path did not deliver, so this line is the signal that a miss happened.
-            LogOutboxRelayOrderSHadUnpublished(logger, pending.Count, published);
+            LogOutboxRelayPublished(logger, pending.Count, published);
         }
         return (pending.Count, published);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Outbox sweep failed; it will be retried")]
-    private static partial void LogOutboxSweepFailedItWillBe(ILogger logger, Exception exception);
+    private static partial void LogOutboxSweepFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Outbox relay: {Orders} order(s) had unpublished events; {Published} event(s) published")]
-    private static partial void LogOutboxRelayOrderSHadUnpublished(ILogger logger, int orders, int published);
+    private static partial void LogOutboxRelayPublished(ILogger logger, int orders, int published);
 }

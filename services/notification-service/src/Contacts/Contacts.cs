@@ -70,7 +70,7 @@ public sealed partial class CachedContactDirectory(
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            LogTheContactCacheCouldNotBe(logger, e, ids.Length);
+            LogContactCacheReadFailed(logger, e, ids.Length);
             cached = new Dictionary<string, Entry>();
         }
 
@@ -96,14 +96,14 @@ public sealed partial class CachedContactDirectory(
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            LogTheContactCacheCouldNotBe2(logger, e); // the cache is down: skip the rest, the contacts are already in the result
+            LogContactCacheWriteFailed(logger, e); // the cache is down: skip the rest, the contacts are already in the result
         }
         return result;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The contact cache could not be read; reading {Count} contacts from the directory")]
-    private static partial void LogTheContactCacheCouldNotBe(ILogger logger, Exception exception, int count);
+    private static partial void LogContactCacheReadFailed(ILogger logger, Exception exception, int count);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The contact cache could not be written")]
-    private static partial void LogTheContactCacheCouldNotBe2(ILogger logger, Exception exception);
+    private static partial void LogContactCacheWriteFailed(ILogger logger, Exception exception);
 }

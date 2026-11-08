@@ -58,8 +58,8 @@ public sealed partial class FulfillmentCompletionHandler(OrderStore orders, Orde
 /// <summary>Subscribes the Ordering side to the strategies' answer.</summary>
 public sealed class FulfillmentCompletionSubscription(IEventSubscriber subscriber, FulfillmentCompletionHandler handler) : IHostedService
 {
-    public Task StartAsync(CancellationToken ct) =>
-        subscriber.SubscribeAsync<OrderFulfillmentCompletedPayload>(FulfillmentEventTypes.Completed, handler.OnCompletedAsync, ct);
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        subscriber.SubscribeAsync<OrderFulfillmentCompletedPayload>(FulfillmentEventTypes.Completed, handler.OnCompletedAsync, ct: cancellationToken);
 
-    public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

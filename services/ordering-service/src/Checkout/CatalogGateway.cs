@@ -135,14 +135,14 @@ public sealed partial class CatalogGateway(IHttpClientFactory clients, ILogger<C
         }
         catch (Exception e) when ((e is HttpRequestException or TaskCanceledException or ServiceTokenException) && !ct.IsCancellationRequested)
         {
-            LogCatalogCallFailedBeforeAnAnswer(logger, client, method, e.GetType().Name);
+            LogCatalogCallFailed(logger, client, method, e.GetType().Name);
             throw new DownstreamUnavailableException("The catalog could not be reached.", e);
         }
     }
 
     private DownstreamUnavailableException Unavailable(string what, HttpStatusCode status)
     {
-        LogCatalogAnsweredHTTP(logger, what, (int)status);
+        LogCatalogHttpError(logger, what, (int)status);
         return new DownstreamUnavailableException($"The catalog answered HTTP {(int)status} to the {what}.");
     }
 
@@ -171,8 +171,8 @@ public sealed partial class CatalogGateway(IHttpClientFactory clients, ILogger<C
     private sealed record RejectedLine(string ListingId, string Reason, int? Available);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog call failed before an answer ({Client} {Method}): {Error}")]
-    private static partial void LogCatalogCallFailedBeforeAnAnswer(ILogger logger, string client, System.Net.Http.HttpMethod method, string error);
+    private static partial void LogCatalogCallFailed(ILogger logger, string client, System.Net.Http.HttpMethod method, string error);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog {What} answered HTTP {Status}")]
-    private static partial void LogCatalogAnsweredHTTP(ILogger logger, string what, int status);
+    private static partial void LogCatalogHttpError(ILogger logger, string what, int status);
 }

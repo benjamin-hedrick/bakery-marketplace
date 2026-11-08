@@ -20,9 +20,9 @@ public sealed class LocalCacheProvider : ICacheProvider
     public Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken ct = default)
     {
         if (_cache.TryGetValue(key, out T? value))
-            return Task.FromResult(CacheResult<T>.Hit(value!));
+            return Task.FromResult(CacheResult.Hit(value!));
 
-        return Task.FromResult(CacheResult<T>.Miss());
+        return Task.FromResult(CacheResult.Miss<T>());
     }
 
     public Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default)

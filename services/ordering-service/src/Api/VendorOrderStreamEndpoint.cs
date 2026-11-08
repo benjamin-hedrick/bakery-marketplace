@@ -43,7 +43,7 @@ public static partial class VendorOrderStreamEndpoint
             }
             catch (Exception e)
             {
-                LogAVendorOrderStreamCouldNot(logger, e);
+                LogVendorStreamUnavailable(logger, e);
                 return Unavailable(http, 5);
             }
             if (stream is null) return Unavailable(http, 30);
@@ -76,7 +76,7 @@ public static partial class VendorOrderStreamEndpoint
             try
             {
                 await SendAsync("retry: 3000\n: connected\n\n", token);
-                if (logger.IsEnabled(LogLevel.Debug)) LogAVendorOrderStreamOpenedOpen(logger, hub.OpenCount);
+                if (logger.IsEnabled(LogLevel.Debug)) LogVendorStreamOpened(logger, hub.OpenCount);
 
                 var lastWrite = DateTimeOffset.UtcNow;
                 while (!token.IsCancellationRequested)
@@ -120,7 +120,7 @@ public static partial class VendorOrderStreamEndpoint
             {
                 // The client holds the connection and does not read: the stream is closed and the connection dropped, which frees its place.
                 hub.RecordClosedByServer("write-timeout");
-                LogAVendorOrderStreamWasClosed(logger, (int)o.WriteTimeout.TotalMilliseconds);
+                LogVendorStreamClosedSlowClient(logger, (int)o.WriteTimeout.TotalMilliseconds);
                 http.Abort();
             }
             catch (OperationCanceledException)
@@ -134,7 +134,7 @@ public static partial class VendorOrderStreamEndpoint
             finally
             {
                 await hub.ReleaseAsync(stream);
-                if (logger.IsEnabled(LogLevel.Debug)) LogAVendorOrderStreamClosedOpen(logger, hub.OpenCount);
+                if (logger.IsEnabled(LogLevel.Debug)) LogVendorStreamClosed(logger, hub.OpenCount);
             }
             return Results.Empty;
         }).RequireAuthorization("VendorRole");
@@ -164,14 +164,14 @@ public static partial class VendorOrderStreamEndpoint
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A vendor order stream could not be opened: the live channel is unavailable")]
-    private static partial void LogAVendorOrderStreamCouldNot(ILogger logger, Exception exception);
+    private static partial void LogVendorStreamUnavailable(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "A vendor order stream opened ({Open} open on this instance)")]
-    private static partial void LogAVendorOrderStreamOpenedOpen(ILogger logger, int open);
+    private static partial void LogVendorStreamOpened(ILogger logger, int open);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A vendor order stream was closed: the client did not read within {Timeout} ms")]
-    private static partial void LogAVendorOrderStreamWasClosed(ILogger logger, int timeout);
+    private static partial void LogVendorStreamClosedSlowClient(ILogger logger, int timeout);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "A vendor order stream closed ({Open} open on this instance)")]
-    private static partial void LogAVendorOrderStreamClosedOpen(ILogger logger, int open);
+    private static partial void LogVendorStreamClosed(ILogger logger, int open);
 }

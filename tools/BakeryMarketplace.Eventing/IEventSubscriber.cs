@@ -17,8 +17,8 @@ public interface IEventSubscriber
     Task SubscribeAsync<T>(
         string eventType,
         Func<DomainEventEnvelope<T>, CancellationToken, Task> handler,
-        CancellationToken ct = default,
-        string? consumerName = null);
+        string? consumerName = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Subscribes with a handler that receives the events the transport collected together (for Redis Streams, one poll of
@@ -30,6 +30,6 @@ public interface IEventSubscriber
     Task SubscribeBatchAsync<T>(
         string eventType,
         Func<IReadOnlyList<DomainEventEnvelope<T>>, CancellationToken, Task<IReadOnlyCollection<Guid>>> handler,
-        CancellationToken ct = default,
-        string? consumerName = null);
+        string? consumerName = null,
+        CancellationToken ct = default);
 }

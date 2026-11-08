@@ -53,7 +53,7 @@ public sealed partial class OrphanReservationSweeper(
             }
             catch (Exception e)
             {
-                LogOrphanReservationSweepFailedItWill(logger, e);
+                LogOrphanSweepFailed(logger, e);
             }
 
             try
@@ -85,7 +85,7 @@ public sealed partial class OrphanReservationSweeper(
 
                 await catalog.ReleaseAsync(reservation.OrderId, reservation.VendorId, ct);
                 released++;
-                LogReleasedTheStockReservedForOrder(logger, reservation.OrderId, reservation.VendorId, reservation.CreatedAt);
+                LogOrphanReservationReleased(logger, reservation.OrderId, reservation.VendorId, reservation.CreatedAt);
             }
             after = page.NextCursor;
         }
@@ -94,8 +94,8 @@ public sealed partial class OrphanReservationSweeper(
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Orphan reservation sweep failed; it will be retried")]
-    private static partial void LogOrphanReservationSweepFailedItWill(ILogger logger, Exception exception);
+    private static partial void LogOrphanSweepFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Released the stock reserved for order {OrderId} (vendor {VendorId}, reserved {CreatedAt:O}): no such order exists")]
-    private static partial void LogReleasedTheStockReservedForOrder(ILogger logger, string orderId, string vendorId, System.DateTimeOffset createdAt);
+    private static partial void LogOrphanReservationReleased(ILogger logger, string orderId, string vendorId, System.DateTimeOffset createdAt);
 }

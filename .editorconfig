@@ -48,3 +48,7 @@ dotnet_diagnostic.CA1859.severity = suggestion
 dotnet_diagnostic.CA1707.severity = none
 # Tests build small constant arrays once per test; hoisting them into fields would hide the data each test reads. Product code keeps CA1861 as a warning.
 dotnet_diagnostic.CA1861.severity = none
+# xUnit disposes the fields of a class through IAsyncLifetime, which CA1001 does not recognise.
+dotnet_diagnostic.CA1001.severity = none
+# Test factories expose token helpers as instance members on purpose: every test calls them through the factory it owns.
+dotnet_diagnostic.CA1822.severity = none

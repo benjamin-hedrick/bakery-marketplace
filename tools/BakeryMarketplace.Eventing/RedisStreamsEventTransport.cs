@@ -81,8 +81,8 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
     public Task SubscribeAsync<T>(
         string eventType,
         Func<DomainEventEnvelope<T>, CancellationToken, Task> handler,
-        CancellationToken ct = default,
-        string? consumerName = null)
+        string? consumerName = null,
+        CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(eventType)) throw new ArgumentException("EventType cannot be empty.", nameof(eventType));
         ArgumentNullException.ThrowIfNull(handler);
@@ -99,8 +99,8 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
     public Task SubscribeBatchAsync<T>(
         string eventType,
         Func<IReadOnlyList<DomainEventEnvelope<T>>, CancellationToken, Task<IReadOnlyCollection<Guid>>> handler,
-        CancellationToken ct = default,
-        string? consumerName = null)
+        string? consumerName = null,
+        CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(eventType)) throw new ArgumentException("EventType cannot be empty.", nameof(eventType));
         ArgumentNullException.ThrowIfNull(handler);
@@ -267,7 +267,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
             {
                 new("envelope", envelopeJson),
                 new("failedAt", DateTimeOffset.UtcNow.ToString("O")),
-                new("attempts", deliveryCount.ToString())
+                new("attempts", deliveryCount.ToString(System.Globalization.CultureInfo.InvariantCulture))
             };
             // The stream is per event type; the consumer field says which consumer gave up (absent for the default consumer).
             if (!string.IsNullOrWhiteSpace(consumerName)) fields.Add(new("consumer", consumerName));
@@ -330,6 +330,7 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
 
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
         foreach (var cts in _ctsList)
         {
             cts.Cancel();

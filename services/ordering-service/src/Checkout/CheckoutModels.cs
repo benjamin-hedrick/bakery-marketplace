@@ -86,10 +86,10 @@ public sealed partial class StubPaymentProcessor(ILogger<StubPaymentProcessor> l
 
     public Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
     {
-        LogPaymentAuthorizationForOrderNoPayment(logger, ProcessorName, request.OrderId, request.AmountCents, request.Currency);
+        LogStubAuthorization(logger, ProcessorName, request.OrderId, request.AmountCents, request.Currency);
         return Task.FromResult(new PaymentResult(true, $"stub-{request.OrderId}"));
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{Processor} payment authorization for order {OrderId}, {AmountCents} {Currency}. No payment provider was called and no money moved.")]
-    private static partial void LogPaymentAuthorizationForOrderNoPayment(ILogger logger, string processor, string orderId, long amountCents, string currency);
+    private static partial void LogStubAuthorization(ILogger logger, string processor, string orderId, long amountCents, string currency);
 }

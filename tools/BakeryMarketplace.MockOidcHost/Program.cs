@@ -9,7 +9,7 @@ var app = builder.Build();
 // IP-restricted); see MockOidcDeployment and register item 102. Null = every mock user (local use, unchanged).
 var allowedRoles = MockOidcDeployment.Resolve(builder.Configuration, app.Environment.IsProduction());
 if (app.Environment.IsProduction())
-    LoggerMessages.LogMockOIDCIssuerRunningInA(app.Logger, string.Join(", ", allowedRoles ?? []));
+    LoggerMessages.LogMockIssuerDeployed(app.Logger, string.Join(", ", allowedRoles ?? []));
 
 app.MapGet("/healthz", () => Results.Ok(new { status = "Healthy" }));
 // Service clients for the client credentials grant (ADR-0018). Secrets come from configuration (MockOidc__Clients__<id>__Secret,
@@ -20,7 +20,7 @@ foreach (var entry in builder.Configuration.GetSection("MockOidc:Clients").GetCh
     var secret = entry["Secret"] ?? "";
     if (secret.Length < MockClient.MinimumSecretLength)
     {
-        LoggerMessages.LogMockClientNotRegisteredNoSecret(app.Logger, entry.Key, MockClient.MinimumSecretLength);
+        LoggerMessages.LogMockClientNotRegistered(app.Logger, entry.Key, MockClient.MinimumSecretLength);
         continue;
     }
     var client = new MockClient(entry.Key, secret, entry.GetSection("Roles").Get<string[]>() ?? [], entry["Audience"]);
@@ -53,10 +53,10 @@ app.Run();
 internal static partial class LoggerMessages
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "Mock OIDC issuer running in a DEPLOYED environment; logins limited to roles: {Roles}.")]
-    internal static partial void LogMockOIDCIssuerRunningInA(ILogger logger, string roles);
+    internal static partial void LogMockIssuerDeployed(ILogger logger, string roles);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Mock client '{ClientId}' not registered: no secret of at least {Min} characters configured.")]
-    internal static partial void LogMockClientNotRegisteredNoSecret(ILogger logger, string clientId, int min);
+    internal static partial void LogMockClientNotRegistered(ILogger logger, string clientId, int min);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Mock client registered: {Client}")]
     internal static partial void LogMockClientRegistered(ILogger logger, BakeryMarketplace.Auth.MockClient client);

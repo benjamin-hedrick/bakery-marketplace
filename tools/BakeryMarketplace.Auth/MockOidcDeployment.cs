@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 namespace BakeryMarketplace.Auth;
 
 /// <summary>
-/// The start-up rule for running the mock issuer outside a developer machine (WI-DEP-001, register item 102, lead's approval 2026-10-31).
+/// The start-up rule for running the mock issuer outside a developer machine (WI-DEP-001, register item 102, approved 2026-10-31).
 /// The host still refuses to start in Production unless a named switch allows it, and the switch is only honoured on safe terms:
 /// an https issuer, a list of roles that may log in (Customer only by default), and, for any other role, an explicit statement that the
 /// ingress is restricted to an IP allow-list. Outside Production nothing changes: every mock user is offered, as before.

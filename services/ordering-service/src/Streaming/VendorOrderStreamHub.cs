@@ -247,7 +247,7 @@ public sealed partial class VendorOrderStreamHub(
         try { doc = JsonConvert.DeserializeObject<VendorOrderDocument>(message); }
         catch (Newtonsoft.Json.JsonException)
         {
-            LogAMessageOnAVendorOrder(logger);
+            LogOrderMessageSkipped(logger);
             return;
         }
         if (doc is null || !string.Equals(doc.VendorId, vendorId, StringComparison.Ordinal)) return;
@@ -296,5 +296,5 @@ public sealed partial class VendorOrderStreamHub(
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A message on a vendor order channel could not be read and was skipped")]
-    private static partial void LogAMessageOnAVendorOrder(ILogger logger);
+    private static partial void LogOrderMessageSkipped(ILogger logger);
 }
