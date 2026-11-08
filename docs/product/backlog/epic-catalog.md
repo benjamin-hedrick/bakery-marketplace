@@ -199,7 +199,7 @@ Scope: repo-level · Primary hat(s): Platform Engineering · Status: Not Started
 - ⚪ CI-002 (Infra/Environment) — OIDC federated deploy step per environment. **ADJUSTED 2026-10-26**: Azure Pipelines service connection using workload identity federation (ADR-0015, ADR-0007 amendment)
 - ⚪ CI-003 (Infra/Environment) — Ephemeral/preview environment, at least one working example (Open Item #15). **ADJUSTED 2026-10-26**: built on Azure Pipelines; must include the Next.js app and BFF
 - ✅ CI-004 (Infra/Environment) — **Done 2026-10-28**: `ci.yml` removed; required-check repointing waived as a soft manual gate (enterprise plan needed for rulesets), see ADR-0015 amendment. Was: **Added 2026-10-26**: GitHub Actions → Azure Pipelines migration cut-over — repoint required checks, update docs, remove `.github/workflows/ci.yml` in one commit, once ADR-0015's exit criteria are met
-- ⚪ SEC-004 (Document/Artifact) — Pipeline security checks and Terraform validation — added 2026-10-30 to track gaps found by the documentation review; spec: `WI-SEC-004.md` (Deferred, 2026-10-30)
+- 🟡 SEC-004 (Document/Artifact) — Pipeline security checks and Terraform validation — added 2026-10-30 to track gaps found by the documentation review; spec: `WI-SEC-004.md` (In progress, 2026-11-07: dependency audit and SBOM built)
 - 🔶 SEC-005 (Docs and tests) — **In progress 2026-11-02**, see `WI-SEC-005.md` — threat model, fuzz and property tests, load and soak, a dynamic scan and a review statement (register item 129)
 
 ### EPIC-CLOUD-INFRA — Terraform / Cloud Environments

@@ -1,0 +1,1478 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:b5c6e4ef-3ed3-42b7-bb20-ce96e8f0f04e",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-07T23:57:46Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "authors": [
+            {
+              "name": "CycloneDX"
+            }
+          ],
+          "name": "CycloneDX module for .NET",
+          "version": "6.3.1.0",
+          "externalReferences": [
+            {
+              "url": "https://github.com/CycloneDX/cyclonedx-dotnet",
+              "type": "website"
+            }
+          ]
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "CatalogService@0.0.0",
+      "name": "CatalogService",
+      "version": "0.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Azure.Core@1.44.1",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Azure.Core",
+      "version": "1.44.1",
+      "description": "This is the implementation of the Azure Client Pipeline",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "E79F76D96CF4EA6885D9768A8E3BCD57A2DF59218CC0BC5E9466C88CD72576875E69C344BCE88F139CB70A50F68FA6255A0BD91117D4CD16FA354095DB1E5CCB"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Azure.Core@1.44.1",
+      "externalReferences": [
+        {
+          "url": "https://github.com/Azure/azure-sdk-for-net/blob/Azure.Core_1.44.1/sdk/core/Azure.Core/README.md",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/Azure/azure-sdk-for-net",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.AspNetCore.Authentication.JwtBearer",
+      "version": "10.0.14",
+      "description": "ASP.NET Core middleware that enables an application to receive an OpenID Connect bearer token.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "82B4497B3E5F2F9E331B1E700FA3A79E3B7504B5EC349824C62986AB0DFE8D1D4AF4437B4C89F2F2248D5F2B1C7DBAE57347EC9EE46167F7E03921D51D8BAED5"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
+      "externalReferences": [
+        {
+          "url": "https://asp.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Azure.Cosmos@3.63.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Azure.Cosmos",
+      "version": "3.63.2",
+      "description": "This client library enables client applications to connect to Azure Cosmos DB via the NoSQL API. Azure Cosmos DB is a globally distributed, multi-model database service. For more information, refer to http://azure.microsoft.com/services/cosmos-db/.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "A70AC56F6379B61CBDD432F0396A1051A83F29374B9CF762ED828598DCD10AA5DFBE1C92F8AEBC5BBAA435DB4B9542249509DF42AE7C1682297802EBB9717099"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Azure.Cosmos@3.63.2",
+      "externalReferences": [
+        {
+          "url": "https://github.com/Azure/azure-cosmos-dotnet-v3",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/Azure/azure-cosmos-dotnet-v3",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Bcl.AsyncInterfaces",
+      "version": "6.0.0",
+      "description": "Provides the IAsyncEnumerable\u003CT\u003E and IAsyncDisposable interfaces and helper types for .NET Standard 2.0. This package is not required starting with .NET Standard 2.1 and .NET Core 3.0.\n\nCommonly Used Types:\nSystem.IAsyncDisposable\nSystem.Collections.Generic.IAsyncEnumerable\nSystem.Collections.Generic.IAsyncEnumerator",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "221A05A0C910F7A87B620D8F3831ED392B4EB95D112BEE274D35F27009AD2A26445DE9D7CD235FE6FB4A03F2550874BDA3BE3DDDD96EDAF9C0852A9C23D7B099"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Bcl.Cryptography",
+      "version": "10.0.2",
+      "description": "Provides support for some cryptographic primitives for .NET Framework and .NET Standard.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ADB3FF92B45D5D7546D74432587D2B59AE7ED2A3F94686FC5590CA9E8F75D241E70DC987F577456C1B5D79D3B9A55565A40D72D8C5D6C77EB4CCB2CD2DCB49F9"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Bcl.HashCode@1.1.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Bcl.HashCode",
+      "version": "1.1.0",
+      "description": "Provides the HashCode type for .NET Standard 2.0. This package is not required starting with .NET Standard 2.1 and .NET Core 3.0.\n\nCommonly Used Types:\nSystem.HashCode\n \nWhen using NuGet 3.x this package requires at least version 3.4.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "C87AB8428D955385183BDA617FF5DD5D3CAE517C8A1A2125E45C18EEE80DFE2506FF1B1985DD9ACD5C6BB4C86234CF490020E99BEEF70AAB444059CEF4377649"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Bcl.HashCode@1.1.0",
+      "externalReferences": [
+        {
+          "url": "https://github.com/dotnet/corefx",
+          "type": "website"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.19.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.IdentityModel.Abstractions",
+      "version": "8.19.2",
+      "description": "A package containing thin abstractions for Microsoft.IdentityModel.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "01244907FA0720A876378E5F4EDFEDFFEA7659A2B15947EF8D3AC752AD8DDFD98E37AC094D04D7DA0C1F64EB70581338159F48EEE362F2B14D6B29D76CC60DB1"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.19.2",
+      "externalReferences": [
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.19.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.IdentityModel.JsonWebTokens",
+      "version": "8.19.2",
+      "description": "Includes types that provide support for creating, serializing and validating JSON Web Tokens. This is a newer, faster version of System.IdentityModel.Tokens.Jwt that has additional functionality.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "F64A24CD6E4C56C1E300D10B4E285CBEB238F1ACE1CE1745416FA868471EDAB0FFB067B955FE7B05141D5C52320E85A5BB1621DEF85EF1A2D0DE683704FF7CDF"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.19.2",
+      "externalReferences": [
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.19.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.IdentityModel.Logging",
+      "version": "8.19.2",
+      "description": "Includes Event Source based logging support.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "D7906BC6760415A13EDECBD4FFC181EC461090E77EC7451D96A98D168577818EAF37FBB8760D7436E5CBA03492521C473DD734D5CBCA7A8CEDC06BC0C3A5619E"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Logging@8.19.2",
+      "externalReferences": [
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Protocols@8.19.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.IdentityModel.Protocols",
+      "version": "8.19.2",
+      "description": "Provides base protocol support for OpenIdConnect and WsFederation.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "F8E4D1898AFD9310EFB8668DB4F6E54B466551C326805D3B6243DAFB9959D702FB3979D70DECA6DBD5D05A2B8A9E299F9E190EED3E229AD900F1DCB8EA9E3839"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Protocols@8.19.2",
+      "externalReferences": [
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Protocols.OpenIdConnect@8.19.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.IdentityModel.Protocols.OpenIdConnect",
+      "version": "8.19.2",
+      "description": "Includes types that provide support for OpenIdConnect protocol.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "24C8A8A345DF0BA1A4E948B949BB3D952CE4164A7BF2F8DCC5BEEAB734602B793505707C05A7A0ABF4ABFD13A0D34AA4ABDF4CB19659B779A00C67400854EFD3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Protocols.OpenIdConnect@8.19.2",
+      "externalReferences": [
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.19.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.IdentityModel.Tokens",
+      "version": "8.19.2",
+      "description": "Includes types that provide support for SecurityTokens, Cryptographic operations: Signing, Verifying Signatures, Encryption.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "E2B1827165AF92DACE1B57AC38FAF60CC2C9A7197D0E32000FDE372FC0BC2BC45CB2ADF4BE7386D08705325724B8E328B6CFC51CD494243C6AB26A3F106E9E07"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.19.2",
+      "externalReferences": [
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Win32.SystemEvents@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Win32.SystemEvents",
+      "version": "6.0.0",
+      "description": "Provides access to Windows system event notifications.\n\nCommonly Used Types:\nMicrosoft.Win32.SystemEvents",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "5E274ACE996C3EBA63099ED5116F9DC39F69F684F7C1E7623C28C3C73988B75C67DFCC929A50A761F0222DF243DD540720A6E588E91DFA784F81BFCE7A893875"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Win32.SystemEvents@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Newtonsoft.Json@13.0.3",
+      "authors": [
+        {
+          "name": "James Newton-King"
+        }
+      ],
+      "name": "Newtonsoft.Json",
+      "version": "13.0.3",
+      "description": "Json.NET is a popular high-performance JSON framework for .NET",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "99B252BC77D1C5F5F7B51FD4EA7D5653E9961D7B3061CF9207F8643A9C7CC9965EEBC84D6467F2989BB4723B1A244915CC232A78F894E8B748CA882A7C89FB92"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "Copyright \u00A9 James Newton-King 2008",
+      "purl": "pkg:nuget/Newtonsoft.Json@13.0.3",
+      "externalReferences": [
+        {
+          "url": "https://www.newtonsoft.com/json",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/JamesNK/Newtonsoft.Json",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/OpenTelemetry@1.20.1",
+      "authors": [
+        {
+          "name": "OpenTelemetry Authors"
+        }
+      ],
+      "name": "OpenTelemetry",
+      "version": "1.20.1",
+      "description": "OpenTelemetry .NET SDK",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "2DA889951DF55A39F0D2681122E9E0D047F26D85D9445562E4BEB64147CD88299860EE3EBD5CB62669302F89F8F8371B93E83E9D3AA7038D9FCFC112E7AA2729"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright The OpenTelemetry Authors",
+      "purl": "pkg:nuget/OpenTelemetry@1.20.1",
+      "externalReferences": [
+        {
+          "url": "https://opentelemetry.io/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/OpenTelemetry.Api@1.20.1",
+      "authors": [
+        {
+          "name": "OpenTelemetry Authors"
+        }
+      ],
+      "name": "OpenTelemetry.Api",
+      "version": "1.20.1",
+      "description": "OpenTelemetry .NET API",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "35B4778A4756298158C4B3C7AA701E48057FCEBC214FB4CCDCFF5DDF498728A198E93164CD951941E58CBE2D486DB0A5FE1DCEB7D2AE2B7E38D1DC7925729D46"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright The OpenTelemetry Authors",
+      "purl": "pkg:nuget/OpenTelemetry.Api@1.20.1",
+      "externalReferences": [
+        {
+          "url": "https://opentelemetry.io/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/OpenTelemetry.Api.ProviderBuilderExtensions@1.20.1",
+      "authors": [
+        {
+          "name": "OpenTelemetry Authors"
+        }
+      ],
+      "name": "OpenTelemetry.Api.ProviderBuilderExtensions",
+      "version": "1.20.1",
+      "description": "Contains extensions to register OpenTelemetry in applications using Microsoft.Extensions.DependencyInjection",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "83A4A3EA1FB28BCCF70139E100CE276E716A5E6266B7779D2A6F229793FB8C0E394FEFC90CE0778303FA8658A6027B50A7C2BC12B142067CDB70D9C45410757D"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright The OpenTelemetry Authors",
+      "purl": "pkg:nuget/OpenTelemetry.Api.ProviderBuilderExtensions@1.20.1",
+      "externalReferences": [
+        {
+          "url": "https://opentelemetry.io/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/OpenTelemetry.Exporter.OpenTelemetryProtocol@1.20.1",
+      "authors": [
+        {
+          "name": "OpenTelemetry Authors"
+        }
+      ],
+      "name": "OpenTelemetry.Exporter.OpenTelemetryProtocol",
+      "version": "1.20.1",
+      "description": "OpenTelemetry protocol exporter for OpenTelemetry .NET",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "065F4E4F478287A9406349827BA582C9F36EFB7B7071CF2F1D95437846B5524FDA7A4899579068F6FE756ED5CD1123B995597E49B5CC9D479BD624671AF6A084"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright The OpenTelemetry Authors",
+      "purl": "pkg:nuget/OpenTelemetry.Exporter.OpenTelemetryProtocol@1.20.1",
+      "externalReferences": [
+        {
+          "url": "https://opentelemetry.io/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/OpenTelemetry.Extensions.Hosting@1.20.1",
+      "authors": [
+        {
+          "name": "OpenTelemetry Authors"
+        }
+      ],
+      "name": "OpenTelemetry.Extensions.Hosting",
+      "version": "1.20.1",
+      "description": "Contains extensions to start OpenTelemetry in applications using Microsoft.Extensions.Hosting",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "0319A170FB62315F41CA86153662970A409FECD45D5B2C82CEE38EF13A0A088A566B755833624446C2723A6F5DAC5378F6C756D2C20418A2B39ECBCA8D2F0BE3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright The OpenTelemetry Authors",
+      "purl": "pkg:nuget/OpenTelemetry.Extensions.Hosting@1.20.1",
+      "externalReferences": [
+        {
+          "url": "https://opentelemetry.io/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/OpenTelemetry.Instrumentation.AspNetCore@1.20.1",
+      "authors": [
+        {
+          "name": "OpenTelemetry Authors"
+        }
+      ],
+      "name": "OpenTelemetry.Instrumentation.AspNetCore",
+      "version": "1.20.1",
+      "description": "ASP.NET Core instrumentation for OpenTelemetry .NET",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "9A87C21D2F2F9A91FC4330316EB5E0F24C8BFDE649C7953016DAFB8DD65B0AA7E4614A5CFA05CC22C3511A736567443648F4BF024EB11F0E8E7AE691380D68B8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright The OpenTelemetry Authors",
+      "purl": "pkg:nuget/OpenTelemetry.Instrumentation.AspNetCore@1.20.1",
+      "externalReferences": [
+        {
+          "url": "https://opentelemetry.io/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/OpenTelemetry.Instrumentation.Http@1.20.1",
+      "authors": [
+        {
+          "name": "OpenTelemetry Authors"
+        }
+      ],
+      "name": "OpenTelemetry.Instrumentation.Http",
+      "version": "1.20.1",
+      "description": "HTTP instrumentation for OpenTelemetry .NET.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "299632AE5BF3FCA04A62D3197B9A724692F84DDB66E18ACC078C7D3067ADD47CC75627FC79E5F53610D30AEB246B15604C87A7E59AB4455C30ADA69972BF8B15"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright The OpenTelemetry Authors",
+      "purl": "pkg:nuget/OpenTelemetry.Instrumentation.Http@1.20.1",
+      "externalReferences": [
+        {
+          "url": "https://opentelemetry.io/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Pipelines.Sockets.Unofficial@2.2.8",
+      "authors": [
+        {
+          "name": "Pipelines.Sockets.Unofficial"
+        }
+      ],
+      "name": "Pipelines.Sockets.Unofficial",
+      "version": "2.2.8",
+      "description": "Package Description",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "38CA43D4599A530BAA9C43B4CF69A7D13A9ECE539E4C16AA419EF3BE27481BAEB7FA0F1706ED210EBA0229A9D2E7B663D1A3C57454061C88DDD6D524441274B3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "Marc Gravell 2018",
+      "purl": "pkg:nuget/Pipelines.Sockets.Unofficial@2.2.8",
+      "externalReferences": [
+        {
+          "url": "https://github.com/mgravell/Pipelines.Sockets.Unofficial",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/mgravell/Pipelines.Sockets.Unofficial",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Polly@8.7.0",
+      "authors": [
+        {
+          "name": "Michael Wolfenden, App vNext"
+        }
+      ],
+      "name": "Polly",
+      "version": "8.7.0",
+      "description": "Polly is a .NET resilience and transient-fault-handling library that allows developers to express resilience and transient fault handling policies such as Retry, Circuit Breaker, Timeout, Bulkhead Isolation, and Fallback in a fluent and thread-safe manner.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "8DD20A2D9B248DE1076DB9354C0D7D09271A2B1409D900DA7DDC4550CA989B99D32BB3A13073FCDF384E240DECFF03D9123154B1365B48E2CE0845A8EDFD55FA"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "copyright": "Copyright (c) 2015-2026, App vNext",
+      "purl": "pkg:nuget/Polly@8.7.0",
+      "externalReferences": [
+        {
+          "url": "https://github.com/App-vNext/Polly",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/App-vNext/Polly",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Polly.Core@8.7.0",
+      "authors": [
+        {
+          "name": "Michael Wolfenden, App vNext"
+        }
+      ],
+      "name": "Polly.Core",
+      "version": "8.7.0",
+      "description": "Polly.Core is a .NET resilience and transient-fault-handling library that allows developers to express resilience strategies such as Retry, Circuit Breaker, Hedging, Timeout, Chaos and Fallback in a fluent and thread-safe manner.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "DC659A8724E58FFA891EC5125BA22491584D26EAE78C43CF891AD90087FBE2B98CDBF01F9DC6FAA2A5A2E174BC512A0C858A10EB4581F84B382960515E08E435"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "copyright": "Copyright (c) 2015-2026, App vNext",
+      "purl": "pkg:nuget/Polly.Core@8.7.0",
+      "externalReferences": [
+        {
+          "url": "https://github.com/App-vNext/Polly",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/App-vNext/Polly",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/StackExchange.Redis@2.7.33",
+      "authors": [
+        {
+          "name": "Stack Exchange, Inc.,Marc Gravell,Nick Craver"
+        }
+      ],
+      "name": "StackExchange.Redis",
+      "version": "2.7.33",
+      "description": "High performance Redis client, incorporating both synchronous and asynchronous usage.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "76E47457E6D4A7987462650E2839FA1D454F105257BA184FF751E53C746A4D64D0CA0757ABC2B4EEC6FFF92320F93BD3143DAEC4285972521A9C106067537193"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "2014 - 2024 Stack Exchange, Inc.",
+      "purl": "pkg:nuget/StackExchange.Redis@2.7.33",
+      "externalReferences": [
+        {
+          "url": "https://stackexchange.github.io/StackExchange.Redis/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/StackExchange/StackExchange.Redis/",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.ClientModel@1.1.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.ClientModel",
+      "version": "1.1.0",
+      "description": "Contains building blocks for clients that call cloud services.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "BD4FDC3D6BFB1DC864B2EDA9304229206A5D2013E0F517C0B4666A8395C0FC0664E8CDA6A0A18D404A2A22D2CFAA47D308E5AE5C5EB8EA3DDEFF3D750063AE8C"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.ClientModel@1.1.0",
+      "externalReferences": [
+        {
+          "url": "https://github.com/Azure/azure-sdk-for-net/blob/System.ClientModel_1.1.0/sdk/core/System.ClientModel/README.md",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/Azure/azure-sdk-for-net",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Configuration.ConfigurationManager@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Configuration.ConfigurationManager",
+      "version": "6.0.0",
+      "description": "Provides types that support using configuration files.\n\nCommonly Used Types:\nSystem.Configuration.Configuration\nSystem.Configuration.ConfigurationManager",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "DE58CB928D6303A16301FD7AA8EDAC379DFE6C47E6D80B21665F92BAB9DD5FF52B3E244CF6DF0F945F1C72E71C92337561DBF2752FC3324174A8C9ECC70C3247"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Configuration.ConfigurationManager@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Drawing.Common@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Drawing.Common",
+      "version": "6.0.0",
+      "description": "Provides access to GDI\u002B graphics functionality.\n\nCommonly Used Types:\nSystem.Drawing.Bitmap\nSystem.Drawing.BitmapData\nSystem.Drawing.Brush\nSystem.Drawing.Font\nSystem.Drawing.Graphics\nSystem.Drawing.Icon\n\nUnix support is disabled by default. See https://aka.ms/systemdrawingnonwindows for more information.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "D61F0A3E01C3EAC15F13FC1BA04A2C7CE4EAC956400B2FAA361FECABD3836D49D5BD344F3985EE3D94CDC3F6A72B8E07E423CDB2965B4F5CA2222B5DE32988E4"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Drawing.Common@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.19.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.IdentityModel.Tokens.Jwt",
+      "version": "8.19.2",
+      "description": "Includes types that provide support for creating, serializing and validating JSON Web Tokens. As of IdentityModel 7x, this is a legacy tool that should be replaced with Microsoft.IdentityModel.JsonWebTokens.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "0D77B02929B1C5106EBD439DD9A1BF4C065A7C2551E9572A2C3D002401BBE30C280CBAAE9304CF19AD08D92388B597615EECF8DCC7E2A20D414A91C00BC49592"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.19.2",
+      "externalReferences": [
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Memory.Data@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Memory.Data",
+      "version": "6.0.0",
+      "description": "A lightweight abstraction for a payload of bytes. Provides methods for converting between strings, streams, JSON, and bytes.\n\nCommonly Used Types:\nSystem.BinaryData",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "C3DBC50255C502373A324211AABDA2726F28985E10226D0A436578527568853F423B8CFBF237C288D021AD0C37D320491E0018FDB5685518C3A0154D93DAB48D"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Memory.Data@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Security.Cryptography.ProtectedData@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Security.Cryptography.ProtectedData",
+      "version": "6.0.0",
+      "description": "Provides access to Windows Data Protection Api.\n\nCommonly Used Types:\nSystem.Security.Cryptography.DataProtectionScope\nSystem.Security.Cryptography.ProtectedData",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "489B5DAB0ABFADFB8BC2D0437DE83A1447918071949440E766DB701C81C3518DE6A38A3E0F699706B06D591AB5393C7BC0B2EAA81C15BFF156339248E6C35730"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Security.Cryptography.ProtectedData@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Security.Permissions@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Security.Permissions",
+      "version": "6.0.0",
+      "description": "Provides types supporting Code Access Security (CAS).",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "D4F2172CC3B164F104FA2E3A330B62F2A15F50E050A91659DB5728F28D4D5D6CA8660EEC3A4F922090181A54BC1E9F6634CA49750398360727D1BC59DB620278"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Security.Permissions@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Windows.Extensions@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Windows.Extensions",
+      "version": "6.0.0",
+      "description": "Provides miscellaneous Windows-specific types\n\nCommonly Used Types:\nSystem.Security.Cryptography.X509Certificates.X509Certificate2UI\nSystem.Security.Cryptography.X509Certificates.X509SelectionFlag",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "F51EEC8166F97B5FCEA24816EC737C24D5C5A5CB145EF2D33277C9A16044F40BC3FB97B4CFE7F9A23AF704EDE91586C6ABD2ACF00B277538BB304D77A1CA54F0"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Windows.Extensions@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "CatalogService@0.0.0",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
+        "pkg:nuget/Microsoft.Azure.Cosmos@3.63.2",
+        "pkg:nuget/Newtonsoft.Json@13.0.3",
+        "pkg:nuget/OpenTelemetry.Exporter.OpenTelemetryProtocol@1.20.1",
+        "pkg:nuget/OpenTelemetry.Extensions.Hosting@1.20.1",
+        "pkg:nuget/OpenTelemetry.Instrumentation.AspNetCore@1.20.1",
+        "pkg:nuget/OpenTelemetry.Instrumentation.Http@1.20.1",
+        "pkg:nuget/Polly@8.7.0",
+        "pkg:nuget/StackExchange.Redis@2.7.33",
+        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.19.2"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Azure.Core@1.44.1",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
+        "pkg:nuget/System.ClientModel@1.1.0",
+        "pkg:nuget/System.Memory.Data@6.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.IdentityModel.Protocols.OpenIdConnect@8.19.2"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Azure.Cosmos@3.63.2",
+      "dependsOn": [
+        "pkg:nuget/Azure.Core@1.44.1",
+        "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
+        "pkg:nuget/Microsoft.Bcl.HashCode@1.1.0",
+        "pkg:nuget/System.Configuration.ConfigurationManager@6.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0"
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2"
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Bcl.HashCode@1.1.0"
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.19.2"
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.19.2",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.19.2"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.19.2",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.19.2"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Protocols.OpenIdConnect@8.19.2",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.IdentityModel.Protocols@8.19.2",
+        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.19.2"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Protocols@8.19.2",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.19.2"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.19.2",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2",
+        "pkg:nuget/Microsoft.IdentityModel.Logging@8.19.2"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Win32.SystemEvents@6.0.0"
+    },
+    {
+      "ref": "pkg:nuget/Newtonsoft.Json@13.0.3"
+    },
+    {
+      "ref": "pkg:nuget/OpenTelemetry.Api.ProviderBuilderExtensions@1.20.1",
+      "dependsOn": [
+        "pkg:nuget/OpenTelemetry.Api@1.20.1"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/OpenTelemetry.Api@1.20.1"
+    },
+    {
+      "ref": "pkg:nuget/OpenTelemetry.Exporter.OpenTelemetryProtocol@1.20.1",
+      "dependsOn": [
+        "pkg:nuget/OpenTelemetry@1.20.1"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/OpenTelemetry.Extensions.Hosting@1.20.1",
+      "dependsOn": [
+        "pkg:nuget/OpenTelemetry@1.20.1"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/OpenTelemetry.Instrumentation.AspNetCore@1.20.1",
+      "dependsOn": [
+        "pkg:nuget/OpenTelemetry.Api.ProviderBuilderExtensions@1.20.1"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/OpenTelemetry.Instrumentation.Http@1.20.1",
+      "dependsOn": [
+        "pkg:nuget/OpenTelemetry.Api.ProviderBuilderExtensions@1.20.1"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/OpenTelemetry@1.20.1",
+      "dependsOn": [
+        "pkg:nuget/OpenTelemetry.Api.ProviderBuilderExtensions@1.20.1"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Pipelines.Sockets.Unofficial@2.2.8"
+    },
+    {
+      "ref": "pkg:nuget/Polly.Core@8.7.0"
+    },
+    {
+      "ref": "pkg:nuget/Polly@8.7.0",
+      "dependsOn": [
+        "pkg:nuget/Polly.Core@8.7.0"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/StackExchange.Redis@2.7.33",
+      "dependsOn": [
+        "pkg:nuget/Pipelines.Sockets.Unofficial@2.2.8"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/System.ClientModel@1.1.0",
+      "dependsOn": [
+        "pkg:nuget/System.Memory.Data@6.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/System.Configuration.ConfigurationManager@6.0.0",
+      "dependsOn": [
+        "pkg:nuget/System.Security.Cryptography.ProtectedData@6.0.0",
+        "pkg:nuget/System.Security.Permissions@6.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/System.Drawing.Common@6.0.0",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Win32.SystemEvents@6.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.19.2",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.19.2",
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.19.2"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/System.Memory.Data@6.0.0"
+    },
+    {
+      "ref": "pkg:nuget/System.Security.Cryptography.ProtectedData@6.0.0"
+    },
+    {
+      "ref": "pkg:nuget/System.Security.Permissions@6.0.0",
+      "dependsOn": [
+        "pkg:nuget/System.Windows.Extensions@6.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/System.Windows.Extensions@6.0.0",
+      "dependsOn": [
+        "pkg:nuget/System.Drawing.Common@6.0.0"
+      ]
+    }
+  ]
+}
