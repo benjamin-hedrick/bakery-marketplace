@@ -73,3 +73,7 @@ Contract test suite run against both, to catch behavioral drift
 ## Amendment note (2026-10-30: as built)
 
 The decision is unchanged. The local emulator is the Cosmos **vNext** emulator (`docker-compose.yml`), not the Linux emulator named above; it needs Cosmos SDK 3.63.x or later. Two containers exist in code: `catalog` (partition key `/vendorId`) and `orders` (`/customerId`). The `catalog` container also holds the per-vendor status documents in a reserved partition and the stock reservation records (ADR-0017; register item 66). The `order-status-readmodel`, `vendors`, `preferences`, `reviews` and `payouts` containers are not built.
+
+## Note, 2026-11-08: containers in the code
+
+The decision is unchanged. Five containers exist in the code: `catalog` (partition key `/vendorId`; it also holds the vendor status and stock reservation documents), `orders` (`/customerId`), `vendor-orders` (`/vendorId`; the vendor read model, `WI-QUE-001`), `payment-methods` (`/customerId`; `WI-ORD-010`) and `preferences` (`/customerId`; the allergen and diet profile, `WI-PREF-001`). `reviews` and `payouts` are not built. The 2026-10-30 note that preferences were not built is superseded.

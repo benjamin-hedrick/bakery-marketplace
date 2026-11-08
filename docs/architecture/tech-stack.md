@@ -1,6 +1,6 @@
 # Tech Stack Overview
 
-> **Status:** Current · rewritten 2026-10-30. A reference, not an ADR: it indexes the decisions in ADR-0001 to ADR-0018 (ADR-0011 is superseded by ADR-0012, ADR-0018 is Proposed) and says, per row, whether the decision is built. "Decision" is what the ADRs settle; "Build state" is what exists in this repository and was run locally. Nothing is deployed.
+> **Status:** Current · rewritten 2026-10-30. A reference, not an ADR: it indexes the decisions in ADR-0001 to ADR-0023 (ADR-0011 is superseded by ADR-0012; the others are Accepted) and says, per row, whether the decision is built. "Decision" is what the ADRs settle; "Build state" is what exists in this repository and was run locally. Nothing is deployed.
 
 ## Guiding principles
 
@@ -45,10 +45,10 @@ Local development runs through `docker compose` plus services on the host (`docs
 | API gateway | None; the BFF calls the services directly | n/a | Policy lint is planned for when APIM exists |
 | Secrets | Git-ignored `.env` written by `node scripts/dev/init-env.mjs` | Yes | Fail-fast startup validation tests |
 | Seed data | `tools/BakeryMarketplace.Seed`, run by hand or by the smoke script; it also publishes `VendorVerified` | On demand | |
-| Web app and BFF | Started on the host (`npm`); not in compose | n/a | Contract tests between the BFF and the services |
+| Web apps, BFF and the .NET services | Started on the host, or as containers with `docker compose --profile apps up -d --build` (catalog, ordering, BFF and the customer app; the queue display runs on the host) | n/a | Contract tests between the BFF and the services |
 | Tracing | OTLP to the OpenTelemetry Collector; Aspire dashboard (`--profile tracing`), collector (`--profile collector`), Jaeger (`--profile jaeger`) | Opt-in | |
 
-Commands: `docker compose up -d --build` starts Redis Streams, the Cosmos emulator and the mock issuer; add `--profile with-redis` for the cache Redis. Application containers do not exist; run the services on the host against the compose ports (see `docs/operations/local-dev.md`).
+Commands: `docker compose up -d --build` starts Redis Streams, the Cosmos emulator and the mock issuer; add `--profile with-redis` for the cache Redis. The `apps` profile adds the application containers (needs `ORDERING_CLIENT_SECRET` from `init-env`; set `COMPOSE_PARALLEL_LIMIT=1`); otherwise run the services on the host against the compose ports (see `docs/operations/local-dev.md`).
 
 ## Cross-cutting patterns
 

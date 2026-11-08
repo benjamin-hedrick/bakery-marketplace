@@ -77,7 +77,7 @@ graph LR
     E7 --> P3
 ```
 
-### Flow 2: what is built (2026-10-30)
+### Flow 2: what is built (table of 2026-10-30, rows added to 2026-11-07)
 
 | Element | State |
 |---|---|

@@ -1,5 +1,7 @@
 # Order lifecycle (pickup v1)
 
+> **Status:** Current · agreed 2026-10-28 and built (`WI-ORD-002`, `WI-ORD-007`, `WI-ORD-008`; the pickup strategy of `WI-ORD-003` is In review, built 2026-11-07); read against the code on 2026-11-08.
+
 Agreed with the human lead on 2026-10-28 from a review of the intended functionality. This is the behavior `WI-ORD-002` implements as an in-memory aggregate; persistence (`ORD-006`), publishing (`ORD-005`), checkout (`ORD-001`) and pickup windows (`ORD-003`) build on it. Status names follow ADR-0001 (fulfillment-agnostic) and `FulfillmentContracts.cs`.
 
 ```

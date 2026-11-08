@@ -77,3 +77,7 @@ ADR-0007, ADR-0012, ADR-0015, ADR-0018; `WI-DEP-001`; register items 101 and 102
 
 Accepted by the human lead, with the amendments above: the dev operations pipeline as its own file (`azure-pipelines-dev.yml`, first a rehearsal), and the empty dev resource group created by the bootstrap, with the deploy identity limited to the foundation and dev resource groups (register item 106, decided the same day). Acceptance is of the design; nothing in it has run on Azure. The gates are proved by `docs/operations/runbooks/prove-the-pipeline-gates.md`, which has not been run.
 
+
+## Note, 2026-11-08: ADR-0019 is written
+
+The first paragraph of this record says ADR-0019 was reserved and not written. It was written and accepted on 2026-11-02 (browser sessions); this ADR's number stayed 0020.

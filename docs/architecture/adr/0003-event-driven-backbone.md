@@ -91,3 +91,7 @@ The decision is unchanged. Differences between the text above and the code:
 - Built: the Redis Streams transport and an in-memory transport. Not built: the Event Grid transport (`EVT-002`) and `ChaosEventTransport`.
 - The dead-letter stream exists for handlers that fail repeatedly. An entry that cannot be deserialized is acknowledged and dropped without dead-lettering (`RedisStreamsEventTransport`), so "the dead-letter path is reachable" does not cover malformed entries.
 - Consumer groups are named per event type, not per service (open-items register item 29).
+
+## Note, 2026-11-08: as built since 2026-10-30
+
+The consumer-group problem named in the 2026-10-30 note is resolved (register 29): a group per service, and since 2026-11-07 a consumer name on the subscribe call so that two consumers inside one service each get their own group (`WI-ORD-003`). The catalog now has an outbox as well (`ListingEventPublisher`, `ListingOutboxRelay`, 2026-11-01). Built consumers: ordering (the vendor read model and the fulfillment strategy), the notification service (batch subscription) and the catalog (`VendorVerified`, `VendorSuspended`). The unreadable-entry and dead-letter point of the 2026-10-30 note was not re-checked against the transport in this pass. The decision text is unchanged.
