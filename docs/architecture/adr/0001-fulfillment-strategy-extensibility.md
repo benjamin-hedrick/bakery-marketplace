@@ -1,6 +1,6 @@
 # ADR-0001: Fulfillment Strategy Extensibility — Pickup-Only v1, Delivery Deferred
 
-**Status:** Accepted, amended 2026-10-30
+**Status:** Accepted, amended 2026-10-30 and 2026-11-07
 
 ## Context
 

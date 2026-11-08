@@ -1,6 +1,6 @@
 # ADR-0002: Cache Strategy — Environment-Conditional Managed Redis with Local Fallback
 
-**Status:** Accepted, amended 2026-09-11 to 2026-10-30
+**Status:** Accepted, amended 2026-09-11 to 2026-11-07
 
 ## Context
 
