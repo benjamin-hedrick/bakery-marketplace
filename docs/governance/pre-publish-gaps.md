@@ -19,7 +19,7 @@
 | # | Gap | What closes it |
 |---|---|---|
 | 8 | The test strategy's layer table and diagram still carry hand-typed counts from 2026-10-30 | Replace them with a link to the generated record once it exists |
-| 9 | Pages not read in the 2026-11-08 pass: vision, personas, demo milestones, SLA, monitoring plan, the C4 context and component pages, the DDD pages, the threat model, tech stack, project plan, risk register, budget, stakeholder plan, local development ("verified 2026-10-30") | Read each against the code and the evidence, as the ADR index, timeline, patterns, NFRs and plans were |
+| 9 | **Half done 2026-11-08** (commit `cd81374`): the vision, personas, demo milestones, tech stack, event-storming built-state table, SLA cache note and the C4 context are corrected. **Still to do:** the C4 component page (written 2026-10-30; lacks the notification service, the listing cache, `PickupFulfillment` as a consumer and the sessions package); the project plan ("as of 2026-10-28": the status of phases 2, 4, 5 and 6); the risk register (R-12 to R-20 are from 2026-10-30: new risks since, such as long-lived connections, sessions and rate limits); the monitoring plan (checked 2026-10-30; compare with the OpenTelemetry work); the threat model (updated 2026-11-07; verify against the code); the budget (a September snapshot; label it as such and add the dev-environment cost); the stakeholder plan (hypothetical; check its references); the DDD README and glossary; local development ("Run slice 1" verified 2026-10-30: re-verify in a fresh clone) | Read each against the code and the evidence, as the ADR index, timeline, patterns, NFRs, plans and the pages above were |
 | 10 | Register 89's last point is the lead's: whether the cache fallback needs a retry or staleness policy (recommended no for the listing cache) | Decide |
 
 ## AI collaboration: the evidence is thinner than the practice
@@ -28,11 +28,24 @@ The record has the method, the errors and what caught them, and the cost and tim
 
 | # | Gap | A way to capture it |
 |---|---|---|
-| 11 | Time saved against a hand-built baseline | Pick one small, well-specified work item, build it by hand with a timer, and compare it with the AI session that built a comparable item (`WI-QA-003` has the experiment's outline) |
-| 12 | Rework and review cost | Count the correction commits per session from the git history ("fix", "correct", a review finding) and the review comments the lead made; record them beside the usage figures |
-| 13 | Accepted and rejected suggestions | Record each rejected or reworked suggestion in a structured file as it happens (one line: date, what, why, what the control was) so the error table is complete and countable |
-| 14 | The usage records stop at the second session of 2026-11-07 | Record the session of 2026-11-08 (the film and this pass) and keep the habit; consider a small script that adds a row to the table |
-| 15 | The AI-assisted testing experiment (`WI-QA-003`) has not been run | Run it once, recorded |
+| 11 | ~~Time saved against a hand-built baseline~~ **Closed 2026-11-08 by decision:** no comparison is planned; the record now says the repository was built iteratively with AI collaboration throughout and that the evidence is its records and controls (`ai-collaboration.md`, "How this repository was built") | Done |
+| 12 | ~~Rework and review cost~~ **Closed 2026-11-08 as a practice record:** the tuning of the process (the `CLAUDE.md` rule history with commits, guided work, spec-driven and contract-first development, pulling decisions up) is now a table with what prompted each change and its evidence; the rework saved is stated as not measured, and the correction-commit share is shown with why it is not a measure | Done (`ai-collaboration.md`, "How the process was tuned") |
+| 13 | Accepted and rejected suggestions: **reviewed 2026-11-08.** The error table has 23 rows, the lessons 34, the register 166 items and four reconciliation records; the documents are not all updated on every change, by design, and the review itself found the overview pages nine days behind (recorded as a row). Keep the practice: add a row whenever a lesson is recorded, and reconcile the table against the lessons and the register at each slice boundary | Ongoing; no tooling needed |
+| 14 | The usage records stop at the second session of 2026-11-07 | The lead will share the figures for the session of 2026-11-08 (the film and this pass); add them to the table in `ai-collaboration.md` and the evidence record |
+| 15 | The AI-assisted testing experiment (`WI-QA-003`, row T-34) has not been run: it is the deferred half of that item (the mobile half was done as `WI-MOB-001`) | Decide whether to run it once, recorded, or to leave it deferred and say so |
+
+## The full repository pass
+
+Planned 2026-11-08 for the next session. The aim is to read every folder against what it should show, fix what is stale, and position the README for going public. Order and checks:
+
+1. **Root:** `README.md` (positioned last, after the folders), `CLAUDE.md`, `LICENSE`, `.gitignore`, `docker-compose.yml`, the pipelines, `mkdocs.yml`; add what a public repository usually has if missing (a security policy, a contributing note) after asking.
+2. **`docs/`, folder by folder:** `product`, `architecture` (adr, c4, ddd), `process`, `operations` (runbooks, postmortems), `management`, `governance`, `evidence`, `method`, `history`, `product/backlog` (the specs: banners, as-built notes). For each page: accurate against the code and the evidence; status line and date; links; whether it earns its place in the story, and where it sits in the README table.
+3. **`services/`, `apps/`, `packages/`, `tools/`, `infra/`, `scripts/`:** READMEs and header comments say what is true (what is built, what was run, what was never run); no dead code or stale comments that contradict the code (lesson L-30); the scripts index is complete.
+4. **Across everything:** a sanitization scan (names of employers or organizations, personal paths and e-mail addresses in evidence records and history, anything in `_incoming/`), the secret scan over the full history, the link check, the status check, and the traceability table; the full test and coverage record with the containers up; the gaps in the tables above closed or stated.
+5. **Positioning:** re-read the README as a stranger would, from the top, with the film and the table; adjust the summary and the order of the capability rows to the evidence that exists then; check how GitHub renders it (the film link, the poster, the tables).
+6. **Flip day** (register 93): the licence, the repository settings and the history decision, with the lead.
+
+Method: one folder at a time, a findings list per folder (stale, wrong, missing, unsafe to publish), fixes in one commit per folder, the gates before every push, and the register or this list for anything that cannot be fixed in the pass.
 
 ## Before the repository is public
 
