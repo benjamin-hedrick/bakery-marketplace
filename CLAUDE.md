@@ -65,6 +65,7 @@ node scripts/ci/secret-scan.mjs            # run before every push: gitleaks ove
 node scripts/ci/linux-check.mjs             # runs the .NET test steps on Linux in a container limited to 2 CPUs like the agent, with a 3 minute hang timeout (committed tree); the pipeline is Ubuntu, development here is Windows. Tests must not block on tasks (register item 117)
 node scripts/dev/demo.mjs                  # starts the whole slice-1 stack, warms it, prints a guide, waits; Enter or Ctrl+C tears down (docs/operations/demo.md)
 node scripts/dev/check-stream-passthrough.mjs  # WI-QUE-003: the built queue display relays an event stream incrementally, uncompressed, and frees the BFF call when the browser leaves (needs `npm run build` in apps/web-queue-display)
+node scripts/dev/film/film.mjs --dry-run   # the demo film (register 163, docs/operations/demo-film.md): scripted, never run; compose.mjs makes the video, record-phone.mjs records the emulator
 node scripts/dev/capture-journey.mjs        # screenshots of the journey into docs/operations/demo/, against a running demo
 node scripts/dev/measure-latency.mjs        # sequential latency of reads and checkout against a running demo (p50, p95, max)
 node scripts/dev/load-test.mjs --minutes 3  # WI-SEC-005: load and soak of the live vendor queue on the real stack (five screens, orders, an ordering restart, memory); the 66-minute run is in docs/evidence/WI-SEC-005/
