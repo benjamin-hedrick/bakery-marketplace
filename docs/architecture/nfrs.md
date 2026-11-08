@@ -62,7 +62,7 @@ Status legend matches the rest of the project: **[MVP]** binding for v1 · **[MV
 - **[MVP]** Order events are not lost when the broker is down: they are stored with the order and published by an outbox relay (`WI-ORD-005`; [patterns](patterns.md)).
 - **[MVP]** A repeated checkout never creates a second order or takes stock twice (idempotency by a derived order id; stock reservation keyed by the order id; ADR-0017).
 - **[MVP]** Stock reservation is atomic per vendor and a released reservation is final (ADR-0017).
-- **[MVP]** Behaviour when each dependency fails, and how each case was established, is listed in [patterns](patterns.md) section 10; the review of that behaviour is register item 89.
+- **[MVP]** Behaviour when each dependency fails, and how each case was established, is listed in [patterns](patterns.md) section 14; the review of that behaviour is register item 89.
 
 ### 5.1 Long-lived connections and real-time delivery *(proposed)*
 - **[MVP, proposed]** A vendor's screen reflects an order change within a stated time. Measured, not yet a target: 68 ms p50 and 99 ms p95 on a local stack with one screen and a light load (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`). Proposed target for the lead to set: p95 under 1 second, with polling every 7 seconds as the fallback bound.

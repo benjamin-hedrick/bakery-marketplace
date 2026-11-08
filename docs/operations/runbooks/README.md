@@ -27,7 +27,7 @@ Still to write, when each step first runs: create the dev environment, tear it d
 | Cache fallback | ADR-0002, `patterns.md` section 1 | A service that uses the cache |
 | Cosmos throttling | ADR-0004 | Something to throttle: not exercised on the emulator |
 | Cold start | the 9 s cold first call in `docs/evidence/runbook-event-broker-2026-10-30.md` and `baseline-2026-10-30.md` | A deployed environment |
-| Identity issuer down | `patterns.md` section 10 ("behaviour with the issuer down is not examined") | A run with the issuer stopped |
-| Catalog unavailable during checkout | `patterns.md` section 10 (`503 downstream_unavailable`) | A run with the catalog stopped |
+| Identity issuer down | `patterns.md` section 14 ("behaviour with the issuer down is not examined") | A run with the issuer stopped |
+| Catalog unavailable during checkout | `patterns.md` section 14 (`503 downstream_unavailable`) | A run with the catalog stopped |
 
 Disaster recovery is `BDR-003` and on-call is `OPS-004`; neither is started.

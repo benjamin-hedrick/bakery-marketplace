@@ -53,7 +53,7 @@ Each traces to a specific ADR — these are accepted, named characteristics of t
 - **Gateway has no Azure-backed SLA at this tier**: APIM Consumption tier (ADR-0008) — this platform's 99.0% target already accounts for this by not assuming an inherited guarantee.
 - **Event delivery is at-least-once, not instant**: the live order-queue display and any other event-fed read-model (ADR-0003, ADR-0004) have a real, bounded lag between an event occurring and the read-model reflecting it. This is accepted by design and explicitly not held to the same latency target as a direct request/response path. Today nothing consumes the order events, so this lag has never been measured.
 - **Events that cannot be read are dropped**: a malformed stream entry is acknowledged without dead-lettering (register 88), so a read-model could silently miss it.
-- **Behavior when a dependency fails** is listed, with how each case was established, in `docs/architecture/patterns.md` section 10.
+- **Behavior when a dependency fails** is listed, with how each case was established, in `docs/architecture/patterns.md` section 14.
 
 ## Related
 
