@@ -179,8 +179,8 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 
 | ADR | Title | Status | Status line |
 |---|---|---|---|
-| [0001](../../architecture/adr/0001-fulfillment-strategy-extensibility.md) | Fulfillment Strategy Extensibility — Pickup-Only v1, Delivery Deferred | Accepted | Accepted, amended 2026-10-30 |
-| [0002](../../architecture/adr/0002-cache-strategy.md) | Cache Strategy — Environment-Conditional Managed Redis with Local Fallback | Accepted | Accepted, amended 2026-09-11 to 2026-10-30 |
+| [0001](../../architecture/adr/0001-fulfillment-strategy-extensibility.md) | Fulfillment Strategy Extensibility — Pickup-Only v1, Delivery Deferred | Accepted | Accepted, amended 2026-10-30 and 2026-11-07 |
+| [0002](../../architecture/adr/0002-cache-strategy.md) | Cache Strategy — Environment-Conditional Managed Redis with Local Fallback | Accepted | Accepted, amended 2026-09-11 to 2026-11-07 |
 | [0003](../../architecture/adr/0003-event-driven-backbone.md) | Event-Driven Backbone | Accepted | Accepted, amended 2026-10-30 |
 | [0004](../../architecture/adr/0004-data-store-choice.md) | Primary Data Store — Azure Cosmos DB (SQL API), Container-per-Context | Accepted | Accepted, amended 2026-10-30 |
 | [0005](../../architecture/adr/0005-payments-buy-vs-build.md) | Payments — Buy (Stripe Connect) Rather Than Build | Accepted | Accepted |
