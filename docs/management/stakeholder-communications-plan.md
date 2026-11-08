@@ -1,5 +1,7 @@
 # Stakeholder Communications Plan
 
+> **Status:** Hypothetical · a template for how a team would communicate, written for a project that has one lead and no other stakeholders. Re-read on 2026-11-08: the artifacts it names exist, except that the activity log is closed (the register and commit messages carry what it did) and the plan has 8 phases (0 to 7). In practice the lead reads `docs/product/backlog/current-plan.md`, the register and the pull requests.
+
 Role-based, not name-based — `MGMT-006` (team/hiring plan) doesn't exist yet, and this plan doesn't need to wait for it. Cadence and escalation triggers are wired to artifacts that already exist, not invented meeting names.
 
 ## Stakeholder roles and what each needs to know
@@ -8,7 +10,7 @@ Role-based, not name-based — `MGMT-006` (team/hiring plan) doesn't exist yet, 
 |---|---|---|
 | Executive Sponsor | Phase-level progress, budget status, any risk that's moved to High likelihood/impact | At each phase boundary (`docs/management/project-plan.md`'s 8 phases), plus immediately on an escalation trigger (below) |
 | Product Owner | Backlog priority, plan changes, epic completion | Whenever `docs/product/backlog/current-plan.md` changes (already a live artifact), not a separate report |
-| Engineering Lead / Architect | New ADRs, architecture-review outcomes, any context-completeness gap surfaced (a surprise, `docs/method/glossary.md`) | As they happen — ADRs and process fixes are self-documenting via `docs/history/ACTIVITY-LOG.md` |
+| Engineering Lead / Architect | New ADRs, architecture-review outcomes, any context-completeness gap surfaced (a surprise, `docs/method/glossary.md`) | As they happen — ADRs and process fixes are self-documenting (the activity log, `docs/history/ACTIVITY-LOG.md`, is closed; the register and commit messages replace it) |
 | Operations Lead | SLA error-budget status, any risk-register entry that materializes | Monthly (aligned to the SLA's monthly error-budget window), plus immediately on budget exhaustion |
 
 ## Cadence, tied to real checkpoints

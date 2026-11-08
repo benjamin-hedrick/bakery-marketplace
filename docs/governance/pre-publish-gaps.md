@@ -19,7 +19,7 @@
 | # | Gap | What closes it |
 |---|---|---|
 | 8 | The test strategy's layer table and diagram still carry hand-typed counts from 2026-10-30 | Replace them with a link to the generated record once it exists |
-| 9 | **Half done 2026-11-08** (commit `cd81374`): the vision, personas, demo milestones, tech stack, event-storming built-state table, SLA cache note and the C4 context are corrected. **Still to do:** the C4 component page (written 2026-10-30; lacks the notification service, the listing cache, `PickupFulfillment` as a consumer and the sessions package); the project plan ("as of 2026-10-28": the status of phases 2, 4, 5 and 6); the risk register (R-12 to R-20 are from 2026-10-30: new risks since, such as long-lived connections, sessions and rate limits); the monitoring plan (checked 2026-10-30; compare with the OpenTelemetry work); the threat model (updated 2026-11-07; verify against the code); the budget (a September snapshot; label it as such and add the dev-environment cost); the stakeholder plan (hypothetical; check its references); the DDD README and glossary; local development ("Run slice 1" verified 2026-10-30: re-verify in a fresh clone) | Read each against the code and the evidence, as the ADR index, timeline, patterns, NFRs, plans and the pages above were |
+| 9 | **Half done 2026-11-08** (commit `cd81374`): the vision, personas, demo milestones, tech stack, event-storming built-state table, SLA cache note and the C4 context are corrected. **Still to do:** the C4 component page (written 2026-10-30; lacks the notification service, the listing cache, `PickupFulfillment` as a consumer and the sessions package); the project plan ("as of 2026-10-28": the status of phases 2, 4, 5 and 6); the risk register (R-12 to R-20 are from 2026-10-30: new risks since, such as long-lived connections, sessions and rate limits); the monitoring plan (checked 2026-10-30; compare with the OpenTelemetry work); the threat model (updated 2026-11-07; verify against the code); the budget (a September snapshot; label it as such and add the dev-environment cost); the stakeholder plan (hypothetical; check its references); the DDD README and glossary; local development ("Run slice 1" verified 2026-10-30: re-verify in a fresh clone) | Read each against the code and the evidence, as the ADR index, timeline, patterns, NFRs, plans and the pages above were. **Second half done 2026-11-08** (the folder pass, architecture and management): the C4 container page and the component page (now ordering, catalog and notification), the DDD README and bounded-context status, the project plan, the risk register (R-21 to R-24 added), the monitoring plan, the threat model (rows on scans, dependencies, the notification service), the budget (labelled), the stakeholder plan (labelled hypothetical). **Still open:** the local-development page in a fresh clone (the status line now says it is not re-verified) |
 | 10 | Register 89's last point is the lead's: whether the cache fallback needs a retry or staleness policy (recommended no for the listing cache) | Decide |
 
 ## AI collaboration: the evidence is thinner than the practice
@@ -46,6 +46,15 @@ Planned 2026-11-08 for the next session. The aim is to read every folder against
 6. **Flip day** (register 93): the licence, the repository settings and the history decision, with the lead.
 
 Method: one folder at a time, a findings list per folder (stale, wrong, missing, unsafe to publish), fixes in one commit per folder, the gates before every push, and the register or this list for anything that cannot be fixed in the pass.
+
+## Findings of the folder pass (2026-11-08), not yet fixed
+
+| Area | Finding | Fix |
+|---|---|---|
+| `apps/web-queue-display/README.md` | Says "display only; the only button is Log out" and "not run against the real stack"; the screen has accept, decline, start, ready and hand-over buttons (`WI-QUE-004`) and its real-stack journeys have run | Rewrite its status and "What it shows" in the apps pass |
+| Register 71 | Still Open ("no container image for ordering-service"); the images exist (`services/Dockerfile.dotnet`) | Record whether the time-zone data was checked in the container smoke, then resolve or restate |
+| `docs/operations/scripts.md` and `apps/mobile-customer/.maestro/` | Two flows are numbered 13 (`13-cancel-order`, `13-no-payment-methods`) | Cosmetic; renumber only with the lead's agreement (the docs cite the names) |
+| `docs/management/slice-1/`, `portfolio-slice/` | Snapshots of 2026-10-30; not individually re-read | Each carries a date; read in the management pass if time allows |
 
 ## Scans of 2026-11-08 (secrets and sanitization)
 
