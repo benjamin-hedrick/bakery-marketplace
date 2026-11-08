@@ -2,4 +2,4 @@
 
 Admin/moderation console.
 
-_Scaffold only — implementation to follow the backlog/sprint plan._
+_Scaffold only. Nothing is built; the planned work is in `docs/product/backlog/epic-catalog.md`._

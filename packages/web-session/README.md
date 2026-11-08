@@ -2,7 +2,7 @@
 
 The server-side browser session shared by the web apps (ADR-0019, `WI-AUTH-007`). The browser holds an opaque, HttpOnly cookie; the web app's server holds the tokens, encrypted, renews them, and puts the bearer header on the call to the BFF.
 
-**Status (2026-11-02): phase 2 built and tested on its own; no app uses it yet.** Phase 3 moves `web-queue-display` and then `web-customer` onto it and removes their browser-side token code.
+**Status (2026-11-08): built and used by both web apps** (`web-customer` and `web-queue-display`) since 2026-11-02; the browser-side token code is gone. The stream route, the rate limits and the per-client address header were added later (`WI-QUE-003`, `WI-RATE-001`, register 137).
 
 ## What is in it
 
@@ -34,7 +34,7 @@ The server-side browser session shared by the web apps (ADR-0019, `WI-AUTH-007`)
 
 A missing or malformed setting stops the routes with a 503 and logs the **name** of the setting, never a value.
 
-## Using it from an app (phase 3)
+## Using it from an app
 
 Each app mounts the handlers as thin API routes, for example `pages/api/auth/login.ts`: `export default (req, res) => getSessionRuntime()...auth.login(req, res)`, and `/api/graphql` as `runtime.graphql`; a live screen also mounts `pages/api/graphql-stream.ts` (`apiRoutes.graphqlStream`, with `config = { api: { bodyParser: false, responseLimit: false } }`). The Next config lists the package in `transpilePackages`, because it ships TypeScript source. Both GraphQL routes turn the framework's body parser off and read the request themselves, at most `MAX_REQUEST_BODY_BYTES` (64 KB, the BFF's own limit); a larger body is a 413 and nothing is sent on. The stream route (`createGraphqlStreamHandler`) also reads its body before it counts the stream, allows 5 streams per login (`maxPerSession`; a sixth is a 429) and 500 per process (`maxOpen`; a further one is a 503), and ends an open stream when its session ends: the session is checked every 10 seconds (`sessionCheckMs`), less often after each failed check, and the stream is ended after three failures in a row (`maxFailedChecks`).
 
@@ -43,8 +43,8 @@ Each app mounts the handlers as thin API routes, for example `pages/api/auth/log
 ```
 npm ci
 npm run typecheck
-npm test                                   # 85 tests; the 13 Redis store tests are skipped
-REDIS_CONNECTION_STRING=127.0.0.1:6379 npm test   # all 98, with the Redis store run against a real Redis (docker compose up -d redis-events)
+npm test                                   # the 13 Redis store tests are skipped without Redis
+REDIS_CONNECTION_STRING=127.0.0.1:6379 npm test   # all of them, with the Redis store run against a real Redis (docker compose up -d redis-events); counts: `docs/testing.md`
 ```
 
 Node strips types when it runs the tests, so the code avoids TypeScript-only runtime syntax (parameter properties, enums).
