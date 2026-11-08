@@ -48,7 +48,7 @@ This record reconciles three things: the demo the lead pictured against what is 
 
 ## D. Not run, not decided, still open
 
-- **Not run:** all fifteen Maestro flows in one cold run (flows 07, 13 and 14 and the new cancel flow passed on their own); the container smoke of the new journeys (the host smoke passed 62 of 62); polling on the real stack; `mobile-demo.mjs` with the vendor screen; a person clicking through the vendor steps of the demo.
+- **Not run:** all fifteen Maestro flows in one cold run (flows 07, the no-payment-methods flow, the refused-session flow and the new cancel flow passed on their own); the container smoke of the new journeys (the host smoke passed 62 of 62); polling on the real stack; `mobile-demo.mjs` with the vendor screen; a person clicking through the vendor steps of the demo.
 - **Open decision:** none now: `WI-ORD-003` decision 2 was decided and built the same day.
 - **Found, recorded in `WI-ORD-011`, not fixed:** on Android, the checkout's saved payment methods load after the screen opens and push the place button down; a tap at that instant can land on a payment button (register 161).
 - **Register:** 158 (listing cache, stock-path review by the lead), 159 (resolved), 160 (this record's open items), 161 (the layout jump).

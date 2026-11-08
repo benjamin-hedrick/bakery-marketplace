@@ -121,6 +121,26 @@ const items = [...regText.matchAll(/^\*\*(\d+)\. (.+)\n(Type: ([^·\n]+))?/gm)].
   type: m[4]?.trim() ?? (/Resolved/.test(m[2]) ? 'Resolved (collapsed entry)' : '(no Type line)'),
 }));
 const regStatus = [...regText.matchAll(/^Status: (\w+)/gm)].map((m) => m[1]);
+// The first word after "Status:" must be one of the five values of docs/method/register-item-template.md.
+const REGISTER_STATUSES = ['Open', 'Tracking', 'Accepted', 'Deferred', 'Resolved'];
+const registerProblems = [...regText.matchAll(/^\*\*(\d+)\. .*\n(?:.*\n)*?Status: (\w+)/gm)]
+  .filter((m) => !REGISTER_STATUSES.includes(m[2]))
+  .map((m) => `open-items-register.md: item ${m[1]} has Status "${m[2]}", not one of ${REGISTER_STATUSES.join(', ')}`);
+// Items keep the free-form Type they were given; the table groups them into the categories of the template.
+const TYPE_GROUPS = [
+  ['Defect', /defect|bug/i],
+  ['Verification gap', /verification|test gap|test isolation|test limitation|evidence gap|flaky test/i],
+  ['Documentation drift', /documentation|inconsistency/i],
+  ['Process', /process|policy|quality gate|reconciliation|review|rule/i],
+  ['Decision', /decision|question/i],
+  ['Deferred scope', /deferred|scoped out|scope gap|not started|future|option|planned/i],
+  ['Risk', /risk/i],
+  ['Tracking', /tracking|watch|accepted/i],
+  ['Limitation', /limitation|scaling|rough edge|usability|cosmetic|tooling|edge case|weakness/i],
+  ['Gap', /gap|missing|design|contract|schema|hardening|follow-up|tech debt|swap|work|done|resolved/i],
+];
+const typeGroup = (t) => TYPE_GROUPS.find(([, re]) => re.test(t))?.[0] ?? 'Other';
+problems.push(...registerProblems);
 
 const cell = (s) => String(s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const lines = [];
@@ -158,7 +178,7 @@ lines.push(
   '',
 );
 lines.push('| Type | Count |', '|---|---|');
-for (const [t, c] of [...count(items, 'type')].sort((a, b) => b[1] - a[1])) lines.push(`| ${cell(t)} | ${c} |`);
+for (const [t, c] of [...count(items.map((i) => ({ type: typeGroup(i.type) })), 'type')].sort((a, b) => b[1] - a[1])) lines.push(`| ${cell(t)} | ${c} |`);
 if (regStatus.length) {
   lines.push('', '| Item status | Count |', '|---|---|');
   for (const [t, c] of [
