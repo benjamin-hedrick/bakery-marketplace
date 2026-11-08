@@ -36,6 +36,10 @@
 | L-28 | Invalidate a cache on what the reader can see, not on every write | Validated by tests and a measurement, one design |
 | L-29 | Check that a mutation check really ran, and commit before you break the code | Observation (twice) |
 | L-30 | Check a comment that states a rule against the code that enforces it | Observation |
+| L-31 | Take the date from the system and the remote branch list from the remote | Observation (two slips, one session) |
+| L-32 | Size a fixed placeholder from the real worst case, and run the flows around the state it holds | Observation |
+| L-33 | Stop a recorder before the thing it records goes away, and measure a still screen by the clock | Observation |
+| L-34 | Mark in the file itself what has never been run | Observation |
 
 ## L-01 A surprise is a trigger to ask what should change
 
@@ -158,3 +162,19 @@
 ## L-30 Check a comment that states a rule against the code that enforces it
 
 **Situation.** The BFF schema comment for the new customer `cancelOrder` mutation said another role would be refused with FORBIDDEN. Ordering's cancel endpoint accepts either role and decides who is acting from who owns the order, so a vendor's token on its own order is a vendor cancel; the BFF only forwards the token. The comment was written from the intent, not from the code, and was found only because a real-stack test was being planned. **Lesson.** A comment, a spec or a schema description that states who may do what should be written from the code that decides it (here the ordering service's action endpoint), and checked there when it is written. **Evidence.** The correction in `services/graphql-bff/schema/schema.graphql` and `WI-ORD-011`. **Status.** Observation.
+
+## L-31 Take the date from the system and the remote branch list from the remote
+
+**Situation.** On 2026-11-07 the assistant wrote "2026-11-08" in about ten documents and a code comment for work done that day, which needed a separate correction commit. The same day it told the lead that three merged branches still existed on GitHub and offered to delete them; they did not: it had only seen stale remote-tracking references after a `git fetch` without `--prune`. **Lesson.** Use the date the environment gives (a UTC timestamp from a script can be a day ahead of the local date), and confirm remote state with `git fetch --prune` and `git ls-remote --heads origin` before stating it. **Evidence.** Commit `ec47b70` (the date correction); the memory note `feedback-check-date-and-live-remote`. **Status.** Observation.
+
+## L-32 Size a fixed placeholder from the real worst case, and run the flows around the state it holds
+
+**Situation.** The fix for register 161 (the Android checkout's list of payment methods moving the place button) first reserved room for three methods and put every state in the area, though the seeded customers have at most two. The extra height pushed "Place order" below the fold when the rejection notice was showing, and flow 11 failed on a tap. The second version reserved two rows for the loading line and the list only and left the notices outside. **Lesson.** A placeholder that stops one layout shift can cause another; size it from the data's real maximum, keep it to the states that need it, and run the flows that pass through the neighbouring states (here a rejection) after the change. **Evidence.** Flow 11's failure screenshot and the second run (11, 13-cancel-order and 13-no-payment-methods passed); register 161. **Status.** Observation. Not shown: that the button no longer moves (Maestro cannot assert a position).
+
+## L-33 Stop a recorder before the thing it records goes away, and measure a still screen by the clock
+
+**Situation.** The screen-capture spike for the demo film found three things at once. The emulator recorder writes frames only when the screen changes, so a chunk of 181 seconds of wall time held 117 seconds of video. It stops after three minutes, so it writes chunks. And its last chunk is only pulled after it ends, so when the flows script took the emulator down first, that footage was lost. **Lesson.** Put the recorder's stop and pull before the teardown of what is recorded, record each chunk's wall-clock start so a compositor can re-time it, and start recording after the system is ready, not while it boots. **Evidence.** `scripts/dev/film/record-phone.mjs`; register 163. **Status.** Observation.
+
+## L-34 Mark in the file itself what has never been run
+
+**Situation.** The demo film's director, its phone flow and the video composer were written in a session that was not going to record anything. Only the dry run, the composer on synthetic input and the Maestro syntax check could be run. **Lesson.** Say so where the next reader will look: in each file's header ("written, never run; expect to fix selectors and timings on the first run"), in the plan document's "checked and not checked" table, in the register item and in the scripts index, with the first runs listed in order. A script that looks finished invites trust it has not earned. **Evidence.** `scripts/dev/film/film.mjs` header, `docs/operations/demo-film.md`. **Status.** Observation.
