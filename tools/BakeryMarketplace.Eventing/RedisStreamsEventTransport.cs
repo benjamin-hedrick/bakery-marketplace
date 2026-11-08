@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using StackExchange.Redis;
 
 namespace BakeryMarketplace.Eventing;
@@ -9,7 +11,7 @@ namespace BakeryMarketplace.Eventing;
 /// Uses XADD for publishing and consumer groups (XREADGROUP) for subscriptions, with a dead-letter stream on max retries.
 /// See ADR-0003 and WI-EVT-003.
 /// </summary>
-public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDisposable
+public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDisposable
 {
     private readonly IDatabase _database;
     private readonly JsonSerializerOptions _jsonOptions;
@@ -17,8 +19,10 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
     private readonly int? _maxStreamLength;
     private readonly string? _serviceName;
     private readonly TimeSpan _redeliverAfter;
+    private readonly ILogger _logger;
     private readonly ConcurrentBag<CancellationTokenSource> _ctsList = new();
     private readonly ConcurrentDictionary<string, byte> _namedGroups = new();
+    private long _lastPollErrorLogged;
 
     public RedisStreamsEventTransport(
         IConnectionMultiplexer multiplexer,
@@ -26,30 +30,34 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         int maxDeliveryAttempts = 3,
         int? maxStreamLength = null,
         string? serviceName = null,
-        TimeSpan? redeliverAfter = null)
+        TimeSpan? redeliverAfter = null,
+        ILogger? logger = null)
+        : this(DatabaseOf(multiplexer, db), maxDeliveryAttempts, maxStreamLength, serviceName, redeliverAfter, logger)
     {
-        ArgumentNullException.ThrowIfNull(multiplexer);
-        _database = multiplexer.GetDatabase(db);
-        _maxDeliveryAttempts = maxDeliveryAttempts;
-        _maxStreamLength = ValidateMaxStreamLength(maxStreamLength);
-        _serviceName = serviceName;
-        _redeliverAfter = redeliverAfter ?? DefaultRedeliverAfter;
-        _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
 
+    /// <param name="logger">Where failures are reported: a poll that failed, a handler that threw, an entry that could not be read. Null logs nothing.</param>
     public RedisStreamsEventTransport(
         IDatabase database,
         int maxDeliveryAttempts = 3,
         int? maxStreamLength = null,
         string? serviceName = null,
-        TimeSpan? redeliverAfter = null)
+        TimeSpan? redeliverAfter = null,
+        ILogger? logger = null)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _maxDeliveryAttempts = maxDeliveryAttempts;
         _maxStreamLength = ValidateMaxStreamLength(maxStreamLength);
         _serviceName = serviceName;
         _redeliverAfter = redeliverAfter ?? DefaultRedeliverAfter;
+        _logger = logger ?? NullLogger.Instance;
         _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    }
+
+    private static IDatabase DatabaseOf(IConnectionMultiplexer multiplexer, int db)
+    {
+        ArgumentNullException.ThrowIfNull(multiplexer);
+        return multiplexer.GetDatabase(db);
     }
 
     /// <summary>How long a delivered message may stay unacknowledged before it is handed to a consumer again.</summary>
@@ -205,8 +213,15 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
                 {
                     break;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // A broker that is down fails every poll: report the first failure and then at most one in thirty seconds.
+                    var now = Environment.TickCount64;
+                    if (now - Interlocked.Read(ref _lastPollErrorLogged) >= 30_000 || _lastPollErrorLogged == 0)
+                    {
+                        Interlocked.Exchange(ref _lastPollErrorLogged, now);
+                        LogPollFailed(_logger, ex, streamKey);
+                    }
                     await Task.Delay(100, cts.Token);
                 }
             }
@@ -224,20 +239,24 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         var jsonValue = entry.Values.FirstOrDefault(v => v.Name == "envelope").Value;
         if (jsonValue.IsNull)
         {
-            await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+            await DeadLetterUnreadableAsync(entry, null, "the entry has no envelope field", streamKey, groupName, consumerName);
             return;
         }
 
-        DomainEventEnvelope<T>? envelope = null;
+        DomainEventEnvelope<T>? envelope;
         try
         {
             envelope = JsonSerializer.Deserialize<DomainEventEnvelope<T>>((string)jsonValue!, _jsonOptions);
         }
-        catch { }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            await DeadLetterUnreadableAsync(entry, (string)jsonValue!, $"the envelope could not be read: {ex.GetType().Name}", streamKey, groupName, consumerName);
+            return;
+        }
 
         if (envelope == null)
         {
-            await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+            await DeadLetterUnreadableAsync(entry, (string)jsonValue!, "the envelope is empty", streamKey, groupName, consumerName);
             return;
         }
 
@@ -251,10 +270,31 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         {
             throw;
         }
-        catch
+        catch (Exception ex)
         {
+            LogHandlerFailed(_logger, ex, streamKey, entry.Id.ToString(), deliveryCount, _maxDeliveryAttempts);
             await FailAsync(entry, deliveryCount, (string)jsonValue!, streamKey, groupName, consumerName);
         }
+    }
+
+    /// <summary>
+    /// An entry that cannot be turned into an envelope can never be handled, so retrying is pointless. It is copied, as it is, to the
+    /// dead-letter stream with the reason, reported, and acknowledged: nothing is dropped without a trace.
+    /// </summary>
+    private async Task DeadLetterUnreadableAsync(
+        StreamEntry entry, string? envelopeJson, string reason, string streamKey, string groupName, string? consumerName)
+    {
+        var fields = new List<NameValueEntry>
+        {
+            new("envelope", envelopeJson ?? ""),
+            new("failedAt", DateTimeOffset.UtcNow.ToString("O")),
+            new("attempts", "1"),
+            new("reason", reason),
+        };
+        if (!string.IsNullOrWhiteSpace(consumerName)) fields.Add(new("consumer", consumerName));
+        await _database.StreamAddAsync($"{streamKey}:dead-letter", fields.ToArray());
+        await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+        LogUnreadable(_logger, streamKey, entry.Id.ToString(), reason);
     }
 
     /// <summary>A failed delivery stays pending; at the maximum number of deliveries it is copied to the dead-letter stream and acknowledged.</summary>
@@ -274,8 +314,24 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
             await _database.StreamAddAsync(deadLetterKey, fields.ToArray());
 
             await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id);
+            LogDeadLettered(_logger, streamKey, entry.Id.ToString(), deliveryCount);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Event stream {Stream}: reading failed; retrying (further failures are not logged for 30 seconds)")]
+    private static partial void LogPollFailed(ILogger logger, Exception exception, string stream);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A handler failed on {Stream} entry {EntryId} (delivery {Delivery} of {Max}); it stays pending and is delivered again")]
+    private static partial void LogHandlerFailed(ILogger logger, Exception exception, string stream, string entryId, long delivery, int max);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A batch handler failed on {Stream} for {Count} events; each stays pending and is delivered again")]
+    private static partial void LogBatchHandlerFailed(ILogger logger, Exception exception, string stream, int count);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Stream} entry {EntryId} failed {Attempts} deliveries and was moved to the dead-letter stream")]
+    private static partial void LogDeadLettered(ILogger logger, string stream, string entryId, long attempts);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Stream} entry {EntryId} cannot be read ({Reason}) and was moved to the dead-letter stream")]
+    private static partial void LogUnreadable(ILogger logger, string stream, string entryId, string reason);
 
     /// <summary>
     /// Runs the batch handler once for the entries of one poll. Entries whose event id the handler returns (or all of them, if it
@@ -291,13 +347,21 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         {
             var jsonValue = entry.Values.FirstOrDefault(v => v.Name == "envelope").Value;
             DomainEventEnvelope<T>? envelope = null;
+            var reason = "the entry has no envelope field";
             if (!jsonValue.IsNull)
             {
-                try { envelope = JsonSerializer.Deserialize<DomainEventEnvelope<T>>((string)jsonValue!, _jsonOptions); }
-                catch { }
+                reason = "the envelope is empty";
+                try
+                {
+                    envelope = JsonSerializer.Deserialize<DomainEventEnvelope<T>>((string)jsonValue!, _jsonOptions);
+                }
+                catch (Exception ex) when (ex is JsonException or NotSupportedException)
+                {
+                    reason = $"the envelope could not be read: {ex.GetType().Name}";
+                }
             }
 
-            if (envelope == null) await _database.StreamAcknowledgeAsync(streamKey, groupName, entry.Id); // unreadable: nothing to retry
+            if (envelope == null) await DeadLetterUnreadableAsync(entry, jsonValue.IsNull ? null : (string)jsonValue!, reason, streamKey, groupName, consumerName); // unreadable: nothing to retry
             else parsed.Add((entry, count, (string)jsonValue!, envelope));
         }
         if (parsed.Count == 0) return;
@@ -313,8 +377,9 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
         {
             throw;
         }
-        catch
+        catch (Exception ex)
         {
+            LogBatchHandlerFailed(_logger, ex, streamKey, parsed.Count);
             failedIds = parsed.Select(p => p.Envelope.EventId).ToList();
         }
 
@@ -331,7 +396,8 @@ public class RedisStreamsEventTransport : IEventPublisher, IEventSubscriber, IDi
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        foreach (var cts in _ctsList)
+        // Safe to call twice: the host's container disposes the transport at shutdown, and a test or caller may have done so already.
+        while (_ctsList.TryTake(out var cts))
         {
             cts.Cancel();
             cts.Dispose();

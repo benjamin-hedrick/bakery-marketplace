@@ -62,31 +62,7 @@ builder.Services.AddSingleton<VendorOrderReader>();
 
 // Events (ADR-0003, WI-ORD-005). The backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory" (tests and throwaway runs).
 // There is no default, because silently falling back to in-memory would drop every order event while looking healthy.
-var eventsBackend = builder.Configuration["Events:Backend"];
-if (string.Equals(eventsBackend, "redis", StringComparison.OrdinalIgnoreCase))
-{
-    var redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
-    var transport = new RedisStreamsEventTransport(
-        redis, maxStreamLength: builder.Configuration.GetValue<int?>("Events:MaxStreamLength"), serviceName: "ordering-service");
-    builder.Services.AddSingleton<IEventPublisher>(transport);
-    builder.Services.AddSingleton<IEventSubscriber>(transport);
-    var broadcast = new RedisBroadcast(redis); // Pub/Sub on the same connection, for the live vendor streams (ADR-0021)
-    builder.Services.AddSingleton<IBroadcastPublisher>(broadcast);
-    builder.Services.AddSingleton<IBroadcastSubscriber>(broadcast);
-}
-else if (string.Equals(eventsBackend, "inmemory", StringComparison.OrdinalIgnoreCase))
-{
-    var transport = new InMemoryEventTransport();
-    builder.Services.AddSingleton<IEventPublisher>(transport);
-    builder.Services.AddSingleton<IEventSubscriber>(transport);
-    var broadcast = new InMemoryBroadcast();
-    builder.Services.AddSingleton<IBroadcastPublisher>(broadcast);
-    builder.Services.AddSingleton<IBroadcastSubscriber>(broadcast);
-}
-else
-{
-    throw new InvalidOperationException("Events:Backend must be set to 'redis' or 'inmemory'. There is no default, so events are never lost silently.");
-}
+builder.Services.AddBakeryEvents(builder.Configuration, "ordering-service", withBroadcast: true); // withBroadcast: Pub/Sub for the live vendor streams (ADR-0021)
 builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection("Outbox"));
 builder.Services.AddSingleton<OutboxSignal>();
 builder.Services.AddSingleton<OrderEventPublisher>();
