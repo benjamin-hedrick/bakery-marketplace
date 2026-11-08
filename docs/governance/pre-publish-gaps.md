@@ -65,6 +65,27 @@ Method: every tracked Markdown file (343 of 343) was read in full against the co
 | `docs/method/ai-collaboration.md` | The usage table lacks the long session of this pass; the lead supplies the figures | Record them in a new `ai-usage-` file |
 | `docs/management/portfolio-slice/` | The goals table in `00` and the rows in `02`, `03`, `04`, `05` keep the October wording under a dated update | Accept, or rewrite when a Phase 4 plan is written |
 
+## Code and comment review (round 1, 2026-11-08)
+
+Aim: find what detracts from the repository as a portfolio. **Coverage, stated plainly:** pattern scans and a build with analyzers ran over all 695 non-Markdown files; the following were read in full: `services/ordering-service/src/Program.cs`, `Checkout/CheckoutService.cs`, `Domain/Order.cs` and the first 200 lines of `services/graphql-bff/src/resolvers.ts` (about 1,000 of roughly 27,000 production lines). The rest of the production code, the tests (about 37,000 lines), the scripts and the Terraform have not been read line by line yet.
+
+**What is clean:** no `TODO`, `FIXME` or `HACK` markers; no commented-out code; no junk words; no personal paths or e-mail addresses in code (the name appears only in `LICENSE`); no skipped or focused tests; two `console.log` calls, both the BFF's structured logger; suppressions are few; no reference to retired technology or moved documents except the line in `Order.cs` below. The code that was read is of good quality: small functions, explicit invariants, comments that say why.
+
+| # | Finding | Why it matters | Fix | Needs approval |
+|---|---|---|---|---|
+| 1 | The build is not warning-free: 45 analyzer warnings (`CA1001` 16, `CA1725` 10, `CA1305` 6, `CA1310` 3, `CA1822` 3, `CA1068` 3, `CA1000` 2, `CA1816`, `CA1869`), 20 of them in production code | A reviewer who builds it sees warnings first | Fix or configure each rule deliberately in `.editorconfig`; `CA1725` is a rename of `ct` to `cancellationToken` in 10 hosted-service methods | Refactor; `ClientCredentialsTokenProvider` (`CA1001`) is auth code |
+| 2 | 22 `[LoggerMessage]` methods carry names mangled by an automatic fix, for example `LogOrderPlacedLineSCents`, `LogStockReservationForCouldNotBe` (the same name in two classes), `LogTheContactCacheCouldNotBe2`, `LogTheLiveUpdateOfOrderCould` | The most visible blemish in otherwise clean code | Rename each to what it logs (`LogOrderPlaced`, `LogStockReleaseFailed`); mechanical | Refactor |
+| 3 | Every service (4) has the same copy-pasted CORS block with `AllowCredentials` and a default origin `http://localhost:5173` (the abandoned Vite app); browsers never call the services (the BFF and the web servers do) | Dead and security-smelling configuration, repeated four times | Remove it, or move it to a shared extension that is off unless configured | Security-adjacent |
+| 4 | The Android app ships the stock Expo icon, splash and favicon; its `package.json` has no description and version `1.0.0` | Looks unfinished in the first screenshot | A simple bakery icon and splash; a description | No |
+| 5 | `apps/web-customer/package.json` still says "WI-PORT-001 proof: ..."; `apps/web-queue-display` says "WI-QUE-002: ..." | Stale, reads as a spike | One-line descriptions of what each app is | No |
+| 6 | `Order.cs` doc comment says the aggregate "is in-memory only: persistence is ORD-006, publishing is ORD-005" (both built) | A stale comment on the central class (lesson L-30) | Reword | No |
+| 7 | Ten comments say "the lead's decision", "chosen by the lead" (`orderPoller.ts`, `stockCheck.ts`, `oidc.ts`, `main.tf` ×3, `TagAssignment.cs`, `dependency-audit.mjs`, `zap-scan.mjs`, `flow-control.mjs`, the session test) | Process wording; "the lead" is ambiguous to a stranger | Say "decision, ADR-00xx" or give the reason | No |
+| 8 | Five `eslint-disable react-hooks/exhaustive-deps` (`allergens.ts` ×2, `useCheckoutAllergens.ts` ×2, `usePersonalization.ts`) | Reviewers look at these first | A one-line reason on each, or restructure | No |
+| 9 | In the BFF `const customerCall = vendorCall;` | A customer path reads as a vendor call | Rename to a neutral `roleCall` | No |
+| 10 | Eight `.gitkeep` files sit beside real files (`apps/*/src`, `services/*/src`, `services/*/tests`, `infra/environments`) | Clutter | Delete | No |
+
+**Next rounds, in order:** (a) the rest of the service and tool source, in full; (b) the BFF and the two web apps and `packages/`; (c) the Android app; (d) Terraform, pipelines and scripts; (e) the tests, for naming and for assertions that cannot fail.
+
 ## Scans of 2026-11-08 (secrets and sanitization)
 
 Full-history secret scan (gitleaks, 426 commits): no findings. Sanitization: local paths in five evidence and history records fixed (the two raw NuGet outputs, the test-reliability findings, the review resume page and the peer copy-in register); the author e-mail and name on every commit and in `LICENSE` are accepted by the lead. `SECURITY.md` already existed and is kept as written; it is now linked from the README. No employer, client or colleague names were searched for (none were given); add them to a grep if any exist.
