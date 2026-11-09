@@ -207,13 +207,13 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-166 numbered items in `docs/governance/open-items-register.md` (highest number 166).
+167 numbered items in `docs/governance/open-items-register.md` (highest number 167).
 
 | Type | Count |
 |---|---|
 | Gap | 41 |
 | Deferred scope | 23 |
-| Limitation | 20 |
+| Limitation | 21 |
 | Decision | 18 |
 | Verification gap | 17 |
 | Process | 15 |
@@ -226,7 +226,7 @@ Accepted: 22 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 16 |
-| Resolved | 64 |
+| Resolved | 65 |
 | Accepted | 9 |
 | Tracking | 13 |
 | Open | 64 |
