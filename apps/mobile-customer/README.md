@@ -6,7 +6,9 @@ The customer's Android app: Expo (React Native, TypeScript), a thin client of th
 What it does: sign in (system browser, PKCE), the menu with stock, an item with its options, the order (quantities, remove), checkout (pickup time,
 idempotency key; a declined or failed payment keeps the order), and the status of the order just placed. It shares the cart, checkout input and
 wording with the web app through `packages/customer-core`; it does not use Relay (plain `fetch` to the BFF, `src/api.ts`).
-The allergen acknowledgement at the cart is **not** built (the BFF does not require it to place an order; follow-up, see the register).
+Allergens (`WI-MOB-002`): the cart says what each item and chosen option contains, checkout warns about the customer's own saved allergies and asks for an
+acknowledgement of a serious one, and the customer chooses which of their allergies to tell the bakery. The menu and the item screen do not show allergens yet
+(they first appear in the cart); see the open findings in `docs/governance/pre-publish-gaps.md`.
 
 Tokens: the access token lives in memory; the refresh token lives in the Android Keystore (`expo-secure-store`) and is deleted on sign-out or when
 the issuer refuses it (`src/auth/session.ts`). A network failure never deletes it. The cart is not kept after sign-out or a restart.

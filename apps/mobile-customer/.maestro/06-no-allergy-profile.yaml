@@ -12,7 +12,7 @@ name: With no allergy profile the order is not checked, and the app says so
     id: listing-Country Sourdough
 - tapOn:
     id: add-to-order
-- assertVisible: ".*Contains gluten.*"
+- assertVisible: '.*Contains gluten.*'
 - tapOn:
     id: back
 - tapOn:
@@ -27,7 +27,7 @@ name: With no allergy profile the order is not checked, and the app says so
     id: to-checkout
 - assertVisible:
     id: no-profile
-- assertVisible: ".*not checked against your allergies.*"
+- assertVisible: '.*not checked against your allergies.*'
 - assertNotVisible:
     id: conflict-0
 - assertNotVisible:

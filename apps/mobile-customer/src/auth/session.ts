@@ -44,7 +44,6 @@ export const useAuthState = (): AuthState =>
     () => state,
   );
 
-/** The issuer's answer: tokens, 'refused' (it said no) or 'unreachable' (no answer, so nothing is learned about the token). */
 /** The signed-in customer's name for display, or null when the token carries none or nobody is signed in. */
 export const useSignedInName = (): string | null =>
   useSyncExternalStore(
@@ -56,6 +55,7 @@ export const useSignedInName = (): string | null =>
     () => displayName,
   );
 
+/** The issuer's answer: tokens, 'refused' (it said no) or 'unreachable' (no answer, so nothing is learned about the token). */
 async function postToken(body: Record<string, string>): Promise<Tokens | 'refused' | 'unreachable'> {
   try {
     const res = await fetch(`${ISSUER}/token`, {

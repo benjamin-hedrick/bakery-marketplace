@@ -30,7 +30,7 @@ name: Add to order, check out, see the order status
 - assertVisible:
     id: order-headline
 - assertVisible: Order received
-- assertVisible: "Status: PLACED"
+- assertVisible: 'Status: PLACED'
 - assertVisible: 2 × Country Sourdough
 - assertVisible: Total $16.00
 # The order is no longer in the cart.

@@ -22,15 +22,15 @@ name: An allergy warning must be acknowledged before the order is placed
 # The cart, for everyone: what the item and the chosen option contain.
 - assertVisible:
     id: line-allergens-0
-- assertVisible: ".*Contains.*tree nuts.*"
-- assertVisible: ".*Extra almonds contains tree nuts.*"
+- assertVisible: '.*Contains.*tree nuts.*'
+- assertVisible: '.*Extra almonds contains tree nuts.*'
 - tapOn:
     id: to-checkout
 # Checkout with a profile: a warning for the item and one for the option, the reminder, the box with its hint, and what will be told to the bakery.
 - assertVisible:
     id: conflict-0
-- assertVisible: ".*Allergy warning.*Almond Croissant contains tree nuts, which you listed as an allergy.*"
-- assertVisible: ".*Allergy warning.*Extra almonds contains tree nuts.*"
+- assertVisible: '.*Allergy warning.*Almond Croissant contains tree nuts, which you listed as an allergy.*'
+- assertVisible: '.*Allergy warning.*Extra almonds contains tree nuts.*'
 - assertVisible:
     id: personal-reminder
 - assertVisible:
