@@ -38,7 +38,7 @@ internal static class SeedProgram
         }
 
         var database = config["Cosmos:Database"] ?? "bakery";
-        var cosmos = new CosmosClient(cosmosConnection, new CosmosClientOptions { ConnectionMode = ConnectionMode.Gateway, LimitToEndpoint = true });
+        var cosmos = CosmosClientFactory.Create(cosmosConnection, gatewayMode: true); // the emulator only works over the gateway
         var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId") { DefaultTimeToLive = -1 });
         // The same container, with the same partition key, that catalog-service creates for customers' saved allergen profiles (its Program.cs).

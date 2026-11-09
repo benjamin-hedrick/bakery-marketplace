@@ -28,17 +28,7 @@ public sealed class VendorOrderReader(IRepository<VendorOrderDocument> documents
     }
 
     /// <summary>A cursor is the update time and id of the last item of the previous page, <c>{milliseconds}:{id}</c>.</summary>
-    public static bool IsValidCursor(string? after) => after is null || TryParseCursor(after, out _, out _);
-
-    private static bool TryParseCursor(string after, out long milliseconds, out string id)
-    {
-        milliseconds = 0;
-        id = "";
-        var colon = after.IndexOf(':');
-        if (colon < 1 || colon == after.Length - 1 || after.Length > 200) return false;
-        id = after[(colon + 1)..];
-        return long.TryParse(after.AsSpan(0, colon), out milliseconds);
-    }
+    public static bool IsValidCursor(string? after) => PageCursor.IsValid(after);
 
     /// <summary>The vendor's orders in the given statuses, the most recently changed first, one page after the cursor.</summary>
     public async Task<(IReadOnlyList<VendorOrderDocument> Items, string? NextCursor)> ListAsync(
@@ -51,7 +41,7 @@ public sealed class VendorOrderReader(IRepository<VendorOrderDocument> documents
         }
 
         var ordered = all.OrderByDescending(d => d.UpdatedAtMs).ThenBy(d => d.Id, StringComparer.Ordinal).AsEnumerable();
-        if (after is not null && TryParseCursor(after, out var ms, out var id))
+        if (after is not null && PageCursor.TryParse(after, out var ms, out var id))
         {
             // Strictly after the cursor in the list's own order: older, or the same instant with a later id.
             ordered = ordered.Where(d => d.UpdatedAtMs < ms || (d.UpdatedAtMs == ms && string.CompareOrdinal(d.Id, id) > 0));
@@ -59,6 +49,6 @@ public sealed class VendorOrderReader(IRepository<VendorOrderDocument> documents
 
         var page = ordered.Take(limit + 1).ToList();
         var items = page.Take(limit).ToList();
-        return (items, page.Count > limit ? $"{items[^1].UpdatedAtMs}:{items[^1].Id}" : null);
+        return (items, page.Count > limit ? PageCursor.Format(items[^1].UpdatedAtMs, items[^1].Id) : null);
     }
 }

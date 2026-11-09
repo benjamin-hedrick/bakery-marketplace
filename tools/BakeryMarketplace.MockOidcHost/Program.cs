@@ -59,5 +59,5 @@ internal static partial class LoggerMessages
     internal static partial void LogMockClientNotRegistered(ILogger logger, string clientId, int min);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Mock client registered: {Client}")]
-    internal static partial void LogMockClientRegistered(ILogger logger, BakeryMarketplace.Auth.MockClient client);
+    internal static partial void LogMockClientRegistered(ILogger logger, MockClient client);
 }

@@ -7,12 +7,9 @@ namespace BakeryMarketplace.Caching;
 /// Managed Redis implementation of <see cref="ICacheProvider"/> using StackExchange.Redis.
 /// See ADR-0002, ADR-0010, and WI-CACHE-002.
 ///
-/// IMPORTANT: this class must let connectivity/timeout exceptions propagate from every
-/// method (Get/Set/Delete/Exists) rather than swallowing them. ResilientCacheProvider
-/// (WI-CACHE-003) depends on the primary provider throwing on failure so its circuit
-/// breaker can detect the outage and route to LocalCacheProvider. Silently returning a
-/// "miss" on a connection failure would defeat that fallback — see fix note under
-/// GetAsync below (2026-09-16 review of Delegation Packet 02).
+/// IMPORTANT: this class must let connectivity and timeout exceptions propagate from every method (Get, Set, Delete, Exists)
+/// rather than swallowing them. ResilientCacheProvider (WI-CACHE-003) depends on the primary provider throwing on failure so its
+/// circuit breaker can see the outage and route to LocalCacheProvider; returning a "miss" on a connection failure would hide it.
 /// </summary>
 public class RedisCacheProvider : ICacheProvider
 {
@@ -36,16 +33,9 @@ public class RedisCacheProvider : ICacheProvider
     {
         if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", nameof(key));
 
-        // NOTE: Redis I/O (StringGetAsync) is intentionally NOT wrapped in a try/catch.
-        // A connection failure, timeout, or other RedisException must propagate to the
-        // caller (ResilientCacheProvider) so its circuit breaker trips and falls back
-        // to LocalCacheProvider, exactly as it already does for SetAsync/DeleteAsync/
-        // ExistsAsync below. The previous version of this method caught all exceptions
-        // here and returned CacheResult.Miss<T>(), which made a real Redis outage
-        // indistinguishable from a normal cache miss: the breaker never tripped, no
-        // fallback warning was ever logged, and reads silently stopped being served
-        // from cache at all instead of failing over. Only genuine "this value isn't a
-        // cache miss, it's just not deserializable" cases are handled locally, below.
+        // Redis I/O is intentionally not wrapped in a try/catch: a connection failure, timeout or other RedisException must reach
+        // ResilientCacheProvider so its circuit breaker trips and reads fail over to LocalCacheProvider. Caught here, a real outage
+        // would look like a normal cache miss. Only a stored value that cannot be read as T is handled locally, below.
         RedisValue value = await _database.StringGetAsync(key);
         if (!value.HasValue || value.IsNull)
         {

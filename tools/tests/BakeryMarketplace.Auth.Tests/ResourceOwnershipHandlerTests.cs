@@ -11,16 +11,19 @@ namespace BakeryMarketplace.Auth.Tests;
 /// </summary>
 public class ResourceOwnershipHandlerTests
 {
+    /// <summary>A resource owned by one subject, standing for any service's own type (the catalog's listing, for one).</summary>
+    private sealed record TestResource(string ResourceOwnerId) : IResourceWithOwnerId;
+
     private readonly TrackingOwnershipChecker _checker = new();
     private readonly ResourceOwnershipRequirement _requirement = new("Vendor");
-    private readonly ListingResource _resource = new("listing-1", "vendor-owner-123");
+    private readonly TestResource _resource = new("vendor-owner-123");
 
     [Fact]
     public async Task AuthorizedOwner_Succeeds()
     {
         // Arrange
         var user = CreateUser(role: "Vendor", sub: "vendor-owner-123");
-        var handler = new ListingOwnershipHandler(_checker);
+        var handler = new ResourceOwnershipHandler<TestResource>(_checker);
         var context = new AuthorizationHandlerContext(new[] { _requirement }, user, _resource);
 
         // Act
@@ -36,7 +39,7 @@ public class ResourceOwnershipHandlerTests
     {
         // Arrange
         var user = CreateUser(role: "Vendor", sub: "different-vendor-999");
-        var handler = new ListingOwnershipHandler(_checker);
+        var handler = new ResourceOwnershipHandler<TestResource>(_checker);
         var context = new AuthorizationHandlerContext(new[] { _requirement }, user, _resource);
 
         // Act
@@ -52,7 +55,7 @@ public class ResourceOwnershipHandlerTests
     {
         // Arrange — user has matching sub but lacks Vendor role claim
         var user = CreateUser(role: "Customer", sub: "vendor-owner-123");
-        var handler = new ListingOwnershipHandler(_checker);
+        var handler = new ResourceOwnershipHandler<TestResource>(_checker);
         var context = new AuthorizationHandlerContext(new[] { _requirement }, user, _resource);
 
         // Act
