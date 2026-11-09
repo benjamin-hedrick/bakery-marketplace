@@ -11,7 +11,8 @@
 appId: com.bakerymarketplace.mobile
 ---
 - evalScript: "${output.user = (typeof USER_NAME === 'undefined') ? 'Alice Customer' : USER_NAME}"
-- evalScript: "${output.y = Math.round((19.3 + 2.22 * ((typeof USER_ROW === 'undefined') ? 0 : Number(USER_ROW))) * 10) / 10}"
+# Maestro accepts only whole-number percentages in a point (a value such as 19.3 is refused), so the position is rounded; a button is about 2% tall.
+- evalScript: "${output.y = Math.round(19.3 + 2.22 * ((typeof USER_ROW === 'undefined') ? 0 : Number(USER_ROW)))}"
 - tapOn:
     id: login-button
 - runFlow:
