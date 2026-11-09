@@ -19,8 +19,7 @@ public abstract class RepositoryContractTests<T> where T : class
     /// </summary>
     protected abstract System.Linq.Expressions.Expression<Func<T, bool>> IdStartsWith(string prefix);
 
-    [Fact]
-    public async Task SaveThenGet_ReturnsEntity()
+    protected async Task Run_SaveThenGet_ReturnsEntity()
     {
         // Arrange
         var repo = CreateRepository();
@@ -35,8 +34,7 @@ public abstract class RepositoryContractTests<T> where T : class
         Assert.Equal(GetId(entity), GetId(result!));
     }
 
-    [Fact]
-    public async Task GetMissingId_ReturnsNull_NotException()
+    protected async Task Run_GetMissingId_ReturnsNull_NotException()
     {
         // Arrange
         var repo = CreateRepository();
@@ -48,8 +46,7 @@ public abstract class RepositoryContractTests<T> where T : class
         Assert.Null(result);
     }
 
-    [Fact]
-    public async Task DeleteThenGet_ReturnsNull()
+    protected async Task Run_DeleteThenGet_ReturnsNull()
     {
         // Arrange
         var repo = CreateRepository();
@@ -64,8 +61,7 @@ public abstract class RepositoryContractTests<T> where T : class
         Assert.Null(result);
     }
 
-    [Fact]
-    public async Task Query_ReturnsOnlyMatchingEntitiesInPartition()
+    protected async Task Run_Query_ReturnsOnlyMatchingEntitiesInPartition()
     {
         // Arrange
         var repo = CreateRepository();

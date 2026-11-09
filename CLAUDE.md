@@ -22,7 +22,7 @@ dotnet test services/ordering-service/tests/OrderingService.Tests # some tests s
 dotnet test services/notification-service/tests/NotificationService.Tests # one test needs Redis (REDIS_CONNECTION_STRING)
 ```
 
-The framework is xUnit. The Redis and Cosmos adapter tests read `REDIS_CONNECTION_STRING` (default `localhost:6379`), and some fall back to in-memory fakes when Docker dependencies aren't running (reconciliation finding A8). A green run without Docker doesn't prove the real adapters work.
+The framework is xUnit. The Redis and Cosmos adapter tests read `REDIS_CONNECTION_STRING` (default `localhost:6379`), and the Redis ones can fall back to in-memory fakes when Docker dependencies aren't running (reconciliation finding A8; the Cosmos ones skip instead, register item 31). A green run without Docker doesn't prove the real adapters work.
 
 Frontend proof (`apps/web-customer`, Node 25.9.0 was used; exact LTS pin is still open). Run from that directory:
 
@@ -75,7 +75,7 @@ node scripts/docs/traceability.mjs          # regenerate docs/product/backlog/TR
 docker compose down                         # resets all state
 ```
 
-Run services on the host against these ports. The Cosmos emulator needs Cosmos SDK 3.63.x+ (older versions fail on whole-document queries), and the `CosmosRepositoryTests` fall back to an in-memory fake without a word when no emulator is reachable (open item #31; they pass against the real emulator since 2026-11-09).
+Run services on the host against these ports. The Cosmos emulator needs Cosmos SDK 3.63.x+ (older versions fail on whole-document queries), and the `CosmosRepositoryTests` are skipped without `COSMOS_CONNECTION_STRING` and fail when it is set and the emulator cannot be reached (they no longer fall back to a fake; open item #31 resolved 2026-11-09, 4 of 4 pass against the real emulator).
 
 Docs site: `mkdocs.yml` (Material theme, `docs_dir: docs`). mkdocs isn't installed here, so the nav is unbuilt.
 

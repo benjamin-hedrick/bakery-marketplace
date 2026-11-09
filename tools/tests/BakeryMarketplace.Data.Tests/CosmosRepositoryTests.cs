@@ -4,76 +4,59 @@ using Microsoft.Azure.Cosmos;
 namespace BakeryMarketplace.Data.Tests;
 
 /// <summary>
-/// Proves that <see cref="CosmosRepository{T}"/> passes the full <see cref="RepositoryContractTests{T}"/> suite.
-/// See WI-DATA-002.
+/// Proves that <see cref="CosmosRepository{T}"/> passes the full <see cref="RepositoryContractTests{T}"/> suite on the real Cosmos SDK. See WI-DATA-002.
+/// Without COSMOS_CONNECTION_STRING the tests are reported as skipped, never faked and never passed (register item 31); with it set and the emulator
+/// unreachable they fail, with the connection error, because a run that asked for Cosmos must not quietly test something else.
+/// For the local vNext emulator: <c>AccountEndpoint=http://localhost:8081/;AccountKey=...</c>.
 /// </summary>
 public sealed class CosmosRepositoryTests : RepositoryContractTests<TestEntity>, IAsyncLifetime
 {
-    private static readonly string ConnectionString =
-        Environment.GetEnvironmentVariable("COSMOS_CONNECTION_STRING")
-        ?? "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
-
     private CosmosClient? _client;
     private Container? _container;
-    private bool _isEmulatorAvailable;
 
     public async Task InitializeAsync()
     {
-        try
+        if (string.IsNullOrWhiteSpace(EmulatorFactAttribute.ConnectionString)) return;
+        var options = new CosmosClientOptions
         {
-            var options = new CosmosClientOptions
+            HttpClientFactory = () => new HttpClient(new HttpClientHandler
             {
-                HttpClientFactory = () => new HttpClient(new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-                }),
-                ConnectionMode = ConnectionMode.Gateway,
-                RequestTimeout = TimeSpan.FromSeconds(3)
-            };
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+            }),
+            ConnectionMode = ConnectionMode.Gateway,
+            RequestTimeout = TimeSpan.FromSeconds(3)
+        };
 
-            _client = new CosmosClient(ConnectionString, options);
-            var dbResponse = await _client.CreateDatabaseIfNotExistsAsync("TestDatabase");
-            var db = dbResponse.Database;
-            var containerResponse = await db.CreateContainerIfNotExistsAsync(
-                new ContainerProperties("TestContainer", "/PartitionKey"));
-            _container = containerResponse.Container;
-
-            _isEmulatorAvailable = true;
-        }
-        catch
-        {
-            _isEmulatorAvailable = false;
-        }
+        _client = new CosmosClient(EmulatorFactAttribute.ConnectionString, options);
+        var dbResponse = await _client.CreateDatabaseIfNotExistsAsync("TestDatabase");
+        var containerResponse = await dbResponse.Database.CreateContainerIfNotExistsAsync(
+            new ContainerProperties("TestContainer", "/PartitionKey"));
+        _container = containerResponse.Container;
     }
 
     public async Task DisposeAsync()
     {
-        if (_client != null && _isEmulatorAvailable)
+        if (_client == null) return;
+        try
         {
-            try
-            {
-                await _client.GetDatabase("TestDatabase").DeleteAsync();
-            }
-            catch { }
-            _client.Dispose();
+            await _client.GetDatabase("TestDatabase").DeleteAsync();
         }
+        catch { /* best effort cleanup */ }
+        _client.Dispose();
     }
 
-    protected override IRepository<TestEntity> CreateRepository()
-    {
-        if (!_isEmulatorAvailable || _container == null)
-        {
-            // Fallback for environment where local emulator is not running
-            return new FakeRepository<TestEntity>(e => e.Id);
-        }
-
-        return new CosmosRepository<TestEntity>(_container);
-    }
+    protected override IRepository<TestEntity> CreateRepository() =>
+        new CosmosRepository<TestEntity>(_container ?? throw new InvalidOperationException("Cosmos emulator not configured."));
 
     protected override TestEntity CreateEntity(string id, string partitionKey) =>
         new TestEntity(id, partitionKey, $"Entity-{id}");
 
     protected override string GetId(TestEntity entity) => entity.Id;
+
+    [EmulatorFact] public Task SaveThenGet_ReturnsEntity() => Run_SaveThenGet_ReturnsEntity();
+    [EmulatorFact] public Task GetMissingId_ReturnsNull_NotException() => Run_GetMissingId_ReturnsNull_NotException();
+    [EmulatorFact] public Task DeleteThenGet_ReturnsNull() => Run_DeleteThenGet_ReturnsNull();
+    [EmulatorFact] public Task Query_ReturnsOnlyMatchingEntitiesInPartition() => Run_Query_ReturnsOnlyMatchingEntitiesInPartition();
 
     protected override System.Linq.Expressions.Expression<Func<TestEntity, bool>> IdStartsWith(string prefix) =>
         e => e.Id.StartsWith(prefix);
