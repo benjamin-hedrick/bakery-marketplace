@@ -26,12 +26,18 @@ export const when = (iso: string) =>
 export const time = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
-/** A short reference a customer can read out: the end of the order's own id (the global id is an opaque string). */
+/**
+ * A short reference a customer can read out: the last six characters of the order's own id, upper case. It is the same rule as the vendor's queue and
+ * the e-mails (ordering's `OrderReference`, notification's `Reference`), so what the customer reads out is what the bakery sees on its screen. The global
+ * id is an opaque string: the service id is taken from inside it.
+ */
 export function referenceOf(globalId: string): string {
+  let serviceId: string;
   try {
     const text = atob(globalId);
-    return text.slice(text.indexOf(':') + 1).slice(-8);
+    serviceId = text.slice(text.indexOf(':') + 1);
   } catch {
-    return globalId.slice(-8);
+    serviceId = globalId;
   }
+  return (serviceId.length <= 6 ? serviceId : serviceId.slice(-6)).toUpperCase();
 }

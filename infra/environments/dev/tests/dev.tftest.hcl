@@ -92,6 +92,11 @@ run "the_cosmos_containers_match_what_the_services_expect" {
   }
 
   assert {
+    condition     = azurerm_cosmosdb_sql_container.payment_methods.name == "payment-methods" && azurerm_cosmosdb_sql_container.payment_methods.partition_key_paths[0] == "/customerId" && azurerm_cosmosdb_sql_container.payment_methods.default_ttl == null
+    error_message = "The saved payment methods must be in their own container, payment-methods, partitioned by /customerId, with no expiry (WI-ORD-010): EnsureCreated is off in the cloud, so a missing container breaks checkout."
+  }
+
+  assert {
     condition     = azurerm_cosmosdb_sql_container.catalog.default_ttl == -1 && azurerm_cosmosdb_sql_container.orders.default_ttl == null
     error_message = "The catalog container needs default_ttl = -1 so released stock reservations expire (register item 66); orders must never expire."
   }
@@ -127,6 +132,11 @@ run "the_web_app_keeps_its_sessions_in_an_internal_noeviction_redis_with_its_key
   assert {
     condition     = local.apps["web"].env["SESSION_REDIS_URL"] == "redis://redis-sessions:6381" && contains(keys(local.apps["web"].env), "APP_ORIGIN")
     error_message = "The web app needs its own origin and the cache Redis address to run the login on its server."
+  }
+
+  assert {
+    condition     = local.apps["web"].env["TRUSTED_PROXY_HOPS"] == "1"
+    error_message = "The web app sits behind the Container Apps ingress, one proxy: TRUSTED_PROXY_HOPS must be 1, or every visitor shares the ingress's address and one rate limit (WI-RATE-001)."
   }
 
   assert {

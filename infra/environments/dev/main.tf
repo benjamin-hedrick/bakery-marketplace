@@ -93,6 +93,9 @@ locals {
         # the key below). In mock mode the server reaches the issuer at the same public address the browser uses.
         APP_ORIGIN        = local.web_url
         SESSION_REDIS_URL = "redis://redis-sessions:6381"
+        # The Container Apps ingress is one proxy in front of the app and appends the visitor's address to X-Forwarded-For. With 0 the rate limits would
+        # count every visitor by the ingress's address and share one login limit between all of them (docs/operations/local-dev.md, TRUSTED_PROXY_HOPS).
+        TRUSTED_PROXY_HOPS = "1"
       }
       secrets = { "session-encryption-key" = "SESSION_ENCRYPTION_KEY" }
     }
@@ -162,7 +165,7 @@ resource "azurerm_key_vault_secret" "placeholder" {
   }
 }
 
-# ---- Cosmos DB: the account, one database, the two containers the services expect (DATA-004) -------------------------------------------
+# ---- Cosmos DB: the account, one database, the containers the services expect (DATA-004) -------------------------------------------
 resource "azurerm_cosmosdb_account" "cosmos" {
   name                = var.cosmos_account_name
   resource_group_name = local.rg
@@ -226,6 +229,18 @@ resource "azurerm_cosmosdb_sql_container" "vendor_orders" {
 # shared with listings or orders.
 resource "azurerm_cosmosdb_sql_container" "preferences" {
   name                  = "preferences"
+  resource_group_name   = local.rg
+  account_name          = azurerm_cosmosdb_account.cosmos.name
+  database_name         = azurerm_cosmosdb_sql_database.bakery.name
+  partition_key_paths   = ["/customerId"]
+  partition_key_version = 2
+}
+
+# Customers' saved payment methods (WI-ORD-010): ordering owns them and reads them at checkout, one partition per customer. The documents hold an
+# opaque token (ADR-0005, ADR-0007), so this container is never shared with orders. With Cosmos__EnsureCreated off here, the container must exist
+# before the first checkout.
+resource "azurerm_cosmosdb_sql_container" "payment_methods" {
+  name                  = "payment-methods"
   resource_group_name   = local.rg
   account_name          = azurerm_cosmosdb_account.cosmos.name
   database_name         = azurerm_cosmosdb_sql_database.bakery.name
