@@ -10,7 +10,7 @@ name: Browse to an item's detail
 - assertVisible:
     id: detail-name
 - assertVisible: Country Sourdough
-- assertVisible: "Add seeds.*"
+- assertVisible: 'Add seeds.*'
 - assertVisible: Sliced
 - tapOn:
     id: back

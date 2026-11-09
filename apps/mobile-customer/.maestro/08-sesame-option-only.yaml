@@ -53,7 +53,7 @@ name: An allergy that only an option carries warns only when that option is chos
 # Now the option conflicts: named by the option, serious, so it must be acknowledged.
 - assertVisible:
     id: conflict-0
-- assertVisible: ".*Allergy warning.*Add seeds contains sesame, which you listed as an allergy.*"
+- assertVisible: '.*Allergy warning.*Add seeds contains sesame, which you listed as an allergy.*'
 - assertVisible:
     id: ack-needed
 - assertVisible:

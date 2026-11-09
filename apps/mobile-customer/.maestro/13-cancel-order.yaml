@@ -47,7 +47,7 @@ name: A customer cancels their order from the order screen
 - assertVisible:
     id: cancel-note
 - assertVisible: Your order was cancelled.
-- assertVisible: "Status: CANCELLED"
+- assertVisible: 'Status: CANCELLED'
 # Nothing is left to cancel.
 - assertNotVisible:
     id: cancel-order

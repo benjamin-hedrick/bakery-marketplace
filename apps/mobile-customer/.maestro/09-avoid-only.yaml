@@ -19,8 +19,8 @@ name: A preference to avoid something is shown but needs no acknowledgement
     id: to-checkout
 - assertVisible:
     id: conflict-0
-- assertVisible: ".*You avoid this.*Lemon Loaf contains milk.*which you avoid.*"
-- assertNotVisible: ".*Allergy warning.*"
+- assertVisible: '.*You avoid this.*Lemon Loaf contains milk.*which you avoid.*'
+- assertNotVisible: '.*Allergy warning.*'
 - assertNotVisible:
     id: acknowledge
 - assertNotVisible:

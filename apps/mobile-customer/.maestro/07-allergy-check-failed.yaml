@@ -21,7 +21,7 @@ onFlowComplete:
     id: to-checkout
 - assertVisible:
     id: check-failed
-- assertVisible: ".*We could not check this order against your allergies.*"
+- assertVisible: '.*We could not check this order against your allergies.*'
 - assertNotVisible:
     id: no-profile
 - assertNotVisible:

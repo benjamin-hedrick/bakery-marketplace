@@ -25,10 +25,10 @@ name: With several allergies the customer chooses which are told to the bakery
     id: conflict-0
 - assertVisible:
     id: conflict-3
-- assertVisible: ".*Allergy warning.*Almond Croissant contains milk.*which you listed as an allergy.*"
-- assertVisible: ".*Allergy warning.*Almond Croissant contains tree nuts.*which you listed as an allergy.*"
-- assertVisible: ".*Allergy warning.*Extra almonds contains tree nuts.*"
-- assertVisible: ".*You avoid this.*Almond Croissant contains gluten.*which you avoid.*"
+- assertVisible: '.*Allergy warning.*Almond Croissant contains milk.*which you listed as an allergy.*'
+- assertVisible: '.*Allergy warning.*Almond Croissant contains tree nuts.*which you listed as an allergy.*'
+- assertVisible: '.*Allergy warning.*Extra almonds contains tree nuts.*'
+- assertVisible: '.*You avoid this.*Almond Croissant contains gluten.*which you avoid.*'
 - assertVisible:
     id: ack-needed
 # Both allergies are offered, ticked.
