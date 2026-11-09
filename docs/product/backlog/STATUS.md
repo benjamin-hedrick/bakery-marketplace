@@ -6,13 +6,13 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-111 specs.
+112 specs.
 
 | Status | Count |
 |---|---|
 | Done | 55 |
 | In progress | 5 |
-| In review | 31 |
+| In review | 32 |
 | Built | 1 |
 | Ready | 2 |
 | Proposed | 4 |
@@ -45,7 +45,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PORTFOLIO-SLICE | 6 of 7 | PORT-001, PORT-002, PORT-003, PORT-004, PORT-005, PORT-006, PORT-007 |
 | EPIC-PREFERENCES | 0 of 1 | PREF-001, PREF-002 |
 | EPIC-PRODUCT-STRATEGY | 2 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
-| EPIC-QUALITY-EVIDENCE | 1 of 4 | MOB-003, QA-001, QA-002, QA-003 |
+| EPIC-QUALITY-EVIDENCE | 1 of 5 | CHAOS-001, MOB-003, QA-001, QA-002, QA-003 |
 | EPIC-QUEUE-DISPLAY | 3 of 5 | QUE-001, QUE-002, QUE-003, QUE-004, QUE-005 |
 | EPIC-RATE-LIMITING | 0 of 1 | RATE-001 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
@@ -75,11 +75,12 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CACHE-001](WI-CACHE-001.md) | Define CacheProvider interface + shared contract test suite | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` and its tests |
 | [CACHE-002](WI-CACHE-002.md) | RedisCacheProvider implementation | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (Redis provider) and its tests |
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (local and resilient providers) and its tests |
-| [CACHE-004](WI-CACHE-004.md) | ChaosCacheProvider decorator + fallback proof tests | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Caching` (chaos provider) and its tests |
+| [CACHE-004](WI-CACHE-004.md) | ChaosCacheProvider decorator + fallback proof tests | EPIC-CACHING | Done | evidence: `tools/BakeryMarketplace.Chaos` (chaos provider) and its tests |
 | [CAT-001](WI-CAT-001.md) | Listing CRUD + modifier/allergy-flag model | EPIC-CATALOG | Done | evidence: merged `0c904b0`; `docs/evidence/WI-CAT-001/findings.md` |
 | [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | EPIC-CATALOG | In review | built and run locally 2026-11-07 on `feature/listing-cache` (22 new tests; browse about 20 ms to about 3 ms at p50, `docs/evidence/WI-CAT-003/after-2026-11-07.md`); waiting for the lead's review of the stock-path diff (register 158 item 4) |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
+| [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos`, `tools/tests/BakeryMarketplace.Chaos.Tests`, `services/ordering-service/tests/OrderingService.Tests/ChaosHostTests.cs`, `chaos/` |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer` (`/orders/{id}`); `docs/evidence/slice-1/findings.md`. The order history list was split out into `WI-CUST-007` |
@@ -102,7 +103,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [EVID-001](WI-EVID-001.md) | Extract proof from specs into evidence records | EPIC-REPO-OPS | Deferred | trigger: the lead picks it up |
 | [EVT-001](WI-EVT-001.md) | Define IEventPublisher/IEventSubscriber interfaces + envelope + contract tests | EPIC-EVENTING | Done | evidence: `tools/BakeryMarketplace.Eventing` and `tools/tests/BakeryMarketplace.Eventing.Tests` |
 | [EVT-003](WI-EVT-003.md) | RedisStreamsPublisher / RedisStreamsSubscriber implementation | EPIC-EVENTING | Done | evidence: `tools/BakeryMarketplace.Eventing` (Redis Streams transport) and its tests |
-| [EVT-004](WI-EVT-004.md) | ChaosEventTransport decorator + failure proof tests | EPIC-EVENTING | In review | evidence: `tools/BakeryMarketplace.Eventing/ChaosEventTransport.cs` and `tools/tests/BakeryMarketplace.Eventing.Tests/ChaosEventTransportTests.cs` |
+| [EVT-004](WI-EVT-004.md) | ChaosEventTransport decorator + failure proof tests | EPIC-EVENTING | In review | evidence: `tools/BakeryMarketplace.Chaos/ChaosEventTransport.cs` and `tools/tests/BakeryMarketplace.Eventing.Tests/ChaosEventTransportTests.cs` |
 | [GOV-001](WI-GOV-001.md) | Fill in the architecture review / change-management document | EPIC-GOVERNANCE | Done | evidence: `docs/governance/architecture-review.md` |
 | [LAUNCH-002](WI-LAUNCH-002.md) | Blameless postmortem | EPIC-GOLIVE-SUPPORT | Proposed | decision: write it from a real recorded episode, or stage a drill first |
 | [MGMT-001](WI-MGMT-001.md) | Draft the execution-level project plan | EPIC-PM-ARTIFACTS | Done | evidence: acceptance met; the open point (relative sequencing) was settled in `docs/management/project-plan.md` |

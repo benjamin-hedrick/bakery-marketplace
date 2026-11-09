@@ -1,0 +1,42 @@
+# Chaos scenarios
+
+Seeded, configured fault injection at the interfaces the system already has (ADR-0024, `docs/architecture/chaos-scenarios-proposal.md`). A scenario is a JSON file here; a running process switches it on with configuration; nothing in the service's own code changes.
+
+## Run a service with a scenario
+
+```
+Chaos__Enabled=true Chaos__Scenario=flaky-broker dotnet run --project services/ordering-service/src
+```
+
+`Chaos__Scenario` is a name (this folder's `scenarios/<name>.json`, found by walking up from the app) or a path. The service logs one warning naming the scenario and the seed, every response carries `X-Chaos-Scenario`, and `X-Chaos-Injected` lists the faults injected while that response was produced. Chaos is refused at startup unless the host is `Development` or `Deployment__Environment=dev`.
+
+## Scenario format
+
+```json
+{ "name": "flaky-broker", "seed": 20261109, "layers": { "events": { "publishFailureRate": 0.3, "duplicateRate": 0.2 } } }
+```
+
+Settings ending in `Rate` are probabilities from 0 to 1; the others are non-negative numbers (the unit is in the name). A mistake in a name or a value stops the host at startup.
+
+| Layer | Wraps | Settings |
+|---|---|---|
+| `events` | `IEventPublisher`, `IEventSubscriber` | `publishFailureRate`, `dropRate`, `duplicateRate`, `reorderRate`, `handlerFailureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `cache` | the primary cache store, under `ResilientCacheProvider` | `failureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+
+Outage windows are measured from the process's chaos start. Not built yet: repository, payment, notification sender, catalog gateway, broadcast, and the TypeScript library and BFF gate (register 169).
+
+## The decision function
+
+Whether a fault applies to an operation does not depend on call order or threads. It is the first 8 bytes of SHA-256 over `"{seed}|{layer}|{fault}|{key}"` (UTF-8), read big-endian as an unsigned integer, with the low 11 bits dropped and the rest divided by 2^53, a value in [0, 1) compared with the rate. The key is the operation's own identity (the event id, plus the attempt number for failures, so a retry is judged afresh). `test-vectors.json` holds expected numbers computed independently of the C# code; every implementation's tests must reproduce them.
+
+## Writing a test
+
+Name the scenario, assert from the journal that the fault happened, then assert the system coped. A survival assertion alone passes with chaos off.
+
+```csharp
+var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("outage", 1, "events", ("outageWindowSeconds", 1.5)));
+// ... exercise the system ...
+Assert.True(runtime.Journal.Count("events", "outage") >= 1);
+```
+
+Host tests set `Chaos:Enabled` and `Chaos:Scenario` as configuration (see `ChaosHostTests` in the ordering tests).

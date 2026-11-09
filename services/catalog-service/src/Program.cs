@@ -1,5 +1,6 @@
 using BakeryMarketplace.Auth;
 using BakeryMarketplace.Caching;
+using BakeryMarketplace.Chaos;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.Logging;
@@ -84,6 +85,7 @@ if (string.Equals(cacheBackend, "redis", StringComparison.OrdinalIgnoreCase))
     var cacheRedis = builder.Configuration["Cache:Redis:ConnectionString"] ?? "localhost:6380";
     if (!cacheRedis.Contains("abortConnect", StringComparison.OrdinalIgnoreCase)) cacheRedis += ",abortConnect=false";
     builder.Services.AddRedisCacheProvider(cacheRedis);
+    builder.Services.AddChaosCachePrimary(); // the cache chaos layer goes under the resilient provider (ADR-0024)
     builder.Services.AddResilientCacheProvider();
     builder.Services.AddSingleton(sp => new ListingCache(
         sp.GetRequiredService<ResilientCacheProvider>(),
@@ -110,6 +112,9 @@ builder.Services.AddSingleton<PreferenceService>();
 builder.Services.AddSingleton<IPreferenceReader>(sp => sp.GetRequiredService<PreferenceService>());
 builder.Services.AddSingleton<StockReservationService>();
 builder.Services.AddHostedService<VendorEventSubscriptions>();
+
+// Chaos scenarios (ADR-0024): does nothing unless Chaos:Enabled is set, and then only in Development or the dev deployment.
+builder.Services.AddBakeryChaos(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 

@@ -1,4 +1,5 @@
 using BakeryMarketplace.Auth;
+using BakeryMarketplace.Chaos;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.Logging;
@@ -95,6 +96,9 @@ builder.Services.Configure<OrphanReservationOptions>(builder.Configuration.GetSe
 builder.Services.AddHostedService<OrphanReservationSweeper>(); // register item 62
 builder.Services.AddSingleton<CheckoutService>();
 builder.Services.AddSingleton<OrderActionService>(); // WI-ORD-007
+
+// Chaos scenarios (ADR-0024): does nothing unless Chaos:Enabled is set, and then only in Development or the dev deployment.
+builder.Services.AddBakeryChaos(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 

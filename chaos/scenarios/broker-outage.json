@@ -1,0 +1,10 @@
+{
+  "name": "broker-outage",
+  "seed": 20261109,
+  "layers": {
+    "events": {
+      "outageFromSeconds": 5,
+      "outageWindowSeconds": 25
+    }
+  }
+}

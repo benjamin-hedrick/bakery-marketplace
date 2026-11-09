@@ -59,30 +59,4 @@ public static class CachingServiceExtensions
                 sp.GetRequiredService<ILogger<ResilientCacheProvider>>()));
         return services;
     }
-
-    /// <summary>
-    /// Registers <see cref="ChaosCacheProvider"/> wrapping the given primary provider.
-    ///
-    /// PRODUCTION GATING (ADR-0002 hard requirement):
-    /// This method throws <see cref="InvalidOperationException"/> at startup if the
-    /// current environment is Production and chaos options are non-trivial.
-    /// This makes it structurally impossible to enable chaos in production, not merely "off by default."
-    /// </summary>
-    public static IServiceCollection AddChaosCacheProvider(
-        this IServiceCollection services,
-        ICacheProvider primary,
-        ChaosOptions options,
-        IHostEnvironment environment)
-    {
-        // Hard gate: fail at registration time (startup), not at first call.
-        if (environment.IsProduction())
-            throw new InvalidOperationException(
-                "AddChaosCacheProvider cannot be called in the Production environment. " +
-                "This is a hard safety gate per ADR-0002.");
-
-        services.AddSingleton<ICacheProvider>(_ =>
-            new ChaosCacheProvider(primary, options, isProduction: false));
-
-        return services;
-    }
 }

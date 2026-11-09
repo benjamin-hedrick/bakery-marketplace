@@ -1,4 +1,6 @@
-> **Status:** Done · evidence: `tools/BakeryMarketplace.Caching` (chaos provider) and its tests
+> **Status:** Done · evidence: `tools/BakeryMarketplace.Chaos` (chaos provider) and its tests
+
+> **Update 2026-11-09:** `ChaosCacheProvider` moved from `BakeryMarketplace.Caching` into `BakeryMarketplace.Chaos` and reads a scenario (keyed, seeded, journaled) instead of `ChaosOptions`; `AddChaosCacheProvider` was replaced by `AddChaosCachePrimary` and `WrapCachePrimary`, and the Production gate by the central gate (ADR-0024, `WI-CHAOS-001`). What it injects (errors, latency, an outage window) is unchanged.
 
 ```
 WI ID:               CACHE-004

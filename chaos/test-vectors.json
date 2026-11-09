@@ -1,0 +1,75 @@
+{
+  "description": "Expected values of the keyed decision function (chaos/README.md), computed independently of the C# and TypeScript libraries. Every implementation's tests must reproduce them exactly.",
+  "vectors": [
+    {
+      "seed": 20261109,
+      "layer": "events",
+      "fault": "publishFailure",
+      "key": "11111111-1111-1111-1111-111111111111:1",
+      "unit": "0.7452946357002722"
+    },
+    {
+      "seed": 20261109,
+      "layer": "events",
+      "fault": "publishFailure",
+      "key": "11111111-1111-1111-1111-111111111111:2",
+      "unit": "0.2865571753332852"
+    },
+    {
+      "seed": 20261109,
+      "layer": "events",
+      "fault": "duplicate",
+      "key": "22222222-2222-2222-2222-222222222222",
+      "unit": "0.10670648568758923"
+    },
+    {
+      "seed": 20261109,
+      "layer": "cache",
+      "fault": "failure",
+      "key": "get:listing:cheese-danish:1",
+      "unit": "0.7306266710870676"
+    },
+    {
+      "seed": 0,
+      "layer": "events",
+      "fault": "drop",
+      "key": "",
+      "unit": "0.9632692172800672"
+    },
+    {
+      "seed": 1,
+      "layer": "events",
+      "fault": "reorder",
+      "key": "a",
+      "unit": "0.8016248433226756"
+    },
+    {
+      "seed": -7,
+      "layer": "cache",
+      "fault": "failure",
+      "key": "set:k:3",
+      "unit": "0.1721579674643613"
+    },
+    {
+      "seed": 9223372036854775807,
+      "layer": "events",
+      "fault": "handlerFailure",
+      "key": "ffffffff-ffff-ffff-ffff-ffffffffffff:12",
+      "unit": "0.25043583205295694"
+    },
+    {
+      "seed": 42,
+      "layer": "events",
+      "fault": "drop",
+      "key": "café ☕ 日本",
+      "unit": "0.7016085743218629"
+    },
+    {
+      "seed": 42,
+      "layer": "payment",
+      "fault": "reject",
+      "key": "order-1001",
+      "unit": "0.9669109678490232"
+    }
+  ]
+}

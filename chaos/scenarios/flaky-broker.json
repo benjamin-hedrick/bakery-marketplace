@@ -1,0 +1,12 @@
+{
+  "name": "flaky-broker",
+  "seed": 20261109,
+  "layers": {
+    "events": {
+      "publishFailureRate": 0.3,
+      "duplicateRate": 0.2,
+      "reorderRate": 0.2,
+      "handlerFailureRate": 0.3
+    }
+  }
+}

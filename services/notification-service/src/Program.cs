@@ -1,4 +1,5 @@
 using BakeryMarketplace.Caching;
+using BakeryMarketplace.Chaos;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.Logging;
 using NotificationService.Contacts;
@@ -22,8 +23,9 @@ builder.Services.AddSingleton<LocalCacheProvider>();
 if (string.Equals(builder.Configuration["Cache:Backend"], "redis", StringComparison.OrdinalIgnoreCase))
 {
     var cacheRedis = redis ?? ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
+    // The cache chaos layer goes under the resilient provider: Resilient(Chaos(Redis)) (ADR-0024).
     builder.Services.AddSingleton<ICacheProvider>(sp => new ResilientCacheProvider(
-        new RedisCacheProvider(cacheRedis), sp.GetRequiredService<LocalCacheProvider>(),
+        sp.WrapCachePrimary(new RedisCacheProvider(cacheRedis)), sp.GetRequiredService<LocalCacheProvider>(),
         new PollyCircuitBreakerPolicy(3, TimeSpan.FromSeconds(30)), sp.GetRequiredService<ILogger<ResilientCacheProvider>>()));
 }
 else
@@ -39,6 +41,9 @@ builder.Services.AddSingleton<IMessageComposer, TemplateMessageComposer>();
 builder.Services.AddSingleton(sp => new SentLedger(sp.GetRequiredService<ICacheProvider>()));
 builder.Services.AddSingleton<OrderEventNotifier>();
 builder.Services.AddHostedService<OrderEventSubscriptions>();
+
+// Chaos scenarios (ADR-0024): does nothing unless Chaos:Enabled is set, and then only in Development or the dev deployment.
+builder.Services.AddBakeryChaos(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 

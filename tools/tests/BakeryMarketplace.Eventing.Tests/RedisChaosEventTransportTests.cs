@@ -1,3 +1,4 @@
+using BakeryMarketplace.Chaos;
 using StackExchange.Redis;
 
 namespace BakeryMarketplace.Eventing.Tests;
@@ -29,10 +30,11 @@ public sealed class RedisChaosEventTransportTests : IDisposable
         return type;
     }
 
-    private ChaosEventTransport Chaos(ChaosEventOptions options, int attempts = 3)
+    private (ChaosEventTransport Chaos, ChaosRuntime Runtime) Chaos(long seed, int attempts, params (string Setting, double Value)[] settings)
     {
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("redis-chaos", seed, "events", settings));
         var redis = new RedisStreamsEventTransport(_redis.Value, maxDeliveryAttempts: attempts, redeliverAfter: Quick);
-        return new ChaosEventTransport(redis, redis, options, isProduction: false);
+        return (new ChaosEventTransport(redis, redis, runtime), runtime);
     }
 
     private static DomainEventEnvelope<string> Envelope(string type, string payload, long sequence = 1) =>
@@ -53,7 +55,7 @@ public sealed class RedisChaosEventTransportTests : IDisposable
     public async Task HandlersThatFailHalfTheTime_StillSeeEveryMessage_AfterRedelivery_AndNothingIsDeadLettered()
     {
         var type = NewEventType();
-        var chaos = Chaos(new ChaosEventOptions { HandlerFailureRate = 0.5, Seed = 7 }, attempts: 30);
+        var (chaos, runtime) = Chaos(7, 30, ("handlerFailureRate", 0.5));
         var handled = new List<string>();
         await chaos.SubscribeAsync<string>(type, (e, _) => { lock (handled) handled.Add(e.Payload); return Task.CompletedTask; });
 
@@ -62,14 +64,14 @@ public sealed class RedisChaosEventTransportTests : IDisposable
 
         Assert.Equal(Enumerable.Range(1, 10).Select(i => $"m{i}").Order(), handled.Distinct().Order());
         Assert.Equal(0, _redis.Value.GetDatabase().StreamLength($"events:{type}:dead-letter"));
-        Assert.True(chaos.HandlerFailuresInjected > 0, "chaos must actually have failed some handlers");
+        Assert.True(runtime.Journal.Count("events", "handlerFailure") > 0, "chaos must actually have failed some handlers");
     }
 
     [RedisFact]
     public async Task BatchHandlersThatFailHalfTheTime_StillSeeEveryMessage_AfterRedelivery()
     {
         var type = NewEventType();
-        var chaos = Chaos(new ChaosEventOptions { HandlerFailureRate = 0.5, Seed = 11 }, attempts: 30);
+        var (chaos, runtime) = Chaos(11, 30, ("handlerFailureRate", 0.5));
         var handled = new List<string>();
         await chaos.SubscribeBatchAsync<string>(type, (batch, _) =>
         {
@@ -82,14 +84,14 @@ public sealed class RedisChaosEventTransportTests : IDisposable
 
         Assert.Equal(Enumerable.Range(1, 10).Select(i => $"m{i}").Order(), handled.Distinct().Order());
         Assert.Equal(0, _redis.Value.GetDatabase().StreamLength($"events:{type}:dead-letter"));
-        Assert.True(chaos.HandlerFailuresInjected > 0, "chaos must actually have failed some handlers");
+        Assert.True(runtime.Journal.Count("events", "handlerFailure") > 0, "chaos must actually have failed some handlers");
     }
 
     [RedisFact]
     public async Task AHandlerThatAlwaysFails_IsDeadLetteredAfterTheMaximumAttempts_WithoutTheHandlerRunning()
     {
         var type = NewEventType();
-        var chaos = Chaos(new ChaosEventOptions { HandlerFailureRate = 1.0 }, attempts: 2);
+        var (chaos, runtime) = Chaos(1, 2, ("handlerFailureRate", 1.0));
         var ran = 0;
         await chaos.SubscribeAsync<string>(type, (_, _) => { Interlocked.Increment(ref ran); return Task.CompletedTask; });
 
@@ -97,6 +99,7 @@ public sealed class RedisChaosEventTransportTests : IDisposable
         await Eventually(() => _redis.Value.GetDatabase().StreamLength($"events:{type}:dead-letter") == 1);
 
         Assert.Equal(1, _redis.Value.GetDatabase().StreamLength($"events:{type}:dead-letter"));
+        Assert.Equal(2, runtime.Journal.Count("events", "handlerFailure")); // the maximum attempts, each failed by chaos
         Assert.Equal(0, ran);
     }
 
@@ -104,7 +107,7 @@ public sealed class RedisChaosEventTransportTests : IDisposable
     public async Task ADuplicatedEvent_ReachesTheConsumerTwice_AndAnIdempotentConsumerAppliesItOnce()
     {
         var type = NewEventType();
-        var chaos = Chaos(new ChaosEventOptions { DuplicateRate = 1.0 });
+        var (chaos, runtime) = Chaos(1, 3, ("duplicateRate", 1.0));
         var deliveries = new List<Guid>();
         var applied = new HashSet<Guid>();
         await chaos.SubscribeAsync<string>(type, (e, _) =>
@@ -117,6 +120,7 @@ public sealed class RedisChaosEventTransportTests : IDisposable
         await chaos.PublishAsync(Envelope(type, "once"));
         await Eventually(() => Count(deliveries) >= 2);
 
+        Assert.Equal(1, runtime.Journal.Count("events", "duplicate"));
         Assert.Equal(2, Count(deliveries));
         Assert.Single(applied);
     }
@@ -125,7 +129,7 @@ public sealed class RedisChaosEventTransportTests : IDisposable
     public async Task OutOfOrderEvents_ReachRedisInTheWrongOrder_AndAConsumerThatChecksSequenceNumbersKeepsTheNewestState()
     {
         var type = NewEventType();
-        var chaos = Chaos(new ChaosEventOptions { ReorderRate = 1.0 });
+        var (chaos, runtime) = Chaos(1, 3, ("reorderRate", 1.0));
         var arrival = new List<long>();
         long highest = 0;
         await chaos.SubscribeAsync<string>(type, (e, _) =>
@@ -142,6 +146,7 @@ public sealed class RedisChaosEventTransportTests : IDisposable
         await chaos.PublishAsync(Envelope(type, "v2", 2));
         await Eventually(() => Count(arrival) >= 2);
 
+        Assert.Equal(1, runtime.Journal.Count("events", "reorder"));
         Assert.Equal([2L, 1L], arrival);
         Assert.Equal(2, highest);
     }
@@ -150,11 +155,12 @@ public sealed class RedisChaosEventTransportTests : IDisposable
     public async Task APublishOutageStopsEventsReachingRedis_AndTheyFlowAgainAfterIt()
     {
         var type = NewEventType();
-        var chaos = Chaos(new ChaosEventOptions { OutageWindow = TimeSpan.FromMilliseconds(300) });
+        var (chaos, runtime) = Chaos(1, 3, ("outageWindowSeconds", 0.3));
         var handled = new List<string>();
         await chaos.SubscribeAsync<string>(type, (e, _) => { lock (handled) handled.Add(e.Payload); return Task.CompletedTask; });
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => chaos.PublishAsync(Envelope(type, "during")));
+        Assert.Equal(1, runtime.Journal.Count("events", "outage"));
         Assert.Equal(0, _redis.Value.GetDatabase().StreamLength($"events:{type}")); // nothing reached the stream
 
         await Task.Delay(400);
