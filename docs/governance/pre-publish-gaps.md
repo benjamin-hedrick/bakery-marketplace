@@ -163,7 +163,7 @@ A read of the front door and the claims in the documents against the code, as a 
 | R4-2 | `docs/testing.md` | Said the gates run "in four projects" | Names the six JavaScript projects |
 | R4-3 | `SECURITY.md` | Listed service-to-service authentication as a plain gap, though ADR-0018 phase 1 is built locally | Says what is built locally and what is not settled |
 | R4-4 | `docs/delivery.md` | Commit count, span and register count out of date | Updated to 2026-11-09, 26 days, more than 480 commits, 168 items |
-| R4-5 | `docs/governance/review-statement.md` | The secret-scan row cited only the 2026-11-08 scan | Notes the 2026-11-09 rerun (486 commits, no findings; output not saved as a record) |
+| R4-5 | `docs/governance/review-statement.md` | The secret-scan row cited only the 2026-11-08 scan | Notes the 2026-11-09 rerun (486 commits, no findings; recorded in `docs/evidence/runs-2026-11-09.md`) |
 | R4-6 | `packages/customer-core/`, `scripts/` | No README | Pointer READMEs written |
 | R4-7 | `docs/architecture/adr/README.md` | The "Not built" cache Redis line | Checked: it now says "wired into the deployed environment", which is accurate; no change |
 | R4-8 | `README.md`, `docs/product/okrs.md` | Session count | Consistent at 18; the 2026-11-09 sessions have no usage record yet (it needs the lead's cost readings), so the count stays 18 until it is written |
