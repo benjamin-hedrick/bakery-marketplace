@@ -155,6 +155,11 @@ Full-history secret scan (gitleaks, 426 commits): no findings. Sanitization: loc
 
 ## Before the repository is public
 
-On flip day, switch on **private vulnerability reporting** in the repository settings (`SECURITY.md` points to it).
+**Decided 2026-11-08 (the lead):** R3-10 is closed with no change: the six event payloads that nothing raises yet are forward-looking contracts and stay as they are. The `createServer` split (R3-18) is closed with no change.
 
-Sanitization, licence and the public-repository settings are tracked as register item 93 ("flip day"). The README links the film directly; check that GitHub plays it from the repository view on the day.
+**Flip day (register 93), state on 2026-11-08.**
+- **Licence: done.** `LICENSE` is the MIT licence, copyright 2026 Benjamin Hedrick. Nothing more is needed for it. A code of conduct is optional and not written; `CONTRIBUTING.md` is skipped by decision.
+- **History: decided, nothing left to decide.** On 2026-10-30 the lead accepted the findings in older commits and chose not to rewrite the history; on 2026-11-08 the lead accepted the author e-mail on every commit and in `LICENSE`. The history has three author spellings (the git identity with the e-mail, a second one with the same e-mail and a no-reply address), which is accepted too. The only history-related choice that can still come up is how the pull request is merged (a rebase merge keeps every commit, which is what the repository's workflow uses).
+- **To do on the day, by the lead:** the repository settings (private vulnerability reporting, secret scanning and push protection under Settings, Code security; check that "Report a vulnerability" appears), after a clean pull request.
+- **To rerun on the final commit, before the pull request and again on the day:** `node scripts/ci/secret-scan.mjs` (the last full-history scan, 426 commits, was clean; the history has since grown to 468), the link check and the status check (`node scripts/ci/node-gates.mjs`), and the test report (`node scripts/ci/test-report.mjs --write`, which clears the one broken link).
+- The README links the film directly; check on the day that GitHub plays it from the repository view.
