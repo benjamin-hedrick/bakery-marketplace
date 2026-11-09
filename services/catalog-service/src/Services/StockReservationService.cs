@@ -44,7 +44,7 @@ public sealed class StockReservationService
     private readonly VendorStatusStore _vendors;
     private readonly ListingEventPublisher _events;
     private readonly TimeProvider _time;
-    private readonly ListingCache? _cache;
+    private readonly ListingCache _cache;
 
     public StockReservationService(
         IRepository<ListingDocument> listings,
@@ -53,7 +53,7 @@ public sealed class StockReservationService
         VendorStatusStore vendors,
         ListingEventPublisher events,
         TimeProvider time,
-        ListingCache? cache = null)
+        ListingCache cache)
     {
         _cache = cache;
         _listings = listings;
@@ -146,7 +146,7 @@ public sealed class StockReservationService
 
             if (await batch.ExecuteAsync(ct))
             {
-                if (statusChanged && _cache is not null) await _cache.InvalidateVendorAsync(vendorId);
+                if (statusChanged) await _cache.InvalidateVendorAsync(vendorId);
                 foreach (var doc in crossedIntoLow) await _events.PublishInlineAsync(doc);
                 return new ReservationResult(ReservationOutcome.Reserved, reservation);
             }
@@ -187,7 +187,7 @@ public sealed class StockReservationService
 
             if (await batch.ExecuteAsync(ct))
             {
-                if (statusChanged && _cache is not null) await _cache.InvalidateVendorAsync(vendorId);
+                if (statusChanged) await _cache.InvalidateVendorAsync(vendorId);
                 return new ReservationResult(ReservationOutcome.Released, reservation);
             }
         }

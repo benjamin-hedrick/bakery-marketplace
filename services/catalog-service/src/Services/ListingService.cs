@@ -31,7 +31,7 @@ public sealed class ListingService
     private readonly ILogger<ListingService> _logger;
     private readonly ITagRegistry _tags;
     private readonly TagOptions _tagLimits;
-    private readonly ListingCache? _cache;
+    private readonly ListingCache _cache;
 
     /// <summary>Re-reads and retries a conditional save this many times before reporting a conflict.</summary>
     public const int MaxSaveAttempts = 20;
@@ -42,9 +42,9 @@ public sealed class ListingService
         ListingEventPublisher events,
         TimeProvider time,
         ILogger<ListingService> logger,
-        ITagRegistry? tags = null,
-        TagOptions? tagLimits = null,
-        ListingCache? cache = null)
+        ITagRegistry tags,
+        TagOptions tagLimits,
+        ListingCache cache)
     {
         _cache = cache;
         _listings = listings;
@@ -52,8 +52,8 @@ public sealed class ListingService
         _events = events;
         _time = time;
         _logger = logger;
-        _tags = tags ?? TagRegistry.LoadEmbedded();
-        _tagLimits = tagLimits ?? new TagOptions();
+        _tags = tags;
+        _tagLimits = tagLimits;
     }
 
     // ---- public reads (anonymous) -------------------------------------------------------------
@@ -61,7 +61,7 @@ public sealed class ListingService
     /// <summary>
     /// Published listings of verified vendors, ordered by id. <paramref name="after"/> is the id of the last item of the
     /// previous page. The repository contract is single-partition, so this reads one partition per verified vendor, through the listing cache
-    /// (<see cref="ListingCache"/>, WI-CAT-003) when there is one;
+    /// (<see cref="ListingCache"/>, WI-CAT-003; a zero TTL makes it a pass-through);
     /// fine at first-slice scale, to be revisited if the vendor count grows. <paramref name="include"/>, when given, narrows the listings
     /// <b>before</b> paging, so a filtered page is still full and the cursor still means "after this id" (the personalized browse uses it to
     /// hide conflicting items).
@@ -97,15 +97,13 @@ public sealed class ListingService
         return null;
     }
 
-    // The two reads every public listing read starts from, through the cache when there is one (WI-CAT-003). What comes back may be shared
-    // with other requests: read only.
+    // The two reads every public listing read starts from, through the cache (WI-CAT-003; ListingCache:TtlSeconds 0 makes it a pass-through).
+    // What comes back may be shared with other requests: read only.
     private Task<IReadOnlyList<string>> VerifiedVendorIdsAsync(CancellationToken ct) =>
-        _cache is null
-            ? _vendors.VerifiedVendorIdsAsync(ct)
-            : _cache.VerifiedVendorIdsAsync(t => _vendors.VerifiedVendorIdsAsync(t), ct);
+        _cache.VerifiedVendorIdsAsync(t => _vendors.VerifiedVendorIdsAsync(t), ct);
 
     private Task<IReadOnlyList<ListingDocument>> PublishedListingsAsync(string vendorId, CancellationToken ct) =>
-        _cache is null ? LoadPublishedAsync(vendorId, ct) : _cache.PublishedListingsAsync(vendorId, t => LoadPublishedAsync(vendorId, t), ct);
+        _cache.PublishedListingsAsync(vendorId, t => LoadPublishedAsync(vendorId, t), ct);
 
     private async Task<IReadOnlyList<ListingDocument>> LoadPublishedAsync(string vendorId, CancellationToken ct)
     {
@@ -115,7 +113,7 @@ public sealed class ListingService
         return published;
     }
 
-    private Task InvalidateAsync(string vendorId) => _cache?.InvalidateVendorAsync(vendorId) ?? Task.CompletedTask;
+    private Task InvalidateAsync(string vendorId) => _cache.InvalidateVendorAsync(vendorId);
 
     // ---- vendor writes ------------------------------------------------------------------------
 
