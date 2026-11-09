@@ -153,6 +153,21 @@ R3-1 (the `payment-methods` container and its test), R3-2 (`TRUSTED_PROXY_HOPS=1
 
 Full-history secret scan (gitleaks, 426 commits): no findings. Sanitization: local paths in five evidence and history records fixed (the two raw NuGet outputs, the test-reliability findings, the review resume page and the peer copy-in register); the author e-mail and name on every commit and in `LICENSE` are accepted by the lead. `SECURITY.md` already existed and is kept as written; it is now linked from the README. No employer, client or colleague names were searched for (none were given); add them to a grep if any exist.
 
+## Read as a stranger (round 4, 2026-11-09)
+
+A read of the front door and the claims in the documents against the code, as a reader who has not seen the repository. Fixed the same day:
+
+| # | Where | Finding | Resolution |
+|---|---|---|---|
+| R4-1 | `apps/mobile-customer/README.md` | Said the menu and item screens show no allergens (R3-7 had added them) | Rewritten to say what the two screens show |
+| R4-2 | `docs/testing.md` | Said the gates run "in four projects" | Names the six JavaScript projects |
+| R4-3 | `SECURITY.md` | Listed service-to-service authentication as a plain gap, though ADR-0018 phase 1 is built locally | Says what is built locally and what is not settled |
+| R4-4 | `docs/delivery.md` | Commit count, span and register count out of date | Updated to 2026-11-09, 26 days, more than 480 commits, 168 items |
+| R4-5 | `docs/governance/review-statement.md` | The secret-scan row cited only the 2026-11-08 scan | Notes the 2026-11-09 rerun (486 commits, no findings; output not saved as a record) |
+| R4-6 | `packages/customer-core/`, `scripts/` | No README | Pointer READMEs written |
+| R4-7 | `docs/architecture/adr/README.md` | The "Not built" cache Redis line | Checked: it now says "wired into the deployed environment", which is accurate; no change |
+| R4-8 | `README.md`, `docs/product/okrs.md` | Session count | Consistent at 18; the 2026-11-09 sessions have no usage record yet (it needs the lead's cost readings), so the count stays 18 until it is written |
+
 ## Before the repository is public
 
 **Decided 2026-11-08 (the lead):** R3-10 is closed with no change: the six event payloads that nothing raises yet are forward-looking contracts and stay as they are. The `createServer` split (R3-18) is closed with no change.
@@ -161,5 +176,5 @@ Full-history secret scan (gitleaks, 426 commits): no findings. Sanitization: loc
 - **Licence: done.** `LICENSE` is the MIT licence, copyright 2026 Benjamin Hedrick. Nothing more is needed for it. A code of conduct is optional and not written; `CONTRIBUTING.md` is skipped by decision.
 - **History: decided, nothing left to decide.** On 2026-10-30 the lead accepted the findings in older commits and chose not to rewrite the history; on 2026-11-08 the lead accepted the author e-mail on every commit and in `LICENSE`. The history has three author spellings (the git identity with the e-mail, a second one with the same e-mail and a no-reply address), which is accepted too. The only history-related choice that can still come up is how the pull request is merged (a rebase merge keeps every commit, which is what the repository's workflow uses).
 - **To do on the day, by the lead:** the repository settings (private vulnerability reporting, secret scanning and push protection under Settings, Code security; check that "Report a vulnerability" appears), after a clean pull request.
-- **To rerun on the final commit, before the pull request and again on the day:** `node scripts/ci/secret-scan.mjs` (the last full-history scan, 426 commits, was clean; the history has since grown to 468), the link check and the status check (`node scripts/ci/node-gates.mjs`), and the test report (`node scripts/ci/test-report.mjs --write`, which clears the one broken link).
+- **To rerun on the final commit, before the pull request and again on the day:** `node scripts/ci/secret-scan.mjs` (the last full-history scan, 2026-11-09, 486 commits, was clean; the history grows with each commit), the link check and the status check (`node scripts/ci/node-gates.mjs`), and the test report (`node scripts/ci/test-report.mjs --write`, which clears the one broken link).
 - The README links the film directly; check on the day that GitHub plays it from the repository view.

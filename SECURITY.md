@@ -12,4 +12,4 @@ This is a one-person project with no service level. A report will be read and an
 
 ## Scope and known limits
 
-The local development secrets and the Cosmos DB emulator's published key are not secrets; see `docs/evidence/secret-scan-2026-10-30.md`. Known gaps (service-to-service authentication, the mock issuer, the payment stub) are recorded in the register and the ADRs.
+The local development secrets and the Cosmos DB emulator's published key are not secrets; see `docs/evidence/secret-scan-2026-10-30.md`. Known gaps (service-to-service authentication beyond the local phase, the mock issuer, the payment stub) are recorded in the register and the ADRs. Locally, ordering calls catalog with OAuth2 client credentials against the mock issuer (ADR-0018, phase 1, `WI-AUTH-006`); the credential type for a deployed environment is not settled and nothing is deployed.

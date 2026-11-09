@@ -30,7 +30,7 @@ How to write and review a test: [Playwright guide](process/playwright-guide.md),
 
 ## Execution
 
-- **Before every push:** `node scripts/ci/node-gates.mjs` (19 steps: format, lint, typecheck, documentation checks, in four projects), `scripts/ci/linux-check.mjs` (the .NET steps in a Linux container limited to two CPUs), `scripts/ci/secret-scan.mjs` over the full history ([quality gates](process/quality-gates.md)).
+- **Before every push:** `node scripts/ci/node-gates.mjs` (19 steps: format, lint, typecheck, documentation checks, in six JavaScript projects: the BFF, web-customer, the queue display, customer-core, the session package and the Android app), `scripts/ci/linux-check.mjs` (the .NET steps in a Linux container limited to two CPUs), `scripts/ci/secret-scan.mjs` over the full history ([quality gates](process/quality-gates.md)).
 - **In the pipeline:** ten jobs (`secrets`, `docs`, `terraform`, `dotnet`, `bff`, `web`, `queue`, `session`, `mobile`, `skeleton`) in [`azure-pipelines.yml`](../azure-pipelines.yml); the `dotnet` job asserts that the Redis tests really reached Redis.
 - **What has been run, and what it showed:**
 
