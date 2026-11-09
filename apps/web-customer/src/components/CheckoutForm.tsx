@@ -28,7 +28,7 @@ import {
   needsAcknowledgement,
 } from '@bakery/customer-core';
 import { dietCartText } from '@bakery/customer-core';
-import { randomUrlSafe } from '../lib/random';
+import { randomUrlSafe } from '@bakery/customer-core';
 import { formatMoney } from '@bakery/customer-core';
 import { GraphQLRequestError, UnauthenticatedError } from '../lib/relay/environment';
 import { useCheckoutAllergens } from './useCheckoutAllergens';

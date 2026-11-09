@@ -4,7 +4,7 @@ import { fetchQuery } from 'relay-runtime';
 import type { usePersonalizationListQuery } from '../__generated__/usePersonalizationListQuery.graphql';
 import type { usePersonalizationOneQuery } from '../__generated__/usePersonalizationOneQuery.graphql';
 import type { usePersonalizationProfileQuery } from '../__generated__/usePersonalizationProfileQuery.graphql';
-import { hasItemConflict, marksFor, type ConflictView, type Mark } from '@bakery/customer-core';
+import { hasItemConflict, marksFor, profileFromPreferences, type ConflictView, type Mark } from '@bakery/customer-core';
 import { useSession } from '../lib/session';
 import type { DietNote } from '@bakery/customer-core';
 
@@ -139,13 +139,7 @@ function usePersonalized<T>(key: string, load: (environment: Environment) => Pro
     fetchQuery<usePersonalizationProfileQuery>(environment, profileQuery, {}, { fetchPolicy: 'network-only' })
       .toPromise()
       .then((profile) => {
-        if (
-          !profile ||
-          (profile.preferences.allergies.length === 0 &&
-            profile.preferences.avoid.length === 0 &&
-            profile.preferences.prefer.length === 0)
-        )
-          return null;
+        if (profileFromPreferences(profile?.preferences) === null) return null; // nothing saved: nothing to overlay
         return load(environment);
       })
       .then((value) => {

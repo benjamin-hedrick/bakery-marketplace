@@ -5,9 +5,16 @@ import type { useCheckoutAllergensCheckQuery } from '../__generated__/useCheckou
 import type { useCheckoutAllergensListingQuery } from '../__generated__/useCheckoutAllergensListingQuery.graphql';
 import type { useCheckoutAllergensProfileQuery } from '../__generated__/useCheckoutAllergensProfileQuery.graphql';
 import type { useCheckoutAllergensTagsQuery } from '../__generated__/useCheckoutAllergensTagsQuery.graphql';
-import type { Cart } from '@bakery/customer-core';
-import type { ConflictView } from '@bakery/customer-core';
-import type { ListingAllergens } from '@bakery/customer-core';
+import {
+  cartCheckLines,
+  lineConflictsFromCheck,
+  profileFromPreferences,
+  type Cart,
+  type LineConflict,
+  type ListingAllergens,
+  type Part,
+  type Profile,
+} from '@bakery/customer-core';
 import { GraphQLRequestError, UnauthenticatedError } from '../lib/relay/environment';
 import { useSession } from '../lib/session';
 
@@ -68,23 +75,10 @@ const checkQuery = graphql`
   }
 `;
 
-export type Part<T> = { state: 'loading' } | { state: 'failed' } | { state: 'ready'; value: T };
-
-export interface LineConflict {
-  lineIndex: number;
-  conflict: ConflictView;
-}
-
 /** What the cart check answered: the allergen conflicts, and the diet matches. */
 export interface CartCheckResult {
   conflicts: readonly LineConflict[];
   diets: readonly LineDiet[];
-}
-
-export interface Profile {
-  allergies: readonly string[];
-  avoid: readonly string[];
-  prefer: readonly string[];
 }
 
 /** How a cart line, with the options chosen on it, stands against one preferred diet (WI-TAG-004): the bakery's claim. */
@@ -197,14 +191,7 @@ export function useCheckoutAllergens(cart: Cart): CheckoutAllergens {
       .toPromise()
       .then((data) => {
         if (cancelled) return;
-        const p = data?.preferences;
-        setProfile({
-          state: 'ready',
-          value:
-            p && (p.allergies.length > 0 || p.avoid.length > 0 || p.prefer.length > 0)
-              ? { allergies: p.allergies, avoid: p.avoid, prefer: p.prefer }
-              : null,
-        });
+        setProfile({ state: 'ready', value: profileFromPreferences(data?.preferences) });
       })
       .catch((e: unknown) => {
         if (cancelled || e instanceof UnauthenticatedError) return; // an ended login is the login gate's to handle
@@ -223,20 +210,17 @@ export function useCheckoutAllergens(cart: Cart): CheckoutAllergens {
     fetchQuery<useCheckoutAllergensCheckQuery>(
       environment,
       checkQuery,
-      { lines: cart.lines.map((l) => ({ listingId: l.listingId, optionIds: l.modifiers.map((m) => m.id) })) },
+      { lines: cartCheckLines(cart.lines) },
       { fetchPolicy: 'network-only' },
     )
       .toPromise()
       .then((data) => {
         if (cancelled) return;
         const found = data?.cartCheck ?? [];
-        const conflicts: LineConflict[] = [];
+        const conflicts = lineConflictsFromCheck(found);
         const diets: LineDiet[] = [];
         // The check answers line by line, in the order asked.
-        found.forEach((line, lineIndex) => {
-          line.conflicts.forEach((conflict) => conflicts.push({ lineIndex, conflict }));
-          line.dietMatches.forEach((m) => diets.push({ lineIndex, ...m }));
-        });
+        found.forEach((line, lineIndex) => line.dietMatches.forEach((m) => diets.push({ lineIndex, ...m })));
         setCheck({ key: linesKey, part: { state: 'ready', value: { conflicts, diets } } });
       })
       .catch((e: unknown) => {

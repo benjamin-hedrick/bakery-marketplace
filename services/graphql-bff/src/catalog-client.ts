@@ -1,3 +1,4 @@
+import { callDownstream, failure, parseJson } from './downstream.ts';
 import { DownstreamError } from './errors.ts';
 import { toTraceparent, type TraceContext } from './trace.ts';
 
@@ -132,21 +133,17 @@ export function createCatalogClient(
     trace: TraceContext,
     init: { method?: string; authorization?: string; body?: string } = {},
   ): Promise<Response> {
-    try {
-      return await fetchImpl(`${baseUrl}${path}`, {
-        method: init.method ?? 'GET',
-        headers: {
-          accept: 'application/json',
-          traceparent: toTraceparent(trace),
-          ...(init.authorization ? { authorization: init.authorization } : {}),
-          ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}),
-        },
-        ...(init.body !== undefined ? { body: init.body } : {}),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-    } catch (e) {
-      throw new DownstreamError(`catalog request failed: ${e instanceof Error ? e.name : 'error'}`);
-    }
+    return callDownstream(fetchImpl, 'catalog', `${baseUrl}${path}`, {
+      method: init.method ?? 'GET',
+      headers: {
+        accept: 'application/json',
+        traceparent: toTraceparent(trace),
+        ...(init.authorization ? { authorization: init.authorization } : {}),
+        ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}),
+      },
+      ...(init.body !== undefined ? { body: init.body } : {}),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
   }
 
   return {
@@ -155,10 +152,7 @@ export function createCatalogClient(
       if (after) qs.set('after', after);
       if (hideConflicts) qs.set('hideConflicts', 'true');
       const res = await request(`/catalog/listings/for-me?${qs}`, trace, { authorization });
-      if (!res.ok) {
-        await res.body?.cancel().catch(() => undefined);
-        throw new DownstreamError(`catalog personalized list returned ${res.status}`, res.status);
-      }
+      if (!res.ok) throw await failure(res, 'catalog personalized list');
       return parse<CatalogPersonalizedPage>(res);
     },
     async getPersonalized(id, authorization, trace) {
@@ -167,10 +161,7 @@ export function createCatalogClient(
         await res.body?.cancel().catch(() => undefined);
         return null;
       }
-      if (!res.ok) {
-        await res.body?.cancel().catch(() => undefined);
-        throw new DownstreamError(`catalog personalized get returned ${res.status}`, res.status);
-      }
+      if (!res.ok) throw await failure(res, 'catalog personalized get');
       return parse<CatalogPersonalizedListing>(res);
     },
     async checkCart(lines, authorization, trace) {
@@ -179,18 +170,12 @@ export function createCatalogClient(
         authorization,
         body: JSON.stringify({ lines }),
       });
-      if (!res.ok) {
-        await res.body?.cancel().catch(() => undefined);
-        throw new DownstreamError(`catalog cart check returned ${res.status}`, res.status);
-      }
+      if (!res.ok) throw await failure(res, 'catalog cart check');
       return (await parse<{ lines: CatalogCartLineCheck[] }>(res)).lines;
     },
     async getPreferences(authorization, trace) {
       const res = await request('/catalog/preferences', trace, { authorization });
-      if (!res.ok) {
-        await res.body?.cancel().catch(() => undefined);
-        throw new DownstreamError(`catalog preferences returned ${res.status}`, res.status);
-      }
+      if (!res.ok) throw await failure(res, 'catalog preferences');
       return parse<CatalogPreferences>(res);
     },
     async savePreferences(body, authorization, trace) {
@@ -204,15 +189,12 @@ export function createCatalogClient(
         if (error.code !== 'validation_failed') throw new DownstreamError('catalog returned an unknown 422 body', 422);
         return { kind: 'rejected', errors: error.errors ?? {} };
       }
-      if (!res.ok) {
-        await res.body?.cancel().catch(() => undefined);
-        throw new DownstreamError(`catalog save preferences returned ${res.status}`, res.status);
-      }
+      if (!res.ok) throw await failure(res, 'catalog save preferences');
       return { kind: 'saved', preferences: await parse<CatalogPreferences>(res) };
     },
     async tags(kind, trace) {
       const res = await request(`/catalog/tags${kind ? `?${new URLSearchParams({ kind })}` : ''}`, trace);
-      if (!res.ok) throw new DownstreamError(`catalog tags returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'catalog tags');
       return (await parse<{ items: CatalogTag[] }>(res)).items;
     },
     async list({ limit, after, tags }, trace) {
@@ -220,22 +202,16 @@ export function createCatalogClient(
       if (after) qs.set('after', after);
       for (const tag of tags ?? []) qs.append('tag', tag);
       const res = await request(`/catalog/listings?${qs}`, trace);
-      if (!res.ok) throw new DownstreamError(`catalog list returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'catalog list');
       return parse<CatalogPage>(res);
     },
     async get(id, trace) {
       const res = await request(`/catalog/listings/${encodeURIComponent(id)}`, trace);
       if (res.status === 404) return null;
-      if (!res.ok) throw new DownstreamError(`catalog get returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'catalog get');
       return parse<CatalogListing>(res);
     },
   };
 }
 
-async function parse<T>(res: Response): Promise<T> {
-  try {
-    return (await res.json()) as T;
-  } catch {
-    throw new DownstreamError('catalog returned a body that is not JSON', res.status);
-  }
-}
+const parse = <T>(res: Response) => parseJson<T>(res, 'catalog');

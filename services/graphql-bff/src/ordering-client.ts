@@ -1,3 +1,4 @@
+import { callDownstream, failure, parseJson } from './downstream.ts';
 import { DownstreamError } from './errors.ts';
 import { toTraceparent, type TraceContext } from './trace.ts';
 
@@ -183,28 +184,23 @@ export function createOrderingClient(
     authorization?: string,
     init: { method?: string; headers?: Record<string, string>; body?: string; timeoutMs?: number } = {},
   ): Promise<Response> {
-    try {
-      return await fetchImpl(`${baseUrl}${path}`, {
-        method: init.method ?? 'GET',
-        headers: {
-          accept: 'application/json',
-          traceparent: toTraceparent(trace),
-          ...(authorization ? { authorization } : {}),
-          ...init.headers,
-        },
-        ...(init.body !== undefined ? { body: init.body } : {}),
-        signal: AbortSignal.timeout(init.timeoutMs ?? timeoutMs),
-      });
-    } catch (e) {
-      // Only the error's name is kept: a message can carry the URL, and nothing here may carry the credential.
-      throw new DownstreamError(`ordering request failed: ${e instanceof Error ? e.name : 'error'}`);
-    }
+    return callDownstream(fetchImpl, 'ordering', `${baseUrl}${path}`, {
+      method: init.method ?? 'GET',
+      headers: {
+        accept: 'application/json',
+        traceparent: toTraceparent(trace),
+        ...(authorization ? { authorization } : {}),
+        ...init.headers,
+      },
+      ...(init.body !== undefined ? { body: init.body } : {}),
+      signal: AbortSignal.timeout(init.timeoutMs ?? timeoutMs),
+    });
   }
 
   return {
     async listPaymentMethods(authorization, trace) {
       const res = await request('/ordering/payment-methods', trace, authorization);
-      if (!res.ok) throw new DownstreamError(`ordering payment methods returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'ordering payment methods');
       return parse<OrderingPaymentMethod[]>(res);
     },
     async placeOrder(body, authorization, idempotencyKey, trace) {
@@ -222,7 +218,7 @@ export function createOrderingClient(
           throw new DownstreamError('ordering returned an error body without a code', res.status);
         return { kind: 'error', status: res.status, error };
       }
-      throw new DownstreamError(`ordering checkout returned ${res.status}`, res.status);
+      throw await failure(res, 'ordering checkout');
     },
     async orderAction(id, action, authorization, trace) {
       const res = await request(`/ordering/orders/${encodeURIComponent(id)}/${action}`, trace, authorization, {
@@ -237,25 +233,24 @@ export function createOrderingClient(
         const body = await parse<{ currentStatus?: unknown }>(res);
         return { kind: 'refused', currentStatus: typeof body?.currentStatus === 'string' ? body.currentStatus : null };
       }
-      await res.body?.cancel().catch(() => undefined);
-      throw new DownstreamError(`ordering order action returned ${res.status}`, res.status);
+      throw await failure(res, 'ordering order action');
     },
     async pickupWindows(vendorId, trace) {
       const res = await request(`/ordering/pickup-windows?${new URLSearchParams({ vendorId })}`, trace);
-      if (!res.ok) throw new DownstreamError(`ordering pickup windows returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'ordering pickup windows');
       return (await parse<{ windows: OrderingWindow[] }>(res)).windows;
     },
     async getOrder(id, authorization, trace) {
       const res = await request(`/ordering/orders/${encodeURIComponent(id)}`, trace, authorization);
       if (res.status === 404) return null;
-      if (!res.ok) throw new DownstreamError(`ordering get order returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'ordering get order');
       return parse<OrderingOrder>(res);
     },
     async listOrders(query, authorization, trace) {
       const params = new URLSearchParams({ limit: String(query.limit) });
       if (query.after) params.set('after', query.after);
       const res = await request(`/ordering/orders?${params}`, trace, authorization);
-      if (!res.ok) throw new DownstreamError(`ordering list orders returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'ordering list orders');
       return parse<OrderingOrderPage>(res);
     },
     async listVendorOrders(query, authorization, trace) {
@@ -263,13 +258,13 @@ export function createOrderingClient(
       if (query.status) params.set('status', query.status);
       if (query.after) params.set('after', query.after);
       const res = await request(`/ordering/vendor/orders?${params}`, trace, authorization);
-      if (!res.ok) throw new DownstreamError(`ordering vendor orders returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'ordering vendor orders');
       return parse<OrderingVendorOrderPage>(res);
     },
     async getVendorOrder(id, authorization, trace) {
       const res = await request(`/ordering/vendor/orders/${encodeURIComponent(id)}`, trace, authorization);
       if (res.status === 404) return null;
-      if (!res.ok) throw new DownstreamError(`ordering vendor order returned ${res.status}`, res.status);
+      if (!res.ok) throw await failure(res, 'ordering vendor order');
       return parse<OrderingVendorOrder>(res);
     },
     async openVendorOrderStream(authorization, trace, signal) {
@@ -294,8 +289,7 @@ export function createOrderingClient(
       }
       if (!res.ok || !res.body) {
         signal?.removeEventListener('abort', onCallerAbort);
-        await res.body?.cancel().catch(() => undefined);
-        throw new DownstreamError(`ordering stream returned ${res.status}`, res.status);
+        throw await failure(res, 'ordering stream');
       }
       return readOrderEvents(res.body, controller, streamIdleMs, () =>
         signal?.removeEventListener('abort', onCallerAbort),
@@ -385,10 +379,4 @@ function parseOrderEvent(data: string): OrderingVendorOrder {
   return o as OrderingVendorOrder;
 }
 
-async function parse<T>(res: Response): Promise<T> {
-  try {
-    return (await res.json()) as T;
-  } catch {
-    throw new DownstreamError('ordering returned a body that is not JSON', res.status);
-  }
-}
+const parse = <T>(res: Response) => parseJson<T>(res, 'ordering');

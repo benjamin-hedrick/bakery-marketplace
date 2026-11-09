@@ -22,9 +22,10 @@
 //
 // One machine, one process each, an emulator for the database: the numbers are a local data point, not a capacity claim. Exit code 0 when no
 // order was missed and the limits held; 1 otherwise. Logs: artifacts/load/*.log.
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
+import { userToken as issuerToken } from '../lib/issuer-token.mjs';
 import { bffUrl, createStack, issuerUrl, ports } from '../lib/local-stack.mjs';
 
 const argv = process.argv.slice(2);
@@ -58,33 +59,7 @@ const summary = (xs) => ({
   max: pct(xs, 100),
 });
 
-async function userToken(userId) {
-  const verifier = randomBytes(32).toString('base64url');
-  const challenge = createHash('sha256').update(verifier).digest('base64url');
-  const redirectUri = 'http://localhost:3000/api/auth/callback';
-  const submit = await fetch(`${issuerUrl}/authorize/submit`, {
-    method: 'POST',
-    redirect: 'manual',
-    body: new URLSearchParams({
-      userId,
-      redirect_uri: redirectUri,
-      state: 's',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-    }),
-  });
-  const code = new URL(submit.headers.get('location')).searchParams.get('code');
-  const res = await fetch(`${issuerUrl}/token`, {
-    method: 'POST',
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: verifier,
-    }),
-  });
-  return (await res.json()).access_token;
-}
+const userToken = (userId) => issuerToken(issuerUrl, userId);
 
 const gql = (query, variables, token, clientAddress) =>
   fetch(bffUrl, {

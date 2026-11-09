@@ -2,6 +2,7 @@
 // bakery has listed and what the customer listed: it never says an item is safe, free of an allergen or a match.
 
 import { markFor, type ConflictView, type Mark } from './conflictText.ts';
+import { lower } from './text.ts';
 
 export interface ListingAllergens {
   /** Allergen ids on the item itself. */
@@ -10,7 +11,6 @@ export interface ListingAllergens {
   options: ReadonlyMap<string, readonly string[]>;
 }
 
-const lower = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 const label = (id: string, labels: ReadonlyMap<string, string>) => lower(labels.get(id) ?? id);
 const list = (ids: readonly string[], labels: ReadonlyMap<string, string>) =>
   ids.map((id) => label(id, labels)).join(', ');

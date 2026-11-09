@@ -6,7 +6,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./messages": "./src/messages.ts"
+    "./messages": "./src/messages.ts",
+    "./errors": "./src/errors.ts",
+    "./next-headers": "./next-headers.cjs"
   },
   "engines": {
     "node": ">=24"

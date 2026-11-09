@@ -23,15 +23,3 @@ export function checkStateChangingRequest(
   if (type !== 'application/json') return { ok: false, reason: 'content-type' };
   return { ok: true };
 }
-
-/**
- * A read-only request that nevertheless uses a resource (the push stream): refused when the browser says it comes from another site or origin.
- * A request with neither header (a command-line client, an old browser) is not a cross-site browser request, so it is let through.
- */
-export function checkSameOriginRead(headers: IncomingHttpHeaders, appOrigin: string): CsrfResult {
-  const origin = one(headers['origin']);
-  if (origin !== undefined && origin !== appOrigin) return { ok: false, reason: 'origin' };
-  const site = one(headers['sec-fetch-site']);
-  if (site !== undefined && site !== 'same-origin' && site !== 'none') return { ok: false, reason: 'fetch-site' };
-  return { ok: true };
-}

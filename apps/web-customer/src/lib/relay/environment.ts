@@ -1,5 +1,6 @@
 import { Environment, Network, RecordSource, Store } from 'relay-runtime';
 import type { FetchFunction } from 'relay-runtime';
+import { GraphQLRequestError, UnauthenticatedError } from '@bakery/web-session/errors';
 import { markLoggedOut } from '../session';
 import { exportClientSpan } from './otlp';
 
@@ -19,30 +20,7 @@ interface Tracing {
   endpoint: string | undefined;
 }
 
-/** The BFF said the login is missing or no longer accepted. The session has been ended; the page should offer to log in again. */
-export class UnauthenticatedError extends Error {
-  constructor() {
-    super('Your login has ended. Please log in again.');
-    this.name = 'UnauthenticatedError';
-  }
-}
-
-interface GraphQLErrorEntry {
-  message: string;
-  extensions?: { code?: string; reference?: string };
-}
-
-/** The BFF answered with errors (not an expected failure, which comes back as data). `reference` is the trace id to quote when asking for help. */
-export class GraphQLRequestError extends Error {
-  readonly codes: string[];
-  readonly reference: string | undefined;
-  constructor(errors: GraphQLErrorEntry[]) {
-    super(`GraphQL errors: ${errors.map((e) => e.message).join('; ')}`);
-    this.name = 'GraphQLRequestError';
-    this.codes = errors.map((e) => e.extensions?.code).filter((c): c is string => typeof c === 'string');
-    this.reference = errors.find((e) => typeof e.extensions?.reference === 'string')?.extensions?.reference;
-  }
-}
+export { GraphQLRequestError, UnauthenticatedError } from '@bakery/web-session/errors';
 
 function makeFetch(
   url: string,

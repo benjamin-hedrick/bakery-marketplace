@@ -1,6 +1,8 @@
 // The words for a customer's own conflicts (WI-CUST-006, ADR-0022). Pure, so the wording rules can be tested without a browser. The wording never says
 // an item is safe, free of an allergen or a "match": a listing with no conflict is simply not marked, and the page says what that does not mean.
 
+import { joinNames, lower } from './text.ts';
+
 export type Severity = 'ALLERGY' | 'AVOID' | '%future added value';
 export type Source = 'ITEM' | 'OPTION' | '%future added value';
 
@@ -21,11 +23,6 @@ export interface Mark {
   allergenId: string;
   optionIds: readonly string[];
 }
-
-const lower = (label: string) => label.charAt(0).toLowerCase() + label.slice(1);
-
-const joinNames = (names: readonly string[]) =>
-  names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 
 /** The sentence for one conflict. `labels` maps allergen ids to the registry's labels, `optionNames` maps option ids to their names. */
 export function markFor(

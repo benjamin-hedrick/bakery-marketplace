@@ -7,11 +7,6 @@ const toBase64Url = (bytes: Uint8Array) =>
     .replaceAll('/', '_')
     .replaceAll('=', '');
 
-/** A random url-safe string; 32 bytes gives 43 characters, the shortest valid verifier. */
-export function randomUrlSafe(bytes = 32): string {
-  return toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)));
-}
-
 /** The S256 code challenge for a verifier. */
 export async function challengeFor(verifier: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));

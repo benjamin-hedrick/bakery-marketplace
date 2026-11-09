@@ -4,7 +4,7 @@ import { describe, test } from 'node:test';
 import { defaultStorePrefix, parseEncryptionKey, sessionConfigFromEnv } from '../src/config.ts';
 import { clearCookie, readCookie, serializeCookie } from '../src/cookie.ts';
 import { createSealer } from '../src/crypto.ts';
-import { checkSameOriginRead, checkStateChangingRequest } from '../src/csrf.ts';
+import { checkStateChangingRequest } from '../src/csrf.ts';
 import { LOGIN_MESSAGES, loginMessage } from '../src/messages.ts';
 import { newKey } from './helpers.ts';
 
@@ -312,15 +312,6 @@ describe('CSRF checks', () => {
       ok: false,
       reason: 'fetch-site',
     });
-  });
-
-  test('a read-only request that uses a resource is refused only when the browser says it comes from elsewhere', () => {
-    assert.ok(checkSameOriginRead({}, ORIGIN).ok);
-    assert.ok(checkSameOriginRead({ origin: ORIGIN }, ORIGIN).ok);
-    assert.ok(checkSameOriginRead({ 'sec-fetch-site': 'same-origin' }, ORIGIN).ok);
-    assert.ok(checkSameOriginRead({ 'sec-fetch-site': 'none' }, ORIGIN).ok);
-    assert.ok(!checkSameOriginRead({ origin: 'http://evil.example' }, ORIGIN).ok);
-    assert.ok(!checkSameOriginRead({ 'sec-fetch-site': 'cross-site' }, ORIGIN).ok);
   });
 });
 
