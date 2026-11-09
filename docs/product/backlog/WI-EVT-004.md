@@ -1,4 +1,6 @@
-> **Status:** In review · evidence: `tools/BakeryMarketplace.Eventing/ChaosEventTransport.cs` and `tools/tests/BakeryMarketplace.Eventing.Tests/ChaosEventTransportTests.cs`
+> **Status:** In review · evidence: `tools/BakeryMarketplace.Chaos/ChaosEventTransport.cs` and `tools/tests/BakeryMarketplace.Eventing.Tests/ChaosEventTransportTests.cs`
+
+> **Update 2026-11-09:** the decorator moved into `BakeryMarketplace.Chaos` and now reads a scenario (seed, keyed decisions, journal, settings named as in `chaos/README.md`) instead of `ChaosEventOptions`; see `WI-CHAOS-001` and ADR-0024. `HandlerFailuresInjected`, `Seed` and the Production constructor flag are replaced by the journal and the central gate.
 
 ```
 WI ID:               EVT-004

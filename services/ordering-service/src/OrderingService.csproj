@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../tools/BakeryMarketplace.Auth/BakeryMarketplace.Auth.csproj" />
+    <ProjectReference Include="../../../tools/BakeryMarketplace.Chaos/BakeryMarketplace.Chaos.csproj" />
     <ProjectReference Include="../../../tools/BakeryMarketplace.Caching/BakeryMarketplace.Caching.csproj" />
     <ProjectReference Include="../../../tools/BakeryMarketplace.Data/BakeryMarketplace.Data.csproj" />
     <ProjectReference Include="../../../tools/BakeryMarketplace.Eventing/BakeryMarketplace.Eventing.csproj" />

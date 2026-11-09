@@ -1,6 +1,6 @@
 using BakeryMarketplace.Caching;
+using BakeryMarketplace.Chaos;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -9,22 +9,22 @@ namespace BakeryMarketplace.Caching.Tests;
 /// <summary>
 /// Tests for <see cref="ChaosCacheProvider"/> and its integration with <see cref="ResilientCacheProvider"/>.
 /// Proves the circuit-breaker fallback actually fires under injected chaos, and that
-/// the production-environment gating works as a hard startup gate. See WI-CACHE-004.
+/// the journal records the faults it injected. The production gate is tested with the runtime (BakeryMarketplace.Chaos.Tests). See WI-CACHE-004, ADR-0024.
 /// </summary>
 public sealed class ChaosCacheProviderTests
 {
-    private static (ResilientCacheProvider Resilient, LocalCacheProvider Fallback, FakeLogCollector Logger)
-        BuildSutWithChaos(ChaosOptions chaosOptions, ICacheProvider chaosInner)
+    private static (ResilientCacheProvider Resilient, LocalCacheProvider Fallback, FakeLogCollector Logger, ChaosRuntime Runtime)
+        BuildSutWithChaos(ChaosRuntime runtime, ICacheProvider chaosInner)
     {
         var memCache = new MemoryCache(new MemoryCacheOptions());
         var fallback = new LocalCacheProvider(memCache);
-        var chaos = new ChaosCacheProvider(chaosInner, chaosOptions, isProduction: false);
+        var chaos = new ChaosCacheProvider(chaosInner, runtime);
         var breaker = new PollyCircuitBreakerPolicy(exceptionsAllowedBeforeBreaking: 1,
             durationOfBreak: TimeSpan.FromMilliseconds(100));
         var logCollector = new FakeLogCollector();
         var logger = new FakeLogger<ResilientCacheProvider>(logCollector);
         var resilient = new ResilientCacheProvider(chaos, fallback, breaker, logger);
-        return (resilient, fallback, logCollector);
+        return (resilient, fallback, logCollector, runtime);
     }
 
     [Fact]
@@ -32,8 +32,7 @@ public sealed class ChaosCacheProviderTests
     {
         // Arrange — chaos with an outage window long enough that calls during the test hit it
         var innerCache = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
-        var chaosOpts = new ChaosOptions { OutageWindow = TimeSpan.FromSeconds(10) };
-        var (sut, fallback, _) = BuildSutWithChaos(chaosOpts, innerCache);
+        var (sut, fallback, _, runtime) = BuildSutWithChaos(Outage(10), innerCache);
 
         // Pre-populate fallback
         await fallback.SetAsync("key", "from-fallback");
@@ -42,6 +41,7 @@ public sealed class ChaosCacheProviderTests
         var result = await sut.GetAsync<string>("key");
 
         // Assert
+        Assert.True(runtime.Journal.Count("cache", "outage") > 0, "chaos must actually have failed the primary");
         Assert.True(result.Found, "Result should come from LocalCacheProvider fallback.");
         Assert.Equal("from-fallback", result.Value);
     }
@@ -51,8 +51,7 @@ public sealed class ChaosCacheProviderTests
     {
         // Arrange
         var innerCache = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
-        var chaosOpts = new ChaosOptions { OutageWindow = TimeSpan.FromSeconds(10) };
-        var (sut, _, logCollector) = BuildSutWithChaos(chaosOpts, innerCache);
+        var (sut, _, logCollector, _) = BuildSutWithChaos(Outage(10), innerCache);
 
         // Act
         _ = await sut.GetAsync<string>("any-key");
@@ -66,8 +65,7 @@ public sealed class ChaosCacheProviderTests
     {
         // Arrange — very short outage window (150ms) so we can verify recovery
         var innerCache = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
-        var chaosOpts = new ChaosOptions { OutageWindow = TimeSpan.FromMilliseconds(150) };
-        var (sut, _, _) = BuildSutWithChaos(chaosOpts, innerCache);
+        var (sut, _, _, runtime) = BuildSutWithChaos(Outage(0.15), innerCache);
 
         // Trip the breaker during the outage
         _ = await sut.GetAsync<string>("any-key");
@@ -80,34 +78,36 @@ public sealed class ChaosCacheProviderTests
         var result = await sut.GetAsync<string>("recovery-key");
 
         // Assert
+        Assert.True(runtime.Journal.Count("cache", "outage") > 0, "the outage must have happened before the recovery means anything");
         Assert.True(result.Found, "After outage and breaker recovery, primary should serve reads.");
     }
 
     [Fact]
-    public void ProductionGating_ThrowsAtConstruction_WhenIsProductionTrue()
+    public async Task SameSeedFailsTheSameOperations_AndAnotherSeedFailsOthers()
     {
-        // Arrange
-        var inner = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
-        var opts = new ChaosOptions { FailureRate = 1.0 };
+        async Task<string> Run(long seed)
+        {
+            var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("t", seed, "cache", ("failureRate", 0.5)));
+            var chaos = new ChaosCacheProvider(new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions())), runtime);
+            var outcome = "";
+            for (var i = 0; i < 40; i++)
+            {
+                try { await chaos.GetAsync<string>($"key-{i}"); outcome += "o"; }
+                catch (InvalidOperationException) { outcome += "x"; }
+            }
 
-        // Act & Assert — must throw immediately; structurally impossible in production
-        Assert.Throws<InvalidOperationException>(() =>
-            new ChaosCacheProvider(inner, opts, isProduction: true));
+            return outcome;
+        }
+
+        var first = await Run(5);
+        Assert.Equal(first, await Run(5));
+        Assert.NotEqual(first, await Run(6));
+        Assert.Contains('o', first);
+        Assert.Contains('x', first);
     }
 
-    [Fact]
-    public void ProductionGating_AddChaosCacheProvider_ThrowsForProductionEnvironment()
-    {
-        // Arrange
-        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
-        var inner = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
-        var opts = new ChaosOptions { FailureRate = 1.0 };
-        var prodEnv = new FakeHostEnvironment { EnvironmentName = "Production" };
-
-        // Act & Assert — the DI extension must also fail fast at registration time
-        Assert.Throws<InvalidOperationException>(() =>
-            services.AddChaosCacheProvider(inner, opts, prodEnv));
-    }
+    private static ChaosRuntime Outage(double seconds) =>
+        ChaosRuntime.ForTests(ChaosScenario.Of("outage", 1, "cache", ("outageWindowSeconds", seconds)));
 
     // ── Test doubles ─────────────────────────────────────────────────────────
 
@@ -130,14 +130,5 @@ public sealed class ChaosCacheProviderTests
         {
             _collector.Add(formatter(state, exception));
         }
-    }
-
-    private sealed class FakeHostEnvironment : IHostEnvironment
-    {
-        public string EnvironmentName { get; set; } = "Development";
-        public string ApplicationName { get; set; } = "Test";
-        public string ContentRootPath { get; set; } = Directory.GetCurrentDirectory();
-        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } =
-            new Microsoft.Extensions.FileProviders.NullFileProvider();
     }
 }

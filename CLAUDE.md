@@ -10,8 +10,8 @@ A portfolio project: a pickup-based bakery/coffee marketplace, built to show arc
 
 .NET 10 (projects target `net10.0`; the `.slnx` format needs SDK 9+). There are two solutions:
 
-- `BakeryMarketplace.slnx` (root): the 4 service projects, the 9 `tools/` projects, and the catalog, ordering and notification service test projects (`services/*/tests/`).
-- `tools/BakeryMarketplace.slnx`: the 8 library test projects under `tools/tests/` (the eighth, `Seed.Tests`, checks the seeded payment methods against ordering's token rule) (**not** the service tests; run those via their own path or the root solution).
+- `BakeryMarketplace.slnx` (root): the 4 service projects, the 10 `tools/` projects, and the catalog, ordering and notification service test projects (`services/*/tests/`).
+- `tools/BakeryMarketplace.slnx`: the 9 library test projects under `tools/tests/` (`Chaos.Tests` covers the chaos scenario library; `Seed.Tests` checks the seeded payment methods against ordering's token rule) (**not** the service tests; run those via their own path or the root solution).
 
 ```
 dotnet build BakeryMarketplace.slnx
@@ -89,7 +89,7 @@ Formatting and linting (decided 2026-10-28, `docs/process/quality-gates.md`): `d
 
 **Services (ADR-0009):** 13 bounded contexts are grouped onto 4 services (`catalog`, `ordering`, `admin`, `notification`) under a modular-monolith rule: co-located contexts still talk through the same interfaces and events they would use if they were separate.
 
-**`tools/` shared libraries follow an adapter + fallback + contract-test pattern**, and new infrastructure code should too: an interface (`ICacheProvider`, `IRepository<T>`, `IEventPublisher`/`IEventSubscriber`), a real and a local/fake implementation, a shared abstract contract-test base that every implementation inherits (e.g. `CacheProviderContractTests`), and a chaos decorator where resilience matters. Auth, secrets and payments deliberately sit outside this pattern (ADR-0005/0006/0007).
+**`tools/` shared libraries follow an adapter + fallback + contract-test pattern**, and new infrastructure code should too: an interface (`ICacheProvider`, `IRepository<T>`, `IEventPublisher`/`IEventSubscriber`), a real and a local/fake implementation, a shared abstract contract-test base that every implementation inherits (e.g. `CacheProviderContractTests`), and a chaos decorator where resilience matters (chaos is switched on by a seeded scenario file in `chaos/scenarios/`, ADR-0024, `chaos/README.md`: `Chaos__Enabled=true Chaos__Scenario=<name>`, local Development and dev only). Auth, secrets and payments deliberately sit outside this pattern (ADR-0005/0006/0007).
 
 **Caching is three layers (ADR-0014):** the server cache is ADR-0002's `ICacheProvider` + `ResilientCacheProvider` (built and tested). Relay's client store and HTTP/CDN caching are governed by ADR-0014. Authenticated or personalized responses default to `private, no-store`. Order and cart data is never cached.
 

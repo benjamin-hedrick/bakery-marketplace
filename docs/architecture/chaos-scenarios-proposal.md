@@ -1,6 +1,6 @@
 # Chaos scenarios: proposal and assessment
 
-> **Status: proposal; the lead's decisions of 2026-11-09 are recorded in section 7 and the rules are written as [ADR-0024](adr/0024-chaos-scenarios.md) (Proposed). Nothing here is built except what the "Where we are" section says is built.**
+> **Status: proposal; the lead's decisions of 2026-11-09 are recorded in section 7 and the rules are written as [ADR-0024](adr/0024-chaos-scenarios.md) (Proposed). Phase 1 was built the same day (`WI-CHAOS-001`, In review; section 8); the table in section 2 is the position before it. Nothing else here is built.**
 
 ## 1. The goal
 
@@ -126,3 +126,11 @@ So the layer replaces fault injection in the .NET services and, with the TypeScr
 4. **ADR:** a new ADR (0024, Proposed); ADR-0002 and the other records are adjusted after this settles.
 
 Open point raised by the ADR text: it uses an allow-list (local Development and the dev deployment only) instead of ADR-0002's "not Production"; the lead has not yet confirmed that.
+
+## 8. Phase 1 as built (2026-11-09, local only)
+
+`WI-CHAOS-001`: `chaos/` (scenarios, shared test vectors, README), `tools/BakeryMarketplace.Chaos` (scenario, keyed decisions, journal, gate, the events and cache layers, `AddBakeryChaos`, the response indicator), one line in each of the four services' `Program.cs` plus the cache hook in catalog and notification, 51 library tests, the decorators' tests (including 6 against real Redis), and a real-host test in ordering: an order placed during a broker outage is accepted, the response lists `events:outage`, and the outbox relay delivers the `OrderPlaced` event after the outage ends. The deployed dev stack runs as `Production`, so the gate also accepts `Deployment:Environment=dev`; the dev Terraform does not set it yet. Not built: the other layers, the TypeScript library, the BFF gate, the equivalence tests per call site, a run against the whole real stack.
+
+### Do the tests and the scenario stay consistent end to end?
+
+The scenario is specified once, by name, in configuration, and the decisions are keyed, so every process that loads the same file and seed makes the same decision for the same operation key. Within one process that holds; across processes it holds only for keys both see (an event id is the same on both sides of the broker; a request key is not). A test therefore names the scenario and asserts from the journal what was injected, rather than assuming. To run the same test with chaos off, with another scenario, or with several, the assertions that hold regardless (an order is never lost, a notification is never sent twice, the queue converges) are written against outcomes; the assertions about the fault itself are written against the journal and are skipped or inverted when the scenario does not contain that fault. Whether a scenario's name travels with a test run (an environment variable set by the runner) is a decision for phase 3.
