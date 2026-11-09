@@ -22,8 +22,13 @@ Settings ending in `Rate` are probabilities from 0 to 1; the others are non-nega
 |---|---|---|
 | `events` | `IEventPublisher`, `IEventSubscriber` | `publishFailureRate`, `dropRate`, `duplicateRate`, `reorderRate`, `handlerFailureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 | `cache` | the primary cache store, under `ResilientCacheProvider` | `failureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `repository` | every `IRepository<T>` and the `IBatchFactory` | `failureRate` (a Cosmos 503), `conflictRate` (a conditional save or batch loses its concurrency check), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `broadcast` | `IBroadcastPublisher`, `IBroadcastSubscriber` (the live vendor screens' nudge) | `failureRate`, `dropRate`, `deliveryDropRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `payment` | ordering's `IPaymentProcessor` | `failureRate` (the processor throws), `declineRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `catalog` | ordering's `ICatalogGateway` | `unavailableRate` (the `DownstreamUnavailableException` a dead catalog gives), `rejectRate` (a refused reservation), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `notification` | the notification service's `INotificationSender` | `failureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 
-Outage windows are measured from the process's chaos start. Not built yet: repository, payment, notification sender, catalog gateway, broadcast, and the TypeScript library and BFF gate (register 169).
+One scenario file serves a whole stack. A process applies the layers it has an interface for and logs, once it is up, which layers it applied and which the scenario names but it does not have (the admin service has no event transport; notification has no payment processor). A layer name that no process knows fails when the scenario is loaded. Outage windows are measured from the process's chaos start. Scenarios: `flaky-broker`, `broker-outage`, `slow-cache`, `checkout-trouble`. Not built yet: the TypeScript library and the BFF gate (register 169).
 
 ## The decision function
 

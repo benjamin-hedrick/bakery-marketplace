@@ -101,7 +101,7 @@ public sealed class ChaosScenarioTests
     }
 
     [Theory]
-    [InlineData("""{ "name": "n", "seed": 1, "layers": { "payment": { "latencyMs": 1 } } }""", "not built")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "dispatch": { "latencyMs": 1 } } }""", "not built")]
     [InlineData("""{ "name": "n", "seed": 1, "layers": { "events": { "dropRat": 0.1 } } }""", "no setting")]
     [InlineData("""{ "name": "n", "seed": 1, "layers": { "events": { "dropRate": 1.5 } } }""", "between 0 and 1")]
     [InlineData("""{ "name": "n", "seed": 1, "layers": { "events": { "latencyMs": -1 } } }""", "0 or more")]

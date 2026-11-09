@@ -113,4 +113,117 @@ public sealed class ChaosHostTests : IAsyncLifetime
 
         Assert.Contains("Chaos cannot run", failure.ToString());
     }
+
+    // ---- phase 2 (WI-CHAOS-002): the payment and catalog layers, in the real host ----
+
+    private OrderingFactory Host(string layersJson, string seed = "1") =>
+        new(_catalog, _secret, extraSettings: new Dictionary<string, string>
+        {
+            ["Chaos:Enabled"] = "true",
+            ["Chaos:Scenario"] = Scenario("{ \"name\": \"layers-test\", \"seed\": " + seed + ", \"layers\": " + layersJson + " }"),
+        });
+
+    [Fact]
+    public async Task ADeclinedPayment_IsAnswered402_TheStockIsReleased_AndTheResponseSaysChaosDeclinedIt()
+    {
+        await using var factory = Host("""{ "payment": { "declineRate": 1 } }""");
+        var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
+        using var customer = factory.CustomerClient("customer-1");
+
+        var response = await PostCheckout(customer, Checkout());
+
+        Assert.Equal(1, runtime.Journal.Count("payment", "decline")); // the fault happened
+        Assert.Contains("payment:decline", response.Headers.GetValues(ChaosIndicatorMiddleware.InjectedHeader).Single());
+        Assert.Equal(HttpStatusCode.PaymentRequired, response.StatusCode);
+        Assert.Empty(_catalog.Reservations); // the reservation made before the payment step was given back
+    }
+
+    [Fact]
+    public async Task AProcessorThatFails_LeavesNoReservationBehind_AndTheCustomerGetsAServerError()
+    {
+        await using var factory = Host("""{ "payment": { "failureRate": 1 } }""");
+        var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
+        using var customer = factory.CustomerClient("customer-1");
+
+        var response = await PostCheckout(customer, Checkout());
+
+        Assert.Equal(1, runtime.Journal.Count("payment", "failure"));
+        Assert.Empty(_catalog.Reservations); // released even though the step threw (the reserved flag in CheckoutService)
+        // What the chaos layer showed: a processor that cannot be reached is a bare 500, where a catalog that cannot be reached is a 503
+        // "downstream_unavailable". Recorded in the register (169); this test pins today's behaviour so a change to it is deliberate.
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ACatalogThatCannotBeReached_IsAnswered503DownstreamUnavailable_AndNothingIsStored()
+    {
+        await using var factory = Host("""{ "catalog": { "unavailableRate": 1 } }""");
+        var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
+        using var customer = factory.CustomerClient("customer-1");
+        var key = Seed.NewKey();
+
+        var response = await PostCheckout(customer, Checkout(), key);
+
+        Assert.True(runtime.Journal.Count("catalog", "unavailable") >= 1);
+        Assert.Contains("catalog:unavailable", response.Headers.GetValues(ChaosIndicatorMiddleware.InjectedHeader).Single());
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal("downstream_unavailable", System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.GetProperty("code").GetString());
+        Assert.Empty(_catalog.Reservations);
+        Assert.Equal(HttpStatusCode.NotFound, (await customer.GetAsync($"/ordering/orders/{OrderingService.Checkout.CheckoutService.OrderIdFor("customer-1", key)}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ARefusedReservation_IsAnswered409Conflict()
+    {
+        await using var factory = Host("""{ "catalog": { "rejectRate": 1 } }""");
+        var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
+        using var customer = factory.CustomerClient("customer-1");
+
+        var response = await PostCheckout(customer, Checkout());
+
+        Assert.Equal(1, runtime.Journal.Count("catalog", "reject"));
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Empty(_catalog.Reservations);
+    }
+
+    [Fact]
+    public async Task TheSameScenarioFailsTheSameOrdersOnEveryRun_BecauseTheOrderIdComesFromTheIdempotencyKey()
+    {
+        var keys = Enumerable.Range(0, 12).Select(i => $"fixed-key-{i}").ToList();
+
+        async Task<string> Run()
+        {
+            await using var factory = Host("""{ "catalog": { "unavailableRate": 0.5 } }""", seed: "99");
+            using var customer = factory.CustomerClient("customer-1");
+            var outcome = "";
+            foreach (var key in keys)
+            {
+                var response = await PostCheckout(customer, Checkout(), key);
+                outcome += response.StatusCode == HttpStatusCode.Created ? "o" : "x";
+            }
+
+            return outcome;
+        }
+
+        var first = await Run();
+        Assert.Equal(first, await Run());
+        Assert.Contains('o', first); // a rate of 0.5 over 12 orders neither always fails nor never fails
+        Assert.Contains('x', first);
+    }
+
+    [Fact]
+    public async Task AStoreThatFails_LeavesNoReservationBehind_AndTheCustomerGetsAServerError()
+    {
+        await using var factory = Host("""{ "repository": { "failureRate": 1 } }""");
+        var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
+        using var customer = factory.CustomerClient("customer-1");
+
+        var response = await PostCheckout(customer, Checkout());
+
+        Assert.True(runtime.Journal.Count("repository", "failure") >= 1);
+        Assert.Contains("repository:failure", response.Headers.GetValues(ChaosIndicatorMiddleware.InjectedHeader).Single());
+        Assert.Empty(_catalog.Reservations); // whatever the store did, the reservation was given back
+        // What the chaos layer showed: a failing store is a bare 500, where a catalog that cannot be reached is a 503 (register 170).
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+    }
 }

@@ -1,4 +1,5 @@
 using BakeryMarketplace.Caching;
+using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -123,15 +124,131 @@ public sealed class WiringTests
     }
 
     [Fact]
-    public void AMissingScenario_ALayerNeedingARegistrationThatIsAbsent_AndAnEnabledFlagWithNoScenario_AllFailAtStartup()
+    public void AMissingScenarioFile_AndAnEnabledFlagWithNoScenario_BothFailAtStartup()
     {
         Assert.Throws<FileNotFoundException>(() =>
             WithEvents().AddBakeryChaos(Config(("Chaos:Enabled", "true"), ("Chaos:Scenario", "no-such-scenario")), new FakeHostEnvironment("Development")));
         Assert.Throws<InvalidOperationException>(() =>
             WithEvents().AddBakeryChaos(Config(("Chaos:Enabled", "true")), new FakeHostEnvironment("Development")));
-        Assert.Throws<InvalidOperationException>(() =>
-            new ServiceCollection().AddBakeryChaos(Config(("Chaos:Enabled", "true"), ("Chaos:Scenario", "flaky-broker")), new FakeHostEnvironment("Development")));
     }
+
+    [Fact]
+    public void ALayerThatThisProcessHasNoInterfaceFor_IsReportedAsNotApplied_NotAnError()
+    {
+        // A scenario is shared by every process of a stack; the admin service has no event transport, so the events layer has nothing to wrap there.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddBakeryChaos(Config(("Chaos:Enabled", "true"), ("Chaos:Scenario", "flaky-broker")), new FakeHostEnvironment("Development"));
+        using var provider = services.BuildServiceProvider();
+
+        var plan = provider.GetRequiredService<ChaosPlan>();
+        Assert.Empty(plan.Applied);
+        Assert.Equal(["events"], plan.NotApplied);
+    }
+
+    [Fact]
+    public void ThePlanSaysWhichLayersWereWrapped_OnceTheyAreUsed()
+    {
+        var services = WithEvents();
+        services.AddBakeryChaos(Config(("Chaos:Enabled", "true"), ("Chaos:Scenario", "flaky-broker")), new FakeHostEnvironment("Development"));
+        using var provider = services.BuildServiceProvider();
+        var plan = provider.GetRequiredService<ChaosPlan>();
+        Assert.Equal(["events"], plan.NotApplied); // registered, not resolved yet
+
+        _ = provider.GetRequiredService<IEventPublisher>();
+
+        Assert.Equal(["events"], plan.Applied);
+        Assert.Empty(plan.NotApplied);
+    }
+
+    private interface IThing
+    {
+        string Name { get; }
+    }
+
+    private sealed class Thing : IThing
+    {
+        public string Name => "real";
+    }
+
+    private sealed class Wrapped(IThing inner, ChaosLayer layer) : IThing
+    {
+        public string Name => $"wrapped({inner.Name}, active={layer.Active})";
+    }
+
+    [Fact]
+    public void AddChaosLayer_WrapsAServiceOwnedInterface_OnlyWhenTheScenarioHasThatLayer()
+    {
+        var scenarioFile = Path.Combine(Path.GetTempPath(), $"chaos-{Guid.NewGuid():N}.json");
+        File.WriteAllText(scenarioFile, """{ "name": "t", "seed": 1, "layers": { "payment": { "latencyMs": 1 } } }""");
+        try
+        {
+            var on = new ServiceCollection();
+            on.AddLogging();
+            on.AddSingleton<IThing, Thing>();
+            on.AddBakeryChaos(Config(("Chaos:Enabled", "true"), ("Chaos:Scenario", scenarioFile)), new FakeHostEnvironment("Development"));
+            on.AddChaosLayer<IThing>("payment", (inner, layer) => new Wrapped(inner, layer));
+            on.AddChaosLayer<IThing>("catalog", (inner, layer) => new Wrapped(inner, layer)); // the scenario has no catalog layer: ignored
+            using var wrapped = on.BuildServiceProvider();
+            Assert.Equal("wrapped(real, active=True)", wrapped.GetRequiredService<IThing>().Name);
+            Assert.Equal(["payment"], wrapped.GetRequiredService<ChaosPlan>().Applied);
+
+            var off = new ServiceCollection();
+            off.AddSingleton<IThing, Thing>();
+            off.AddBakeryChaos(Config(), new FakeHostEnvironment("Development"));
+            off.AddChaosLayer<IThing>("payment", (inner, layer) => new Wrapped(inner, layer));
+            using var plain = off.BuildServiceProvider();
+            Assert.Equal("real", plain.GetRequiredService<IThing>().Name);
+        }
+        finally
+        {
+            File.Delete(scenarioFile);
+        }
+    }
+
+    [Fact]
+    public void AddChaosLayer_BeforeAddBakeryChaos_IsAMistakeThatFailsLoudly()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IThing, Thing>();
+        Assert.Throws<InvalidOperationException>(() => services.AddChaosLayer<IThing>("payment", (inner, layer) => new Wrapped(inner, layer)));
+    }
+
+    [Fact]
+    public void TheRepositoryAndBroadcastLayersWrapEveryRegisteredRepositoryBatchFactoryAndBroadcast()
+    {
+        var scenarioFile = Path.Combine(Path.GetTempPath(), $"chaos-{Guid.NewGuid():N}.json");
+        File.WriteAllText(scenarioFile, """{ "name": "t", "seed": 1, "layers": { "repository": { "failureRate": 0.1 }, "broadcast": { "dropRate": 0.1 } } }""");
+        try
+        {
+            var database = new FakeDatabase();
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<IRepository<Doc>>(new FakeRepository<Doc>(d => d.Id, database));
+            services.AddSingleton<IRepository<Other>>(new FakeRepository<Other>(d => d.Id, database));
+            services.AddSingleton<IBatchFactory>(new FakeBatchFactory(database));
+            var broadcast = new InMemoryBroadcast();
+            services.AddSingleton<IBroadcastPublisher>(broadcast);
+            services.AddSingleton<IBroadcastSubscriber>(broadcast);
+            services.AddBakeryChaos(Config(("Chaos:Enabled", "true"), ("Chaos:Scenario", scenarioFile)), new FakeHostEnvironment("Development"));
+            using var provider = services.BuildServiceProvider();
+
+            Assert.IsType<ChaosRepository<Doc>>(provider.GetRequiredService<IRepository<Doc>>());
+            Assert.IsType<ChaosRepository<Other>>(provider.GetRequiredService<IRepository<Other>>());
+            Assert.IsType<ChaosBatchFactory>(provider.GetRequiredService<IBatchFactory>());
+            Assert.IsType<ChaosBroadcastPublisher>(provider.GetRequiredService<IBroadcastPublisher>());
+            Assert.IsType<ChaosBroadcastSubscriber>(provider.GetRequiredService<IBroadcastSubscriber>());
+            Assert.Equal(["broadcast", "repository"], provider.GetRequiredService<ChaosPlan>().Applied);
+        }
+        finally
+        {
+            File.Delete(scenarioFile);
+        }
+    }
+
+    public sealed record Doc([property: Newtonsoft.Json.JsonProperty("id")] string Id);
+
+    public sealed record Other([property: Newtonsoft.Json.JsonProperty("id")] string Id);
 
     [Fact]
     public async Task TheCacheLayerSitsUnderTheResilientProvider_SoTheFallbackIsWhatGetsExercised()

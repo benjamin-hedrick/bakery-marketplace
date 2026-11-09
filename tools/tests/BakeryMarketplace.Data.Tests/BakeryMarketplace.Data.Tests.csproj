@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\BakeryMarketplace.Data\BakeryMarketplace.Data.csproj" />
+    <ProjectReference Include="..\..\BakeryMarketplace.Chaos\BakeryMarketplace.Chaos.csproj" />
   </ItemGroup>
 
 </Project>

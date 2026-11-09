@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace BakeryMarketplace.Chaos;
@@ -31,11 +33,15 @@ public sealed class ChaosIndicatorMiddleware(RequestDelegate next, ChaosRuntime 
 }
 
 /// <summary>Puts the indicator at the head of the pipeline and logs one loud warning naming the scenario, so a running chaos scenario cannot be missed.</summary>
-internal sealed class ChaosStartupFilter(ChaosRuntime runtime, ILoggerFactory loggers) : IStartupFilter
+internal sealed class ChaosStartupFilter(ChaosRuntime runtime, ChaosPlan plan, ILoggerFactory loggers) : IStartupFilter
 {
     public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
     {
-        ChaosLog.ScenarioOn(loggers.CreateLogger("BakeryMarketplace.Chaos"), runtime.Scenario!.Name, runtime.Scenario.Seed, string.Join(", ", runtime.Scenario.Layers.Keys));
+        var logger = loggers.CreateLogger("BakeryMarketplace.Chaos");
+        ChaosLog.ScenarioOn(logger, runtime.Scenario!.Name, runtime.Scenario.Seed, string.Join(", ", runtime.Scenario.Layers.Keys));
+        // Once the host is up, say which of the scenario's layers this process actually wrapped, so a layer that has nothing to wrap here is visible.
+        app.ApplicationServices.GetService<IHostApplicationLifetime>()?.ApplicationStarted.Register(() =>
+            ChaosLog.LayersApplied(logger, runtime.Scenario!.Name, string.Join(", ", plan.Applied), string.Join(", ", plan.NotApplied)));
         app.UseMiddleware<ChaosIndicatorMiddleware>(runtime);
         next(app);
     };

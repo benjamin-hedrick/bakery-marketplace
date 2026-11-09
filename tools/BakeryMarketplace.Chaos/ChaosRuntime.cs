@@ -65,6 +65,12 @@ public sealed class ChaosRuntime
 
     internal TimeProvider Time => _time;
 
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _attempts = new();
+
+    /// <summary>The n-th time this process has seen this operation and key for this fault (1 the first time).</summary>
+    internal int NextAttempt(string layer, string fault, string operationKey) =>
+        _attempts.AddOrUpdate($"{layer}|{fault}|{operationKey}", 1, (_, n) => n + 1);
+
     public ChaosLayer Layer(string name) => new(this, name);
 }
 
@@ -105,4 +111,36 @@ public readonly struct ChaosLayer(ChaosRuntime runtime, string name)
     }
 
     public void Record(string fault, string key) => runtime.Journal.Record(name, fault, key);
+
+    /// <summary>
+    /// What most layers do before the real call: wait (<c>latencyMs</c>), fail during the outage window, and fail at the rate given by
+    /// <paramref name="setting"/>, throwing <paramref name="failure"/>'s exception. The random failure is keyed by the operation, its key and the
+    /// attempt number of that operation and key (kept in the runtime), so a rerun of the scenario fails the same calls and a retry is judged afresh.
+    /// </summary>
+    public async Task BeforeAsync(string operation, string key, string fault, string setting, Func<Exception> failure, CancellationToken ct)
+    {
+        var opKey = $"{operation}:{key}";
+        if (Latency is { } delay)
+        {
+            Record("latency", opKey);
+            await Task.Delay(delay, ct);
+        }
+
+        if (InOutage)
+        {
+            Record("outage", opKey);
+            throw failure();
+        }
+
+        if (Setting(setting) > 0 && Inject(fault, setting, $"{opKey}:{runtime.NextAttempt(name, fault, opKey)}"))
+            throw failure();
+    }
+
+    /// <summary>Decides a fault for an operation and key, with the attempt number of that operation and key (so a retry gets a fresh decision).</summary>
+    public bool InjectAttempt(string operation, string key, string fault, string setting)
+    {
+        if (Setting(setting) <= 0) return false;
+        var opKey = $"{operation}:{key}";
+        return Inject(fault, setting, $"{opKey}:{runtime.NextAttempt(name, fault, opKey)}");
+    }
 }
