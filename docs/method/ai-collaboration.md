@@ -116,7 +116,7 @@ What has worked in this repository, stated as practice:
 
 ## What the sessions cost
 
-Each Claude Code session's cost, time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. Sixteen sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
+Each Claude Code session's cost, time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. Nineteen sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
 
 | Session | Work | Cost | API time | Wall-clock | Lines added |
 |---|---|---:|---:|---:|---:|
@@ -138,7 +138,8 @@ Each Claude Code session's cost, time and size were copied by the lead from the 
 | 2026-11-08 | the demo film's runs and the documentation pass | $11.14 | 33 min | 4 h 27 min | 1,076 |
 | 2026-11-08 (second session) | the full documentation read, code review rounds 1 and 2, the transport and outbox fixes | $33.65 | 48 min | 4 h 1 min | 1,445 |
 | 2026-11-08 into 2026-11-09 (third session) | review fixes, the full test report, the Cosmos test fix, the latency run, the Maestro runs | $18.89 | 30 min | 4 h 26 min | 1,056 |
-| **Total** | | **$257.48** | **11 h 11 min** | **80 h 38 min** | **55,073** |
+| 2026-11-09 (fourth session) | the failed CI check, the full Maestro and browser runs, the Cosmos tests, the stranger's-eye fixes, the push | $3.25 | 10 min | 4 h 22 min | 267 |
+| **Total** | | **$260.73** | **11 h 21 min** | **85 h 1 min** | **55,340** |
 
 Read it with care. A session's wall-clock time is mostly the lead reading, deciding and waiting (API time is the assistant working: about one hour in seven). Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the cost by the 85 items gives about $2.40 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
 
