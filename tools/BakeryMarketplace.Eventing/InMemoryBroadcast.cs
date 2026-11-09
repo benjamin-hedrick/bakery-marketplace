@@ -60,7 +60,7 @@ public sealed partial class InMemoryBroadcast(ILogger<InMemoryBroadcast>? logger
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A broadcast handler for channel {Channel} threw; the message was dropped for that subscription")]
-    private partial void LogHandlerFailed(ILogger logger, Exception exception, string channel);
+    private static partial void LogHandlerFailed(ILogger logger, Exception exception, string channel);
 
     private sealed class Subscription(InMemoryBroadcast owner, string channel, Func<string, CancellationToken, Task> handler) : IAsyncDisposable
     {
@@ -82,7 +82,7 @@ public sealed partial class InMemoryBroadcast(ILogger<InMemoryBroadcast>? logger
                     catch (OperationCanceledException) when (_stop.IsCancellationRequested) { return; }
                     catch (Exception e) when (e is not OperationCanceledException)
                     {
-                        owner.LogHandlerFailed(owner._logger, e, ChannelName);
+                        LogHandlerFailed(owner._logger, e, ChannelName);
                     }
                 }
             }
