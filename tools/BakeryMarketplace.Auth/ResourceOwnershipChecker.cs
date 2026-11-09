@@ -14,8 +14,7 @@ public sealed class ResourceOwnershipChecker : IResourceOwnershipChecker
         ArgumentNullException.ThrowIfNull(user);
         if (string.IsNullOrEmpty(resourceOwnerId)) return false;
 
-        var sub = user.FindFirst("sub")?.Value
-                  ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var sub = user.SubjectId();
 
         return sub is not null && sub == resourceOwnerId;
     }

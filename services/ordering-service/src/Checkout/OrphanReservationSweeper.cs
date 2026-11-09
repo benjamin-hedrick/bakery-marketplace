@@ -97,5 +97,5 @@ public sealed partial class OrphanReservationSweeper(
     private static partial void LogOrphanSweepFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Released the stock reserved for order {OrderId} (vendor {VendorId}, reserved {CreatedAt:O}): no such order exists")]
-    private static partial void LogOrphanReservationReleased(ILogger logger, string orderId, string vendorId, System.DateTimeOffset createdAt);
+    private static partial void LogOrphanReservationReleased(ILogger logger, string orderId, string vendorId, DateTimeOffset createdAt);
 }

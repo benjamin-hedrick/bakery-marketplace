@@ -5,14 +5,14 @@ using System.Text.Json;
 namespace BakeryMarketplace.Data;
 
 /// <summary>
-/// Minimal in-memory implementation of <see cref="IRepository{T}"/> for use in unit tests.
-/// This is the reference test-double; it is NOT intended for production use.
+/// In-memory implementation of <see cref="IRepository{T}"/>: the local-development backend (<c>Data:Backend=fake</c>) and the test double.
+/// It is the reference implementation the contract tests are checked against; it is NOT intended for production use.
 /// The contract-test suite runs against this implementation to validate the suite itself is sound.
 /// See ADR-0004 for the data store design.
 /// <para>
 /// Entities that implement <see cref="IETagged"/> behave like a real store: every save gives the stored copy a new ETag, reads return
 /// independent copies (so two readers cannot see each other's edits), and <see cref="SaveIfUnchangedAsync"/> enforces the precondition.
-/// Other entity types keep the original simple behaviour (the stored reference is shared).
+/// Other entity types keep the simple behaviour (the stored reference is shared).
 /// </para>
 /// </summary>
 public sealed class FakeRepository<T> : IRepository<T> where T : class

@@ -171,7 +171,7 @@ public sealed partial class CatalogGateway(IHttpClientFactory clients, ILogger<C
     private sealed record RejectedLine(string ListingId, string Reason, int? Available);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog call failed before an answer ({Client} {Method}): {Error}")]
-    private static partial void LogCatalogCallFailed(ILogger logger, string client, System.Net.Http.HttpMethod method, string error);
+    private static partial void LogCatalogCallFailed(ILogger logger, string client, HttpMethod method, string error);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog {What} answered HTTP {Status}")]
     private static partial void LogCatalogHttpError(ILogger logger, string what, int status);

@@ -25,17 +25,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     }
 
     /// <summary>A cursor is the creation time and id of the last order of the previous page, <c>{milliseconds}:{id}</c>.</summary>
-    public static bool IsValidCursor(string? after) => after is null || TryParseCursor(after, out _, out _);
-
-    private static bool TryParseCursor(string after, out long milliseconds, out string id)
-    {
-        milliseconds = 0;
-        id = "";
-        var colon = after.IndexOf(':');
-        if (colon < 1 || colon == after.Length - 1 || after.Length > 200) return false;
-        id = after[(colon + 1)..];
-        return long.TryParse(after.AsSpan(0, colon), out milliseconds);
-    }
+    public static bool IsValidCursor(string? after) => PageCursor.IsValid(after);
 
     /// <summary>
     /// The customer's own orders, the newest first (WI-CUST-007). One partition: the customer's, so another customer's orders can never appear.
@@ -55,7 +45,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
             .Select(d => (Ms: d.CreatedAt.ToUnixTimeMilliseconds(), Doc: d))
             .OrderByDescending(x => x.Ms).ThenBy(x => x.Doc.Id, StringComparer.Ordinal)
             .AsEnumerable();
-        if (after is not null && TryParseCursor(after, out var ms, out var id))
+        if (after is not null && PageCursor.TryParse(after, out var ms, out var id))
         {
             // Strictly after the cursor in the list's own order: older, or the same instant with a later id.
             ordered = ordered.Where(x => x.Ms < ms || (x.Ms == ms && string.CompareOrdinal(x.Doc.Id, id) > 0));
@@ -63,7 +53,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
 
         var page = ordered.Take(limit + 1).ToList();
         var items = page.Take(limit).ToList();
-        return (items.Select(x => x.Doc.ToOrder()).ToList(), page.Count > limit ? $"{items[^1].Ms}:{items[^1].Doc.Id}" : null);
+        return (items.Select(x => x.Doc.ToOrder()).ToList(), page.Count > limit ? PageCursor.Format(items[^1].Ms, items[^1].Doc.Id) : null);
     }
 
     /// <summary>

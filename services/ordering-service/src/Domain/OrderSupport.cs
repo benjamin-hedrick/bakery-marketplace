@@ -2,7 +2,7 @@ using BakeryMarketplace.EventSchemas;
 
 namespace OrderingService.Domain;
 
-/// <summary>Order limits. The line bounds are placeholders (first-slice contract D-5) until per-item maximums exist (open item 51).</summary>
+/// <summary>Order limits. The line bounds are the first slice's own (first-slice contract D-5) until per-item maximums exist (open item 51).</summary>
 public static class OrderRules
 {
     public const int MaxLines = 10;
@@ -17,10 +17,6 @@ public sealed class InvalidOrderTransitionException(string message) : InvalidOpe
 public sealed class OrderRuleException(string message) : InvalidOperationException(message);
 
 /// <summary>
-/// Event type names the Order aggregate raises. Strategy-specific events (<c>PickupWindowScheduled</c>, <c>OrderReadyForPickup</c>)
-/// are raised by the fulfillment strategy, not by the Order (ADR-0001, docs/architecture/order-lifecycle.md).
-/// </summary>
-/// <summary>
 /// A short reference for an order, to be read out across a counter or matched on a kitchen screen (<c>QUE-001</c>'s open point: orders carry no
 /// customer name). The last six characters of the id, upper-case. It is not unique, only distinct enough among one vendor's open orders, and
 /// it is derived, never stored, so every view agrees on it.
@@ -30,6 +26,10 @@ public static class OrderReference
     public static string For(string orderId) => (orderId.Length <= 6 ? orderId : orderId[^6..]).ToUpperInvariant();
 }
 
+/// <summary>
+/// Event type names the Order aggregate raises. Strategy-specific events (<c>PickupWindowScheduled</c>, <c>OrderReadyForPickup</c>)
+/// are raised by the fulfillment strategy, not by the Order (ADR-0001, docs/architecture/order-lifecycle.md).
+/// </summary>
 public static class OrderEventTypes
 {
     public const string Placed = "OrderPlaced";

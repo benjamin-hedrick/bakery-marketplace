@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Polly.CircuitBreaker;
 
 namespace BakeryMarketplace.Caching;
 
