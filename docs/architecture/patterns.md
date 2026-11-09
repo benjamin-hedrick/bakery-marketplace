@@ -10,7 +10,7 @@ An interface, a real implementation and a local or fake one, a shared abstract c
 |---|---|---|---|---|---|
 | `tools/BakeryMarketplace.Caching` | `ICacheProvider` | Redis provider | `LocalCacheProvider` (`IMemoryCache`) | `CacheProviderContractTests` | `ChaosCacheProvider`, and `ResilientCacheProvider` as the circuit-breaking fallback |
 | `tools/BakeryMarketplace.Data` | `IRepository<T>` | `CosmosRepository<T>` | fake repository | `RepositoryContractTests`, `BatchContractTests`, `ConcurrencyContractTests` | none |
-| `tools/BakeryMarketplace.Eventing` | `IEventPublisher`, `IEventSubscriber` | Redis Streams transport | in-memory transport | `EventTransportContractTests` | `ChaosEventTransport` (`EVT-004`): publish failures, latency, outage window, dropped and duplicate delivery, failing handlers; not wired into a service |
+| `tools/BakeryMarketplace.Eventing` | `IEventPublisher`, `IEventSubscriber` | Redis Streams transport | in-memory transport | `EventTransportContractTests` | `ChaosEventTransport` (`EVT-004`): publish failures, latency, outage window, dropped, duplicate and out-of-order delivery, failing handlers, also over Redis Streams; not wired into a service |
 | `packages/web-session` | `SessionStore` | Redis store | in-memory store | the same store contract tests for both (`tests/store-contract.ts`) | none |
 
 The notification service sends through an `INotificationSender` adapter; only a logging sender exists (no real provider). Auth, secrets and payments are deliberately outside this pattern (ADR-0005, 0006, 0007). The Event Grid transport is not built.

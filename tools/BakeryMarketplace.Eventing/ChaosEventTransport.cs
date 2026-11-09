@@ -30,6 +30,13 @@ public class ChaosEventOptions
     public double DropRate { get; set; }
 
     /// <summary>
+    /// Probability (0.0-1.0) that a published event is held back and delivered only after the next event is published, so the two
+    /// arrive in the wrong order. One event is held at a time. A held event that is never followed by another is delivered by
+    /// <see cref="ChaosEventTransport.ReleaseHeldAsync"/>. The transports promise no ordering across publishes (ADR-0003); consumers must not assume it.
+    /// </summary>
+    public double ReorderRate { get; set; }
+
+    /// <summary>
     /// Probability (0.0-1.0) that a consumer's handler fails on an event: the handler is not run and the failure is reported as the
     /// transport would see a throwing handler (an exception, or the event id in a batch's failed list), so redelivery and dead-lettering are exercised.
     /// </summary>
@@ -41,7 +48,7 @@ public class ChaosEventOptions
 
 /// <summary>
 /// Chaos decorator that injects failures into any event transport pair, for tests and local experiments (WI-EVT-004). It wraps a publisher and a
-/// subscriber (usually the same transport object) and injects publish failures, latency, an outage window, dropped and duplicate delivery and failing handlers.
+/// subscriber (usually the same transport object) and injects publish failures, latency, an outage window, dropped, duplicate and out-of-order delivery and failing handlers.
 /// Used to prove the outbox's ordered publishing and the consumers' idempotency hold up, in the same way as <c>ChaosCacheProvider</c>
 /// proves the cache fallback.
 ///
@@ -57,6 +64,8 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
     private readonly Random _random;
     private readonly object _randomLock = new();
     private readonly DateTimeOffset? _outageEnd;
+    private readonly object _heldLock = new();
+    private Func<CancellationToken, Task>? _held;
 
     public ChaosEventTransport(IEventPublisher publisher, IEventSubscriber subscriber, ChaosEventOptions options, bool isProduction)
     {
@@ -73,6 +82,11 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
         if (_options.OutageWindow.HasValue)
             _outageEnd = DateTimeOffset.UtcNow + _options.OutageWindow.Value;
     }
+
+    private int _handlerFailures;
+
+    /// <summary>How many handler failures have been injected so far, so a test or a demo can show that chaos really happened.</summary>
+    public int HandlerFailuresInjected => Volatile.Read(ref _handlerFailures);
 
     private bool Roll(double rate)
     {
@@ -94,10 +108,39 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
         if (Roll(_options.DropRate))
             return;
 
+        Func<CancellationToken, Task>? release;
+        lock (_heldLock)
+        {
+            release = _held;
+            _held = null;
+            if (release is null && Roll(_options.ReorderRate))
+            {
+                _held = token => _publisher.PublishAsync(envelope, token); // delivered after the next publish
+                return;
+            }
+        }
+
         await _publisher.PublishAsync(envelope, ct);
 
         if (Roll(_options.DuplicateRate))
             await _publisher.PublishAsync(envelope, ct);
+
+        if (release is not null)
+            await release(ct);
+    }
+
+    /// <summary>Delivers the event held back by <see cref="ChaosEventOptions.ReorderRate"/>, if there is one (for a last event with nothing after it).</summary>
+    public async Task ReleaseHeldAsync(CancellationToken ct = default)
+    {
+        Func<CancellationToken, Task>? release;
+        lock (_heldLock)
+        {
+            release = _held;
+            _held = null;
+        }
+
+        if (release is not null)
+            await release(ct);
     }
 
     public Task SubscribeAsync<T>(
@@ -108,7 +151,11 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
         _subscriber.SubscribeAsync<T>(eventType, (envelope, token) =>
         {
             if (Roll(_options.HandlerFailureRate))
+            {
+                Interlocked.Increment(ref _handlerFailures);
                 throw new InvalidOperationException($"ChaosEventTransport: simulated handler failure for event {envelope.EventId}.");
+            }
+
             return handler(envelope, token);
         }, consumerName, ct);
 
@@ -124,8 +171,15 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
             var passing = new List<DomainEventEnvelope<T>>();
             foreach (var envelope in batch)
             {
-                if (Roll(_options.HandlerFailureRate)) failed.Add(envelope.EventId);
-                else passing.Add(envelope);
+                if (Roll(_options.HandlerFailureRate))
+                {
+                    Interlocked.Increment(ref _handlerFailures);
+                    failed.Add(envelope.EventId);
+                }
+                else
+                {
+                    passing.Add(envelope);
+                }
             }
 
             if (passing.Count > 0)

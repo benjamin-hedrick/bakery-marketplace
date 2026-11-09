@@ -104,6 +104,49 @@ public sealed class ChaosEventTransportTests
     }
 
     [Fact]
+    public async Task ReorderRateOfOne_DeliversAnEventAfterTheOneThatWasPublishedLater()
+    {
+        var (chaos, _) = Build(new ChaosEventOptions { ReorderRate = 1.0 });
+        var received = await Collect(chaos);
+
+        await chaos.PublishAsync(Make("first", 1)); // held back
+        Assert.Empty(received);
+        await chaos.PublishAsync(Make("second", 2)); // goes out, then releases the first
+
+        Assert.Equal(new[] { "second", "first" }, received.Select(e => e.Payload));
+    }
+
+    [Fact]
+    public async Task ReleaseHeld_DeliversALastEventThatNothingFollowed()
+    {
+        var (chaos, _) = Build(new ChaosEventOptions { ReorderRate = 1.0 });
+        var received = await Collect(chaos);
+
+        await chaos.PublishAsync(Make("only"));
+        await chaos.ReleaseHeldAsync();
+
+        Assert.Equal(new[] { "only" }, received.Select(e => e.Payload));
+    }
+
+    [Fact]
+    public async Task ConsumerThatChecksSequenceNumbers_CopesWithOutOfOrderDelivery()
+    {
+        var (chaos, _) = Build(new ChaosEventOptions { ReorderRate = 1.0 });
+        long highest = 0;
+        var applied = new List<string>();
+        await chaos.SubscribeAsync<string>("ChaosTest", (e, _) =>
+        {
+            if (e.SequenceNumber > highest) { highest = e.SequenceNumber; applied.Add(e.Payload); } // a stale event is ignored
+            return Task.CompletedTask;
+        });
+
+        await chaos.PublishAsync(Make("v1", 1));
+        await chaos.PublishAsync(Make("v2", 2));
+
+        Assert.Equal(new[] { "v2" }, applied); // the newer state wins; v1 arrived late and was ignored
+    }
+
+    [Fact]
     public async Task HandlerFailureRateOfOne_FailsTheHandler_WithoutRunningIt()
     {
         var (chaos, _) = Build(new ChaosEventOptions { HandlerFailureRate = 1.0 });
