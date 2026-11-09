@@ -142,6 +142,12 @@ function watchSession(keepOpen: KeepOpen, onEnd: () => void): () => void {
  */
 export const MAX_REQUEST_BODY_BYTES = 64 * 1024;
 
+/**
+ * The longest the JSON route waits for the BFF to answer. Longer than the BFF's own checkout timeout (15 seconds by default), so a slow checkout is
+ * answered by the BFF, and short enough that a BFF that has stopped answering is reported as unreachable (502) instead of holding the request.
+ */
+export const UPSTREAM_TIMEOUT_MS = 30_000;
+
 class BodyTooLarge extends Error {}
 
 async function readBodyWithin(req: ProxyRequest, limit: number): Promise<Uint8Array<ArrayBuffer>> {
@@ -296,6 +302,8 @@ export async function proxyGraphql(
         ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}),
       },
       ...(hasBody ? { body: await readBodyWithin(req, MAX_REQUEST_BODY_BYTES) } : {}),
+      // Last, so the time starts after the browser's body has been read. It covers the answer's body too: a BFF that stops answering does not hold the request.
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     const body = Buffer.from(await upstream.arrayBuffer());
     res.status(upstream.status);

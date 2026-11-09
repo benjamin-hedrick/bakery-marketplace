@@ -1,3 +1,4 @@
+import { allergenNames } from '@bakery/customer-core';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { gql } from '../api';
@@ -8,12 +9,14 @@ const STOCK: Record<string, string> = { IN_STOCK: 'In stock', LOW: 'Low stock', 
 
 export function ListingsScreen(props: { onOpen: (id: string) => void }) {
   const [rows, setRows] = useState<ListingRow[] | null>(null);
+  const [labels, setLabels] = useState<ReadonlyMap<string, string>>(new Map());
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     setFailed(false);
     try {
       const data = await gql<ListingsData>(LISTINGS);
+      setLabels(new Map(data.tags.map((t) => [t.id, t.label])));
       setRows(data.listings.edges.map((e) => e.node));
     } catch {
       setFailed(true);
@@ -49,6 +52,11 @@ export function ListingsScreen(props: { onOpen: (id: string) => void }) {
             <Text style={styles.muted}>{money(item.price)}</Text>
             <Text style={styles.muted}>{STOCK[item.stock.status] ?? item.stock.status}</Text>
           </View>
+          <Text style={styles.muted} testID={`allergens-${item.name}`}>
+            {item.allergenFlags.length > 0
+              ? `Contains ${allergenNames(item.allergenFlags, labels)}`
+              : 'No allergens flagged by the bakery'}
+          </Text>
         </Pressable>
       )}
     />

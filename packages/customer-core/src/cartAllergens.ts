@@ -12,7 +12,12 @@ export interface ListingAllergens {
 }
 
 const label = (id: string, labels: ReadonlyMap<string, string>) => lower(labels.get(id) ?? id);
-const list = (ids: readonly string[], labels: ReadonlyMap<string, string>) =>
+
+/**
+ * Allergen ids as the registry's labels in a sentence ("gluten (wheat, rye, barley), milk (dairy), tree nuts"). An id the registry did not give a label for is
+ * shown as itself, never dropped. Used wherever a customer reads what an item contains, so a listing says "tree nuts" and not "tree-nut".
+ */
+export const allergenNames = (ids: readonly string[], labels: ReadonlyMap<string, string>) =>
   ids.map((id) => label(id, labels)).join(', ');
 
 /**
@@ -26,10 +31,10 @@ export function lineAllergenSentences(
 ): string[] {
   if (!listing) return [];
   const sentences: string[] = [];
-  if (listing.item.length > 0) sentences.push(`Contains ${list(listing.item, labels)}`);
+  if (listing.item.length > 0) sentences.push(`Contains ${allergenNames(listing.item, labels)}`);
   for (const option of chosen) {
     const ids = listing.options.get(option.id) ?? [];
-    if (ids.length > 0) sentences.push(`${option.name} contains ${list(ids, labels)}`);
+    if (ids.length > 0) sentences.push(`${option.name} contains ${allergenNames(ids, labels)}`);
   }
   return sentences.length > 0 ? sentences : ['No allergens flagged by the bakery'];
 }

@@ -125,6 +125,11 @@ run "the_web_app_keeps_its_sessions_in_an_internal_noeviction_redis_with_its_key
   }
 
   assert {
+    condition     = local.apps["catalog"].env["Cache__Backend"] == "redis" && local.apps["catalog"].env["Cache__Redis__ConnectionString"] == "redis-cache:${azurerm_container_app.redis_cache.ingress[0].exposed_port}"
+    error_message = "The catalog must use the cache Redis (ADR-0002) at the address and port the cache app exposes; a cache app that no service uses is wasted cost."
+  }
+
+  assert {
     condition     = contains(keys(local.apps["web"].secrets), "session-encryption-key") && local.apps["web"].secrets["session-encryption-key"] == "SESSION_ENCRYPTION_KEY"
     error_message = "The web app's session encryption key must come from the Key Vault as SESSION_ENCRYPTION_KEY, never as a literal value (ADR-0007, ADR-0019)."
   }
