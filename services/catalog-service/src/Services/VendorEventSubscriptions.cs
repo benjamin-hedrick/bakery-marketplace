@@ -42,8 +42,8 @@ public sealed partial class VendorEventSubscriptions : IHostedService
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     [LoggerMessage(Level = LogLevel.Information, Message = "VendorVerified {EventId} for {VendorId}: {Result}")]
-    private static partial void LogVendorVerified(ILogger logger, System.Guid eventId, string vendorId, string result);
+    private static partial void LogVendorVerified(ILogger logger, Guid eventId, string vendorId, string result);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "VendorSuspended {EventId} for {VendorId}: {Result}")]
-    private static partial void LogVendorSuspended(ILogger logger, System.Guid eventId, string vendorId, string result);
+    private static partial void LogVendorSuspended(ILogger logger, Guid eventId, string vendorId, string result);
 }

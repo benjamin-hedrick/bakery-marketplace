@@ -169,10 +169,10 @@ public sealed partial class OrderActionService(
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: {Action} refused in status {Status}")]
-    private static partial void LogOrderRefusedInStatus(ILogger logger, string orderId, OrderingService.Orders.OrderAction action, BakeryMarketplace.EventSchemas.OrderStatus status);
+    private static partial void LogOrderRefusedInStatus(ILogger logger, string orderId, OrderAction action, OrderStatus status);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: {Action} done, now {Status}")]
-    private static partial void LogOrderActionDone(ILogger logger, string orderId, OrderingService.Orders.OrderAction action, BakeryMarketplace.EventSchemas.OrderStatus status);
+    private static partial void LogOrderActionDone(ILogger logger, string orderId, OrderAction action, OrderStatus status);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: completion requested, waiting for the fulfillment strategy")]
     private static partial void LogOrderCompletionRequested(ILogger logger, string orderId);

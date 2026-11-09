@@ -97,6 +97,8 @@ public sealed partial class VendorOrderStreamHub(
     /// <summary>The hub's meter (for a test to listen to).</summary>
     public Meter Meter => _metrics.Meter;
 
+    // Two JSON libraries on purpose: the broadcast message carries the stored order document, which the Cosmos SDK writes with Newtonsoft, so it
+    // is read back with Newtonsoft; the message sent to the browser is camelCase System.Text.Json, like every other response of the service.
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
     // One lock per vendor, not one for the hub (register item 125). A vendor's lock makes four things atomic that must not interleave: finding or

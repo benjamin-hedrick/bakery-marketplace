@@ -54,5 +54,5 @@ public sealed partial class LogNotificationSender(ILogger<LogNotificationSender>
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Notification for order {OrderId} ({EventType}, event {EventId}) produced; not delivered to a provider")]
-    private static partial void LogNotificationProduced(ILogger logger, string orderId, string eventType, System.Guid eventId);
+    private static partial void LogNotificationProduced(ILogger logger, string orderId, string eventType, Guid eventId);
 }
