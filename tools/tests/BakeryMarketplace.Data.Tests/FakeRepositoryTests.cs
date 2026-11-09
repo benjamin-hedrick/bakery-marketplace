@@ -23,6 +23,11 @@ public sealed class FakeRepositoryTests : RepositoryContractTests<TestEntity>
 
     protected override string GetId(TestEntity entity) => entity.Id;
 
+    [Fact] public Task SaveThenGet_ReturnsEntity() => Run_SaveThenGet_ReturnsEntity();
+    [Fact] public Task GetMissingId_ReturnsNull_NotException() => Run_GetMissingId_ReturnsNull_NotException();
+    [Fact] public Task DeleteThenGet_ReturnsNull() => Run_DeleteThenGet_ReturnsNull();
+    [Fact] public Task Query_ReturnsOnlyMatchingEntitiesInPartition() => Run_Query_ReturnsOnlyMatchingEntitiesInPartition();
+
     protected override System.Linq.Expressions.Expression<Func<TestEntity, bool>> IdStartsWith(string prefix) =>
         e => e.Id.StartsWith(prefix);
 }

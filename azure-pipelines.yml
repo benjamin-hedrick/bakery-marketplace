@@ -7,7 +7,7 @@
 # Commands, gaps and the results format: docs/process/quality-gates.md.
 #
 # Gates here: secret scan, documentation checks, Android app checks, Terraform and script checks, format/style, lint, build, type-check, unit/integration tests, the real-stack walking-skeleton smoke.
-# Do not read a green run as "covered": the Cosmos adapter tests do not touch Cosmos.
+# Do not read a green run as "covered": the Cosmos adapter tests are skipped here (no emulator, no COSMOS_CONNECTION_STRING), not passed.
 #
 # The GitHub placeholder workflow (.github/workflows/ci.yml) was removed on 2026-10-28 (ADR-0015 amendment); this pipeline
 # is the only CI.
@@ -112,7 +112,7 @@ jobs:
           node scripts/ci/redis-touch.mjs assert $(Agent.TempDirectory)/redis-before 50 2>&1 | tee $(RESULTS)/redis-touch.txt
         displayName: Prove the Redis adapter tests reached real Redis (finding A8)
       - script: |
-          echo "##vso[task.logissue type=warning]Cosmos adapter tests did NOT run against Cosmos: they fall back to FakeRepository (open item #31, WI-DATA-003). A green Data.Tests run says nothing about the real adapter."
+          echo "##vso[task.logissue type=warning]Cosmos adapter tests did NOT run against Cosmos: they are skipped without COSMOS_CONNECTION_STRING (open item #31, resolved). A green Data.Tests run says nothing about the real adapter."
         displayName: Report what is not covered
       - script: |
           set -o pipefail  # a failed script must fail the step, not tee's exit code
