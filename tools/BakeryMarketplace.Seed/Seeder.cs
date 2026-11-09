@@ -24,10 +24,10 @@ public sealed class Seeder
 {
     private readonly IRepository<ListingDocument> _listings;
     private readonly IEventPublisher _events;
-    private readonly IRepository<PreferenceProfileDocument>? _profiles;
+    private readonly IRepository<PreferenceProfileDocument> _profiles;
 
-    /// <param name="profiles">Where customers' saved allergen profiles live (the catalog's <c>preferences</c> container); null seeds none.</param>
-    public Seeder(IRepository<ListingDocument> listings, IEventPublisher events, IRepository<PreferenceProfileDocument>? profiles = null)
+    /// <param name="profiles">Where customers' saved allergen profiles live (the catalog's <c>preferences</c> container).</param>
+    public Seeder(IRepository<ListingDocument> listings, IEventPublisher events, IRepository<PreferenceProfileDocument> profiles)
     {
         _listings = listings;
         _events = events;
@@ -58,18 +58,15 @@ public sealed class Seeder
         }
 
         int profilesCreated = 0, profilesUnchanged = 0;
-        if (_profiles is not null)
+        foreach (var profile in SeedData.CustomerProfiles())
         {
-            foreach (var profile in SeedData.CustomerProfiles())
+            if (await _profiles.GetAsync(profile.Id, profile.CustomerId, ct) is not null)
             {
-                if (await _profiles.GetAsync(profile.Id, profile.CustomerId, ct) is not null)
-                {
-                    profilesUnchanged++;
-                    continue;
-                }
-                await _profiles.SaveAsync(profile, profile.CustomerId, ct);
-                profilesCreated++;
+                profilesUnchanged++;
+                continue;
             }
+            await _profiles.SaveAsync(profile, profile.CustomerId, ct);
+            profilesCreated++;
         }
 
         return new SeedResult(created, unchanged, published, profilesCreated, profilesUnchanged);

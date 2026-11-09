@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using StackExchange.Redis;
 
 namespace BakeryMarketplace.Eventing;
@@ -5,10 +7,13 @@ namespace BakeryMarketplace.Eventing;
 /// <summary>
 /// Redis Pub/Sub implementation of <see cref="IBroadcastPublisher"/> and <see cref="IBroadcastSubscriber"/> (ADR-0021).
 /// Pub/Sub is fire-and-forget: a message published while a subscriber is disconnected is lost, which is the contract.
-/// Channel names are literal (no pattern matching). Each subscription reads its own ordered queue.
+/// Channel names are literal (no pattern matching). Each subscription reads its own ordered queue. A handler's exception never reaches the publisher
+/// (the contract), but it is reported at Warning level, so a failing handler is not invisible.
 /// </summary>
-public sealed class RedisBroadcast(IConnectionMultiplexer multiplexer) : IBroadcastPublisher, IBroadcastSubscriber
+public sealed partial class RedisBroadcast(IConnectionMultiplexer multiplexer, ILogger<RedisBroadcast>? logger = null) : IBroadcastPublisher, IBroadcastSubscriber
 {
+    private readonly ILogger _logger = logger ?? NullLogger<RedisBroadcast>.Instance;
+
     public async Task PublishAsync(string channel, string message, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(channel);
@@ -29,10 +34,16 @@ public sealed class RedisBroadcast(IConnectionMultiplexer multiplexer) : IBroadc
         {
             if (stop.IsCancellationRequested) return;
             try { await handler(m.Message.ToString(), stop.Token); }
-            catch { /* a handler's failure belongs to the handler */ }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                LogHandlerFailed(_logger, e, channel);
+            }
         });
         return new Handle(queue, stop);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A broadcast handler for channel {Channel} threw; the message was dropped for that subscription")]
+    private static partial void LogHandlerFailed(ILogger logger, Exception exception, string channel);
 
     private sealed class Handle(ChannelMessageQueue queue, CancellationTokenSource stop) : IAsyncDisposable
     {

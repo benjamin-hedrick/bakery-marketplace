@@ -48,7 +48,7 @@ public static class CheckoutPricing
             catch (OrderRuleException e)
             {
                 // Duplicate modifier ids, or a quantity the aggregate refuses; the shape check normally catches these first.
-                problems.Add(new CheckoutProblem(e.Message.Contains("Quantity") ? "invalid_quantity" : "invalid_modifier", field, e.Message));
+                problems.Add(new CheckoutProblem(e.Kind == OrderRuleKind.Quantity ? "invalid_quantity" : "invalid_modifier", field, e.Message));
             }
         }
 

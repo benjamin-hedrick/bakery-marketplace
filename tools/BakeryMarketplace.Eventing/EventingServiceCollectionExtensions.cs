@@ -34,9 +34,10 @@ public static class EventingServiceCollectionExtensions
             services.AddSingleton<IEventSubscriber>(sp => sp.GetRequiredService<RedisStreamsEventTransport>());
             if (withBroadcast)
             {
-                var broadcast = new RedisBroadcast(redis); // Pub/Sub on the same connection (ADR-0021)
-                services.AddSingleton<IBroadcastPublisher>(broadcast);
-                services.AddSingleton<IBroadcastSubscriber>(broadcast);
+                // Pub/Sub on the same connection (ADR-0021)
+                services.AddSingleton(sp => new RedisBroadcast(redis, sp.GetRequiredService<ILoggerFactory>().CreateLogger<RedisBroadcast>()));
+                services.AddSingleton<IBroadcastPublisher>(sp => sp.GetRequiredService<RedisBroadcast>());
+                services.AddSingleton<IBroadcastSubscriber>(sp => sp.GetRequiredService<RedisBroadcast>());
             }
             return redis;
         }
@@ -48,9 +49,9 @@ public static class EventingServiceCollectionExtensions
             services.AddSingleton<IEventSubscriber>(transport);
             if (withBroadcast)
             {
-                var broadcast = new InMemoryBroadcast();
-                services.AddSingleton<IBroadcastPublisher>(broadcast);
-                services.AddSingleton<IBroadcastSubscriber>(broadcast);
+                services.AddSingleton(sp => new InMemoryBroadcast(sp.GetRequiredService<ILoggerFactory>().CreateLogger<InMemoryBroadcast>()));
+                services.AddSingleton<IBroadcastPublisher>(sp => sp.GetRequiredService<InMemoryBroadcast>());
+                services.AddSingleton<IBroadcastSubscriber>(sp => sp.GetRequiredService<InMemoryBroadcast>());
             }
             return null;
         }

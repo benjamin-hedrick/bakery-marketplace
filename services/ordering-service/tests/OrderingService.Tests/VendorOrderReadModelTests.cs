@@ -23,7 +23,7 @@ public class VendorOrderProjectionTests
     private readonly FakeRepository<VendorOrderDocument> _documents = new(d => d.Id);
     private readonly VendorOrderProjection _projection;
 
-    public VendorOrderProjectionTests() => _projection = new VendorOrderProjection(_documents, NullLogger<VendorOrderProjection>.Instance);
+    public VendorOrderProjectionTests() => _projection = new VendorOrderProjection(_documents, NullLogger<VendorOrderProjection>.Instance, new InMemoryBroadcast());
 
     private static DomainEventEnvelope<T> Env<T>(string type, long sequence, int minute, T payload) =>
         new(Guid.NewGuid(), type, 1, T0.AddMinutes(minute), "Order", Order, sequence, payload);

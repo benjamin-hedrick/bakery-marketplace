@@ -180,6 +180,9 @@ if (dryRun) {
 // ---- the control server the Maestro flow calls (pauses, beats) -------------------------------------------------------------------------------------------
 function startControl() {
   const server = http.createServer(async (req, res) => {
+    // Local tooling, but not for a web page: refuse a request a browser sends (it always carries an Origin) or one not addressed to this server by name.
+    if (req.headers.origin !== undefined || req.headers.host !== `127.0.0.1:${CONTROL_PORT}`)
+      return res.writeHead(403).end('refused');
     const url = new URL(req.url, 'http://x');
     try {
       if (url.pathname === '/pause') await sleep(Math.min(20000, Number(url.searchParams.get('ms') ?? 0)));

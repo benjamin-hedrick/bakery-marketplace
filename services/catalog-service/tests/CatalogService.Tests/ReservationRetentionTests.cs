@@ -25,7 +25,7 @@ public sealed class ReservationRetentionTests : IAsyncLifetime
     {
         _listings = new FakeRepository<ListingDocument>(d => d.Id, _database);
         _reservations = new FakeRepository<StockReservationDocument>(d => d.Id, _database);
-        var vendors = new VendorStatusStore(_status);
+        var vendors = new VendorStatusStore(_status, TestServices.CacheOff());
         var publisher = new ListingEventPublisher(
             new InMemoryEventTransport(), _listings, Options.Create(new OutboxOptions()), TimeProvider.System, NullLogger<ListingEventPublisher>.Instance);
         _service = new ListingService(_listings, vendors, publisher, TimeProvider.System, NullLogger<ListingService>.Instance, TestServices.Tags, TestServices.TagLimits, TestServices.CacheOff());

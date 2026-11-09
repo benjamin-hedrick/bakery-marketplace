@@ -1,4 +1,6 @@
 using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace BakeryMarketplace.Eventing;
 
@@ -6,8 +8,9 @@ namespace BakeryMarketplace.Eventing;
 /// In-process implementation of <see cref="IBroadcastPublisher"/> and <see cref="IBroadcastSubscriber"/>, for tests and single-instance runs.
 /// Each subscription has its own unbounded queue and one reader, so a slow handler delays only itself.
 /// </summary>
-public sealed class InMemoryBroadcast : IBroadcastPublisher, IBroadcastSubscriber
+public sealed partial class InMemoryBroadcast(ILogger<InMemoryBroadcast>? logger = null) : IBroadcastPublisher, IBroadcastSubscriber
 {
+    private readonly ILogger _logger = logger ?? NullLogger<InMemoryBroadcast>.Instance;
     private readonly object _gate = new();
     private readonly Dictionary<string, List<Subscription>> _byChannel = new(StringComparer.Ordinal);
 
@@ -56,6 +59,9 @@ public sealed class InMemoryBroadcast : IBroadcastPublisher, IBroadcastSubscribe
         }
     }
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A broadcast handler for channel {Channel} threw; the message was dropped for that subscription")]
+    private partial void LogHandlerFailed(ILogger logger, Exception exception, string channel);
+
     private sealed class Subscription(InMemoryBroadcast owner, string channel, Func<string, CancellationToken, Task> handler) : IAsyncDisposable
     {
         private readonly CancellationTokenSource _stop = new();
@@ -74,7 +80,10 @@ public sealed class InMemoryBroadcast : IBroadcastPublisher, IBroadcastSubscribe
                 {
                     try { await handler(message, _stop.Token); }
                     catch (OperationCanceledException) when (_stop.IsCancellationRequested) { return; }
-                    catch { /* a handler's failure belongs to the handler */ }
+                    catch (Exception e) when (e is not OperationCanceledException)
+                    {
+                        owner.LogHandlerFailed(owner._logger, e, ChannelName);
+                    }
                 }
             }
             catch (OperationCanceledException) { }

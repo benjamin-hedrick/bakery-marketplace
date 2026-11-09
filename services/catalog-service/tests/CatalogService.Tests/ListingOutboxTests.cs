@@ -54,7 +54,7 @@ public sealed class ListingOutboxTests
         {
             Listings = new FakeRepository<ListingDocument>(d => d.Id, Database);
             Reservations = new FakeRepository<StockReservationDocument>(d => d.Id, Database);
-            var vendors = new VendorStatusStore(_status);
+            var vendors = new VendorStatusStore(_status, TestServices.CacheOff());
             Publisher = new ListingEventPublisher(Events, Listings, Microsoft.Extensions.Options.Options.Create(Options), Time, NullLogger<ListingEventPublisher>.Instance);
             Relay = new ListingOutboxRelay(Listings, Publisher, Microsoft.Extensions.Options.Options.Create(Options), Time, NullLogger<ListingOutboxRelay>.Instance);
             Service = new ListingService(Listings, vendors, Publisher, Time, NullLogger<ListingService>.Instance, TestServices.Tags, TestServices.TagLimits, TestServices.CacheOff());

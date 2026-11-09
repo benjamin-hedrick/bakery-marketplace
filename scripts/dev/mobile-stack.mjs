@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // WI-MOB-001: only the backend the Android app talks to, without the web app: Compose infrastructure (Redis, Cosmos emulator, mock issuer), the seed,
 // the catalog and ordering services and the GraphQL BFF, then `adb reverse` for the issuer and the BFF so a running emulator reaches them as
-// http://localhost:5100 and http://localhost:4100 (ADR-0023). The BFF runs with the declined-payment test hook ON, because the app's failure flow
-// needs it: this is a test stack, never a demo. Stops on Enter, Ctrl+C or when the file artifacts/mobile/STOP appears (for a run with no terminal),
+// http://localhost:5100 and http://localhost:4100 (ADR-0023). It is the same stack the demo and the flows use; there is no test hook or test build (a
+// declined payment is reached through seed data, WI-ORD-010). Stops on Enter, Ctrl+C or when the file artifacts/mobile/STOP appears (for a run with no terminal),
 // and tears everything down (--keep leaves Docker up). It does not boot an emulator, build or install the app: for that use
 // scripts/dev/mobile-flows.mjs (tests) or scripts/dev/mobile-demo.mjs (a demo).
 //

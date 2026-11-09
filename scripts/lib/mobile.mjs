@@ -1,8 +1,8 @@
 // The Android toolchain, emulator, app build and install, shared by scripts/dev/mobile-flows.mjs (the Maestro run), scripts/dev/mobile-demo.mjs (the
 // demo) and scripts/dev/mobile-stack.mjs (only the backend). Local only, Windows first (WI-MOB-001). JDK 17, the Android SDK with the AVD
-// bakery_pixel and, for the flows, Maestro are found at their usual places when JAVA_HOME and ANDROID_HOME are not set.
+// bakery_pixel and, for the flows, Maestro are found at their usual places when JAVA_HOME, ANDROID_HOME and MAESTRO_HOME are not set.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { root } from './local-stack.mjs';
@@ -17,9 +17,23 @@ const home = os.homedir();
 export const androidHome =
   process.env.ANDROID_HOME ??
   path.join(process.env.LOCALAPPDATA ?? path.join(home, 'AppData', 'Local'), 'Android', 'Sdk');
-const javaHome =
-  process.env.JAVA_HOME ?? (isWin ? 'C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.21.9-hotspot' : undefined);
-export const maestroBin = isWin ? 'C:\\tools\\maestro\\maestro\\bin' : path.join(home, '.maestro', 'bin');
+/** The newest JDK 17 under the usual Windows folder (the build number changes with every update), or undefined. */
+function windowsJdk17() {
+  const base = 'C:\\Program Files\\Eclipse Adoptium';
+  if (!existsSync(base)) return undefined;
+  const found = readdirSync(base)
+    .filter((d) => d.startsWith('jdk-17'))
+    .sort()
+    .at(-1);
+  return found ? path.join(base, found) : undefined;
+}
+const javaHome = process.env.JAVA_HOME ?? (isWin ? windowsJdk17() : undefined);
+// MAESTRO_HOME is the folder that holds `bin/maestro`; otherwise the usual places.
+export const maestroBin = process.env.MAESTRO_HOME
+  ? path.join(process.env.MAESTRO_HOME, 'bin')
+  : isWin
+    ? 'C:\\tools\\maestro\\maestro\\bin'
+    : path.join(home, '.maestro', 'bin');
 export const adbDir = path.join(androidHome, 'platform-tools');
 export const env = {
   ...process.env,

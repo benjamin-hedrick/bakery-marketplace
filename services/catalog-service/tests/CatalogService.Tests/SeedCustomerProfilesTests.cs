@@ -60,16 +60,6 @@ public sealed class SeedCustomerProfilesTests
     }
 
     [Fact]
-    public async Task A_seeder_given_no_profile_store_seeds_no_profiles()
-    {
-        var result = await new Seeder(_listings, _transport).SeedAsync();
-
-        Assert.Equal(0, result.ProfilesCreated);
-        Assert.Equal(0, result.ProfilesUnchanged);
-        Assert.True(result.ListingsCreated > 0);
-    }
-
-    [Fact]
     public void Every_seeded_profile_belongs_to_a_mock_customer_and_every_mock_customer_but_alice_and_nia_has_one()
     {
         var mockCustomers = MockUsers.All.Values.Where(u => u.Role == "Customer").Select(u => u.Id).Distinct().ToHashSet();
