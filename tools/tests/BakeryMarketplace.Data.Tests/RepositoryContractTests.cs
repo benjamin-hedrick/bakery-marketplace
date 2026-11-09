@@ -13,6 +13,12 @@ public abstract class RepositoryContractTests<T> where T : class
     protected abstract T CreateEntity(string id, string partitionKey);
     protected abstract string GetId(T entity);
 
+    /// <summary>
+    /// A predicate "the id starts with <paramref name="prefix"/>" written directly on the entity's id property: a query runs through the
+    /// Cosmos LINQ provider, which cannot translate a call to <see cref="GetId"/>.
+    /// </summary>
+    protected abstract System.Linq.Expressions.Expression<Func<T, bool>> IdStartsWith(string prefix);
+
     [Fact]
     public async Task SaveThenGet_ReturnsEntity()
     {
@@ -74,7 +80,7 @@ public abstract class RepositoryContractTests<T> where T : class
         var results = new List<T>();
         await foreach (var item in repo.QueryAsync(
             "query-partition",
-            q => q.Where(e => GetId(e).StartsWith("q-a"))))
+            q => q.Where(IdStartsWith("q-a"))))
         {
             results.Add(item);
         }
