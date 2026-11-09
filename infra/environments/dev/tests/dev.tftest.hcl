@@ -149,3 +149,89 @@ run "the_web_app_keeps_its_sessions_in_an_internal_noeviction_redis_with_its_key
     error_message = "The deployed web app must never be set to keep sessions in its own memory (SESSION_ALLOW_MEMORY_STORE, SESSION_REDIS_URL=memory): they would be lost on restart and not shared between instances (register item 122)."
   }
 }
+
+run "the_dotnet_services_run_as_this_environments_host_environment_and_the_mock_issuer_stays_production" {
+  command = plan
+
+  # The apps' addresses are derived from the environment's default domain, which is only known after apply; give it a value so the env lists can be read.
+  override_resource {
+    target          = azurerm_container_app_environment.env
+    override_during = plan
+    values = {
+      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/managedEnvironments/cae-bakery-dev"
+      default_domain = "test.example.io"
+    }
+  }
+
+  assert {
+    condition = alltrue([
+      for k in ["catalog", "ordering"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if e.name == "ASPNETCORE_ENVIRONMENT" && e.value == "Development"]) == 1
+    ])
+    error_message = "Dev runs the .NET services as Development (var.host_environment, decided 2026-11-09)."
+  }
+  assert {
+    condition = alltrue([
+      for k in ["catalog", "ordering"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if e.name == "Deployment__Environment" && e.value == "dev"]) == 1
+    ])
+    error_message = "The services are told which environment this is (ADR-0024 reads it)."
+  }
+  assert {
+    condition = alltrue([
+      for k in ["catalog", "ordering"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if e.name == "Cosmos__GatewayMode" && e.value == "false"]) == 1
+    ])
+    error_message = "appsettings.Development.json turns the emulator's gateway mode on; the deployed environment must keep direct mode."
+  }
+  assert {
+    condition     = length([for e in azurerm_container_app.mock[0].template[0].container[0].env : e if e.name == "ASPNETCORE_ENVIRONMENT" && e.value == "Production"]) == 1
+    error_message = "The mock issuer must stay Production: that is what makes it enforce MockOidcDeployment."
+  }
+}
+
+run "a_production_host_environment_can_be_set_per_environment" {
+  command = plan
+
+  # The apps' addresses are derived from the environment's default domain, which is only known after apply; give it a value so the env lists can be read.
+  override_resource {
+    target          = azurerm_container_app_environment.env
+    override_during = plan
+    values = {
+      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/managedEnvironments/cae-bakery-dev"
+      default_domain = "test.example.io"
+    }
+  }
+
+  variables {
+    host_environment = "Production"
+  }
+
+  assert {
+    condition     = length([for e in azurerm_container_app.apps["catalog"].template[0].container[0].env : e if e.name == "ASPNETCORE_ENVIRONMENT" && e.value == "Production"]) == 1
+    error_message = "The host environment comes from the variable."
+  }
+}
+
+run "an_unknown_host_environment_is_refused" {
+  command = plan
+
+  variables {
+    host_environment = "Staging2"
+  }
+
+  expect_failures = [var.host_environment]
+}
+
+run "a_plain_http_issuer_address_is_refused" {
+  command = plan
+
+  variables {
+    issuer_mode                 = "entra"
+    auth_authority              = "http://issuer.example.test"
+    service_auth_token_endpoint = "https://issuer.example.test/token"
+    web_auth_issuer             = "https://issuer.example.test"
+  }
+
+  expect_failures = [var.auth_authority]
+}

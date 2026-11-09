@@ -12,3 +12,6 @@ cosmos_account_name       = "cosmos-bakery-dev-abc12"
 # allowed_ips = ["203.0.113.7/32"]
 # To also allow Admin or Vendor logins (requires allowed_ips): issuer_roles = ["Customer", "Admin"]
 # Entra mode: issuer_mode = "entra", and set auth_authority, service_auth_token_endpoint and web_auth_issuer.
+
+# The .NET services run as Development in dev (a per-environment value; a UAT or production root would set Production):
+# host_environment = "Development"
