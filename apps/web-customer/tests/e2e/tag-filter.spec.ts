@@ -6,6 +6,12 @@ import { logIn, MOCK, stubIssuer } from './helpers';
 // WI-TAG-003: the home page narrowed by tags. Against the mock BFF (fixture A: the sourdough is vegan and a local favourite, the croissant is vegetarian and
 // autumn, the latte has none). The filter is in the address (?tag=a&tag=b), rendered on the server, anonymous; the chips are links.
 
+// The last test sets the customer's profile in the mock, which keeps it in memory: leave it empty, so a later spec (or a second run against the same mock)
+// does not start with it.
+test.afterEach(async () => {
+  await fetch(`${MOCK}/__control`, { method: 'POST', body: JSON.stringify({ resetPreferences: true }) });
+});
+
 const names = (page: Page) => page.getByTestId('listing').getByRole('link');
 const filter = (page: Page, label: string) =>
   page.getByTestId('tag-filter').getByRole('link', { name: new RegExp(`^${label}`) });

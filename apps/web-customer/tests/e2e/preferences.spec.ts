@@ -25,6 +25,9 @@ async function openPage(page: Page) {
   await expect(page.getByTestId('allergen-group')).toHaveCount(9);
 }
 
+// The mock keeps the customer's profile in memory: leave it empty, so a later spec (or a second run against the same mock) does not start with this one's.
+test.afterEach(() => control({ resetPreferences: true }));
+
 test.beforeEach(async ({ page }) => {
   await control({ resetPreferences: true });
   await stubIssuer(page);
