@@ -25,7 +25,7 @@ public sealed class SeederTests : IAsyncLifetime
         _service = new ListingService(
             _listings, store,
             new ListingEventPublisher(_transport, _listings, Options.Create(new OutboxOptions()), TimeProvider.System, NullLogger<ListingEventPublisher>.Instance),
-            TimeProvider.System, NullLogger<ListingService>.Instance);
+            TimeProvider.System, NullLogger<ListingService>.Instance, TestServices.Tags, TestServices.TagLimits, TestServices.CacheOff());
         _seeder = new Seeder(_listings, _transport);
     }
 

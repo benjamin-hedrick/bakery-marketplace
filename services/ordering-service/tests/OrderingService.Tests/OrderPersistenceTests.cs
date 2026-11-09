@@ -11,7 +11,7 @@ namespace OrderingService.Tests;
 /// <summary>WI-ORD-006: orders round-trip through the stored document with every field, and are stored safely.</summary>
 public class OrderPersistenceTests
 {
-    private static OrderStore NewStore() => new(new FakeRepository<OrderDocument>(d => d.Id));
+    private static OrderStore NewStore() => new(new FakeRepository<OrderDocument>(d => d.Id), new FakeRepository<VendorOrderDocument>(d => d.Id));
 
     private static void AssertSameOrder(Order expected, Order actual)
     {

@@ -38,7 +38,7 @@ public sealed class CosmosOrderStoreTests : IAsyncLifetime
         });
         var db = (await _client.CreateDatabaseIfNotExistsAsync(_database)).Database;
         var container = (await db.CreateContainerIfNotExistsAsync(new ContainerProperties("orders", "/customerId"))).Container;
-        _store = new OrderStore(new CosmosRepository<OrderDocument>(container));
+        _store = new OrderStore(new CosmosRepository<OrderDocument>(container), new FakeRepository<VendorOrderDocument>(d => d.Id));
     }
 
     public async Task DisposeAsync()

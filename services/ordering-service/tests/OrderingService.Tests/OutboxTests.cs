@@ -16,7 +16,7 @@ namespace OrderingService.Tests;
 /// <summary>WI-ORD-005: events are stored with the order, published inline, and swept up by the relay when the inline path misses.</summary>
 public class OutboxTests
 {
-    private static OrderStore NewStore() => new(new FakeRepository<OrderDocument>(d => d.Id));
+    private static OrderStore NewStore() => new(new FakeRepository<OrderDocument>(d => d.Id), new FakeRepository<VendorOrderDocument>(d => d.Id));
 
     private static Order PlacedWithEvent(string id = "order-1", string customer = "customer-1")
     {

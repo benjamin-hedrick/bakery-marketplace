@@ -28,8 +28,8 @@ public sealed class ReservationRetentionTests : IAsyncLifetime
         var vendors = new VendorStatusStore(_status);
         var publisher = new ListingEventPublisher(
             new InMemoryEventTransport(), _listings, Options.Create(new OutboxOptions()), TimeProvider.System, NullLogger<ListingEventPublisher>.Instance);
-        _service = new ListingService(_listings, vendors, publisher, TimeProvider.System, NullLogger<ListingService>.Instance);
-        _reservation = new StockReservationService(_listings, _reservations, new FakeBatchFactory(_database), vendors, publisher, TimeProvider.System);
+        _service = new ListingService(_listings, vendors, publisher, TimeProvider.System, NullLogger<ListingService>.Instance, TestServices.Tags, TestServices.TagLimits, TestServices.CacheOff());
+        _reservation = new StockReservationService(_listings, _reservations, new FakeBatchFactory(_database), vendors, publisher, TimeProvider.System, TestServices.CacheOff());
     }
 
     // Not in the constructor: blocking a test worker thread on a call that yields can deadlock the run on a machine with few cores.

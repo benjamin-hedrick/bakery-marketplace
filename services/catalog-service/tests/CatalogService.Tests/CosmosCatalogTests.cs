@@ -78,8 +78,8 @@ public sealed class CosmosCatalogTests : IAsyncLifetime
         var options = Options.Create(new OutboxOptions());
         _publisher = new ListingEventPublisher(_events, _listings, options, _time, NullLogger<ListingEventPublisher>.Instance);
         _relay = new ListingOutboxRelay(_listings, _publisher, options, _time, NullLogger<ListingOutboxRelay>.Instance);
-        _service = new ListingService(_listings, vendors, _publisher, _time, NullLogger<ListingService>.Instance);
-        _reservation = new StockReservationService(_listings, _reservations, new CosmosBatchFactory(container), vendors, _publisher, _time);
+        _service = new ListingService(_listings, vendors, _publisher, _time, NullLogger<ListingService>.Instance, TestServices.Tags, TestServices.TagLimits, TestServices.CacheOff());
+        _reservation = new StockReservationService(_listings, _reservations, new CosmosBatchFactory(container), vendors, _publisher, _time, TestServices.CacheOff());
     }
 
     public async Task DisposeAsync()

@@ -57,8 +57,8 @@ public sealed class ListingOutboxTests
             var vendors = new VendorStatusStore(_status);
             Publisher = new ListingEventPublisher(Events, Listings, Microsoft.Extensions.Options.Options.Create(Options), Time, NullLogger<ListingEventPublisher>.Instance);
             Relay = new ListingOutboxRelay(Listings, Publisher, Microsoft.Extensions.Options.Options.Create(Options), Time, NullLogger<ListingOutboxRelay>.Instance);
-            Service = new ListingService(Listings, vendors, Publisher, Time, NullLogger<ListingService>.Instance);
-            Reservation = new StockReservationService(Listings, Reservations, new FakeBatchFactory(Database), vendors, Publisher, Time);
+            Service = new ListingService(Listings, vendors, Publisher, Time, NullLogger<ListingService>.Instance, TestServices.Tags, TestServices.TagLimits, TestServices.CacheOff());
+            Reservation = new StockReservationService(Listings, Reservations, new FakeBatchFactory(Database), vendors, Publisher, Time, TestServices.CacheOff());
         }
 
         // Built asynchronously: blocking a test worker thread on a call that yields can deadlock the run on a machine with few cores.
