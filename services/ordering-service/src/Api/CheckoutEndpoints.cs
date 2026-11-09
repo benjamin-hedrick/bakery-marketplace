@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BakeryMarketplace.Auth;
 using BakeryMarketplace.EventSchemas;
 using OrderingService.Checkout;
 using OrderingService.Domain;
@@ -51,7 +52,7 @@ public static class CheckoutEndpoints
         group.MapPost("/checkout", async (
             CheckoutRequest? request, HttpContext http, CheckoutService checkout, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(http.User);
+            var customerId = http.User.SubjectId();
             if (customerId is null) return Results.Unauthorized();
 
             var result = await checkout.CheckoutAsync(customerId, http.Request.Headers[IdempotencyKeyHeader].FirstOrDefault(), request, ct);
@@ -69,7 +70,7 @@ public static class CheckoutEndpoints
         // The customer's own saved payment methods (WI-ORD-010): id and description only, never the token. The customer is always the token's subject.
         group.MapGet("/payment-methods", async (HttpContext http, PaymentMethodStore methods, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(http.User);
+            var customerId = http.User.SubjectId();
             if (customerId is null) return Results.Unauthorized();
             return Results.Ok(await methods.ListAsync(customerId, ct));
         });
@@ -77,7 +78,7 @@ public static class CheckoutEndpoints
         // The customer's own order. Another customer's order, and one that does not exist, look the same (404, never 403).
         group.MapGet("/orders/{id}", async (string id, HttpContext http, OrderStore orders, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(http.User);
+            var customerId = http.User.SubjectId();
             if (customerId is null) return Results.Unauthorized();
 
             var stored = await orders.GetAsync(id, customerId, ct);
@@ -89,7 +90,7 @@ public static class CheckoutEndpoints
         // The customer's own orders, newest first, one page after the cursor (WI-CUST-007). The customer is always the token's subject.
         group.MapGet("/orders", async (int? limit, string? after, HttpContext http, OrderStore orders, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(http.User);
+            var customerId = http.User.SubjectId();
             if (customerId is null) return Results.Unauthorized();
 
             if (!OrderStore.IsValidCursor(after))
@@ -109,9 +110,6 @@ public static class CheckoutEndpoints
 
     public const int DefaultPageSize = 20;
     public const int MaxPageSize = 100;
-
-    internal static string? SubjectOf(ClaimsPrincipal user) =>
-        user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     private static IResult Error(int status, CheckoutResult r)
     {

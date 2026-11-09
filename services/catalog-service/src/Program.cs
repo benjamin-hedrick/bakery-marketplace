@@ -27,17 +27,10 @@ builder.Services.AddSingleton<IAuthorizationHandler, ListingOwnershipHandler>();
 // container and are separated by partition: listings by vendorId, vendor status in one reserved partition.
 if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringComparison.OrdinalIgnoreCase))
 {
-    // The local emulator only works over the gateway; deployed environments keep the SDK default (direct mode).
-    var cosmosOptions = new CosmosClientOptions();
-    if (builder.Configuration.GetValue<bool>("Cosmos:GatewayMode"))
-    {
-        cosmosOptions.ConnectionMode = ConnectionMode.Gateway;
-        cosmosOptions.LimitToEndpoint = true;
-    }
-    var cosmos = new CosmosClient(
+    var cosmos = CosmosClientFactory.Create(
         builder.Configuration["Cosmos:ConnectionString"]
             ?? throw new InvalidOperationException("Cosmos:ConnectionString is required when Data:Backend=cosmos."),
-        cosmosOptions);
+        builder.Configuration.GetValue<bool>("Cosmos:GatewayMode"));
     var database = builder.Configuration["Cosmos:Database"] ?? "bakery";
 
     // Local-development convenience only (enabled in appsettings.Development.json). Deployed environments get their

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BakeryMarketplace.Auth;
 using CatalogService.Api;
 using CatalogService.Services;
 using CatalogService.Tags;
@@ -46,7 +47,7 @@ public static class PreferenceEndpoints
 
         group.MapGet("/", async (ClaimsPrincipal user, HttpContext http, PreferenceService service, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(user);
+            var customerId = user.SubjectId();
             if (customerId is null) return Results.Unauthorized();
 
             http.Response.Headers.CacheControl = "private, no-store";
@@ -55,7 +56,7 @@ public static class PreferenceEndpoints
 
         group.MapPut("/", async (ClaimsPrincipal user, HttpContext http, PreferenceService service, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(user);
+            var customerId = user.SubjectId();
             if (customerId is null) return Results.Unauthorized();
 
             http.Response.Headers.CacheControl = "private, no-store";
@@ -74,7 +75,7 @@ public static class PreferenceEndpoints
             ClaimsPrincipal user, HttpContext http, IPreferenceReader reader, ListingService listings,
             ITagRegistry registry, TimeProvider time, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(user);
+            var customerId = user.SubjectId();
             if (customerId is null) return Results.Unauthorized();
 
             http.Response.Headers.CacheControl = "private, no-store";
@@ -112,31 +113,23 @@ public static class PreferenceEndpoints
 
     private static Dictionary<string, string[]> ValidateCart(CartCheckRequest request)
     {
-        var errors = new Dictionary<string, List<string>>();
-        void Add(string field, string message)
-        {
-            if (!errors.TryGetValue(field, out var list)) errors[field] = list = new List<string>();
-            list.Add(message);
-        }
+        var errors = new ValidationErrors();
 
-        if (request.Lines is null) Add("lines", "Required.");
-        else if (request.Lines.Count > MaxCartLines) Add("lines", $"At most {MaxCartLines} lines.");
+        if (request.Lines is null) errors.Add("lines", "Required.");
+        else if (request.Lines.Count > MaxCartLines) errors.Add("lines", $"At most {MaxCartLines} lines.");
         else
         {
             for (var i = 0; i < request.Lines.Count; i++)
             {
                 var line = request.Lines[i];
                 var key = $"lines[{i}]";
-                if (line is null) { Add(key, "Required."); continue; }
-                if (string.IsNullOrWhiteSpace(line.ListingId) || line.ListingId.Length > MaxIdLength) Add($"{key}.listingId", "A listing id is required.");
-                if (line.OptionIds is { Count: > MaxOptionsPerLine }) Add($"{key}.optionIds", $"At most {MaxOptionsPerLine} options.");
+                if (line is null) { errors.Add(key, "Required."); continue; }
+                if (string.IsNullOrWhiteSpace(line.ListingId) || line.ListingId.Length > MaxIdLength) errors.Add($"{key}.listingId", "A listing id is required.");
+                if (line.OptionIds is { Count: > MaxOptionsPerLine }) errors.Add($"{key}.optionIds", $"At most {MaxOptionsPerLine} options.");
                 else if (line.OptionIds?.Any(o => string.IsNullOrWhiteSpace(o) || o.Length > MaxIdLength) == true)
-                    Add($"{key}.optionIds", "Option ids must not be empty.");
+                    errors.Add($"{key}.optionIds", "Option ids must not be empty.");
             }
         }
-        return errors.ToDictionary(e => e.Key, e => e.Value.ToArray());
+        return errors.ToDictionary();
     }
-
-    private static string? SubjectOf(ClaimsPrincipal user) =>
-        user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 }

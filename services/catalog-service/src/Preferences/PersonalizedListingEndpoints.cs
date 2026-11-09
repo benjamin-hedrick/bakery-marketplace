@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BakeryMarketplace.Auth;
 using CatalogService.Api;
 using CatalogService.Services;
 using CatalogService.Tags;
@@ -29,7 +30,7 @@ public static class PersonalizedListingEndpoints
             int? limit, string? after, bool? hideConflicts, ClaimsPrincipal user, HttpContext http,
             ListingService listings, IPreferenceReader reader, TagProjector tags, ITagRegistry registry, TimeProvider time, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(user);
+            var customerId = user.SubjectId();
             if (customerId is null) return Results.Unauthorized();
 
             http.Response.Headers.CacheControl = "private, no-store";
@@ -47,7 +48,7 @@ public static class PersonalizedListingEndpoints
             string id, ClaimsPrincipal user, HttpContext http, ListingService listings, IPreferenceReader reader, TagProjector tags,
             ITagRegistry registry, TimeProvider time, CancellationToken ct) =>
         {
-            var customerId = SubjectOf(user);
+            var customerId = user.SubjectId();
             if (customerId is null) return Results.Unauthorized();
 
             http.Response.Headers.CacheControl = "private, no-store";
@@ -63,7 +64,4 @@ public static class PersonalizedListingEndpoints
 
         return app;
     }
-
-    private static string? SubjectOf(ClaimsPrincipal user) =>
-        user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 }

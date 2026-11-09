@@ -1,4 +1,5 @@
 using BakeryMarketplace.Data;
+using CatalogService.Api;
 using CatalogService.Tags;
 
 namespace CatalogService.Preferences;
@@ -49,25 +50,20 @@ public sealed class PreferenceService(IRepository<PreferenceProfileDocument> pro
 
     private Dictionary<string, string[]> Validate(PreferencesRequest? request, DateOnly today)
     {
-        var errors = new Dictionary<string, List<string>>();
-        void Add(string field, string message)
-        {
-            if (!errors.TryGetValue(field, out var list)) errors[field] = list = new List<string>();
-            list.Add(message);
-        }
+        var errors = new ValidationErrors();
 
         var allowed = tags.PublicOn(today, TagKind.Allergen).Select(t => t.Id).ToList();
         var allowedSet = allowed.ToHashSet(StringComparer.Ordinal);
 
         void CheckList(string field, List<string?>? values)
         {
-            if (values is null) { Add(field, "Required (an empty list clears it)."); return; }
+            if (values is null) { errors.Add(field, "Required (an empty list clears it)."); return; }
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var value in values)
             {
                 if (value is null || !allowedSet.Contains(value))
-                    Add(field, $"'{Trim(value)}' is not an allergen in the list. Use one of: {string.Join(", ", allowed)}.");
-                else if (!seen.Add(value)) Add(field, $"'{value}' appears more than once.");
+                    errors.Add(field, $"'{Trim(value)}' is not an allergen in the list. Use one of: {string.Join(", ", allowed)}.");
+                else if (!seen.Add(value)) errors.Add(field, $"'{value}' appears more than once.");
             }
         }
 
@@ -83,8 +79,8 @@ public sealed class PreferenceService(IRepository<PreferenceProfileDocument> pro
             foreach (var value in prefer)
             {
                 if (value is null || !dietSet.Contains(value))
-                    Add("prefer", $"'{Trim(value)}' is not a diet in the list. Use one of: {string.Join(", ", diets)}.");
-                else if (!seen.Add(value)) Add("prefer", $"'{value}' appears more than once.");
+                    errors.Add("prefer", $"'{Trim(value)}' is not a diet in the list. Use one of: {string.Join(", ", diets)}.");
+                else if (!seen.Add(value)) errors.Add("prefer", $"'{value}' appears more than once.");
             }
         }
 
@@ -92,10 +88,10 @@ public sealed class PreferenceService(IRepository<PreferenceProfileDocument> pro
         if (request?.Allergies is { } a && request.Avoid is { } v)
         {
             foreach (var both in a.Where(x => x is not null && allowedSet.Contains(x)).Intersect(v.Where(x => x is not null && allowedSet.Contains(x))))
-                Add("avoid", $"'{both}' is already in allergies; an allergen is one or the other.");
+                errors.Add("avoid", $"'{both}' is already in allergies; an allergen is one or the other.");
         }
 
-        return errors.ToDictionary(e => e.Key, e => e.Value.ToArray());
+        return errors.ToDictionary();
     }
 
     /// <summary>A value echoed in an error is shortened, so an oversize value cannot make the response large.</summary>

@@ -108,13 +108,17 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
         return saved is null ? null : new StoredOrder(order, saved);
     }
 
+    /// <summary>A document for <paramref name="order"/> that keeps the idempotency key, request fingerprint and payment details of the stored one.</summary>
+    private static OrderDocument Rebuild(StoredOrder current, Order order) => OrderDocument.From(
+        order, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
+
     /// <summary>
     /// Stores the order's new state and the events it raised since it was read, only if nobody changed the stored order meanwhile. Events
     /// already pending stay pending.
     /// </summary>
     public async Task<StoredOrder?> TryUpdateAsync(StoredOrder current, Order updated, CancellationToken ct = default)
     {
-        var document = OrderDocument.From(updated, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
+        var document = Rebuild(current, updated);
         document.ETag = current.Document.ETag;
         document.ParkedAt = current.Document.ParkedAt;
         document.SetOutbox(current.Document.Outbox.Concat(NewEntries(updated)));
@@ -128,7 +132,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     /// </summary>
     public async Task<StoredOrder?> TryMarkPublishedAsync(StoredOrder current, IReadOnlyCollection<string> publishedEventIds, CancellationToken ct = default)
     {
-        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
+        var document = Rebuild(current, current.Order);
         document.ETag = current.Document.ETag;
         document.ParkedAt = current.Document.ParkedAt;
         document.SetOutbox(current.Document.Outbox.Where(e => !publishedEventIds.Contains(e.EventId)));
@@ -147,7 +151,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
         if (current.Document.Outbox.All(e => e.EventId != eventId)) return current;
 
         var entries = current.Document.Outbox.Select(e => Clone(e, e.EventId == eventId ? e.Attempts + 1 : e.Attempts)).ToList();
-        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
+        var document = Rebuild(current, current.Order);
         document.ETag = current.Document.ETag;
         document.ParkedAt = current.Document.ParkedAt
             ?? (entries.Any(e => e.Attempts >= maxAttempts) ? now.ToUnixTimeMilliseconds() : null);
@@ -164,7 +168,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     {
         if (current.Document.ParkedAt is null) return current;
 
-        var document = OrderDocument.From(current.Order, current.Document.IdempotencyKey, current.Document.RequestFingerprint, current.Document.PaymentMethodId, current.Document.PaymentReference);
+        var document = Rebuild(current, current.Order);
         document.ETag = current.Document.ETag;
         document.SetOutbox(current.Document.Outbox.Select(e => Clone(e, 0)));
         var saved = await documents.SaveIfUnchangedAsync(document, current.Order.CustomerId, ct);

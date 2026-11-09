@@ -1,3 +1,4 @@
+using BakeryMarketplace.Auth;
 using OrderingService.Orders;
 
 namespace OrderingService.Api;
@@ -29,7 +30,7 @@ public static class OrderActionEndpoints
 
     private static async Task<IResult> Act(string id, OrderAction action, HttpContext http, OrderActionService actions, CancellationToken ct)
     {
-        var subject = CheckoutEndpoints.SubjectOf(http.User);
+        var subject = http.User.SubjectId();
         if (subject is null) return Results.Unauthorized();
 
         var caller = new OrderCaller(subject, http.User.HasClaim("roles", "Vendor"), http.User.HasClaim("roles", "Customer"));

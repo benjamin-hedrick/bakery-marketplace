@@ -1,3 +1,4 @@
+using BakeryMarketplace.Auth;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.EventSchemas;
 using OrderingService.Checkout;
@@ -66,7 +67,7 @@ public static class VendorOrderEndpoints
     {
         app.MapGet("/ordering/vendor/orders", async (string? status, int? limit, string? after, HttpContext http, VendorOrderReader reader, ListingNameCache names, CancellationToken ct) =>
         {
-            var vendorId = CheckoutEndpoints.SubjectOf(http.User);
+            var vendorId = http.User.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
 
             var filter = VendorOrderReader.ParseStatus(status);
@@ -94,7 +95,7 @@ public static class VendorOrderEndpoints
         // that does not exist or has not reached the read model yet, look the same (404).
         app.MapGet("/ordering/vendor/orders/{id}", async (string id, HttpContext http, IRepository<VendorOrderDocument> documents, ListingNameCache names, CancellationToken ct) =>
         {
-            var vendorId = CheckoutEndpoints.SubjectOf(http.User);
+            var vendorId = http.User.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
 
             var doc = await documents.GetAsync(id, vendorId, ct);

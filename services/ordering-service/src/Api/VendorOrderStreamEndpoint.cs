@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using System.Text;
+using BakeryMarketplace.Auth;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 using OrderingService.Checkout;
@@ -23,7 +24,7 @@ public static partial class VendorOrderStreamEndpoint
             HttpContext http, VendorOrderStreamHub hub, IOptions<VendorStreamOptions> options, IHostApplicationLifetime lifetime, ILoggerFactory loggers) =>
         {
             var logger = loggers.CreateLogger("OrderingService.VendorStream");
-            var vendorId = CheckoutEndpoints.SubjectOf(http.User);
+            var vendorId = http.User.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
 
             var o = options.Value;
