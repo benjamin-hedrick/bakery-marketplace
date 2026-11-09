@@ -1,4 +1,4 @@
-import { ADD_REFUSAL_TEXT, addLine, decideAdd } from '@bakery/customer-core';
+import { ADD_REFUSAL_TEXT, addLine, allergenNames, decideAdd } from '@bakery/customer-core';
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { gql } from '../api';
@@ -15,6 +15,7 @@ const MESSAGES: Record<string, string> = {
 
 export function DetailScreen(props: { id: string; onAdded: () => void }) {
   const [data, setData] = useState<ListingDetailData['listing'] | undefined>(undefined);
+  const [labels, setLabels] = useState<ReadonlyMap<string, string>>(new Map());
   const [failed, setFailed] = useState(false);
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
@@ -23,7 +24,10 @@ export function DetailScreen(props: { id: string; onAdded: () => void }) {
 
   useEffect(() => {
     gql<ListingDetailData>(LISTING, { id: props.id })
-      .then((d) => setData(d.listing))
+      .then((d) => {
+        setLabels(new Map(d.tags.map((t) => [t.id, t.label])));
+        setData(d.listing);
+      })
       .catch(() => setFailed(true));
   }, [props.id]);
 
@@ -71,6 +75,11 @@ export function DetailScreen(props: { id: string; onAdded: () => void }) {
       {data.description ? <Text style={styles.text}>{data.description}</Text> : null}
       <Text style={styles.text}>{money(data.price)}</Text>
       <Text style={styles.muted}>{soldOut ? 'Sold out' : data.stock.status === 'LOW' ? 'Low stock' : 'In stock'}</Text>
+      <Text style={styles.text} testID="detail-allergens">
+        {data.allergenFlags.length > 0
+          ? `Contains ${allergenNames(data.allergenFlags, labels)}`
+          : 'No allergens flagged by the bakery'}
+      </Text>
 
       {data.modifiers.length > 0 ? <Text style={styles.title}>Options</Text> : null}
       {data.modifiers.map((m) => {
@@ -80,7 +89,7 @@ export function DetailScreen(props: { id: string; onAdded: () => void }) {
             key={m.id}
             testID={`option-${m.name}`}
             kind={on ? 'primary' : 'plain'}
-            label={`${on ? '✓ ' : ''}${m.name}${m.priceDelta.cents ? ` (+${money(m.priceDelta)})` : ''}`}
+            label={`${on ? '✓ ' : ''}${m.name}${m.priceDelta.cents ? ` (+${money(m.priceDelta)})` : ''}${m.allergens.length > 0 ? ` — contains ${allergenNames(m.allergens, labels)}` : ''}`}
             onPress={() =>
               setChosen((c) => (c.has(m.id) ? new Set([...c].filter((x) => x !== m.id)) : new Set([...c, m.id])))
             }

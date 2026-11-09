@@ -53,8 +53,12 @@ locals {
       name     = "catalog"
       port     = 5200
       external = false
-      env      = local.dotnet_env
-      secrets  = { "cosmos-connection-string" = "Cosmos__ConnectionString" }
+      # The listing cache (ADR-0002, WI-CAT-003) uses the cache Redis below; if it is unreachable the catalog serves from its in-process fallback.
+      env = merge(local.dotnet_env, {
+        Cache__Backend                 = "redis"
+        Cache__Redis__ConnectionString = "redis-cache:6380"
+      })
+      secrets = { "cosmos-connection-string" = "Cosmos__ConnectionString" }
     }
     ordering = {
       name     = "ordering"
@@ -306,7 +310,7 @@ resource "azurerm_container_app" "redis_cache" {
   }
 
   template {
-    min_replicas = 1 # sessions live in memory; scaling to zero would log everyone out
+    min_replicas = 1 # a cache that scaled to zero would start cold on every wake-up; it holds nothing that cannot be rebuilt
     max_replicas = 1
 
     container {
@@ -435,7 +439,7 @@ resource "azurerm_container_app" "apps" {
     ignore_changes = [template[0].container[0].image]
   }
 
-  depends_on = [azurerm_container_app.redis, azurerm_container_app.mock]
+  depends_on = [azurerm_container_app.redis, azurerm_container_app.redis_cache, azurerm_container_app.redis_sessions, azurerm_container_app.mock]
 }
 
 # ---- The mock issuer (register item 102; chosen for the first deployed dev environment on 2026-10-31) -------------------------

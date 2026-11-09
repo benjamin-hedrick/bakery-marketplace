@@ -50,6 +50,7 @@ public class SecretValidatorTests
 
         Assert.Equal("Auth:Authority", ex.SecretName);
         Assert.Contains("not a valid absolute URI", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("not-a-valid-url", ex.Message, StringComparison.Ordinal); // a URI setting can carry a credential: the value is never in the message
     }
 
     [Fact]

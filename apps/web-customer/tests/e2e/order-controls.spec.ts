@@ -109,7 +109,7 @@ test('a sold-out item has no way to be ordered', async ({ browser }) => {
   await expect(page.getByTestId('not-orderable')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add to order' })).toHaveCount(0);
   // Its options and their allergens are still shown: dietary-safety information does not depend on availability.
-  await expect(page.getByTestId('options-readonly')).toContainText('Icing (+$0.50) — contains dairy');
+  await expect(page.getByTestId('options-readonly')).toContainText('Icing (+$0.50) — contains milk (dairy)');
   await expect(page.getByRole('checkbox')).toHaveCount(0);
   await context.close();
 });

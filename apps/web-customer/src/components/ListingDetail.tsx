@@ -2,7 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { graphql, useLazyLoadQuery } from 'react-relay';
 import type { ListingDetailQuery } from '../__generated__/ListingDetailQuery.graphql';
-import { formatMoney } from '@bakery/customer-core';
+import { allergenNames, formatMoney } from '@bakery/customer-core';
 import { AddToOrder } from './AddToOrder';
 import { ConflictMarks } from './ConflictMarks';
 import { dietListText, dietOptionWarnings } from '@bakery/customer-core';
@@ -12,6 +12,10 @@ import { usePersonalizedListing } from './usePersonalization';
 
 export const listingDetailQuery = graphql`
   query ListingDetailQuery($id: ID!) {
+    allergenTags: tags(kind: ALLERGEN) {
+      id
+      label
+    }
     listing(id: $id) {
       id
       vendorId
@@ -51,7 +55,9 @@ export const listingDetailQuery = graphql`
 `;
 
 export function ListingDetail({ id }: { id: string }) {
-  const { listing } = useLazyLoadQuery<ListingDetailQuery>(listingDetailQuery, { id });
+  const { listing, allergenTags } = useLazyLoadQuery<ListingDetailQuery>(listingDetailQuery, { id });
+  // The registry's labels for the allergen flags (the page says "tree nuts", not the id "tree-nut").
+  const allergenLabels = new Map(allergenTags.map((t) => [t.id, t.label]));
   // The customer's own conflicts for this item and its options (WI-CUST-006); null for everyone else, and the page is then as it was.
   const personal = usePersonalizedListing(id);
   const itemMarks = personal?.marks.filter((m) => m.optionIds.length === 0) ?? [];
@@ -82,7 +88,7 @@ export function ListingDetail({ id }: { id: string }) {
         <StockBadge status={listing.stock.status} />
         {listing.stock.maxPerOrder ? ` · up to ${listing.stock.maxPerOrder} per order` : ''}
       </p>
-      <p>Allergens: {listing.allergenFlags.join(', ') || 'none flagged'}</p>
+      <p>Allergens: {allergenNames(listing.allergenFlags, allergenLabels) || 'none flagged'}</p>
       <TagChips tags={listing.tags} full />
       {personal ? (
         <section aria-label="Your allergens" data-testid="personal-detail">
@@ -108,7 +114,7 @@ export function ListingDetail({ id }: { id: string }) {
           </p>
         </section>
       ) : null}
-      <AddToOrder listing={listing} optionMarks={optionMarks} />
+      <AddToOrder listing={listing} optionMarks={optionMarks} allergenLabels={allergenLabels} />
     </main>
   );
 }

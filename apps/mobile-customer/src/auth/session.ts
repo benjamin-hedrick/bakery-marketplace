@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { displayNameFromToken } from '@bakery/customer-core';
 import { useSyncExternalStore } from 'react';
 import { CLIENT_ID, ISSUER, REDIRECT_URI, SCOPE } from '../config';
+import { ISSUER_TIMEOUT_MS, fetchWithin } from '../timeout';
 import { newPkce, randomUrlSafe } from './pkce';
 
 const REFRESH_KEY = 'bakery.refreshToken';
@@ -58,11 +59,15 @@ export const useSignedInName = (): string | null =>
 /** The issuer's answer: tokens, 'refused' (it said no) or 'unreachable' (no answer, so nothing is learned about the token). */
 async function postToken(body: Record<string, string>): Promise<Tokens | 'refused' | 'unreachable'> {
   try {
-    const res = await fetch(`${ISSUER}/token`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(body).toString(),
-    });
+    const res = await fetchWithin(
+      `${ISSUER}/token`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(body).toString(),
+      },
+      ISSUER_TIMEOUT_MS,
+    );
     if (res.status >= 500) return 'unreachable'; // an outage says nothing about the token: keep it (register 151)
     if (!res.ok) return 'refused';
     const json = (await res.json()) as Tokens;

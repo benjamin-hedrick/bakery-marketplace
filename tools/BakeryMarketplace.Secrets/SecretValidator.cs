@@ -46,7 +46,7 @@ public static class SecretValidator
 
         if (!Uri.TryCreate(value, UriKind.Absolute, out _))
         {
-            throw new SecretValidationException(secretKey, $"Secret value '{value}' is not a valid absolute URI.");
+            throw new SecretValidationException(secretKey, "The value is not a valid absolute URI (it is not shown: it may carry a credential).");
         }
     }
 

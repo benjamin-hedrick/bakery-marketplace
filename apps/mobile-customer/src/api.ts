@@ -2,6 +2,7 @@
 // customer goes back to the login screen. Orders and carts are not cached on the device beyond the running session (ADR-0014, ADR-0023).
 import { currentAccessToken, renewAfterRejection, signOut } from './auth/session';
 import { BFF_URL } from './config';
+import { BFF_TIMEOUT_MS, fetchWithin } from './timeout';
 
 export class ApiError extends Error {
   constructor(
@@ -18,11 +19,15 @@ interface GraphQLResponse<T> {
 }
 
 async function send<T>(query: string, variables: object, token: string | null) {
-  const res = await fetch(BFF_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify({ query, variables }),
-  });
+  const res = await fetchWithin(
+    BFF_URL,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ query, variables }),
+    },
+    BFF_TIMEOUT_MS,
+  );
   if (res.status === 401) return { unauthenticated: true as const };
   const json = (await res.json()) as GraphQLResponse<T>;
   if (json.errors?.some((e) => e.extensions?.code === 'UNAUTHENTICATED')) return { unauthenticated: true as const };

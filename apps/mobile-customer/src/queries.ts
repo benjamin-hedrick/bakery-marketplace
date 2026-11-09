@@ -7,25 +7,30 @@ export interface Money {
 }
 export type StockStatus = 'IN_STOCK' | 'LOW' | 'SOLD_OUT';
 
-export const LISTINGS = `query Listings { listings(first: 20) { edges { node {
-  id name category price { cents currency } stock { status } } } } }`;
+// The menu and the item screen say what an item contains (the flags, and the registry's labels for them): a customer with an allergy should not have to
+// put an item in the order to find out.
+export const LISTINGS = `query Listings { tags(kind: ALLERGEN) { id label } listings(first: 20) { edges { node {
+  id name category price { cents currency } allergenFlags stock { status } } } } }`;
 
 export interface ListingRow {
   id: string;
   name: string;
   category: string;
   price: Money;
+  allergenFlags: string[];
   stock: { status: StockStatus };
 }
 export interface ListingsData {
+  tags: { id: string; label: string }[];
   listings: { edges: { node: ListingRow }[] };
 }
 
-export const LISTING = `query Listing($id: ID!) { listing(id: $id) {
-  id vendorId name description category price { cents currency } stock { status maxPerOrder }
-  modifiers { id name priceDelta { cents currency } } } }`;
+export const LISTING = `query Listing($id: ID!) { tags(kind: ALLERGEN) { id label } listing(id: $id) {
+  id vendorId name description category price { cents currency } allergenFlags stock { status maxPerOrder }
+  modifiers { id name priceDelta { cents currency } allergens } } }`;
 
 export interface ListingDetailData {
+  tags: { id: string; label: string }[];
   listing: {
     id: string;
     vendorId: string;
@@ -33,8 +38,9 @@ export interface ListingDetailData {
     description: string | null;
     category: string;
     price: Money;
+    allergenFlags: string[];
     stock: { status: StockStatus; maxPerOrder: number | null };
-    modifiers: { id: string; name: string; priceDelta: Money }[];
+    modifiers: { id: string; name: string; priceDelta: Money; allergens: string[] }[];
   } | null;
 }
 

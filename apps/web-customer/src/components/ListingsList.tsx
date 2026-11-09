@@ -2,7 +2,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { graphql, useRefetchableFragment } from 'react-relay';
 import type { ListingsList_query$key } from '../__generated__/ListingsList_query.graphql';
-import { formatMoney } from '@bakery/customer-core';
+import { allergenNames, formatMoney } from '@bakery/customer-core';
 import { ConflictMarks } from './ConflictMarks';
 import { filterHref, toggleTag } from '@bakery/customer-core';
 import { dietListText } from '@bakery/customer-core';
@@ -59,6 +59,8 @@ export function ListingsList({
   // Off by default, like the allergen switch: a preference for a diet never hides anything unless the customer asks (WI-TAG-004).
   const [onlyMarked, setOnlyMarked] = useState(false);
   const all = data.listings.edges;
+  // The registry's labels, so the list says "tree nuts" where the flags say "tree-nut".
+  const labels = new Map(data.tags.map((t) => [t.id, t.label]));
   // The tags a customer can narrow by: what the catalog shows today, without allergens (they are not tags; ADR-0022).
   const filterable = data.tags.filter((t) => t.kind !== 'ALLERGEN');
   const hasDiets = personalization !== null && [...personalization.values()].some((m) => m.diets.length > 0);
@@ -153,7 +155,7 @@ export function ListingsList({
             <span data-testid="price">{formatMoney(node.price)}</span> <StockBadge status={node.stock.status} />{' '}
             <small>
               {node.category}
-              {node.allergenFlags.length ? ` · contains ${node.allergenFlags.join(', ')}` : ''}
+              {node.allergenFlags.length ? ` · contains ${allergenNames(node.allergenFlags, labels)}` : ''}
             </small>
             <TagChips tags={node.tags} />
             {personalization?.get(node.id)?.diets.map((d) => (

@@ -6,6 +6,7 @@ import type { AddToOrderStockQuery } from '../__generated__/AddToOrderStockQuery
 import {
   ADD_REFUSAL_TEXT,
   addLine,
+  allergenNames,
   decideAdd,
   lineTotalCents,
   MAX_QUANTITY,
@@ -40,6 +41,8 @@ export interface OrderableListing {
   stock: { status: StockStatus; maxPerOrder: number | null | undefined };
 }
 
+const NO_LABELS: ReadonlyMap<string, string> = new Map();
+
 type Notice = 'added' | 'capped' | 'other_vendor' | 'too_many_lines' | AddRefusal;
 
 // Always from the network (WI-CUST-009): the page may show an item in stock that has since sold out, from a stored answer or an open tab. It also
@@ -63,8 +66,11 @@ const freshStockQuery = graphql`
 export function AddToOrder({
   listing,
   optionMarks,
+  allergenLabels = NO_LABELS,
 }: {
   listing: OrderableListing;
+  /** The registry's labels for allergen ids; without them the ids are shown. */
+  allergenLabels?: ReadonlyMap<string, string>;
   /** The customer's own conflicts by option id (WI-CUST-006); absent for everyone else. */
   optionMarks?: ReadonlyMap<string, readonly Mark[]>;
 }) {
@@ -98,7 +104,7 @@ export function AddToOrder({
               {listing.modifiers.map((m) => (
                 <li key={m.id}>
                   {m.name} (+{formatMoney(m.priceDelta)})
-                  {m.allergens.length ? ` — contains ${m.allergens.join(', ')}` : ''}
+                  {m.allergens.length ? ` — contains ${allergenNames(m.allergens, allergenLabels)}` : ''}
                   <TagChips tags={m.tags} inline label={`Tags of ${m.name}`} />
                   {optionMarks?.get(m.id) ? (
                     <>
@@ -194,7 +200,8 @@ export function AddToOrder({
                   setNotice(null);
                 }}
               />{' '}
-              {m.name} (+{formatMoney(m.priceDelta)}){m.allergens.length ? ` — contains ${m.allergens.join(', ')}` : ''}
+              {m.name} (+{formatMoney(m.priceDelta)})
+              {m.allergens.length ? ` — contains ${allergenNames(m.allergens, allergenLabels)}` : ''}
               <TagChips tags={m.tags} inline label={`Tags of ${m.name}`} />
               {optionMarks?.get(m.id) ? (
                 <>

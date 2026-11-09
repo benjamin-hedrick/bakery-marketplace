@@ -35,7 +35,9 @@ test('a diet tag is read as the bakery’s claim, and a tag is never styled or w
   await expect(page.getByTestId('tag').locator('[aria-hidden="true"]')).toHaveCount(0); // no warning icon
   await expect(page.getByTestId('conflict')).toHaveCount(0);
   // The allergen flags are still their own text, not a tag.
-  await expect(row(page, 'Almond Croissant')).toContainText('contains gluten, dairy, tree-nut');
+  await expect(row(page, 'Almond Croissant')).toContainText(
+    'contains gluten (wheat, rye, barley), milk (dairy), tree nuts',
+  );
 });
 
 test('the detail page says on screen that a diet tag is the bakery’s claim, and shows an option’s tags beside it', async ({
