@@ -41,6 +41,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | Done | `walking-skeleton.spec.ts`, `SeederTests.cs` | `findings.md`, `findings.md` |
 | [EVT-001](WI-EVT-001.md) | Define IEventPublisher/IEventSubscriber interfaces + envelope + contract tests | Done | `EventTransportContractTests.cs`, `InMemoryEventTransportTests.cs` | *none* |
 | [EVT-003](WI-EVT-003.md) | RedisStreamsPublisher / RedisStreamsSubscriber implementation | Done | `RedisStreamsEventTransportTests.cs` | `findings.md` |
+| [EVT-004](WI-EVT-004.md) | ChaosEventTransport decorator + failure proof tests | In review | `ChaosEventTransportTests.cs` | *none* |
 | [GOV-001](WI-GOV-001.md) | Fill in the architecture review / change-management document | Done | *none* | *none* |
 | [MGMT-001](WI-MGMT-001.md) | Draft the execution-level project plan | Done | *none* | `baseline-2026-10-30.md` |
 | [MGMT-002](WI-MGMT-002.md) | Draft the risk register | In review | *none* | *none* |

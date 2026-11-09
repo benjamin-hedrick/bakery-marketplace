@@ -133,7 +133,7 @@ Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engin
 - ✅ EVT-001 (Interface/Contract) — see `WI-EVT-001.md` — `IEventPublisher`/`IEventSubscriber` interfaces + envelope shape (ADR-0003), real C# per ADR-0010. **ADJUSTED 2026-10-26**: envelope gains `traceparent` (ADR-0016), tracked in `PORT-005`
 - 🟢 EVT-002 (Service Implementation) — `EventGridPublisher`/`EventGridSubscriber` (cloud) — deprioritized behind `EVT-003`, not needed for local e2e
 - ✅ EVT-003 (Service Implementation) — see `WI-EVT-003.md` — `RedisStreamsPublisher`/`Subscriber` (local Redis Streams transport with consumer groups and dead-lettering)
-- ⚪ EVT-004 (Test/Mock/Chaos) — Contract-test suite + `ChaosEventTransport` (duplicate/out-of-order/delayed/dropped delivery, per ADR-0003) — blocked by `EVT-003`
+- 🔵 EVT-004 (Test/Mock/Chaos) — see `WI-EVT-004.md` — `ChaosEventTransport` (duplicate/delayed/dropped delivery, outage, failing handlers; out-of-order not built), In review
 - ⚪ EVT-005 (Infra/Environment) — Terraform Event Grid custom topic + subscription filters
 
 ### EPIC-DATA-STORE — Cosmos DB Repositories

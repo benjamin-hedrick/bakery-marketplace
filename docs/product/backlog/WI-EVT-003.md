@@ -29,7 +29,7 @@ ADR-0003 names Redis Streams as the local event transport — a genuinely differ
 
 **Out of scope**
 - Does not implement `EventGridPublisher`/`Subscriber` (`EVT-002`)
-- Does not implement `ChaosEventTransport` (`EVT-004`)
+- Does not implement `ChaosEventTransport` (`EVT-004`, built later: 2026-11-09)
 
 **Requirements / Acceptance Criteria**
 - `RedisStreamsPublisher` implements `IEventPublisher` using Redis Streams (`XADD`)

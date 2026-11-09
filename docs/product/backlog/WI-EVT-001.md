@@ -51,7 +51,7 @@ public record DomainEventEnvelope<T>(
 
 **Changes from the original plan**
 - `DomainEventEnvelope` has a ninth field, `Traceparent` (optional), added by ADR-0016 so asynchronous hops are traceable; consumers use span links. The change was delivered under `WI-PORT-005`. The original envelope in this spec had eight fields.
-- The adapter-and-chaos-decorator test pattern the plan cited is described in `CLAUDE.md` and `docs/architecture/`; a chaos transport was not built.
+- The adapter-and-chaos-decorator test pattern the plan cited is described in `CLAUDE.md` and `docs/architecture/`; a chaos transport was not built then; it was built later as `EVT-004` (2026-11-09).
 
 **Dependencies**
 - Blocks (since built): `EVT-003`. Blocked by: none.
