@@ -56,8 +56,9 @@ test('detail page shows allergen flags and modifier prices from the service', as
     new RegExp(`/listings/${encodeURIComponent(globalListingId('listing-croissant-001'))}$`),
   );
   await expect(page.getByTestId('detail-price')).toHaveText('$4.50');
-  await expect(page.getByText('Allergens: gluten, dairy, tree-nut')).toBeVisible();
-  await expect(page.getByText('Extra almonds (+$0.75) — contains tree-nut')).toBeVisible();
+  // The page shows the registry's labels, not the flag ids (tree nuts, not tree-nut).
+  await expect(page.getByText('Allergens: gluten (wheat, rye, barley), milk (dairy), tree nuts')).toBeVisible();
+  await expect(page.getByText('Extra almonds (+$0.75) — contains tree nuts')).toBeVisible();
 });
 
 test('a listing that is not public renders not-found, not an error page', async ({ page }) => {
