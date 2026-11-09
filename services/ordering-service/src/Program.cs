@@ -25,16 +25,10 @@ builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !bui
 // partitioned by customer. Creating the database and container here is a local convenience only (deployed environments use Terraform).
 if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringComparison.OrdinalIgnoreCase))
 {
-    var cosmosOptions = new CosmosClientOptions();
-    if (builder.Configuration.GetValue<bool>("Cosmos:GatewayMode"))
-    {
-        cosmosOptions.ConnectionMode = ConnectionMode.Gateway; // the local emulator only works over the gateway
-        cosmosOptions.LimitToEndpoint = true;
-    }
-    var cosmos = new CosmosClient(
+    var cosmos = CosmosClientFactory.Create(
         builder.Configuration["Cosmos:ConnectionString"]
             ?? throw new InvalidOperationException("Cosmos:ConnectionString is required when Data:Backend=cosmos."),
-        cosmosOptions);
+        builder.Configuration.GetValue<bool>("Cosmos:GatewayMode"));
     var database = builder.Configuration["Cosmos:Database"] ?? "bakery";
 
     if (builder.Configuration.GetValue<bool>("Cosmos:EnsureCreated"))

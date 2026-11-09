@@ -47,7 +47,7 @@ public static class ListingEndpoints
         // read is confined to that vendor's partition, so another vendor's listing is indistinguishable from a missing one.
         group.MapGet("/mine", async (string? status, int? limit, string? after, ClaimsPrincipal user, ListingService svc, TagProjector tags, CancellationToken ct) =>
         {
-            var vendorId = SubjectOf(user);
+            var vendorId = user.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
             if (status is not null && !ListingStatuses.IsValid(status))
                 return ToError(new ListingResult(ListingOutcome.Invalid, Errors: new Dictionary<string, string[]> { ["status"] = ["Draft or Published."] }));
@@ -59,7 +59,7 @@ public static class ListingEndpoints
 
         group.MapGet("/mine/{id}", async (string id, ClaimsPrincipal user, ListingService svc, TagProjector tags, CancellationToken ct) =>
         {
-            var vendorId = SubjectOf(user);
+            var vendorId = user.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
             var listing = await svc.GetOwnAsync(id, vendorId, ct);
             return listing is null ? NotFound() : Results.Ok(ListingDto.ForOwner(listing, tags));
@@ -68,7 +68,7 @@ public static class ListingEndpoints
         // Vendor writes: Vendor role (coarse) + resource ownership (ADR-0006). The vendor id always comes from the token.
         group.MapPost("/", async (ListingRequest request, ClaimsPrincipal user, ListingService svc, TagProjector tags, CancellationToken ct) =>
         {
-            var vendorId = SubjectOf(user);
+            var vendorId = user.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
 
             var result = await svc.CreateAsync(vendorId, request, ct);
@@ -83,7 +83,7 @@ public static class ListingEndpoints
             string id, ListingRequest request, ClaimsPrincipal user,
             ListingService svc, IAuthorizationService authz, TagProjector tags, CancellationToken ct) =>
         {
-            var callerId = SubjectOf(user);
+            var callerId = user.SubjectId();
             if (callerId is null) return Results.Unauthorized();
 
             // Looked up in the caller's own partition: another vendor's listing is indistinguishable from a missing one.
@@ -104,7 +104,7 @@ public static class ListingEndpoints
             string id, StockAdjustRequest request, ClaimsPrincipal user,
             ListingService svc, IAuthorizationService authz, TagProjector tags, CancellationToken ct) =>
         {
-            var callerId = SubjectOf(user);
+            var callerId = user.SubjectId();
             if (callerId is null) return Results.Unauthorized();
 
             var errors = ListingValidator.ValidateAdjust(request);
@@ -123,9 +123,6 @@ public static class ListingEndpoints
 
         return app;
     }
-
-    private static string? SubjectOf(ClaimsPrincipal user) =>
-        user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     private static IResult NotFound() =>
         Results.Json(new ApiError("not_found", "Listing not found."), statusCode: StatusCodes.Status404NotFound);

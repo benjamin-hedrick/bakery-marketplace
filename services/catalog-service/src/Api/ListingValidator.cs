@@ -26,57 +26,52 @@ public static partial class ListingValidator
     public static Dictionary<string, string[]> Validate(
         ListingRequest request, bool statusRequired, IReadOnlyList<string> allergenIds, ITagRegistry tags, TagOptions limits)
     {
-        var errors = new Dictionary<string, List<string>>();
-        void Add(string field, string message)
-        {
-            if (!errors.TryGetValue(field, out var list)) errors[field] = list = new List<string>();
-            list.Add(message);
-        }
+        var errors = new ValidationErrors();
 
         var name = request.Name?.Trim();
-        if (string.IsNullOrEmpty(name)) Add("name", "Name is required.");
-        else if (name.Length > MaxNameLength) Add("name", $"Name must be at most {MaxNameLength} characters.");
+        if (string.IsNullOrEmpty(name)) errors.Add("name", "Name is required.");
+        else if (name.Length > MaxNameLength) errors.Add("name", $"Name must be at most {MaxNameLength} characters.");
 
         if (request.Description is { Length: > MaxDescriptionLength })
-            Add("description", $"Description must be at most {MaxDescriptionLength} characters.");
+            errors.Add("description", $"Description must be at most {MaxDescriptionLength} characters.");
 
         var category = request.Category?.Trim();
-        if (string.IsNullOrEmpty(category)) Add("category", "Category is required.");
-        else if (category.Length > MaxCategoryLength) Add("category", $"Category must be at most {MaxCategoryLength} characters.");
+        if (string.IsNullOrEmpty(category)) errors.Add("category", "Category is required.");
+        else if (category.Length > MaxCategoryLength) errors.Add("category", $"Category must be at most {MaxCategoryLength} characters.");
 
-        if (request.PriceCents is null) Add("priceCents", "Price is required.");
+        if (request.PriceCents is null) errors.Add("priceCents", "Price is required.");
         else if (request.PriceCents < 0 || request.PriceCents > MaxPriceCents)
-            Add("priceCents", $"Price must be between 0 and {MaxPriceCents} cents.");
+            errors.Add("priceCents", $"Price must be between 0 and {MaxPriceCents} cents.");
 
-        if (request.Modifiers is { Count: > MaxModifiers }) Add("modifiers", $"At most {MaxModifiers} modifiers.");
+        if (request.Modifiers is { Count: > MaxModifiers }) errors.Add("modifiers", $"At most {MaxModifiers} modifiers.");
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < (request.Modifiers?.Count ?? 0); i++)
         {
             var m = request.Modifiers![i];
             var key = $"modifiers[{i}]";
-            if (m is null) { Add(key, "Modifier is required."); continue; }
+            if (m is null) { errors.Add(key, "Modifier is required."); continue; }
             if (string.IsNullOrEmpty(m.Id) || !IdPattern().IsMatch(m.Id))
-                Add($"{key}.id", "Modifier id must be lowercase letters, digits and hyphens (max 64).");
-            else if (!seen.Add(m.Id)) Add($"{key}.id", "Modifier ids must be unique within a listing.");
+                errors.Add($"{key}.id", "Modifier id must be lowercase letters, digits and hyphens (max 64).");
+            else if (!seen.Add(m.Id)) errors.Add($"{key}.id", "Modifier ids must be unique within a listing.");
             if (string.IsNullOrWhiteSpace(m.Name) || m.Name.Trim().Length > MaxNameLength)
-                Add($"{key}.name", $"Modifier name is required (max {MaxNameLength}).");
+                errors.Add($"{key}.name", $"Modifier name is required (max {MaxNameLength}).");
             if (m.PriceDeltaCents is null || m.PriceDeltaCents < 0 || m.PriceDeltaCents > MaxPriceCents)
-                Add($"{key}.priceDeltaCents", $"Modifier price delta must be between 0 and {MaxPriceCents} cents.");
-            ValidateFlags($"{key}.allergens", m.Allergens, Add);
-            ValidateAllergens($"{key}.allergens", m.Allergens, allergenIds, Add);
-            ValidateTags($"{key}.tags", m.Tags, limits.MaxPerOption, tags, Add);
+                errors.Add($"{key}.priceDeltaCents", $"Modifier price delta must be between 0 and {MaxPriceCents} cents.");
+            ValidateFlags($"{key}.allergens", m.Allergens, errors.Add);
+            ValidateAllergens($"{key}.allergens", m.Allergens, allergenIds, errors.Add);
+            ValidateTags($"{key}.tags", m.Tags, limits.MaxPerOption, tags, errors.Add);
         }
 
-        ValidateFlags("allergenFlags", request.AllergenFlags, Add);
-        ValidateAllergens("allergenFlags", request.AllergenFlags, allergenIds, Add);
-        ValidateTags("tags", request.Tags, limits.MaxPerListing, tags, Add);
-        ValidateStock(request.Stock, Add);
+        ValidateFlags("allergenFlags", request.AllergenFlags, errors.Add);
+        ValidateAllergens("allergenFlags", request.AllergenFlags, allergenIds, errors.Add);
+        ValidateTags("tags", request.Tags, limits.MaxPerListing, tags, errors.Add);
+        ValidateStock(request.Stock, errors.Add);
 
-        if (request.Status is null) { if (statusRequired) Add("status", "Status is required."); }
+        if (request.Status is null) { if (statusRequired) errors.Add("status", "Status is required."); }
         else if (!ListingStatuses.IsValid(request.Status))
-            Add("status", $"Status must be '{ListingStatuses.Draft}' or '{ListingStatuses.Published}'.");
+            errors.Add("status", $"Status must be '{ListingStatuses.Draft}' or '{ListingStatuses.Published}'.");
 
-        return errors.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray());
+        return errors.ToDictionary();
     }
 
     /// <summary>Validation of a stock adjustment: a delta is required, cannot be zero and is bounded by <see cref="StockPolicy.MaxQuantity"/> (ADR-0017).</summary>
