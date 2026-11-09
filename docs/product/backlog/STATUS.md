@@ -6,13 +6,13 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-110 specs.
+111 specs.
 
 | Status | Count |
 |---|---|
 | Done | 55 |
 | In progress | 5 |
-| In review | 30 |
+| In review | 31 |
 | Built | 1 |
 | Ready | 2 |
 | Proposed | 4 |
@@ -33,7 +33,7 @@ Superseded and obsolete items are not counted.
 | EPIC-CI-CD | 0 of 2 | SEC-004, SEC-005 |
 | EPIC-CLOUD-INFRA | 0 of 1 | DEP-001 |
 | EPIC-DATA-STORE | 2 of 2 | DATA-001, DATA-002 |
-| EPIC-EVENTING | 2 of 2 | EVT-001, EVT-003 |
+| EPIC-EVENTING | 2 of 3 | EVT-001, EVT-003, EVT-004 |
 | EPIC-FRONTEND-QUALITY | 0 of 1 | DOC-003 |
 | EPIC-GOLIVE-SUPPORT | 0 of 1 | LAUNCH-002 |
 | EPIC-GOVERNANCE | 1 of 1 | GOV-001 |
@@ -102,6 +102,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [EVID-001](WI-EVID-001.md) | Extract proof from specs into evidence records | EPIC-REPO-OPS | Deferred | trigger: the lead picks it up |
 | [EVT-001](WI-EVT-001.md) | Define IEventPublisher/IEventSubscriber interfaces + envelope + contract tests | EPIC-EVENTING | Done | evidence: `tools/BakeryMarketplace.Eventing` and `tools/tests/BakeryMarketplace.Eventing.Tests` |
 | [EVT-003](WI-EVT-003.md) | RedisStreamsPublisher / RedisStreamsSubscriber implementation | EPIC-EVENTING | Done | evidence: `tools/BakeryMarketplace.Eventing` (Redis Streams transport) and its tests |
+| [EVT-004](WI-EVT-004.md) | ChaosEventTransport decorator + failure proof tests | EPIC-EVENTING | In review | evidence: `tools/BakeryMarketplace.Eventing/ChaosEventTransport.cs` and `tools/tests/BakeryMarketplace.Eventing.Tests/ChaosEventTransportTests.cs` |
 | [GOV-001](WI-GOV-001.md) | Fill in the architecture review / change-management document | EPIC-GOVERNANCE | Done | evidence: `docs/governance/architecture-review.md` |
 | [LAUNCH-002](WI-LAUNCH-002.md) | Blameless postmortem | EPIC-GOLIVE-SUPPORT | Proposed | decision: write it from a real recorded episode, or stage a drill first |
 | [MGMT-001](WI-MGMT-001.md) | Draft the execution-level project plan | EPIC-PM-ARTIFACTS | Done | evidence: acceptance met; the open point (relative sequencing) was settled in `docs/management/project-plan.md` |
@@ -207,11 +208,11 @@ Accepted: 22 · Superseded: 1
 
 ## Open-items register
 
-168 numbered items in `docs/governance/open-items-register.md` (highest number 168).
+169 numbered items in `docs/governance/open-items-register.md` (highest number 169).
 
 | Type | Count |
 |---|---|
-| Gap | 41 |
+| Gap | 42 |
 | Deferred scope | 23 |
 | Limitation | 21 |
 | Decision | 18 |
@@ -229,4 +230,4 @@ Accepted: 22 · Superseded: 1
 | Resolved | 68 |
 | Accepted | 9 |
 | Tracking | 13 |
-| Open | 62 |
+| Open | 63 |

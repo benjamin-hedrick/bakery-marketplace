@@ -36,7 +36,7 @@ From the review's suggested order; the lead sets the priorities. Items are in th
 4. **Show the quality work:** `WI-QA-001`, `WI-QA-002`, `WI-SEC-004`, then `WI-QA-003`.
 5. **Close the data-fetching and cache story:** `WI-CAT-003` and `WI-PORT-004` are built (In review); `WI-DOC-003` and `WI-QA-002` remain.
 6. **Operations and project artifacts:** the runbook (`WI-OPS-002`), the OKRs (`WI-PROD-004`), the postmortem (`WI-LAUNCH-002`), and the project board (register item 12).
-7. **New capability:** the vendor read side and queue display (N-03, N-04) and personalization (`PREF-*`, `SRCH-001`) are built; dashboards and chaos scenarios (catalog `OBS-003`, `EVT-004`) are not.
+7. **New capability:** the vendor read side and queue display (N-03, N-04) and personalization (`PREF-*`, `SRCH-001`) are built; dashboards (catalog `OBS-003`) are not; the chaos event transport (`EVT-004`) is built as a decorator with tests but runs no scenario against a service.
 8. **Deployment:** `WI-DEP-001`, behind the human approvals for identity and credentials.
 
 ## Deferred, with a trigger

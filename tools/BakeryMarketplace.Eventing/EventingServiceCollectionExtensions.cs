@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -8,6 +9,28 @@ namespace BakeryMarketplace.Eventing;
 /// <summary>The one place a service chooses its event backend (ADR-0003), so catalog, ordering and notification wire it identically.</summary>
 public static class EventingServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers a <see cref="ChaosEventTransport"/> around the given transport as the service's publisher and subscriber (WI-EVT-004).
+    /// Throws at startup in the Production environment (ADR-0002 hard gate), so chaos cannot be enabled there.
+    /// </summary>
+    public static IServiceCollection AddChaosEventTransport(
+        this IServiceCollection services,
+        IEventPublisher publisher,
+        IEventSubscriber subscriber,
+        ChaosEventOptions options,
+        IHostEnvironment environment)
+    {
+        if (environment.IsProduction())
+            throw new InvalidOperationException(
+                "AddChaosEventTransport cannot be called in the Production environment. " +
+                "This is a hard safety gate per ADR-0002.");
+
+        var chaos = new ChaosEventTransport(publisher, subscriber, options, isProduction: false);
+        services.AddSingleton<IEventPublisher>(chaos);
+        services.AddSingleton<IEventSubscriber>(chaos);
+        return services;
+    }
+
     /// <summary>
     /// Registers <see cref="IEventPublisher"/> and <see cref="IEventSubscriber"/> for the backend named by <c>Events:Backend</c>: "redis" (Redis Streams,
     /// with the logger of the host, so failures are reported) or "inmemory" (tests and throwaway runs). There is no default, because silently falling
