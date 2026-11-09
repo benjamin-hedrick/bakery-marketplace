@@ -4,6 +4,17 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "host_environment" {
+  type        = string
+  description = "ASPNETCORE_ENVIRONMENT of the .NET services this stack deploys (catalog, ordering). Each environment's root sets its own value: dev runs as Development (decided 2026-11-09), so the Development settings and chaos scenarios (ADR-0024) apply, and a later UAT or production root sets Production. It does not cover the mock issuer, which stays Production because that is what makes MockOidcDeployment enforce its guards."
+  default     = "Development"
+
+  validation {
+    condition     = contains(["Development", "Staging", "Production"], var.host_environment)
+    error_message = "host_environment must be Development, Staging or Production."
+  }
+}
+
 variable "name_prefix" {
   type    = string
   default = "bakery"
@@ -98,18 +109,33 @@ variable "auth_authority" {
   type        = string
   description = "Entra mode only: the token issuer the services validate (Auth__Authority)."
   default     = ""
+
+  validation {
+    condition     = var.auth_authority == "" || startswith(var.auth_authority, "https://")
+    error_message = "auth_authority must be empty or an https:// address. In Development the services accept plain-http metadata and token endpoints, so this is the guard that keeps a deployed environment on https."
+  }
 }
 
 variable "service_auth_token_endpoint" {
   type        = string
   description = "Entra mode only: the token endpoint ordering uses to call catalog (ServiceAuth__TokenEndpoint)."
   default     = ""
+
+  validation {
+    condition     = var.service_auth_token_endpoint == "" || startswith(var.service_auth_token_endpoint, "https://")
+    error_message = "service_auth_token_endpoint must be empty or an https:// address. In Development the services accept plain-http metadata and token endpoints, so this is the guard that keeps a deployed environment on https."
+  }
 }
 
 variable "web_auth_issuer" {
   type        = string
   description = "Entra mode only: where the browser logs in (AUTH_ISSUER, served by /api/config)."
   default     = ""
+
+  validation {
+    condition     = var.web_auth_issuer == "" || startswith(var.web_auth_issuer, "https://")
+    error_message = "web_auth_issuer must be empty or an https:// address. In Development the services accept plain-http metadata and token endpoints, so this is the guard that keeps a deployed environment on https."
+  }
 }
 
 variable "auth_audience" {
@@ -121,6 +147,11 @@ variable "auth_metadata_address" {
   type        = string
   description = "Optional discovery document address when it differs from the authority (Auth__MetadataAddress). Empty for Entra."
   default     = ""
+
+  validation {
+    condition     = var.auth_metadata_address == "" || startswith(var.auth_metadata_address, "https://")
+    error_message = "auth_metadata_address must be empty or an https:// address. In Development the services accept plain-http metadata and token endpoints, so this is the guard that keeps a deployed environment on https."
+  }
 }
 
 variable "service_auth_client_id" {

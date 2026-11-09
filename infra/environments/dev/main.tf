@@ -35,8 +35,14 @@ locals {
   web_issuer     = local.use_mock ? local.mock_url : var.web_auth_issuer
 
   # Inside the Container Apps environment an app with ingress answers on its name (http://catalog) on port 80.
+  # The host environment is a per-environment variable (var.host_environment; dev runs as Development, 2026-11-09). Two things Development brings
+  # with it are pinned here: appsettings.Development.json would otherwise switch Cosmos to the emulator's gateway mode, and the services accept
+  # plain-http token metadata in Development, which the https validations on the issuer variables guard against.
+  # Deployment__Environment names the environment itself; chaos scenarios (ADR-0024) read it, and only this root may set it.
   dotnet_env = {
-    ASPNETCORE_ENVIRONMENT  = "Production"
+    ASPNETCORE_ENVIRONMENT  = var.host_environment
+    Deployment__Environment = var.environment
+    Cosmos__GatewayMode     = "false"
     Auth__Authority         = local.authority
     Auth__Audience          = var.auth_audience
     Auth__MetadataAddress   = var.auth_metadata_address
@@ -503,7 +509,7 @@ resource "azurerm_container_app" "mock" {
       dynamic "env" {
         for_each = merge(
           {
-            ASPNETCORE_ENVIRONMENT                                       = "Production"
+            ASPNETCORE_ENVIRONMENT                                       = "Production" # deliberately not var.host_environment: Production is what makes the host enforce MockOidcDeployment
             Auth__Audience                                               = var.auth_audience
             MockOidc__AllowDeployedDev                                   = "true"
             MockOidc__Issuer                                             = local.mock_url

@@ -81,3 +81,8 @@ Accepted by the human lead, with the amendments above: the dev operations pipeli
 ## Note, 2026-11-08: ADR-0019 is written
 
 The first paragraph of this record says ADR-0019 was reserved and not written. It was written and accepted on 2026-11-02 (browser sessions); this ADR's number stayed 0020.
+
+
+## Note, 2026-11-09: the host environment is a per-environment variable, and dev runs as Development
+
+`infra/environments/dev` set `ASPNETCORE_ENVIRONMENT = "Production"` for the catalog and ordering apps. It is now the variable `host_environment` of each environment's root (default `Development` in dev; Development, Staging or Production are accepted), plus `Deployment__Environment` (the environment's name) and `Cosmos__GatewayMode = "false"`. Reasons and consequences, decided by the lead: the Development settings and chaos scenarios (ADR-0024) apply in dev. Development also relaxes two checks in the services' startup code (`requireHttpsMetadata` and the plain-http token endpoint), so the issuer variables now refuse any address that is not `https://`, and `appsettings.Development.json`'s emulator gateway mode is pinned off. The mock issuer stays Production on purpose, because that is what makes it enforce `MockOidcDeployment`. Tested with mocked providers only (`node scripts/ci/terraform-checks.mjs`); nothing was applied to Azure.
