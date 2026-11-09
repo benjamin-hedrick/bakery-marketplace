@@ -137,7 +137,8 @@ Each Claude Code session's cost, time and size were copied by the lead from the 
 | 2026-11-07 (second) | the fulfillment strategy, the dependency audit, the demo film's scripts | $9.73 | 25 min | 3 h 46 min | 2,213 |
 | 2026-11-08 | the demo film's runs and the documentation pass | $11.14 | 33 min | 4 h 27 min | 1,076 |
 | 2026-11-08 (second session) | the full documentation read, code review rounds 1 and 2, the transport and outbox fixes | $33.65 | 48 min | 4 h 1 min | 1,445 |
-| **Total** | | **$238.59** | **10 h 41 min** | **76 h 12 min** | **54,017** |
+| 2026-11-08 into 2026-11-09 (third session) | review fixes, the full test report, the Cosmos test fix, the latency run, the Maestro runs | $18.89 | 30 min | 4 h 26 min | 1,056 |
+| **Total** | | **$257.48** | **11 h 11 min** | **80 h 38 min** | **55,073** |
 
 Read it with care. A session's wall-clock time is mostly the lead reading, deciding and waiting (API time is the assistant working: about one hour in seven). Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the cost by the 85 items gives about $2.40 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
 

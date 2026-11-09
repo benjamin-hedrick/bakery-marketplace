@@ -24,7 +24,7 @@
 
 ## AI collaboration: the evidence is thinner than the practice
 
-The record has the method, the errors and what caught them, and the cost and time of 16 sessions. It does not have, and the repository says so ("what is measured and what is not"):
+The record has the method, the errors and what caught them, and the cost and time of 18 sessions. It does not have, and the repository says so ("what is measured and what is not"):
 
 | # | Gap | A way to capture it |
 |---|---|---|

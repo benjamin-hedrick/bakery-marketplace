@@ -20,7 +20,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CACHE-003](WI-CACHE-003.md) | LocalCacheProvider + ResilientCacheProvider decorator | Done | `LocalCacheProviderTests.cs`, `ResilientCacheProviderTests.cs` | *none* |
 | [CACHE-004](WI-CACHE-004.md) | ChaosCacheProvider decorator + fallback proof tests | Done | `ChaosCacheProviderTests.cs` | *none* |
 | [CAT-001](WI-CAT-001.md) | Listing CRUD + modifier/allergy-flag model | Done | `ListingApiTests.cs` | `README.md`, `findings.md` |
-| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `README.md`, `after-2026-11-07.md`, `baseline-2026-11-07.md` and 1 more |
+| [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `README.md`, `after-2026-11-07.md`, `baseline-2026-11-07.md` and 2 more |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | Done | `ListingStockTests.cs`, `ConcurrencyContractTests.cs` | *none* |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | Done | `StockReservationTests.cs`, `BatchContractTests.cs` | *none* |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
