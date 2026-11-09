@@ -16,6 +16,9 @@ const personalizedReads = async () =>
 
 const row = (page: Page, name: string) => page.getByTestId('listing').filter({ hasText: name });
 
+// The mock keeps the customer's profile in memory: leave it empty, so a later spec (or a second run against the same mock) does not start with this one's.
+test.afterEach(() => control({ resetPreferences: true, resetOrders: true }));
+
 test.beforeEach(async ({ page }) => {
   await control({ resetPreferences: true, resetOrders: true });
   await stubIssuer(page);
