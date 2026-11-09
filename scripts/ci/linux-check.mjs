@@ -6,7 +6,7 @@
 //   node scripts/ci/linux-check.mjs                      every step below, in the pipeline's order
 //   node scripts/ci/linux-check.mjs tools catalog        just those steps
 //
-// Steps (azure-pipelines.yml, job `dotnet`): build, format (whitespace and style), tools, catalog, ordering. A real Redis runs beside them
+// Steps (azure-pipelines.yml, job `dotnet`): build, format (whitespace and style), tools, catalog, ordering, notification. A real Redis runs beside them
 // and, like the pipeline's finding A8 check, the tests must have used it (the adapter tests fall back to fakes when Redis is unreachable).
 // Needs Docker. Uncommitted changes are NOT tested: commit first. Emulator-gated tests are skipped, as they are in the pipeline.
 // Exit code 0 when every selected step passes.
@@ -37,6 +37,7 @@ const steps = {
   tools: `dotnet test tools/BakeryMarketplace.slnx --configuration Release ${hang}`,
   catalog: `dotnet test services/catalog-service/tests/CatalogService.Tests --configuration Release ${hang}`,
   ordering: `dotnet test services/ordering-service/tests/OrderingService.Tests --configuration Release ${hang}`,
+  notification: `dotnet test services/notification-service/tests/NotificationService.Tests --configuration Release ${hang}`,
 };
 
 const wanted = process.argv.slice(2);

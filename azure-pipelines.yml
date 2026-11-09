@@ -105,6 +105,8 @@ jobs:
         displayName: Test catalog-service
       - script: dotnet test services/ordering-service/tests/OrderingService.Tests --configuration Release --blame-hang-timeout 5m --logger "trx" --results-directory $(RESULTS)/trx
         displayName: Test ordering-service
+      - script: dotnet test services/notification-service/tests/NotificationService.Tests --configuration Release --blame-hang-timeout 5m --logger "trx" --results-directory $(RESULTS)/trx
+        displayName: Test notification-service
       - script: |
           set -o pipefail  # a failed script must fail the step, not tee's exit code
           node scripts/ci/redis-touch.mjs assert $(Agent.TempDirectory)/redis-before 50 2>&1 | tee $(RESULTS)/redis-touch.txt
