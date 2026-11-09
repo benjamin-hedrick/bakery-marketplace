@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> **Status:** Current · the table and the by-concern view verified 2026-11-08 against the records (23 records, all Accepted except 0011, superseded)
+> **Status:** Current · the table and the by-concern view verified 2026-11-08 against the records (24 records; 0024 is Proposed, 0011 is superseded, the rest Accepted)
 
 One file per decision: `0001-title.md`, `0002-title.md`, and so on, in the format of `template.md`. The decision text of an ADR is never edited. Later changes are dated notes appended at the bottom ("Amendment note", "Validation outcome", "Current reading"), and the status line says only what the vocabulary in `docs/method/status-and-supersession.md` allows. The statuses below are also generated into `docs/product/backlog/STATUS.md`.
 
@@ -20,6 +20,7 @@ For the order in which the decisions were made and changed, see [the decision ti
 | Secrets, CI and delivery | 0007, 0015, 0020 | 0007, then 0015 (Azure Pipelines amends the CI secret storage), then 0020 (deployment pipeline, environments and configuration) |
 | Observability | 0016 | |
 | Payments | 0005 | |
+| Testing and fault injection | 0002, 0003, 0024 | 0002 (the cache's chaos decorator and its Production gate), then 0024 (seeded scenarios at the interface layer, all services and the BFF) |
 | Service shape and language | 0009, 0010 | 0009 (13 contexts onto 4 services), 0010 (C# on .NET 10) |
 
 ## All records
@@ -49,6 +50,7 @@ For the order in which the decisions were made and changed, see [the decision ti
 | [0021](0021-live-updates-to-the-vendor-queue.md) | Push as a nudge over a stream (GraphQL subscription over SSE, Redis Pub/Sub fan-out) layered on polling, which stays | Accepted (2026-11-02) |
 | [0022](0022-tags.md) | Tags: a catalog-owned registry of kinds and tags (allergen, diet, occasion, season, theme), assigned to listings and options; visibility and windows enforced by the catalog | Accepted |
 | [0023](0023-native-app-sign-in.md) | Native app sign-in: Authorization Code with PKCE in the system browser, a private-use redirect scheme, the refresh token in the Android Keystore; the BFF and services are unchanged | Accepted (2026-11-04) |
+| [0024](0024-chaos-scenarios.md) | Chaos scenarios: seeded, configured fault injection in a wrapper at existing interfaces (C# services and the BFF), a journal of what was injected, allowed only in local and dev | Proposed (2026-11-09) |
 
 ## What has been built, against these decisions
 

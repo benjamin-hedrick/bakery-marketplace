@@ -176,7 +176,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 
 ## Architecture decisions
 
-23 records.
+24 records.
 
 | ADR | Title | Status | Status line |
 |---|---|---|---|
@@ -203,8 +203,9 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Accepted | Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age... |
 | [0022](../../architecture/adr/0022-tags.md) | Tags (a catalog-owned registry of kinds and tags, assigned to listings and options) | Accepted | Accepted (2026-11-04, approved by the lead; drafted the same day as Proposed). Drafted from the lead's deci... |
 | [0023](../../architecture/adr/0023-native-app-sign-in.md) | Native App Sign-In: Authorization Code with PKCE in the System Browser, Tokens on the Device | Accepted | Accepted (2026-11-04) by the lead, who chose option A over a dev-only shortcut and accepted the text. It ch... |
+| [0024](../../architecture/adr/0024-chaos-scenarios.md) | Chaos Scenarios: Seeded, Configured Fault Injection at the Interface Layer | Proposed | Proposed (2026-11-09). The lead decided the location, the scope (all services and the BFF) and that a new A... |
 
-Accepted: 22 · Superseded: 1
+Accepted: 22 · Superseded: 1 · Proposed: 1
 
 ## Open-items register
 

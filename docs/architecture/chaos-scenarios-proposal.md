@@ -1,6 +1,6 @@
 # Chaos scenarios: proposal and assessment
 
-> **Status: proposal for the lead's decision (2026-11-09). Nothing here is built except what the "Where we are" section says is built.** It touches the services' composition roots (`Program.cs`), so it needs approval before any work (CLAUDE.md, "Human approval required"). If accepted it becomes a work item and, for the config and gating rules, an ADR (next number 0024).
+> **Status: proposal; the lead's decisions of 2026-11-09 are recorded in section 7 and the rules are written as [ADR-0024](adr/0024-chaos-scenarios.md) (Proposed). Nothing here is built except what the "Where we are" section says is built.**
 
 ## 1. The goal
 
@@ -82,20 +82,26 @@ One extension, `services.AddBakeryChaos(configuration, environment)`, called aft
 - **Rule for every scenario test:** assert the journal shows the fault happened *before* asserting the system survived it. Without that, a survival assertion passes whether or not chaos fired (this is the weakness the first Redis chaos tests had).
 - **No new endpoint.** The journal is read from the log (or a file the host writes at shutdown), not from a test-only HTTP route, per the CLAUDE.md rule on test-only functionality.
 
+### 3.7 The BFF and the other Node processes
+
+The BFF handles every request in one `http.createServer` callback (`services/graphql-bff/src/server.ts`), and its first steps (`/healthz`, the 404 for other routes, then the rate-limit check "before the body is read or anything is called") are already a request pipeline. A chaos gate sits in the same place: before the body is read it can wait, answer with a chosen status and body (503, 429, a GraphQL error), destroy the socket, or never answer, and it never calls a service. That is the request-level layer: the BFF process is up, but the client behaves as if it were not, without a stop command. A second layer wraps the BFF's `CatalogClient` and `OrderingClient` (they are already injected through `createServer`'s `deps`), the TypeScript equivalent of the C# gateway wrappers. The gate is attached in `main.ts` only. The Next.js servers' proxies to the BFF (`pages/api/graphql.ts`) can take the same gate. The Android app reaches the BFF directly, so the BFF's gate covers it.
+
+The limit: an in-process gate cannot give "connection refused" or a process that is simply gone; that symptom needs the process stopped.
+
 ## 4. What this replaces, and what it does not
 
 Honest mapping against the mechanisms listed in register 150 and 155:
 
 | Mechanism today | Replaced by a scenario? |
 |---|---|
-| Flow-control `POST /bff/stop` and `/bff/start` (BFF unreachable) | **No.** The BFF is Node; a .NET decorator cannot touch it. A scenario can cover "ordering/catalog unavailable" below it, but "BFF down" stays process control. A TypeScript twin of the layer at the BFF's service clients is possible and is a separate decision |
+| Flow-control `POST /bff/stop` and `/bff/start` (BFF unreachable) | **Mostly yes, with the TypeScript layer (section 3.7).** A gate at the head of the BFF's request handler can delay, reject or cut a request while the process stays up, so the client sees a timeout, a 503 or a dropped connection. It cannot produce "connection refused", which only a stopped process gives; whether a flow needs that exact symptom is to be checked flow by flow |
 | Flow-control `POST /issuer/restart` (refused session) | **No.** Auth sits outside the chaos pattern by decision (ADR-0005/0006/0007) and the mock issuer is its own process |
 | Flow-control `GET /order-count`, `GET /last-order` (read what the system holds) | **No.** These observe, they do not disturb. They would be replaced by screens or the journal only if the question is "did the fault happen", not "what did the order contain" |
 | Web app `x-delay-ms` header (slow response) | **Largely yes**, for slowness below the BFF: `latencyMs` on a layer. The header itself lives in the web app and mock BFF and would remain until the browser suites use a real stack |
 | Web app `x-fixture` header (which fixture to serve) | **No.** It selects mock data, not a fault |
 | Declined payment (`X-Test-Payment`) | Already replaced by seed data (`WI-ORD-010`); a `payment` layer would add *processor unavailable* and *slow*, which the seed cannot express |
 
-So the layer replaces **fault injection below the BFF in the .NET services**. It does not replace process control, the issuer, or the observation endpoints. Section 6 asks whether to extend it to the BFF.
+So the layer replaces fault injection in the .NET services and, with the TypeScript layer, at the BFF's door and its service clients. It does not replace process control (a truly stopped process), the issuer, or the observation endpoints.
 
 ## 5. Risks and limits
 
@@ -112,8 +118,11 @@ So the layer replaces **fault injection below the BFF in the .NET services**. It
 3. **First scenario with evidence:** `flaky-broker-slow-payment` on the real stack (`skeleton-smoke.mjs` journeys plus the order-to-notification path), journal summary committed under `docs/evidence/`. Expected result to *prove*, not assume: no lost order, no duplicate notification sent, the vendor queue converges.
 4. **Optional:** a TypeScript layer at the BFF's service clients, so "downstream slow/erroring" can be scripted there too, and a review of whether the flow-control server's remaining endpoints can shrink.
 
-**Decisions for the lead**
-1. Approve the composition-root change (3.4), or require chaos to be wired only in separate test hosts.
-2. Is a committed scenario file under `scenarios/` acceptable, or should scenarios live only in test projects?
-3. Extend to the BFF in phase 4 (a second implementation language), or stop at the .NET services?
-4. Is a new ADR (0024) wanted for the config, gating and journal rules, or an amendment to ADR-0002?
+## 7. Decisions (the lead, 2026-11-09)
+
+1. **Composition-root change approved:** one call in each service's `Program.cs` (and the BFF's `main.ts`).
+2. **Location:** not in tests. Scenario data in `chaos/scenarios/` at the repository root, so a running local or dev stack can use it; the libraries in `tools/BakeryMarketplace.Chaos` and `packages/chaos`.
+3. **Scope:** all services, the BFF, and the Node proxies where they help (phase 4 is folded into the plan below, not optional). `admin-service` is an empty scaffold, so only the wiring call applies there for now.
+4. **ADR:** a new ADR (0024, Proposed); ADR-0002 and the other records are adjusted after this settles.
+
+Open point raised by the ADR text: it uses an allow-list (local Development and the dev deployment only) instead of ADR-0002's "not Production"; the lead has not yet confirmed that.
