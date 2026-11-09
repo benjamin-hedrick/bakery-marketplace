@@ -9,8 +9,9 @@
 //
 // One machine, one process each, no concurrency, no network between the parts: read the numbers as a local data point, not a capacity
 // claim. Percentiles are nearest-rank. Exit code 0 when every request answered as expected.
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
+import { userToken as issuerToken } from '../lib/issuer-token.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (name, fallback) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : fallback);
@@ -24,34 +25,7 @@ const CATALOG = process.env.CATALOG_URL ?? 'http://localhost:5200';
 const LISTING = 'listing-sourdough-001';
 const globalId = (type, id) => Buffer.from(`${type}:${id}`).toString('base64');
 
-/** A real access token from the mock issuer by the Authorization Code + PKCE exchange, without a browser. */
-async function userToken(userId) {
-  const verifier = randomBytes(32).toString('base64url');
-  const challenge = createHash('sha256').update(verifier).digest('base64url');
-  const redirectUri = `${WEB}/api/auth/callback`;
-  const submit = await fetch(`${ISSUER}/authorize/submit`, {
-    method: 'POST',
-    redirect: 'manual',
-    body: new URLSearchParams({
-      userId,
-      redirect_uri: redirectUri,
-      state: 's',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-    }),
-  });
-  const code = new URL(submit.headers.get('location')).searchParams.get('code');
-  const res = await fetch(`${ISSUER}/token`, {
-    method: 'POST',
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: verifier,
-    }),
-  });
-  return (await res.json()).access_token;
-}
+const userToken = (userId) => issuerToken(ISSUER, userId, { redirectUri: `${WEB}/api/auth/callback` });
 
 const gql = (query, variables, token) =>
   fetch(BFF, {

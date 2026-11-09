@@ -17,56 +17,21 @@
 // POST needs no preflight), any request without the custom header (a browser cannot add one cross-origin without a preflight, which this server never
 // answers), and any request whose `Host` is not 127.0.0.1 on its own port (DNS rebinding). Another program running as the same user on this machine can still call
 // it while a run lasts; that is the limit of a loopback server with no secret.
-import { createHash, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { userToken } from './issuer-token.mjs';
 
 const REDIRECT = 'com.bakerymarketplace.mobile:/auth/callback';
 const CLIENT_ID = 'bakery-mobile';
 const ALICE = 'user-customer-1';
 /** Only the customers of the mock identity can be asked for; the issuer refuses any other id anyway. */
 const CUSTOMER_ID = /^user-customer-[a-z0-9-]+$/;
-const b64url = (buf) => buf.toString('base64url');
 
 /** Signs in as a mock customer (Alice by default) with the app's own flow and returns an access token. */
-export async function customerToken(issuer, userId = ALICE) {
-  const verifier = b64url(randomBytes(48));
-  const challenge = b64url(createHash('sha256').update(verifier).digest());
-  const state = b64url(randomBytes(8));
-  const submit = await fetch(`${issuer}/authorize/submit`, {
-    method: 'POST',
-    redirect: 'manual',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      userId,
-      redirect_uri: REDIRECT,
-      state,
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-    }).toString(),
-  });
-  const location = submit.headers.get('location');
-  if (submit.status !== 302 || !location) throw new Error(`the issuer did not redirect (${submit.status})`);
-  const code = new URL(location).searchParams.get('code');
-  if (!code) throw new Error('the issuer sent no code');
-  const token = await fetch(`${issuer}/token`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: REDIRECT,
-      client_id: CLIENT_ID,
-      code_verifier: verifier,
-    }).toString(),
-  });
-  if (!token.ok) throw new Error(`the token request failed (${token.status})`);
-  const json = await token.json();
-  if (typeof json.access_token !== 'string') throw new Error('the issuer sent no access token');
-  return json.access_token;
-}
+export const customerToken = (issuer, userId = ALICE) =>
+  userToken(issuer, userId, { redirectUri: REDIRECT, clientId: CLIENT_ID });
 
 const COUNT = `query Count { orders(first: 50) { edges { node { id } } } }`;
 const LAST = `query Last { orders(first: 1) { edges { node { id status allergens total { cents } } } } }`;

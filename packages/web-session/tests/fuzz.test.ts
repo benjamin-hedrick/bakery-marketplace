@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { checkSameOriginRead, checkStateChangingRequest } from '../src/csrf.ts';
+import { checkStateChangingRequest } from '../src/csrf.ts';
 import { readCookie } from '../src/cookie.ts';
 import {
   extraForwardedHeaders,
@@ -91,7 +91,7 @@ describe('safeReturnTo', () => {
       );
       assert.ok(out === '/' || (out.startsWith('/') && !out.startsWith('//')), at(i));
       assert.ok(!/[\\\u0000-\u001f\u007f]/.test(out), `${at(i)}: control or backslash in ${JSON.stringify(out)}`);
-      assert.ok(!/^\/auth\/callback(?:[/?#]|$)/.test(out), at(i));
+      assert.ok(!/^\/(?:api\/)?auth\/callback(?:[/?#]|$)/.test(out), at(i));
     }
   });
 });
@@ -144,23 +144,6 @@ describe('the CSRF checks', () => {
       const jsonType = (type ?? '').split(';')[0]!.trim().toLowerCase() === 'application/json';
       const expected = safe || (origin === APP && (site === undefined || site === 'same-origin') && jsonType);
       assert.equal(result.ok, expected, `${at(i)}: ${method} ${JSON.stringify(headers)}`);
-    }
-  });
-
-  test('a push-stream read is refused for another origin or a cross-site fetch', () => {
-    const r = rng(SEED + 3);
-    for (let i = 0; i < CASES; i++) {
-      const origin = r.pick([undefined, APP, 'http://evil.example', text(r, 2)]);
-      const site = r.pick([undefined, 'same-origin', 'none', 'cross-site', 'same-site', text(r, 2)]);
-      const ok = checkSameOriginRead(
-        { ...(origin === undefined ? {} : { origin }), ...(site === undefined ? {} : { 'sec-fetch-site': site }) },
-        APP,
-      ).ok;
-      assert.equal(
-        ok,
-        (origin === undefined || origin === APP) && (site === undefined || site === 'same-origin' || site === 'none'),
-        at(i),
-      );
     }
   });
 });

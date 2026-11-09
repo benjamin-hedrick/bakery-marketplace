@@ -7,6 +7,6 @@ export function safeReturnTo(value: unknown): string {
   if (typeof value !== 'string' || value.length === 0) return '/';
   if (!value.startsWith('/') || value.startsWith('//')) return '/';
   if (/[\\\u0000-\u001f\u007f]/.test(value)) return '/';
-  if (/^\/auth\/callback(?:[/?#]|$)/.test(value)) return '/';
+  if (/^\/(?:api\/)?auth\/callback(?:[/?#]|$)/.test(value)) return '/'; // the callback route (and the old page path)
   return value;
 }

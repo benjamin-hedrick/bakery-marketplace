@@ -4,7 +4,7 @@ export type { EncryptionKey, SessionConfig, SessionConfigResult } from './config
 export { createSealer } from './crypto.ts';
 export type { Sealer } from './crypto.ts';
 export { clearCookie, readCookie, serializeCookie } from './cookie.ts';
-export { checkSameOriginRead, checkStateChangingRequest } from './csrf.ts';
+export { checkStateChangingRequest } from './csrf.ts';
 export type { CsrfResult } from './csrf.ts';
 export {
   createAuthHandlers,

@@ -1,6 +1,8 @@
 // The words for the diets a customer prefers (WI-TAG-004, ADR-0022). A diet is the bakery's claim, so every sentence says what the BAKERY has marked and never what
 // the product checked: "not marked vegan" is not "not vegan", and nothing here says an item is suitable, safe or free of anything. Pure, so it is unit tested.
 
+import { joinNames, lower } from './text.ts';
+
 export interface DietNote {
   tagId: string;
   /** The registry's label for the diet ("Vegan"). */
@@ -12,11 +14,6 @@ export interface DietNote {
   /** Names of the options without the tag (all of them for browse and detail, the chosen ones for a cart). */
   optionNames: readonly string[];
 }
-
-const lower = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
-
-const joinNames = (names: readonly string[]) =>
-  names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 
 /** The quiet line on a listing in the list: the bakery's claim when it has made it, "not marked" when it has not. */
 export function dietListText(note: DietNote): string {
