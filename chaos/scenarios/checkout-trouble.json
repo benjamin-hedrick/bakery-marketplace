@@ -1,0 +1,21 @@
+{
+  "name": "checkout-trouble",
+  "seed": 20261109,
+  "layers": {
+    "payment": {
+      "latencyMs": 800,
+      "declineRate": 0.2
+    },
+    "catalog": {
+      "unavailableRate": 0.1,
+      "rejectRate": 0.1
+    },
+    "repository": {
+      "conflictRate": 0.1,
+      "latencyMs": 50
+    },
+    "broadcast": {
+      "dropRate": 0.3
+    }
+  }
+}

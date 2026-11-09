@@ -1,4 +1,5 @@
 using BakeryMarketplace.Caching;
+using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -9,10 +10,48 @@ using Microsoft.Extensions.Logging;
 namespace BakeryMarketplace.Chaos;
 
 /// <summary>
+/// What a process was asked to do and what it did: the scenario (none when chaos is off) and the layers it actually wrapped. A scenario is shared by
+/// every process of a stack, and a process only has some of the interfaces (the admin service has no event transport, notification has no payment
+/// processor), so a layer the scenario names but this process does not have is reported as not applicable, not as an error. A layer name that no
+/// process knows is still rejected when the scenario is loaded.
+/// </summary>
+public sealed class ChaosPlan
+{
+    public static readonly ChaosPlan Off = new(null);
+
+    private readonly HashSet<string> _applied = [];
+
+    public ChaosPlan(ChaosScenario? scenario) => Scenario = scenario;
+
+    public ChaosScenario? Scenario { get; }
+
+    public bool Enabled => Scenario is not null;
+
+    public bool Wants(string layer) => Scenario?.HasLayer(layer) == true;
+
+    public IReadOnlyList<string> Applied
+    {
+        get
+        {
+            lock (_applied) return _applied.Order(StringComparer.Ordinal).ToArray();
+        }
+    }
+
+    /// <summary>Layers the scenario names that this process has not wrapped (yet): no such interface here, or not resolved so far.</summary>
+    public IReadOnlyList<string> NotApplied => Scenario is null ? [] : Scenario.Layers.Keys.Except(Applied).Order(StringComparer.Ordinal).ToArray();
+
+    internal void MarkApplied(string layer)
+    {
+        lock (_applied) _applied.Add(layer);
+    }
+}
+
+/// <summary>
 /// The one place a service switches chaos on (ADR-0024): <c>builder.Services.AddBakeryChaos(builder.Configuration, builder.Environment)</c>, after the
 /// service's own registrations. With <c>Chaos:Enabled</c> unset or false it only registers <see cref="ChaosRuntime.Disabled"/>. With it set it checks
 /// the gate (<see cref="ChaosGate"/>), loads the scenario named by <c>Chaos:Scenario</c>, wraps what is registered for each layer the scenario
-/// names, and adds the response indicator and a startup warning. Nothing else in the service changes.
+/// names and this process has (events, repositories, broadcast), and adds the response indicator and a startup warning. A service that owns an
+/// interface of its own (payment, the catalog gateway, the notification sender) wraps it with <see cref="AddChaosLayer{TService}"/>.
 /// </summary>
 public static class ChaosServiceExtensions
 {
@@ -21,6 +60,7 @@ public static class ChaosServiceExtensions
         if (!configuration.GetValue("Chaos:Enabled", false))
         {
             services.AddSingleton(ChaosRuntime.Disabled);
+            services.AddSingleton(ChaosPlan.Off);
             return services;
         }
 
@@ -31,14 +71,42 @@ public static class ChaosServiceExtensions
         if (string.IsNullOrWhiteSpace(reference))
             throw new InvalidOperationException("Chaos:Enabled is true but Chaos:Scenario names no scenario.");
         var scenario = ChaosScenario.Load(ChaosScenarioLocator.Resolve(reference, environment.ContentRootPath));
+        var plan = new ChaosPlan(scenario);
 
+        services.AddSingleton(plan);
         services.AddSingleton(sp => new ChaosRuntime(
             scenario, environment.EnvironmentName, deployment, sp.GetRequiredService<ILoggerFactory>().CreateLogger("BakeryMarketplace.Chaos")));
         services.AddTransient<IStartupFilter, ChaosStartupFilter>();
 
-        if (scenario.HasLayer(ChaosEventTransport.LayerName))
-            DecorateEvents(services);
+        if (plan.Wants(ChaosEventTransport.LayerName)) DecorateEvents(services, plan);
+        if (plan.Wants(ChaosRepository<object>.LayerName)) DecorateRepositories(services, plan);
+        if (plan.Wants(ChaosBroadcastPublisher.LayerName)) DecorateBroadcast(services, plan);
 
+        return services;
+    }
+
+    /// <summary>
+    /// Wraps what the service registered for <typeparamref name="TService"/> with <paramref name="wrap"/> when the scenario has <paramref name="layer"/>;
+    /// otherwise does nothing. For the interfaces a service owns (they are not visible to this library). Call it after <see cref="AddBakeryChaos"/>
+    /// and after the service registers <typeparamref name="TService"/>.
+    /// </summary>
+    public static IServiceCollection AddChaosLayer<TService>(this IServiceCollection services, string layer, Func<TService, ChaosLayer, TService> wrap)
+        where TService : class
+    {
+        var plan = PlanOf(services);
+        if (!plan.Wants(layer)) return services;
+        var original = LastDescriptor(services, typeof(TService));
+        if (original is null) return services; // this process does not have the interface: reported as not applicable
+
+        services.Remove(original);
+        services.Add(ServiceDescriptor.Describe(
+            typeof(TService),
+            sp =>
+            {
+                plan.MarkApplied(layer);
+                return wrap((TService)Build(sp, original), sp.GetRequiredService<ChaosRuntime>().Layer(layer));
+            },
+            original.Lifetime));
         return services;
     }
 
@@ -62,24 +130,91 @@ public static class ChaosServiceExtensions
     public static ICacheProvider WrapCachePrimary(this IServiceProvider services, ICacheProvider primary)
     {
         var runtime = services.GetService<ChaosRuntime>();
-        return runtime is { Enabled: true } && runtime.Scenario!.HasLayer(ChaosCacheProvider.LayerName)
-            ? new ChaosCacheProvider(primary, runtime)
-            : primary;
+        if (runtime is not { Enabled: true } || !runtime.Scenario!.HasLayer(ChaosCacheProvider.LayerName)) return primary;
+        services.GetService<ChaosPlan>()?.MarkApplied(ChaosCacheProvider.LayerName);
+        return new ChaosCacheProvider(primary, runtime);
     }
 
-    private static void DecorateEvents(IServiceCollection services)
+    private static ChaosPlan PlanOf(IServiceCollection services) =>
+        services.LastOrDefault(d => d.ServiceType == typeof(ChaosPlan))?.ImplementationInstance as ChaosPlan
+        ?? throw new InvalidOperationException("Call AddBakeryChaos before AddChaosLayer.");
+
+    private static void DecorateEvents(IServiceCollection services, ChaosPlan plan)
     {
         var publisher = LastDescriptor(services, typeof(IEventPublisher));
         var subscriber = LastDescriptor(services, typeof(IEventSubscriber));
-        if (publisher is null || subscriber is null)
-            throw new InvalidOperationException("The chaos 'events' layer needs the event transport registered first: call AddBakeryEvents before AddBakeryChaos.");
+        if (publisher is null || subscriber is null) return; // no event transport in this process
 
         services.Remove(publisher);
         services.Remove(subscriber);
-        services.AddSingleton(sp => new ChaosEventTransport(
-            (IEventPublisher)Build(sp, publisher), (IEventSubscriber)Build(sp, subscriber), sp.GetRequiredService<ChaosRuntime>()));
+        services.AddSingleton(sp =>
+        {
+            plan.MarkApplied(ChaosEventTransport.LayerName);
+            return new ChaosEventTransport((IEventPublisher)Build(sp, publisher), (IEventSubscriber)Build(sp, subscriber), sp.GetRequiredService<ChaosRuntime>());
+        });
         services.AddSingleton<IEventPublisher>(sp => sp.GetRequiredService<ChaosEventTransport>());
         services.AddSingleton<IEventSubscriber>(sp => sp.GetRequiredService<ChaosEventTransport>());
+    }
+
+    private static void DecorateRepositories(IServiceCollection services, ChaosPlan plan)
+    {
+        var repositories = services
+            .Where(d => !d.IsKeyedService && d.ServiceType.IsGenericType && d.ServiceType.GetGenericTypeDefinition() == typeof(IRepository<>))
+            .ToList();
+        foreach (var original in repositories)
+        {
+            var wrapper = typeof(ChaosRepository<>).MakeGenericType(original.ServiceType.GenericTypeArguments[0]);
+            services.Remove(original);
+            services.Add(ServiceDescriptor.Describe(
+                original.ServiceType,
+                sp =>
+                {
+                    plan.MarkApplied(ChaosRepository<object>.LayerName);
+                    return Activator.CreateInstance(wrapper, Build(sp, original), sp.GetRequiredService<ChaosRuntime>())!;
+                },
+                original.Lifetime));
+        }
+
+        var batches = LastDescriptor(services, typeof(IBatchFactory));
+        if (batches is not null)
+        {
+            services.Remove(batches);
+            services.Add(ServiceDescriptor.Describe(
+                typeof(IBatchFactory),
+                sp => new ChaosBatchFactory((IBatchFactory)Build(sp, batches), sp.GetRequiredService<ChaosRuntime>()),
+                batches.Lifetime));
+        }
+    }
+
+    private static void DecorateBroadcast(IServiceCollection services, ChaosPlan plan)
+    {
+        var publisher = LastDescriptor(services, typeof(IBroadcastPublisher));
+        var subscriber = LastDescriptor(services, typeof(IBroadcastSubscriber));
+        if (publisher is not null)
+        {
+            services.Remove(publisher);
+            services.Add(ServiceDescriptor.Describe(
+                typeof(IBroadcastPublisher),
+                sp =>
+                {
+                    plan.MarkApplied(ChaosBroadcastPublisher.LayerName);
+                    return new ChaosBroadcastPublisher((IBroadcastPublisher)Build(sp, publisher), sp.GetRequiredService<ChaosRuntime>());
+                },
+                publisher.Lifetime));
+        }
+
+        if (subscriber is not null)
+        {
+            services.Remove(subscriber);
+            services.Add(ServiceDescriptor.Describe(
+                typeof(IBroadcastSubscriber),
+                sp =>
+                {
+                    plan.MarkApplied(ChaosBroadcastPublisher.LayerName);
+                    return new ChaosBroadcastSubscriber((IBroadcastSubscriber)Build(sp, subscriber), sp.GetRequiredService<ChaosRuntime>());
+                },
+                subscriber.Lifetime));
+        }
     }
 
     private static ServiceDescriptor? LastDescriptor(IServiceCollection services, Type serviceType) =>

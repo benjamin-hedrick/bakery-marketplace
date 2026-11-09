@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BakeryMarketplace.Caching\BakeryMarketplace.Caching.csproj" />
+    <ProjectReference Include="..\BakeryMarketplace.Data\BakeryMarketplace.Data.csproj" />
     <ProjectReference Include="..\BakeryMarketplace.Eventing\BakeryMarketplace.Eventing.csproj" />
   </ItemGroup>
 

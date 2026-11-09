@@ -78,4 +78,7 @@ internal static partial class ChaosLog
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "CHAOS SCENARIO '{Scenario}' IS ON (seed {Seed}, layers {Layers}). Faults are injected on purpose; responses carry X-Chaos-Scenario.")]
     public static partial void ScenarioOn(ILogger logger, string scenario, long seed, string layers);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Chaos scenario '{Scenario}': layers applied in this process: [{Applied}]; named by the scenario but not applied here (no such interface in this service, or not used yet): [{NotApplied}].")]
+    public static partial void LayersApplied(ILogger logger, string scenario, string applied, string notApplied);
 }

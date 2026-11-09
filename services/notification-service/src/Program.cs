@@ -44,6 +44,7 @@ builder.Services.AddHostedService<OrderEventSubscriptions>();
 
 // Chaos scenarios (ADR-0024): does nothing unless Chaos:Enabled is set, and then only in Development or the dev deployment.
 builder.Services.AddBakeryChaos(builder.Configuration, builder.Environment);
+builder.Services.AddChaosLayer<INotificationSender>("notification", (inner, layer) => new NotificationService.Chaos.ChaosNotificationSender(inner, layer));
 
 var app = builder.Build();
 

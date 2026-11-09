@@ -99,6 +99,8 @@ builder.Services.AddSingleton<OrderActionService>(); // WI-ORD-007
 
 // Chaos scenarios (ADR-0024): does nothing unless Chaos:Enabled is set, and then only in Development or the dev deployment.
 builder.Services.AddBakeryChaos(builder.Configuration, builder.Environment);
+builder.Services.AddChaosLayer<IPaymentProcessor>("payment", (inner, layer) => new OrderingService.Chaos.ChaosPaymentProcessor(inner, layer));
+builder.Services.AddChaosLayer<ICatalogGateway>("catalog", (inner, layer) => new OrderingService.Chaos.ChaosCatalogGateway(inner, layer));
 
 var app = builder.Build();
 

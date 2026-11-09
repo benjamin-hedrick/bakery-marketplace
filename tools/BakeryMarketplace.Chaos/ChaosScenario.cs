@@ -23,6 +23,31 @@ public sealed class ChaosScenario
         {
             "failureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
+        // A transient store error (a Cosmos 503), an optimistic-concurrency conflict on a conditional save or batch, and slowness.
+        ["repository"] = new HashSet<string>
+        {
+            "failureRate", "conflictRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
+        // The Pub/Sub nudge to the live vendor screens: a failed publish, a lost one, a lost delivery, slowness.
+        ["broadcast"] = new HashSet<string>
+        {
+            "failureRate", "dropRate", "deliveryDropRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
+        // The payment processor seam in ordering: the processor failing, declining, or answering slowly.
+        ["payment"] = new HashSet<string>
+        {
+            "failureRate", "declineRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
+        // Ordering's gateway to the catalog: unreachable, a refused reservation, slowness.
+        ["catalog"] = new HashSet<string>
+        {
+            "unavailableRate", "rejectRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
+        // The notification service's sender: a delivery that fails, slowness.
+        ["notification"] = new HashSet<string>
+        {
+            "failureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
     };
 
     public string Name { get; }

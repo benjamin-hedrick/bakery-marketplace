@@ -135,6 +135,7 @@ Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engin
 - ✅ EVT-003 (Service Implementation) — see `WI-EVT-003.md` — `RedisStreamsPublisher`/`Subscriber` (local Redis Streams transport with consumer groups and dead-lettering)
 - 🔵 EVT-004 (Test/Mock/Chaos) — see `WI-EVT-004.md` — `ChaosEventTransport` (duplicate, delayed, dropped and out-of-order delivery, outage, failing handlers; also run over Redis Streams), In review
 - 🔵 CHAOS-001 (Test/Mock/Chaos) — see `WI-CHAOS-001.md` — chaos scenarios phase 1: scenario files, keyed decisions, journal, gate, response indicator, events and cache layers, wired into the four C# services (ADR-0024), In review
+- 🔵 CHAOS-002 (Test/Mock/Chaos) — see `WI-CHAOS-002.md` — chaos scenarios phase 2: repository, broadcast, payment, catalog gateway and notification-sender layers (ADR-0024), In review
 - ⚪ EVT-005 (Infra/Environment) — Terraform Event Grid custom topic + subscription filters
 
 ### EPIC-DATA-STORE — Cosmos DB Repositories
