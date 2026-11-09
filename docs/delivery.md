@@ -39,11 +39,11 @@ From the git history and the recorded sessions of the AI assistant ([AI collabor
 
 | | |
 |---|---|
-| Calendar span | 2026-09-04 to 2026-11-08, work on 25 days, more than 430 commits |
+| Calendar span | 2026-09-04 to 2026-11-09, work on 26 days, more than 480 commits |
 | Work items | 110 specs; 85 Done or In review |
 | Decisions | 23 ADRs |
 | Evidence records | one beside each run, indexed in [evidence](evidence/README.md) |
-| Open items | 166 in the register, each with a status |
+| Open items | 168 in the register, each with a status |
 
 ## Read next
 

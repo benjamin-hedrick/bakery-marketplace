@@ -7,8 +7,9 @@ What it does: sign in (system browser, PKCE), the menu with stock, an item with 
 idempotency key; a declined or failed payment keeps the order), and the status of the order just placed. It shares the cart, checkout input and
 wording with the web app through `packages/customer-core`; it does not use Relay (plain `fetch` to the BFF, `src/api.ts`).
 Allergens (`WI-MOB-002`): the cart says what each item and chosen option contains, checkout warns about the customer's own saved allergies and asks for an
-acknowledgement of a serious one, and the customer chooses which of their allergies to tell the bakery. The menu and the item screen do not show allergens yet
-(they first appear in the cart); see the open findings in `docs/governance/pre-publish-gaps.md`.
+acknowledgement of a serious one, and the customer chooses which of their allergies to tell the bakery. The menu lists what each item contains (the bakery's
+words, or "No allergens flagged by the bakery") and the item screen shows its allergens before the customer adds it; see the open findings in
+`docs/governance/pre-publish-gaps.md`.
 
 Tokens: the access token lives in memory; the refresh token lives in the Android Keystore (`expo-secure-store`) and is deleted on sign-out or when
 the issuer refuses it (`src/auth/session.ts`). A network failure never deletes it. The cart is not kept after sign-out or a restart.
