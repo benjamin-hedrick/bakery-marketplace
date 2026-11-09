@@ -29,7 +29,7 @@ Short-lived feature branches, merged to `main` quickly, with feature flags (`EPI
 | Tagged release (`v<major>.<minor>.<patch>`) | Manually cut from `main` when a coherent set of merged work is ready | Promotes to `staging` |
 | Manual approval | After staging validation | Promotes to `prod` |
 
-**Today:** `azure-pipelines.yml` builds and tests; it has no deployment stage and no environment exists. `infra/environments` holds `dev`, `staging` and `prod` folders that map to the target, and `infra/modules` holds only the Key Vault module (never planned or applied). There are no git tags and no feature flags yet (`EPIC-FEATURE-FLAGS` is not built), so the trunk-based reliance on flags to hide incomplete work is a plan: today incomplete work simply is not merged.
+**Today:** `azure-pipelines.yml` builds and tests; it has no deployment stage and no environment exists. `infra/environments` holds only `dev` (UAT and prod are a later design, ADR-0020), written and checked locally and never planned or applied. There are no git tags and no feature flags yet (`EPIC-FEATURE-FLAGS` is not built), so the trunk-based reliance on flags to hide incomplete work is a plan: today incomplete work simply is not merged.
 
 ## Versioning
 

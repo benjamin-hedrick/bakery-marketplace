@@ -74,7 +74,7 @@ public sealed class CosmosCatalogTests : IAsyncLifetime
         _reservations = new CosmosRepository<StockReservationDocument>(container);
         var status = new CosmosRepository<VendorStatusDocument>(container);
         await status.SaveAsync(new VendorStatusDocument { Id = Vendor, Verified = true, LastSequence = 1 }, VendorStatusStore.Partition);
-        var vendors = new VendorStatusStore(status);
+        var vendors = new VendorStatusStore(status, TestServices.CacheOff());
         var options = Options.Create(new OutboxOptions());
         _publisher = new ListingEventPublisher(_events, _listings, options, _time, NullLogger<ListingEventPublisher>.Instance);
         _relay = new ListingOutboxRelay(_listings, _publisher, options, _time, NullLogger<ListingOutboxRelay>.Instance);

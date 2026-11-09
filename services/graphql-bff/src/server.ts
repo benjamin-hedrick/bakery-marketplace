@@ -244,7 +244,8 @@ export function createServer(
       source = body.query;
       variables = body.variables ?? undefined;
       operationName = body.operationName ?? undefined;
-    } catch {
+    } catch (e) {
+      if (e instanceof BodyTooLarge) return send(413, { errors: [{ message: 'Request too large' }] }); // as for an event-stream request
       return send(400, { errors: [{ message: 'Invalid request body', extensions: { code: 'BAD_REQUEST' } }] });
     }
 
@@ -420,12 +421,18 @@ function bearerOnly(v: string | undefined): string | undefined {
   return v !== undefined && /^Bearer [^\s]+$/i.test(v) ? v : undefined;
 }
 
+class BodyTooLarge extends Error {
+  constructor() {
+    super('body too large');
+  }
+}
+
 async function readBody(req: http.IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const c of req) {
     size += (c as Buffer).length;
-    if (size > MAX_BODY_BYTES) throw new Error('body too large');
+    if (size > MAX_BODY_BYTES) throw new BodyTooLarge();
     chunks.push(c as Buffer);
   }
   return Buffer.concat(chunks).toString('utf8');

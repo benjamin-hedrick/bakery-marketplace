@@ -15,7 +15,7 @@ namespace OrderingService.Persistence;
 /// A lost race with another writer re-reads and applies the event again.
 /// </summary>
 public sealed partial class VendorOrderProjection(
-    IRepository<VendorOrderDocument> documents, ILogger<VendorOrderProjection> logger, IBroadcastPublisher? broadcast = null)
+    IRepository<VendorOrderDocument> documents, ILogger<VendorOrderProjection> logger, IBroadcastPublisher broadcast)
 {
     private const int MaxAttempts = 20;
 
@@ -110,7 +110,6 @@ public sealed partial class VendorOrderProjection(
     /// </summary>
     private async Task AnnounceAsync(VendorOrderDocument saved, string vendorId, CancellationToken ct)
     {
-        if (broadcast is null) return;
         try
         {
             await broadcast.PublishAsync(VendorOrderChannels.For(vendorId), JsonConvert.SerializeObject(saved), ct);

@@ -16,7 +16,7 @@ the issuer refuses it (`src/auth/session.ts`). A network failure never deletes i
 ## Prerequisites (Windows, one time)
 
 JDK 17 (`JAVA_HOME`), the Android SDK (`ANDROID_HOME`, platform-tools on `PATH`), the AVD `bakery_pixel`, Maestro 2.12.x, Docker, the .NET SDK and
-Node >= 24. The runner finds JDK 17, the SDK and Maestro at their usual Windows places when `JAVA_HOME` and `ANDROID_HOME` are not set. Chrome on a fresh
+Node >= 24. The runner finds JDK 17, the SDK and Maestro at their usual Windows places when `JAVA_HOME`, `ANDROID_HOME` and `MAESTRO_HOME` (the folder holding `bin/maestro`) are not set. Chrome on a fresh
 emulator image shows a first-run screen once; the login subflow dismisses it.
 
 ## The Maestro flows (one command)

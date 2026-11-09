@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A load and soak run of the live vendor queue on the real local stack (WI-SEC-005 step 3, register item 129). It starts the stack (Docker, the
+// A load and soak run of the live vendor queue on the real local stack (Windows only: the memory samples use netstat and tasklist) (WI-SEC-005 step 3, register item 129). It starts the stack (Docker, the
 // catalog, ordering and BFF as host processes), then:
 //   1. LIMITS:   one vendor opens seven streams one after another; ordering keeps five (the newest), so the first two must end and the rest stay open.
 //   2. LOAD:     the five streams stay open while a customer places an order every --order-every seconds and --readers workers read the catalog

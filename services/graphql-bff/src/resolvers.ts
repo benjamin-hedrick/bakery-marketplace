@@ -28,6 +28,23 @@ export interface Context {
 const MAX_PAGE = 50;
 const money = (cents: number, currency = 'USD') => ({ cents, currency });
 
+/** The page size a caller asked for, kept within what the BFF serves. */
+const pageSize = (first: number | undefined) => Math.min(Math.max(first ?? 20, 1), MAX_PAGE);
+
+/** A Relay connection of one page: an edge per item, and the cursor to ask for the next page with (the service's, else the last edge's). */
+function connection<T, N>(
+  items: readonly T[],
+  nextCursor: string | null | undefined,
+  cursorOf: (item: T) => string,
+  nodeOf: (item: T) => N,
+) {
+  const edges = items.map((item) => ({ cursor: cursorOf(item), node: nodeOf(item) }));
+  return {
+    edges,
+    pageInfo: { hasNextPage: nextCursor != null, endCursor: nextCursor ?? edges.at(-1)?.cursor ?? null },
+  };
+}
+
 // Mapping only (ADR-0013): field renames and shape changes. No pricing, availability or visibility rules live here.
 
 /** A value the service sent that the schema has no name for is a contract violation: an internal error, never a guess. */
@@ -70,7 +87,7 @@ const toListing = (l: CatalogListing) => ({
   // A function, so a bad stock block only fails the query that asks for it.
   stock: () => ({
     status: enumValue('stock status', STOCK_STATUS, l.stock?.status ?? ''),
-    maxPerOrder: l.stock.maxPerOrder,
+    maxPerOrder: l.stock?.maxPerOrder ?? null,
   }),
 });
 
@@ -269,79 +286,67 @@ const VENDOR_ACTIONS: Record<string, OrderActionName> = {
   CANCEL: 'cancel',
 };
 
+/** The refusal of an order action, in the schema's words. The text is the BFF's own; ordering's never reaches the client. */
 const actionRejected = (
+  typename: 'VendorOrderActionRejected' | 'CancelOrderRejected',
   code: 'NOT_FOUND' | 'NOT_ALLOWED_NOW',
   message: string,
   currentStatus: string | null = null,
-) => ({
-  __typename: 'VendorOrderActionRejected',
-  code,
-  message,
-  currentStatus,
-});
+) => ({ __typename: typename, code, message, currentStatus });
 
 /**
- * A vendor's action on one of their orders (WI-QUE-004). Mapping only: the enum becomes ordering's path, the caller's token goes through, and
- * ordering decides the role, the ownership and whether the order's status allows the action (ADR-0006, ADR-0013). Its text never reaches the client.
+ * One action on an order, for the vendor's actions and the customer's cancel alike. Mapping only (ADR-0006, ADR-0013): the caller's token goes through,
+ * and ordering decides the role, whose order it is and whether the order's status allows the action. `kind` names the two payload types and the text of a
+ * refusal because the order has moved on.
  */
+async function runOrderAction(
+  ctx: Context,
+  serviceId: string,
+  action: OrderActionName,
+  orderId: string,
+  kind: {
+    done: 'VendorOrderActionDone' | 'CancelOrderDone';
+    rejected: 'VendorOrderActionRejected' | 'CancelOrderRejected';
+    tooLate: string;
+  },
+) {
+  const result = await callWithToken(ctx, (authorization) =>
+    ctx.ordering.orderAction(serviceId, action, authorization, ctx.trace),
+  );
+  if (result.kind === 'done') {
+    return { __typename: kind.done, orderId, status: enumValue('order status', ORDER_STATUS, result.order.status) };
+  }
+  if (result.kind === 'not_found') return actionRejected(kind.rejected, 'NOT_FOUND', 'That order could not be found.');
+  const current =
+    result.currentStatus === null ? null : ORDER_STATUS[result.currentStatus as keyof typeof ORDER_STATUS];
+  return actionRejected(kind.rejected, 'NOT_ALLOWED_NOW', kind.tooLate, current ?? null);
+}
+
+/** A vendor's action on one of their orders (WI-QUE-004). The enum becomes ordering's path; everything else is ordering's to decide. */
 async function vendorOrderAction(args: { input: { orderId: string; action: string } }, ctx: Context) {
   if (!ctx.authorization) throw unauthenticated();
   const action = VENDOR_ACTIONS[args.input.action];
   if (action === undefined) throw new DownstreamError('unknown vendor action'); // the schema's enum makes this unreachable
   const serviceId = serviceIdFor('VendorOrder', args.input.orderId);
-  if (serviceId === null) return actionRejected('NOT_FOUND', 'That order could not be found.');
-
-  const result = await callWithToken(ctx, (authorization) =>
-    ctx.ordering.orderAction(serviceId, action, authorization, ctx.trace),
-  );
-  if (result.kind === 'done') {
-    return {
-      __typename: 'VendorOrderActionDone',
-      orderId: args.input.orderId,
-      status: enumValue('order status', ORDER_STATUS, result.order.status),
-    };
-  }
-  if (result.kind === 'not_found') return actionRejected('NOT_FOUND', 'That order could not be found.');
-  const current =
-    result.currentStatus === null ? null : ORDER_STATUS[result.currentStatus as keyof typeof ORDER_STATUS];
-  return actionRejected('NOT_ALLOWED_NOW', 'That cannot be done to this order now. It has changed.', current ?? null);
+  if (serviceId === null)
+    return actionRejected('VendorOrderActionRejected', 'NOT_FOUND', 'That order could not be found.');
+  return runOrderAction(ctx, serviceId, action, args.input.orderId, {
+    done: 'VendorOrderActionDone',
+    rejected: 'VendorOrderActionRejected',
+    tooLate: 'That cannot be done to this order now. It has changed.',
+  });
 }
 
-const cancelRejected = (
-  code: 'NOT_FOUND' | 'NOT_ALLOWED_NOW',
-  message: string,
-  currentStatus: string | null = null,
-) => ({
-  __typename: 'CancelOrderRejected',
-  code,
-  message,
-  currentStatus,
-});
-
-/**
- * A customer cancels their own order. Mapping only, like {@link vendorOrderAction}: the same ordering endpoint, the caller's token goes through, and
- * ordering decides the role, whose order it is and whether its status allows a cancel by a customer (ADR-0006, ADR-0013). Its text never reaches the
- * client.
- */
+/** A customer cancels their own order: the same ordering endpoint, with the customer's token. */
 async function cancelOrder(args: { input: { orderId: string } }, ctx: Context) {
   const serviceId = serviceIdFor('Order', args.input.orderId);
   if (!ctx.authorization) throw unauthenticated();
-  if (serviceId === null) return cancelRejected('NOT_FOUND', 'That order could not be found.');
-
-  const result = await callWithToken(ctx, (authorization) =>
-    ctx.ordering.orderAction(serviceId, 'cancel', authorization, ctx.trace),
-  );
-  if (result.kind === 'done') {
-    return {
-      __typename: 'CancelOrderDone',
-      orderId: args.input.orderId,
-      status: enumValue('order status', ORDER_STATUS, result.order.status),
-    };
-  }
-  if (result.kind === 'not_found') return cancelRejected('NOT_FOUND', 'That order could not be found.');
-  const current =
-    result.currentStatus === null ? null : ORDER_STATUS[result.currentStatus as keyof typeof ORDER_STATUS];
-  return cancelRejected('NOT_ALLOWED_NOW', 'This order can no longer be cancelled. It has changed.', current ?? null);
+  if (serviceId === null) return actionRejected('CancelOrderRejected', 'NOT_FOUND', 'That order could not be found.');
+  return runOrderAction(ctx, serviceId, 'cancel', args.input.orderId, {
+    done: 'CancelOrderDone',
+    rejected: 'CancelOrderRejected',
+    tooLate: 'This order can no longer be cancelled. It has changed.',
+  });
 }
 
 const toPreferences = (p: { allergies: string[]; avoid: string[]; prefer?: string[] }) => ({
@@ -447,7 +452,7 @@ export const rootValue = {
     args: { first?: number; after?: string | null; hideConflicts?: boolean | null },
     ctx: Context,
   ) {
-    const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
+    const first = pageSize(args.first);
     const page = await callWithToken(ctx, (authorization) =>
       ctx.catalog.listPersonalized(
         { limit: first, after: args.after ?? undefined, hideConflicts: args.hideConflicts ?? false },
@@ -455,11 +460,7 @@ export const rootValue = {
         ctx.trace,
       ),
     );
-    const edges = page.items.map((p) => ({ cursor: p.listing.id, node: toPersonalized(p) }));
-    return {
-      edges,
-      pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null },
-    };
+    return connection(page.items, page.nextCursor, (p) => p.listing.id, toPersonalized);
   },
   async personalizedListing(args: { id: string }, ctx: Context) {
     const serviceId = serviceIdFor('Listing', args.id);
@@ -477,7 +478,7 @@ export const rootValue = {
   vendorOrderAction,
   cancelOrder,
   async listings(args: { first?: number; after?: string | null; tags?: string[] | null }, ctx: Context) {
-    const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
+    const first = pageSize(args.first);
     const page = await ctx.catalog
       .list({ limit: first, after: args.after ?? undefined, tags: args.tags ?? undefined }, ctx.trace)
       .catch((e: unknown) => {
@@ -487,11 +488,7 @@ export const rootValue = {
         }
         throw e;
       });
-    const edges = page.items.map((l) => ({ cursor: l.id, node: toListing(l) }));
-    return {
-      edges,
-      pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null },
-    };
+    return connection(page.items, page.nextCursor, (l) => l.id, toListing);
   },
   async listing(args: { id: string }, ctx: Context) {
     const serviceId = serviceIdFor('Listing', args.id);
@@ -501,7 +498,7 @@ export const rootValue = {
   },
   async tags(args: { kind?: string | null }, ctx: Context) {
     const tags = await ctx.catalog.tags(args.kind ? args.kind.toLowerCase() : undefined, ctx.trace);
-    return tags.map((t) => ({ id: t.id, kind: t.kind.toUpperCase(), label: t.label }));
+    return toTags(tags);
   },
   async pickupWindows(args: { vendorId: string }, ctx: Context) {
     // Public data: the caller's token is deliberately not sent.
@@ -521,27 +518,19 @@ export const rootValue = {
     return methods.map((m) => ({ id: m.id, description: m.description }));
   },
   async orders(args: { first?: number; after?: string | null }, ctx: Context) {
-    const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
+    const first = pageSize(args.first);
     const page = await callWithToken(ctx, (authorization) =>
       ctx.ordering.listOrders({ limit: first, after: args.after ?? undefined }, authorization, ctx.trace),
     );
-    const edges = page.items.map((o) => ({ cursor: o.id, node: toOrder(o) }));
-    return {
-      edges,
-      pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null },
-    };
+    return connection(page.items, page.nextCursor, (o) => o.id, toOrder);
   },
   async vendorOrders(args: { status?: string | null; first?: number; after?: string | null }, ctx: Context) {
-    const first = Math.min(Math.max(args.first ?? 20, 1), MAX_PAGE);
+    const first = pageSize(args.first);
     const status = args.status ? VENDOR_ORDER_FILTER[args.status] : undefined;
     const page = await callWithToken(ctx, (authorization) =>
       ctx.ordering.listVendorOrders({ status, limit: first, after: args.after ?? undefined }, authorization, ctx.trace),
     );
-    const edges = page.items.map((o) => ({ cursor: o.id, node: toVendorOrder(o) }));
-    return {
-      edges,
-      pageInfo: { hasNextPage: page.nextCursor != null, endCursor: page.nextCursor ?? edges.at(-1)?.cursor ?? null },
-    };
+    return connection(page.items, page.nextCursor, (o) => o.id, toVendorOrder);
   },
   async vendorOrder(args: { id: string }, ctx: Context) {
     const serviceId = serviceIdFor('VendorOrder', args.id);

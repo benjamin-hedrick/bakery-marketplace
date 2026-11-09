@@ -323,7 +323,7 @@ public sealed class ListingApiTests : IDisposable
     [Fact]
     public async Task Seeded_vendors_are_editable_only_by_their_own_mock_user()
     {
-        await new BakeryMarketplace.Seed.Seeder(_factory.Listings, _factory.Services.GetRequiredService<IEventPublisher>()).SeedAsync();
+        await new BakeryMarketplace.Seed.Seeder(_factory.Listings, _factory.Services.GetRequiredService<IEventPublisher>(), new BakeryMarketplace.Data.FakeRepository<CatalogService.Preferences.PreferenceProfileDocument>(d => d.Id)).SeedAsync();
         var shop = _factory.ClientFor(MockUsers.ShopVendor.Id, MockUsers.ShopVendor.Role);
         var indie = _factory.ClientFor(MockUsers.IndependentVendor.Id, MockUsers.IndependentVendor.Role);
 

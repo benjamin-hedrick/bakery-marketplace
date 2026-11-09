@@ -35,7 +35,7 @@ public sealed class CosmosVendorOrderTests : IAsyncLifetime
         var vendorOrders = (await db.CreateContainerIfNotExistsAsync(new ContainerProperties("vendor-orders", "/vendorId"))).Container;
         _vendorOrders = new CosmosRepository<VendorOrderDocument>(vendorOrders);
         _store = new OrderStore(new CosmosRepository<OrderDocument>(orders), _vendorOrders);
-        _projection = new VendorOrderProjection(_vendorOrders, NullLogger<VendorOrderProjection>.Instance);
+        _projection = new VendorOrderProjection(_vendorOrders, NullLogger<VendorOrderProjection>.Instance, new InMemoryBroadcast());
         _reader = new VendorOrderReader(_vendorOrders);
     }
 

@@ -270,7 +270,7 @@ public class OrderAllergenProjectionTests
     private readonly FakeRepository<VendorOrderDocument> _documents = new(d => d.Id);
     private readonly VendorOrderProjection _projection;
 
-    public OrderAllergenProjectionTests() => _projection = new VendorOrderProjection(_documents, NullLogger<VendorOrderProjection>.Instance);
+    public OrderAllergenProjectionTests() => _projection = new VendorOrderProjection(_documents, NullLogger<VendorOrderProjection>.Instance, new InMemoryBroadcast());
 
     private Task Placed(IReadOnlyList<string>? allergens, long seq = 1) =>
         _projection.OnPlacedAsync(new DomainEventEnvelope<OrderPlacedPayload>(
@@ -286,7 +286,7 @@ public class OrderAllergenProjectionTests
         Assert.Equal(["dairy", "sesame"], (await Read()).Allergens);
 
         var other = new FakeRepository<VendorOrderDocument>(d => d.Id);
-        await new VendorOrderProjection(other, NullLogger<VendorOrderProjection>.Instance).OnPlacedAsync(
+        await new VendorOrderProjection(other, NullLogger<VendorOrderProjection>.Instance, new InMemoryBroadcast()).OnPlacedAsync(
             new DomainEventEnvelope<OrderPlacedPayload>(Guid.NewGuid(), OrderEventTypes.Placed, 1, T0, "Order", "order-2", 1,
                 new OrderPlacedPayload("order-2", "customer-1", Vendor, [new LineItemPayload("l1", [], 1)])), default);
         Assert.Null((await other.GetAsync("order-2", Vendor))!.Allergens);

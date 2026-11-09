@@ -25,7 +25,7 @@
 | Observability | OpenTelemetry with W3C Trace Context; OpenTelemetry Collector to Application Insights in the cloud | ADR-0016 | Instrumented in the BFF, the web server and both services; local collector, Aspire and Jaeger as compose profiles; Application Insights not built (register 37) |
 | Auth | Microsoft Entra External ID (successor to Azure AD B2C); service callers use OAuth2 client credentials | ADR-0006 (amended), ADR-0018, ADR-0019 (browser sessions), ADR-0023 (native sign-in) | A mock OIDC issuer, the shared validation middleware, server-side browser sessions and the Android PKCE sign-in are built; Entra is not configured; the DEV credential type is open (register 62) |
 | Payments | Stripe Connect (Express accounts) | ADR-0005 | A named stub only (`IPaymentProcessor`); no Stripe code |
-| Secrets | Azure Key Vault via managed identity | ADR-0007 | A Terraform module exists in `infra/modules/key_vault`; never planned or applied; services read config and a git-ignored `.env` |
+| Secrets | Azure Key Vault via managed identity | ADR-0007 | The dev environment stack creates the vault and placeholder secrets (`infra/environments/dev`); never planned or applied; services read config and a git-ignored `.env` |
 | API gateway | Azure API Management, Consumption tier, with every service still validating tokens itself | ADR-0008 (amended by 0013) | Not built |
 | Infrastructure as code | Terraform (`azurerm`), per-environment folders `dev`, `staging`, `prod` under `infra/environments` | Confirmed, no ADR | A foundation stack and a dev-environment stack (ADR-0020), including the Key Vault module; validated locally with mocked providers, never planned against or applied to Azure |
 | Source control | GitHub | Confirmed | In use |

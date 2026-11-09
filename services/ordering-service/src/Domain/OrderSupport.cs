@@ -13,8 +13,14 @@ public static class OrderRules
 /// <summary>A transition is not allowed from the order's current status, or by that actor.</summary>
 public sealed class InvalidOrderTransitionException(string message) : InvalidOperationException(message);
 
+/// <summary>What kind of rule an <see cref="OrderRuleException"/> broke, for the callers that answer differently (checkout names a bad quantity apart).</summary>
+public enum OrderRuleKind { Other, Quantity }
+
 /// <summary>An input or invariant of the order is violated (bad quantity, too many lines, empty order, and so on).</summary>
-public sealed class OrderRuleException(string message) : InvalidOperationException(message);
+public sealed class OrderRuleException(string message, OrderRuleKind kind = OrderRuleKind.Other) : InvalidOperationException(message)
+{
+    public OrderRuleKind Kind { get; } = kind;
+}
 
 /// <summary>
 /// A short reference for an order, to be read out across a counter or matched on a kitchen screen (<c>QUE-001</c>'s open point: orders carry no
@@ -64,7 +70,7 @@ public sealed record OrderLine
         if (modifiers.Any(string.IsNullOrWhiteSpace)) throw new OrderRuleException("A modifier id cannot be empty.");
         if (modifiers.Distinct().Count() != modifiers.Length) throw new OrderRuleException("A modifier can be chosen only once per line.");
         if (quantity < 1 || quantity > OrderRules.MaxQuantityPerLine)
-            throw new OrderRuleException($"Quantity must be between 1 and {OrderRules.MaxQuantityPerLine}.");
+            throw new OrderRuleException($"Quantity must be between 1 and {OrderRules.MaxQuantityPerLine}.", OrderRuleKind.Quantity);
         if (unitPriceCents < 0) throw new OrderRuleException("A unit price cannot be negative.");
 
         ListingId = listingId;

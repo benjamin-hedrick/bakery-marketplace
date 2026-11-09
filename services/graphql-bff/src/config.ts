@@ -31,16 +31,25 @@ export interface Config {
   otlpEndpoint?: string | undefined;
 }
 
+/** A whole number from 1 to `max` from the environment, or the default when unset. A bad value stops the start and names the variable only, as the limit settings do. */
+function wholeNumber(env: NodeJS.ProcessEnv, name: string, fallback: number, max = 3_600_000): number {
+  const raw = env[name];
+  if (raw === undefined || raw === '') return fallback;
+  if (!/^\d{1,8}$/.test(raw.trim()) || Number(raw) < 1 || Number(raw) > max)
+    throw new Error(`${name} must be a whole number from 1 to ${max}`);
+  return Number(raw);
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const timeoutMs = Number(env.DOWNSTREAM_TIMEOUT_MS ?? 5000);
+  const timeoutMs = wholeNumber(env, 'DOWNSTREAM_TIMEOUT_MS', 5000);
   return {
-    port: Number(env.BFF_PORT ?? 4100),
+    port: wholeNumber(env, 'BFF_PORT', 4100, 65_535),
     catalogUrl: (env.CATALOG_URL ?? 'http://localhost:5200').replace(/\/+$/, ''),
     orderingUrl: (env.ORDERING_URL ?? 'http://localhost:5300').replace(/\/+$/, ''),
     timeoutMs,
-    checkoutTimeoutMs: Number(env.CHECKOUT_TIMEOUT_MS ?? Math.max(15000, timeoutMs)),
-    streamIdleMs: Number(env.STREAM_IDLE_MS ?? 45000),
-    maxStreams: Number(env.MAX_STREAMS ?? 500),
+    checkoutTimeoutMs: wholeNumber(env, 'CHECKOUT_TIMEOUT_MS', Math.max(15000, timeoutMs)),
+    streamIdleMs: wholeNumber(env, 'STREAM_IDLE_MS', 45000),
+    maxStreams: wholeNumber(env, 'MAX_STREAMS', 500, 100_000),
     rateLimitPerMinute: ratePerMinuteFromEnv(env),
     trustedClientSources: trustedSourcesFromEnv(env),
     operationLimits: limitsFromEnv(env),
