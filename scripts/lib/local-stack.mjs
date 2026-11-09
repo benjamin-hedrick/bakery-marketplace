@@ -218,6 +218,10 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
     startOne(name) {
       const spec = specs.get(name);
       if (!spec) throw new Error(`${name} was never started by this stack`);
+      // Already running (a flow and its onFlowComplete both start the BFF): a second copy would die on the taken port and, as the last entry, hide
+      // the live one from stopOne.
+      const live = children.findLast((c) => c.name === name && c.child.exitCode === null && c.child.pid);
+      if (live) return live.child;
       return start(name, spec.cmd, spec.args, spec.opts);
     },
 
