@@ -1,0 +1,29 @@
+# ADR-0024: Chaos Scenarios: Seeded, Configured Fault Injection at the Interface Layer
+
+**Status:** Proposed (2026-11-09). The lead decided the location, the scope (all services and the BFF) and that a new ADR is written; the text below is not yet accepted. It extends ADR-0002 (chaos decorators and the Production gate) and ADR-0003 (events) and does not change either decision text; ADR-0002 is to be amended after this settles. The design and its assessment are in [chaos-scenarios-proposal.md](../chaos-scenarios-proposal.md).
+
+## Context
+
+ADR-0002 asked for a chaos decorator on the cache, and `ChaosEventTransport` (`WI-EVT-004`) followed the same pattern. Both exist only inside tests: nothing in a running service can switch them on, nothing records what they injected, and the draws of their random numbers depend on call order, so a run cannot be repeated under concurrency. Meanwhile the test tooling reaches faults by other routes: a control server that stops the BFF, headers that slow a response. Those routes add code and endpoints that exist only for tests (CLAUDE.md, register 150, 155).
+
+The wish is one mechanism: faults introduced in a thin wrapper at an interface the system already has, chosen by a seed and configuration, with the service, the business logic and the external pieces untouched, usable against a running local or dev stack and not only in unit tests.
+
+## Decision
+
+1. **A scenario is data.** A named JSON document (name, seed, per-layer fault settings) in `chaos/scenarios/` at the repository root. It is selected by configuration (`Chaos:Enabled=true` and `Chaos:Scenario=<name or path>`), or passed as an object by an in-process test. The folder is shared by every language, so a scenario can cover a C# service and the Node BFF together. It is deliberately not inside a test project.
+2. **Two small libraries read it:** `tools/BakeryMarketplace.Chaos` (C#: scenario loader, decision function, journal, `AddBakeryChaos`) and `packages/chaos` (TypeScript, same behaviour). The existing `ChaosCacheProvider` and `ChaosEventTransport` move onto them without changing what they inject.
+3. **Decisions are keyed, not drawn.** Whether a fault applies is a pure function of `(seed, layer, fault, operation key)`: the first 8 bytes of SHA-256 over those four joined by `|`, read as an unsigned big-endian integer and divided by 2^64, compared with the fault's rate. The operation key is the event id, order id or request key the layer already has. The same scenario therefore hits the same operations on every run, under concurrency and in either language. A shared file of test vectors in `chaos/` is checked by both libraries' tests. Outage windows are measured from scenario start.
+4. **Layers are interfaces that already exist.** A layer wraps the registered implementation and adds only faults: latency, errors, an outage window, rejection (a typed refusal such as a decline or a conflict), drop, duplicate, reorder, malformed input as far as the typed interface can express it, and partial failure. Layers: `IEventPublisher`/`IEventSubscriber`, `ICacheProvider`, `IRepository<T>`, `IPaymentProcessor`, `INotificationSender`, `ICatalogGateway`, `IBroadcastPublisher`/`Subscriber` in the C# services; in the BFF a gate at the head of its HTTP handler (delay, reject with a chosen status, close the connection, never answer) and wrappers on its service clients. The web apps' server-side proxies may take the same gate. Every wrapper must pass the shared contract suite of its interface with chaos off.
+5. **Wiring is in the composition root only.** One call, `AddBakeryChaos`, after a service's own registrations (and the equivalent in the BFF's `main.ts`), in catalog, ordering, notification and admin. No handler, domain class or resolver is edited. With no scenario it does nothing.
+6. **Gating.** Chaos is refused at startup in any environment other than local Development and the dev deployment; UAT and Production refuse it (an allow-list, stricter than the deny-list of ADR-0002, which this does not weaken). It also needs `Chaos:Enabled=true`. A startup warning names the scenario and seed and the health response says chaos is on. The pipelines for UAT and production and `infra/` for those environments never set the keys, and a check fails if they appear there.
+7. **A journal records what happened.** Every injected fault is written as one structured log line and held in a `ChaosJournal` (layer, fault, operation key, time). A scenario run produces a summary of counts per fault, kept as evidence. There is no endpoint to read it. A scenario test asserts the journal shows the fault **before** it asserts the system coped.
+8. **What it does not touch.** Authentication, secrets and payment *integration* stay outside it as ADR-0005, 0006 and 0007 decided (the payment layer wraps the processor interface only, and the stub today). Stopping or restarting a process (the BFF's, the issuer's) and reading what a store holds stay process control and observation, not chaos.
+
+## Consequences
+
+- One mechanism replaces fault-only test paths below the BFF, with a seed, a record and no test-only endpoints. Process control and the data-read endpoints of the flow-control server remain (register 150).
+- Each service gains one line of startup code and a dependency on the chaos library; business code is unchanged.
+- A reproducible fault pattern is possible for the first time; timing (Redis redelivery, real clocks) is still not seedable, so scenario tests assert outcomes and counts, not durations.
+- Malformed input is limited to what the typed envelope or request can express; corrupting bytes on the wire would need a proxy and is out of scope.
+- The allow-list gate means a new environment name cannot run chaos until it is added on purpose.
+- ADR-0002's wording (deny Production, decorators per library) becomes partly out of date; it is amended once this is accepted and has been run.
