@@ -74,4 +74,7 @@ public sealed class CosmosRepositoryTests : RepositoryContractTests<TestEntity>,
         new TestEntity(id, partitionKey, $"Entity-{id}");
 
     protected override string GetId(TestEntity entity) => entity.Id;
+
+    protected override System.Linq.Expressions.Expression<Func<TestEntity, bool>> IdStartsWith(string prefix) =>
+        e => e.Id.StartsWith(prefix);
 }

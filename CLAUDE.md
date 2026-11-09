@@ -75,7 +75,7 @@ node scripts/docs/traceability.mjs          # regenerate docs/product/backlog/TR
 docker compose down                         # resets all state
 ```
 
-Run services on the host against these ports. The Cosmos emulator needs Cosmos SDK 3.63.x+ (older versions fail on whole-document queries), and the existing `CosmosRepositoryTests` skip silently by default and fail against the real emulator (open item #31).
+Run services on the host against these ports. The Cosmos emulator needs Cosmos SDK 3.63.x+ (older versions fail on whole-document queries), and the `CosmosRepositoryTests` fall back to an in-memory fake without a word when no emulator is reachable (open item #31; they pass against the real emulator since 2026-11-09).
 
 Docs site: `mkdocs.yml` (Material theme, `docs_dir: docs`). mkdocs isn't installed here, so the nav is unbuilt.
 
