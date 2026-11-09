@@ -286,6 +286,9 @@ test('a hand-over whose completion never arrives brings the buttons back with a 
   // Accepted, and waiting: the buttons stay off, as for every accepted action, and the card has not moved.
   await expect(page.getByRole('button', { name: 'Handed over order AAA111' })).toBeDisabled();
   expect((await mockActions()).map((a) => a.action)).toEqual(['COMPLETE']);
+  // The page starts its wait only once the answer has reached it and it has said so (the announcement); advancing the clock before that moves
+  // a clock that has no timer yet, and the note never comes (it did, one run in five).
+  await expect(page.getByTestId('queue-announcement')).toHaveText('Handed over: order AAA111');
 
   await page.clock.fastForward(16_000);
   await expect(page.getByTestId('action-problem')).toHaveText('Still waiting. Please try again.');
