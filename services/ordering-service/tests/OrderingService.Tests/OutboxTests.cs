@@ -1,6 +1,6 @@
-using BakeryMarketplace.Eventing;
 using System.Diagnostics;
 using BakeryMarketplace.Data;
+using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

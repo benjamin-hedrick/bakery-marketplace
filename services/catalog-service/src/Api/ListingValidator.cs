@@ -6,7 +6,7 @@ namespace CatalogService.Api;
 
 /// <summary>
 /// Structural validation of listing input. Business gates (vendor verification, ownership) live in
-/// <see cref="Services.ListingService"/>; limits here are placeholders sized for the first slice.
+/// <see cref="Services.ListingService"/>; the limits here are the service's published bounds on names, prices and list sizes.
 /// </summary>
 public static partial class ListingValidator
 {
@@ -79,7 +79,7 @@ public static partial class ListingValidator
         return errors.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray());
     }
 
-    /// <summary>Validation for the optional stock block and for an adjustment (ADR-0017).</summary>
+    /// <summary>Validation of a stock adjustment: a delta is required, cannot be zero and is bounded by <see cref="StockPolicy.MaxQuantity"/> (ADR-0017).</summary>
     public static Dictionary<string, string[]> ValidateAdjust(StockAdjustRequest? request)
     {
         var errors = new Dictionary<string, string[]>();

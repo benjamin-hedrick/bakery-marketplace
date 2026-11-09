@@ -102,16 +102,16 @@ public sealed partial class OrderEventNotifier(
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Event {EventId} ({EventType}) names no customer; no notification")]
-    private static partial void LogEventWithoutCustomer(ILogger logger, System.Guid eventId, string eventType);
+    private static partial void LogEventWithoutCustomer(ILogger logger, Guid eventId, string eventType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Contacts for {Count} events could not be read; they will be tried again")]
     private static partial void LogContactsReadFailed(ILogger logger, Exception exception, int count);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: no contact for the customer; event {EventId} ({EventType}) skipped")]
-    private static partial void LogNoContactForCustomer(ILogger logger, string orderId, System.Guid eventId, string eventType);
+    private static partial void LogNoContactForCustomer(ILogger logger, string orderId, Guid eventId, string eventType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: event {EventId} ({EventType}) could not be sent; it will be tried again")]
-    private static partial void LogNotificationSendFailed(ILogger logger, Exception exception, string orderId, System.Guid eventId, string eventType);
+    private static partial void LogNotificationSendFailed(ILogger logger, Exception exception, string orderId, Guid eventId, string eventType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The notification ledger failed ({What}); continuing")]
     private static partial void LogNotificationLedgerFailed(ILogger logger, Exception exception, string what);

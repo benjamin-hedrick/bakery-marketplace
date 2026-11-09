@@ -3,8 +3,8 @@ using CatalogService.Tags;
 
 namespace CatalogService.Preferences;
 
-/// <summary>The body of <c>PUT /catalog/preferences</c>. Both lists are required: a missing one must not clear a profile by accident.</summary>
 /// <summary>
+/// The body of <c>PUT /catalog/preferences</c>. Both lists are required: a missing one must not clear a profile by accident.
 /// <c>Prefer</c> (WI-TAG-004) is optional: a request without it leaves the stored list as it was, so a client that does not know about diets cannot clear it.
 /// </summary>
 public sealed record PreferencesRequest(List<string?>? Allergies, List<string?>? Avoid, List<string?>? Prefer = null);
