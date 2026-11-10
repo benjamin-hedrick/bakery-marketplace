@@ -1,0 +1,15 @@
+{
+  "description": "Every chaos layer and the settings it accepts, for every language. A setting ending in Rate is a probability from 0 to 1; rejectStatus is a whole HTTP status from 400 to 599; the others are non-negative numbers (the unit is in the name). The C# library (ChaosScenario.Known) and the TypeScript library (KNOWN_LAYERS) each hold a copy and each test suite checks its copy against this file, so a layer or setting cannot exist in one and not the other. A process applies the layers it has an interface for and reports the rest as not applicable.",
+  "layers": {
+    "events": ["publishFailureRate", "publishLostResponseRate", "dropRate", "duplicateRate", "reorderRate", "handlerFailureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "cache": ["failureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "repository": ["failureRate", "lostResponseRate", "conflictRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "broadcast": ["failureRate", "dropRate", "deliveryDropRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "payment": ["failureRate", "lostResponseRate", "declineRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "catalog": ["unavailableRate", "lostResponseRate", "rejectRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "notification": ["failureRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "bff": ["rejectRate", "rejectStatus", "malformedRate", "resetRate", "hangRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "bffCatalog": ["unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "bffOrdering": ["unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"]
+  }
+}

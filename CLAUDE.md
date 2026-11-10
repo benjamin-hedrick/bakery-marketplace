@@ -39,6 +39,8 @@ npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/
 
 GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `BFF_TRUSTED_CLIENT_SOURCES` names the web app's address so the BFF counts rate limits per client, register 137). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
 
+Chaos package (`packages/chaos`, ADR-0024, `WI-CHAOS-003`; the Node side of the chaos scenarios, linked into the BFF; run `npm ci` here before in `services/graphql-bff`): `npm ci`, `npm run typecheck`, `npm test` (no Docker needed). The BFF runs a scenario with `CHAOS_ENABLED=true CHAOS_SCENARIO=bff-door DEPLOYMENT_ENVIRONMENT=local node src/main.ts`; `chaos/README.md` has the C# and Node settings and the layers.
+
 Shared customer package (`packages/customer-core`, `WI-MOB-001`; the cart, checkout input, allergen and diet wording, plain TypeScript used by web-customer and later the Android app; run `npm ci` here before in the app): `npm ci`, `npm run typecheck`, `npm test` (no Docker needed).
 
 Session package (`packages/web-session`, `WI-AUTH-007`, used by both web apps since 2026-11-02; run `npm ci` here before in an app): `npm ci`, `npm run typecheck`, `npm test` (the Redis store tests run only with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and Redis up, and are skipped otherwise). The apps' browser tests use its fake issuer (`npm run mock-issuer`) and need no Redis; the real-stack login needs the cache Redis (`docker compose --profile with-redis up -d`).

@@ -12,7 +12,8 @@ export interface Call {
   headers: Record<string, string>;
   body: string;
 }
-export type Reply = { status: number; json?: unknown } | Error;
+/** A scripted answer: a status with a JSON body, a status whose body is not JSON (`notJson`: reading it throws, as for an HTML error page), or a thrown error (a network failure). */
+export type Reply = { status: number; json?: unknown; notJson?: boolean } | Error;
 
 /** Replaces fetch with a script: `route(call)` answers each request. Every request is recorded. */
 export function fakeFetch(route: (call: Call) => Reply | Promise<Reply>) {
@@ -30,7 +31,10 @@ export function fakeFetch(route: (call: Call) => Reply | Promise<Reply>) {
     return {
       ok: reply.status >= 200 && reply.status < 300,
       status: reply.status,
-      json: async () => reply.json,
+      json: async () => {
+        if (reply.notJson) throw new SyntaxError('Unexpected token < in JSON at position 0');
+        return reply.json;
+      },
     } as Response;
   }) as typeof fetch;
   return calls;

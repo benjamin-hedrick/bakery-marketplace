@@ -99,6 +99,22 @@ public sealed class ChaosEventTransportTests
     }
 
     [Fact]
+    public async Task LostResponse_DeliversTheEvent_ButThePublisherIsToldItFailed_SoTheOutboxPublishesItAgain()
+    {
+        // publishLostResponseRate is keyed by the attempt: with 1.0 every attempt loses its response, so a retry of the same event delivers it again.
+        var (chaos, runtime) = Build(("publishLostResponseRate", 1.0));
+        var received = await Collect(chaos);
+        var envelope = Make("sent-but-unconfirmed");
+
+        await Assert.ThrowsAsync<TimeoutException>(() => chaos.PublishAsync(envelope));
+        await Assert.ThrowsAsync<TimeoutException>(() => chaos.PublishAsync(envelope)); // the outbox's retry
+
+        Assert.Equal(2, runtime.Journal.Count("events", "lostResponse"));
+        Assert.Equal(2, received.Count); // delivered twice, both times with the same id: consumers must be idempotent
+        Assert.All(received, e => Assert.Equal(envelope.EventId, e.EventId));
+    }
+
+    [Fact]
     public async Task DropRateOfOne_ReportsSuccess_ButDeliversNothing()
     {
         var (chaos, runtime) = Build(("dropRate", 1.0));

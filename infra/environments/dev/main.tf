@@ -88,6 +88,8 @@ locals {
       env = {
         CATALOG_URL  = "http://catalog"
         ORDERING_URL = "http://ordering"
+        # Names the environment for chaos scenarios (ADR-0024): the image sets NODE_ENV=production everywhere, so this is what allows a scenario here.
+        DEPLOYMENT_ENVIRONMENT = var.environment
       }
       secrets = {}
     }

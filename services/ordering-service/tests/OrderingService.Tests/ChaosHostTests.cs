@@ -4,6 +4,7 @@ using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OrderingService.Checkout;
 using OrderingService.Domain;
 using OrderingService.Outbox;
 using static OrderingService.Tests.OrderingFactory;
@@ -225,5 +226,86 @@ public sealed class ChaosHostTests : IAsyncLifetime
         Assert.Empty(_catalog.Reservations); // whatever the store did, the reservation was given back
         // What the chaos layer showed: a failing store is a bare 500, where a catalog that cannot be reached is a 503 (register 170).
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+    }
+
+    // ---- the ambiguous failure: the work was done, the answer was lost ----
+
+    private sealed class CountingProcessor : IPaymentProcessor
+    {
+        public int Authorizations;
+
+        public Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
+        {
+            Interlocked.Increment(ref Authorizations);
+            return Task.FromResult(new PaymentResult(true, "ref-" + request.OrderId));
+        }
+    }
+
+    [Fact]
+    public async Task APaymentWhoseResponseIsLost_WasAuthorized_ButTheCustomerIsToldItFailed_AndAReplayAuthorizesAgain()
+    {
+        var inner = new CountingProcessor();
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("t", 1, "payment", ("lostResponseRate", 1)));
+        var chaos = new OrderingService.Chaos.ChaosPaymentProcessor(inner, runtime.Layer("payment"));
+        var request = new PaymentRequest("order-1", "customer-1", 900, "USD", "tok");
+
+        await Assert.ThrowsAsync<TimeoutException>(() => chaos.AuthorizeAsync(request));
+        await Assert.ThrowsAsync<TimeoutException>(() => chaos.AuthorizeAsync(request)); // the customer retries the checkout
+
+        Assert.Equal(2, runtime.Journal.Count("payment", "lostResponse"));
+        // Two authorizations for one order: today's processor interface has no idempotency key and no void. A real processor must be called with the
+        // order id as its idempotency key, and a failed checkout must void (register 171).
+        Assert.Equal(2, inner.Authorizations);
+    }
+
+    [Fact]
+    public async Task ACheckoutWhosePaymentResponseIsLost_ReleasesTheStock_AndTheCustomerGetsAServerError()
+    {
+        await using var factory = Host("""{ "payment": { "lostResponseRate": 1 } }""");
+        var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
+        using var customer = factory.CustomerClient("customer-1");
+
+        var response = await PostCheckout(customer, Checkout());
+
+        Assert.Equal(1, runtime.Journal.Count("payment", "lostResponse"));
+        Assert.Contains("payment:lostResponse", response.Headers.GetValues(ChaosIndicatorMiddleware.InjectedHeader).Single());
+        Assert.Empty(_catalog.Reservations);
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode); // register 170
+    }
+
+    [Fact]
+    public async Task AStoreWriteWhoseResponseIsLost_StoredTheOrder_AndAReplayWithTheSameKeyReturnsIt()
+    {
+        await using var factory = Host("""{ "repository": { "lostResponseRate": 1 } }""");
+        var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
+        using var customer = factory.CustomerClient("customer-1");
+        var key = Seed.NewKey();
+        var orderId = OrderingService.Checkout.CheckoutService.OrderIdFor("customer-1", key);
+
+        var first = await PostCheckout(customer, Checkout(), key);
+
+        Assert.True(runtime.Journal.Count("repository", "lostResponse") >= 1, "the write must have been made and its response lost");
+        Assert.Equal(HttpStatusCode.InternalServerError, first.StatusCode); // the customer is told it failed ...
+        Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync($"/ordering/orders/{orderId}")).StatusCode); // ... but the order is there
+
+        var replay = await PostCheckout(customer, Checkout(), key); // the customer tries again with the same idempotency key
+
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode); // answered with the existing order, not a second one
+        Assert.Contains(orderId, await replay.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task ACatalogReservationWhoseResponseIsLost_IsGivenBack_AndTheCustomerGets503()
+    {
+        await using var always = Host("""{ "catalog": { "lostResponseRate": 1 } }""");
+        var runtime = always.Services.GetRequiredService<ChaosRuntime>();
+        using var customer = always.CustomerClient("customer-1");
+
+        var response = await PostCheckout(customer, Checkout());
+
+        Assert.True(runtime.Journal.Count("catalog", "lostResponse") >= 1);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        // The reserve really happened and its answer was lost; the release (whose answer is lost too, quietly) did run, so nothing is left held.
+        Assert.Empty(_catalog.Reservations);
     }
 }

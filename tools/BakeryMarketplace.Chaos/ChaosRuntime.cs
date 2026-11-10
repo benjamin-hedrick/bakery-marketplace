@@ -136,6 +136,12 @@ public readonly struct ChaosLayer(ChaosRuntime runtime, string name)
             throw failure();
     }
 
+    /// <summary>
+    /// The ambiguous failure: the operation <b>succeeded</b> but the caller never hears (a timeout after the work was done). Call it after the real call
+    /// and throw when it returns true. Decided by <c>lostResponseRate</c>, keyed like every other failure. A caller that retries must be idempotent.
+    /// </summary>
+    public bool LostResponse(string operation, string key) => InjectAttempt(operation, key, "lostResponse", "lostResponseRate");
+
     /// <summary>Decides a fault for an operation and key, with the attempt number of that operation and key (so a retry gets a fresh decision).</summary>
     public bool InjectAttempt(string operation, string key, string fault, string setting)
     {

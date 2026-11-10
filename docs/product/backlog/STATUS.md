@@ -6,13 +6,13 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-113 specs.
+114 specs.
 
 | Status | Count |
 |---|---|
 | Done | 55 |
 | In progress | 5 |
-| In review | 33 |
+| In review | 34 |
 | Built | 1 |
 | Ready | 2 |
 | Proposed | 4 |
@@ -45,7 +45,7 @@ Superseded and obsolete items are not counted.
 | EPIC-PORTFOLIO-SLICE | 6 of 7 | PORT-001, PORT-002, PORT-003, PORT-004, PORT-005, PORT-006, PORT-007 |
 | EPIC-PREFERENCES | 0 of 1 | PREF-001, PREF-002 |
 | EPIC-PRODUCT-STRATEGY | 2 of 4 | PROD-001, PROD-002, PROD-003, PROD-004 |
-| EPIC-QUALITY-EVIDENCE | 1 of 6 | CHAOS-001, CHAOS-002, MOB-003, QA-001, QA-002, QA-003 |
+| EPIC-QUALITY-EVIDENCE | 1 of 7 | CHAOS-001, CHAOS-002, CHAOS-003, MOB-003, QA-001, QA-002, QA-003 |
 | EPIC-QUEUE-DISPLAY | 3 of 5 | QUE-001, QUE-002, QUE-003, QUE-004, QUE-005 |
 | EPIC-RATE-LIMITING | 0 of 1 | RATE-001 |
 | EPIC-REPO-OPS | 0 of 3 | DOC-001, EVID-001, REPO-003 |
@@ -82,6 +82,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos`, `tools/tests/BakeryMarketplace.Chaos.Tests`, `services/ordering-service/tests/OrderingService.Tests/ChaosHostTests.cs`, `chaos/` |
 | [CHAOS-002](WI-CHAOS-002.md) | Chaos scenarios, phase 2: the repository, broadcast, payment, catalog-gateway and notification-sender layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos` (repository and broadcast layers), `services/ordering-service/src/Chaos`, `services/notification-service/src/Chaos`, their tests, `chaos/scenarios/checkout-trouble.json` |
+| [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `packages/chaos`, `services/graphql-bff/src/chaos.ts`, `services/graphql-bff/test/chaos.test.ts`, `apps/mobile-customer/tests/chaos-outcomes.test.ts`, the lost-response tests in `tools/tests` and the service tests |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer` (`/orders/{id}`); `docs/evidence/slice-1/findings.md`. The order history list was split out into `WI-CUST-007` |
@@ -211,7 +212,7 @@ Accepted: 22 · Superseded: 1 · Proposed: 1
 
 ## Open-items register
 
-170 numbered items in `docs/governance/open-items-register.md` (highest number 170).
+171 numbered items in `docs/governance/open-items-register.md` (highest number 171).
 
 | Type | Count |
 |---|---|
@@ -224,8 +225,8 @@ Accepted: 22 · Superseded: 1 · Proposed: 1
 | Defect | 9 |
 | Documentation drift | 8 |
 | Tracking | 8 |
+| Other | 5 |
 | Risk | 4 |
-| Other | 4 |
 
 | Item status | Count |
 |---|---|
@@ -233,4 +234,4 @@ Accepted: 22 · Superseded: 1 · Proposed: 1
 | Resolved | 68 |
 | Accepted | 9 |
 | Tracking | 13 |
-| Open | 64 |
+| Open | 65 |

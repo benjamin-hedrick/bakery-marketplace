@@ -188,6 +188,14 @@ run "the_dotnet_services_run_as_this_environments_host_environment_and_the_mock_
     condition     = length([for e in azurerm_container_app.mock[0].template[0].container[0].env : e if e.name == "ASPNETCORE_ENVIRONMENT" && e.value == "Production"]) == 1
     error_message = "The mock issuer must stay Production: that is what makes it enforce MockOidcDeployment."
   }
+  assert {
+    condition     = length([for e in azurerm_container_app.apps["bff"].template[0].container[0].env : e if e.name == "DEPLOYMENT_ENVIRONMENT" && e.value == "dev"]) == 1
+    error_message = "The BFF is told which environment this is (the Node gate for chaos scenarios reads it, ADR-0024)."
+  }
+  assert {
+    condition     = alltrue([for k in ["catalog", "ordering", "bff", "web"] : length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if startswith(e.name, "CHAOS_") || startswith(e.name, "Chaos__")]) == 0])
+    error_message = "No app may have a chaos setting switched on by Terraform: a scenario is enabled by configuration when someone chooses to run one."
+  }
 }
 
 run "a_production_host_environment_can_be_set_per_environment" {

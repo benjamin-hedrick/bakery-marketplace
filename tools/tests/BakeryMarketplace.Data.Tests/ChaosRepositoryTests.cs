@@ -130,6 +130,28 @@ public sealed class ChaosRepositoryBehaviourTests
     }
 
     [Fact]
+    public async Task ALostResponse_MeansTheWriteWasMade_ButTheCallerIsToldItTimedOut()
+    {
+        var database = new FakeDatabase();
+        var runtime = RepositoryChaos.Runtime(1, ("lostResponseRate", 1));
+        var inner = new FakeRepository<VersionedEntity>(e => e.Id, database);
+        var repo = new ChaosRepository<VersionedEntity>(inner, runtime);
+
+        var save = await Assert.ThrowsAsync<CosmosException>(() => repo.SaveAsync(Entity("a"), "p"));
+
+        Assert.Equal(1, runtime.Journal.Count("repository", "lostResponse"));
+        Assert.Equal(HttpStatusCode.RequestTimeout, save.StatusCode);
+        Assert.NotNull(await inner.GetAsync("a", "p")); // the data is there although the caller was told it failed
+
+        await Assert.ThrowsAsync<CosmosException>(() => repo.DeleteAsync("a", "p"));
+        Assert.Null(await inner.GetAsync("a", "p")); // and a lost delete really deleted
+
+        var batch = new ChaosBatchFactory(new FakeBatchFactory(database), runtime).CreateBatch("p");
+        await Assert.ThrowsAsync<CosmosException>(() => batch.Create(Entity("b")).ExecuteAsync());
+        Assert.NotNull(await inner.GetAsync("b", "p")); // a lost batch was applied
+    }
+
+    [Fact]
     public async Task LatencyAndAnOutageWindowAreInjected_AndTheOutageEnds()
     {
         var (slow, slowRuntime) = Build(1, ("latencyMs", 150));

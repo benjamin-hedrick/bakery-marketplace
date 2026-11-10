@@ -78,6 +78,10 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
 
         if (release is not null)
             await release(ct);
+
+        // The event was delivered but the publisher is told it failed: the outbox will publish it again, so consumers see it twice.
+        if (_layer.Setting("publishLostResponseRate") > 0 && _layer.Inject("lostResponse", "publishLostResponseRate", AttemptKey("lostResponse", envelope.EventId)))
+            throw new TimeoutException("ChaosEventTransport: the event was published but the response was lost.");
     }
 
     /// <summary>Delivers the event held back by <c>reorderRate</c>, if there is one (for a last event with nothing after it).</summary>

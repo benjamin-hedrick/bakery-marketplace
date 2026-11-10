@@ -22,7 +22,8 @@ function filesUnder(dir) {
   return out;
 }
 
-const CHAOS_SETTING = /\bChaos(__|:)|Deployment__Environment|Deployment:Environment/;
+const CHAOS_SETTING =
+  /\bChaos(__|:)|Deployment__Environment|Deployment:Environment|CHAOS_ENABLED|CHAOS_SCENARIO|DEPLOYMENT_ENVIRONMENT/;
 
 describe('chaos settings in deployment configuration', () => {
   test('only the dev environment may name a chaos or deployment-environment setting', () => {
@@ -38,7 +39,7 @@ describe('chaos settings in deployment configuration', () => {
         .split('\n')
         .filter((l) => !l.trim().startsWith('#'))
         .join('\n');
-      assert.doesNotMatch(code, /Chaos(__|:)Enabled/, `${file} must not set Chaos__Enabled`);
+      assert.doesNotMatch(code, /Chaos(__|:)Enabled|CHAOS_ENABLED/, `${file} must not switch chaos on`);
     }
   });
 
@@ -47,7 +48,7 @@ describe('chaos settings in deployment configuration', () => {
       .split('\n')
       .filter((l) => !l.trim().startsWith('#'))
       .join('\n');
-    assert.doesNotMatch(code, /Chaos__Enabled:\s*"?true/i);
+    assert.doesNotMatch(code, /(Chaos__Enabled|CHAOS_ENABLED):\s*"?true/i);
   });
 
   test('every scenario file under chaos/scenarios names a seed and at least one layer', () => {
