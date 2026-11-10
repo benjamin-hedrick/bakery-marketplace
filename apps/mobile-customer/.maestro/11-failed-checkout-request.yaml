@@ -1,9 +1,10 @@
-# WI-MOB-003: the BFF cannot be reached when the order is placed. The app says the order could not be placed, keeps the order, and a retry once the BFF is back places
-# exactly one order (the count of Alice's orders goes up by one). The runner's flow-control server takes the BFF away and brings it back and counts the orders.
+# WI-MOB-003: the checkout request fails when the order is placed. The app says the order could not be placed, keeps the order, and a retry places
+# exactly one order (the count of Alice's orders goes up by one). The runner's flow-control server counts the orders.
+# The failure is a chaos scenario (ADR-0024, chaos/scenarios/mobile-flows.json) that the runner switches on for the BFF: the first attempt of one order fails,
+# and nothing else does. The order is the one it names: two Oat Milk Lattes paid with Alice's accepted card (pm-alice-ok), which no other flow places. The
+# retry carries the same idempotency key (the app reuses it for the same content) and goes through. The BFF stays up all the while.
 appId: com.bakerymarketplace.mobile
 name: A failed checkout request keeps the order and a retry places one order
-onFlowComplete:
-  - runScript: scripts/bff-start.js
 ---
 - launchApp:
     clearState: true
@@ -11,23 +12,23 @@ onFlowComplete:
 - tapOn:
     id: listing-Oat Milk Latte # made to order, so it never runs out
 - tapOn:
+    id: quantity-more # two lattes: the order the scenario names (no other flow places it)
+- tapOn:
     id: add-to-order
 - tapOn:
     id: to-checkout
 - assertVisible:
     id: place-order
 - runScript: scripts/remember-order-count.js
-- runScript: scripts/bff-stop.js
 - tapOn:
     id: place-order
 - assertVisible:
     id: checkout-rejection
 - assertVisible: The order could not be placed. Please try again.
 # Still on the checkout page, the order is still there, and nothing was placed.
-- assertVisible: Order (1)
+- assertVisible: Order (2)
 - assertNotVisible:
     id: order-headline
-- runScript: scripts/bff-start.js
 - runScript:
     file: scripts/assert-order-count.js
     env:

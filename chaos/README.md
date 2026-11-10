@@ -31,11 +31,31 @@ Settings ending in `Rate` are probabilities from 0 to 1; the others are non-nega
 | `catalog` | ordering's `ICatalogGateway` | `unavailableRate` (the `DownstreamUnavailableException` a dead catalog gives), `lostResponseRate`, `rejectRate` (a refused reservation), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 | `notification` | the notification service's `INotificationSender` | `failureRate`, `lostResponseRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 | `bff` | the GraphQL BFF's door (a gate before the body is read; `/healthz` is never touched) | `rejectRate` and `rejectStatus` (400 to 599, default 503), `malformedRate` (a 200 that is not JSON), `resetRate` (the connection is closed), `hangRate` (no answer), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
-| `bffCatalog`, `bffOrdering` | the BFF's two service clients | `unavailableRate` (fails as an unreachable service does), `serverErrorRate` (a 5xx), `malformedRate` (a body that is not JSON), `lostResponseRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `bffCatalog`, `bffOrdering` | the BFF's two service clients | `failFirstAttempts` (a whole number: the first N attempts of each operation and key fail, then the retry goes through), `unavailableRate` (fails as an unreachable service does), `serverErrorRate` (a 5xx), `malformedRate` (a body that is not JSON), `lostResponseRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 
 `lostResponseRate` is the ambiguous failure: the operation **succeeds** and the caller is then told it timed out (a payment authorized, an order stored, a message sent, a stock reservation made). Whatever retries must be idempotent. The events layer's equivalent is `publishLostResponseRate`: the event is delivered and the publisher is told it failed, so the outbox publishes it again.
 
 One scenario file serves a whole stack. A process applies the layers it has an interface for and logs, once it is up, which layers it applied and which the scenario names but it does not have (the admin service has no event transport; notification has no payment processor). A layer name that no process knows fails when the scenario is loaded. Outage windows are measured from the process's chaos start. Scenarios: `flaky-broker`, `broker-outage`, `slow-cache`, `checkout-trouble`, `bff-door`. `layers.json` is the shared list of layers and settings; the C# and TypeScript libraries each test their copy against it. Not built yet: a scenario run on the whole real stack with evidence, and the web apps' server-side proxies (register 169).
+
+## Aiming a fault, and signals (ADR-0024 amendment, 2026-11-10; the Node processes apply them, the C# library only checks them)
+
+Three optional sections next to `layers`:
+
+```json
+{
+  "name": "mobile-flows", "seed": 20261110,
+  "layers": { "bffOrdering": { "failFirstAttempts": 1 } },
+  "where": { "bffOrdering": [ { "operation": "placeOrder", "payload": { "paymentMethodId": "pm-alice-ok", "lineItems": [ { "listingId": "listing-latte-001", "quantity": 2 } ] } } ] },
+  "off": [],
+  "signals": [ { "when": { "client": "bffCatalog", "operation": "get", "key": "listing-x" }, "do": "enable", "layer": "bffOrdering" } ]
+}
+```
+
+- `where`: per layer, a list of matches; the layer disturbs only calls that match one of them (a layer with no `where` disturbs every call). A match has `operation` (the client method), `customer` (the `sub` of the bearer token, read and not verified), `key` (the call's first non-credential string: an id, an idempotency key), `payload` (a pattern the call's first object or array argument must contain: scalars equal, objects with at least those properties, arrays of the same length element by element) and, in signals, `client` (`bffCatalog` or `bffOrdering`).
+- `off`: layers that start switched off.
+- `signals`: a normal request that matches `when` runs `do`: `enable` or `disable` a `layer`, `switch` to the scenario file called `scenario` (a plain name, never a path), or `reset` (counters and clock again, layers as the scenario starts them). A request carries no setting and names no scenario; the matched request goes on as normal, judged after the signal; each signal is in the journal as `signal:<what>`.
+
+`mobile-flows` is the scenario the Android flows' runner gives the BFF (`node scripts/dev/mobile-flows.mjs`): it fails the first attempt of the one order flow 11 places.
 
 ## The decision function
 

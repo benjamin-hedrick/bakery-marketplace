@@ -1,0 +1,20 @@
+{
+  "name": "mobile-flows",
+  "seed": 20261110,
+  "layers": {
+    "bffOrdering": {
+      "failFirstAttempts": 1
+    }
+  },
+  "where": {
+    "bffOrdering": [
+      {
+        "operation": "placeOrder",
+        "payload": {
+          "paymentMethodId": "pm-alice-ok",
+          "lineItems": [{ "listingId": "listing-latte-001", "quantity": 2 }]
+        }
+      }
+    ]
+  }
+}

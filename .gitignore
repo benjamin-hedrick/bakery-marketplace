@@ -241,6 +241,7 @@ PublishScripts/
 # ...except our own shared JavaScript packages (packages/web-session, packages/customer-core), which are source, not NuGet restore output
 !/packages/web-session/
 !/packages/customer-core/
+!/packages/chaos/
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
 # Uncomment if necessary however generally it will be regenerated when needed

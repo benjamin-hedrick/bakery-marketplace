@@ -90,7 +90,7 @@ try {
   checkSyntax(flows);
   bootedEmulator = await mobile.ensureEmulator(log);
   stack.up();
-  await stack.startServices();
+  await stack.startServices({ bffChaos: 'mobile-flows' }); // flow 11's failing checkout (chaos/scenarios/mobile-flows.json, ADR-0024)
   mobile.reversePorts(log);
   // The flows' setup steps (a customer's allergen profile, the newest order, taking the BFF away) call this from Maestro's JavaScript.
   flowControl = startFlowControl({ stack, log });

@@ -9,7 +9,10 @@
     "catalog": ["unavailableRate", "lostResponseRate", "rejectRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
     "notification": ["failureRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
     "bff": ["rejectRate", "rejectStatus", "malformedRate", "resetRate", "hangRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
-    "bffCatalog": ["unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
-    "bffOrdering": ["unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"]
-  }
+    "bffCatalog": ["failFirstAttempts", "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "bffOrdering": ["failFirstAttempts", "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"]
+  },
+  "sections": ["where", "off", "signals"],
+  "signalActions": ["enable", "disable", "switch", "reset"],
+  "sectionsDescription": "Optional sections of a scenario file besides name, seed and layers. where: per layer, the matches (operation, customer, key, payload, ADR-0024 amendment) a layer is limited to. off: layers that start switched off. signals: normal requests that match a rule and then enable or disable a layer, switch to another scenario file, or reset the counters. failFirstAttempts (bffCatalog, bffOrdering) is a whole number: the first that many attempts of each operation and key fail. The Node processes apply all of these; the C# library checks them and does not apply them."
 }

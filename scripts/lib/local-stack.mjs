@@ -111,8 +111,11 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       });
     },
 
-    /** The catalog service, the ordering service and the BFF, each waited for. */
-    async startServices() {
+    /**
+     * The catalog service, the ordering service and the BFF, each waited for. `bffChaos` names a scenario of chaos/scenarios/ for the BFF alone (ADR-0024:
+     * the runner sets the scenario for the process it starts, nothing in a request can); the BFF keeps it when startOne starts it again.
+     */
+    async startServices({ bffChaos } = {}) {
       const dotnetEnv = {
         ASPNETCORE_ENVIRONMENT: 'Development', // appsettings.Development.json supplies the authority, the catalog URL and the service-auth settings
         Data__Backend: 'cosmos',
@@ -137,6 +140,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
           CATALOG_URL: `http://localhost:${ports.catalog}`,
           ORDERING_URL: `http://localhost:${ports.ordering}`,
           BFF_TRUSTED_CLIENT_SOURCES: '127.0.0.1,::1', // the web app runs on this machine (register 137)
+          ...(bffChaos ? { CHAOS_ENABLED: 'true', CHAOS_SCENARIO: bffChaos, DEPLOYMENT_ENVIRONMENT: 'local' } : {}),
         },
       });
       await waitFor('catalog', `http://localhost:${ports.catalog}/health`);
