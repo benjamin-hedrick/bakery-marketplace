@@ -2,6 +2,8 @@
 
 > **Update 2026-11-08 (documentation pass):** the app now has fifteen Maestro flows (the cancel and no-payment-method flows were added, and the issuer-restart flow runs last, as 15); the unit tests run in the pipeline's `mobile` job, which has not yet run on Azure.
 
+> **Update 2026-11-10 (chaos, register 172):** flow 11 no longer takes the BFF away. The runner starts the BFF with the `mobile-flows` chaos scenario (ADR-0024), which fails the first attempt of one order (two Oat Milk Lattes paid with `pm-alice-ok`); the retry places one order as before. The flow was changed and **has not been run** since; the old pass of 2026-11-05 was of the stop-and-start version.
+
 > **Numbering note (2026-11-08):** the refused-session flow was 13, then 14, and is now `15-refused-session`; the no-payment-methods flow is `14-no-payment-methods` and the cancel flow `13-cancel-order`, so no two flows share a number and the issuer restart stays last. Mentions of "flow 13" below and in the 2026-11-05 evidence mean the refused-session flow.
 
 ```

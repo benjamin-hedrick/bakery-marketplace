@@ -101,6 +101,51 @@ public sealed class ChaosScenarioTests
         foreach (var (layer, settings) in shared) Assert.Equal(settings, known[layer]);
     }
 
+    [Fact]
+    public void TheSectionsAndSignalActionsAreTheOnesInChaosLayersJson_WhichTheTypeScriptLibraryIsAlsoTestedAgainst()
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(RepoChaos.Path("layers.json")));
+        Assert.Equal(
+            doc.RootElement.GetProperty("sections").EnumerateArray().Select(s => s.GetString()!).Order(StringComparer.Ordinal),
+            ChaosScenario.Sections.Order(StringComparer.Ordinal));
+        Assert.Equal(
+            doc.RootElement.GetProperty("signalActions").EnumerateArray().Select(s => s.GetString()!).Order(StringComparer.Ordinal),
+            ChaosScenario.SignalActions.Order(StringComparer.Ordinal));
+    }
+
+    private const string WithSections =
+        """
+        { "name": "n", "seed": 1, "layers": { "bffOrdering": { "failFirstAttempts": 1 }, "bffCatalog": {} },
+          "where": { "bffOrdering": [ { "operation": "placeOrder", "payload": { "paymentMethodId": "pm-alice-ok" } } ] },
+          "off": [ "bffCatalog" ],
+          "signals": [ { "when": { "client": "bffCatalog", "operation": "get", "key": "listing-7" }, "do": "enable", "layer": "bffCatalog" },
+                       { "when": { "operation": "x" }, "do": "switch", "scenario": "other" },
+                       { "when": { "operation": "x" }, "do": "reset" } ] }
+        """;
+
+    [Fact]
+    public void TheWhereOffAndSignalsSectionsAreAcceptedAndCheckedButNotAppliedByTheCSharpServices()
+    {
+        var scenario = ChaosScenario.Parse(WithSections);
+        Assert.Equal(1, scenario.Get("bffOrdering", "failFirstAttempts"));
+    }
+
+    [Theory]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": { "failFirstAttempts": 1.5 } } }""", "whole number")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": {} }, "where": { "events": [ { "operation": "x" } ] } }""", "not built or does not have|does not have")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": {} }, "where": { "bffOrdering": [ {} ] } }""", "matches everything")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": {} }, "where": { "bffOrdering": [ { "who": "x" } ] } }""", "no property 'who'")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": {} }, "off": [ "nope" ] }""", "not built")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": {} }, "signals": [ { "when": { "operation": "x" }, "do": "explode" } ] }""", "not an action")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": {} }, "signals": [ { "when": { "operation": "x" }, "do": "enable" } ] }""", "needs a layer")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": {} }, "signals": [ { "when": { "operation": "x" }, "do": "switch", "scenario": "../x" } ] }""", "plain name")]
+    [InlineData("""{ "name": "n", "seed": 1, "layers": { "bffOrdering": {} }, "signals": [ { "when": { "operation": "x" }, "do": "reset", "layer": "bffOrdering" } ] }""", "takes no layer")]
+    public void ABadSectionFailsLoudlyAsInTheTypeScriptLibrary(string json, string expected)
+    {
+        var e = Assert.Throws<ChaosScenarioException>(() => ChaosScenario.Parse(json));
+        Assert.Matches(expected, e.Message);
+    }
+
     [Theory]
     [InlineData(200)]
     [InlineData(600)]

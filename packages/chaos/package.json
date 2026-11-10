@@ -1,0 +1,24 @@
+{
+  "name": "@bakery/chaos",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ADR-0024: chaos scenarios for the Node processes (the BFF, later the web apps' servers). The same scenario files, the same keyed decision function and the same journal rules as tools/BakeryMarketplace.Chaos. Plain TypeScript, no dependencies; Node runs the sources directly.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "format": "prettier --write . --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.9",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  }
+}

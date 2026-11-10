@@ -158,3 +158,26 @@ Everything in sections 8 to 10 is built, gated and committed on `feature/chaos-e
 5. **The two behaviours chaos showed (register 170 and 171).** Decide whether checkout maps a failing payment processor or store to the same 503 outcome as an unreachable catalog; write the idempotency-key and void requirements into `PAY-001` and the notification provider's spec.
 6. **Smaller gaps.** A layer for the contact directory (not in the original list); the cache layer in the default local backend (nothing is wrapped when `Cache:Backend` is local); the repository layer against the real Cosmos emulator (today the in-memory fake); `GraphQL extensions.chaos` and the indicator on streams (headers only at the start); a Terraform check that no environment other than dev can set `host_environment` to Development without review; the .NET container images would need the `chaos/scenarios` folder if a scenario is to be run by name in them; `docs/testing.md` line 14 and the README headline still say every adapter has a chaos decorator (the lead said to adjust the wording later).
 7. **Then amend ADR-0002** (the cache's chaos rules are superseded in part by ADR-0024) and accept ADR-0024 once it has been run on the stack.
+
+## 12. Aimed faults and signals (2026-11-10, local only)
+
+Worked through with the lead after section 11. Item 3 there (retire the stop-the-BFF flows) needed two things the library did not have, and both are now built and tested (TypeScript package, the BFF's wrapper, the C# library's checks; **not yet run on the emulator or the whole stack**).
+
+**What the flows need.** The symptom does not matter: the Android equivalence test shows every failure to get an answer from the BFF (a refusal, a timeout, a 5xx, non-JSON) is handled alike; only a 401 differs. What a scenario could not do was *control*: fail one call at one step and let the next through. A scenario was fixed at process start, with only a time-based outage window.
+
+**What was built.**
+
+- `failFirstAttempts` on `bffCatalog` and `bffOrdering`: the first N attempts of each operation and key fail as an unreachable service does, then the retry goes through.
+- A `where` section that limits a layer to the calls that match (operation, customer, key, payload).
+- Customer identity from the bearer token's `sub` (read, not verified; approved by the lead on 2026-11-10), because three calls carry nothing else: `listPaymentMethods`, `getPreferences` and `checkCart`.
+- `off` and `signals`: a normal request that matches a rule enables or disables a layer, switches scenario or resets the counters. The request carries nothing; the file says what happens. ADR-0024 has the amendment.
+
+**What the flows send (found by reading the code).** The idempotency key is `mobile-` plus 16 random characters per attempt, so it cannot be named in advance, but a retry of the same content reuses it. The order body carries the payment-method id (seed data, one per seeded customer), the lines (service listing ids and quantities) and the allergens told. So the customer can be told from the body for checkout, but Alice is also used by flows 06, 12 and 13, so a rule on her alone would fire in 06 first; the order's contents must be distinctive too.
+
+**Flow 11 (done, not run).** The order is two Oat Milk Lattes (listing `listing-latte-001`) paid with `pm-alice-ok`, which no other flow places. `chaos/scenarios/mobile-flows.json` fails the first attempt of exactly that order. The runner sets the scenario for the BFF it starts (`startServices({ bffChaos })`, used by `mobile-flows.mjs`); nothing in a request can. The BFF stays up and the flow no longer stops it.
+
+**Flow 07 (not done).** It needs the allergy check and the payment methods to fail at checkout and then recover, and the calls involved carry only a token, while flow 05 logs in as the same customer (Nora) and runs first. A rule on Nora alone would fire in flow 05. The way through is a signal: the flow looks at a listing only it opens (a request the catalog client sees), and that request enables the layer; the rule then fails Nora's first calls. **Decided by the lead (2026-11-10, register 173):** add a **new seed listing** for flow 07 (made to order so it never runs out, used by no other flow) instead of searching the flows and the code for something already unique; the request that opens it is unique by construction. Seed tests that count or list listings are updated in the same change. Until then flow 07 keeps its stop and start of the BFF (it also covers the BFF being gone at checkout).
+
+**What stays process control.** Flow 15 (the issuer restarts) and any proof of a real restart (cold start, reconnect): an in-process gate cannot give a process that is gone.
+
+**Limits.** Counters last for the life of the BFF process; the runner starts a fresh one for a full run, and a second run of a flow against the same running stack would not fail the second time (a `reset` signal covers that if it is ever needed). A signal changes the state of the process that sees the request (the BFF); it does not reach ordering or catalog.

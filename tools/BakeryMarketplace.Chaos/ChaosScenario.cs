@@ -56,13 +56,21 @@ public sealed class ChaosScenario
         },
         ["bffCatalog"] = new HashSet<string>
         {
-            "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+            "failFirstAttempts", "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
         ["bffOrdering"] = new HashSet<string>
         {
-            "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+            "failFirstAttempts", "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
     };
+
+    /// <summary>What a signal can do (a copy of <c>signalActions</c> in <c>chaos/layers.json</c>, checked by the tests).</summary>
+    public static readonly IReadOnlySet<string> SignalActions = new HashSet<string> { "enable", "disable", "switch", "reset" };
+
+    /// <summary>The optional sections of a file besides name, seed and layers (a copy of <c>sections</c> in <c>chaos/layers.json</c>).</summary>
+    public static readonly IReadOnlySet<string> Sections = new HashSet<string> { "where", "off", "signals" };
+
+    private static readonly string[] MatchKeys = ["client", "operation", "customer", "key", "payload"];
 
     public string Name { get; }
 
@@ -85,6 +93,8 @@ public sealed class ChaosScenario
                     throw new ChaosScenarioException($"Scenario '{name}': layer '{layer}' has no setting '{setting}'. Known: {string.Join(", ", allowed.Order())}.");
                 if (double.IsNaN(value) || value < 0 || (setting.EndsWith("Rate", StringComparison.Ordinal) && value > 1))
                     throw new ChaosScenarioException($"Scenario '{name}': {layer}.{setting} must be {(setting.EndsWith("Rate", StringComparison.Ordinal) ? "between 0 and 1" : "0 or more")}, not {value}.");
+                if (setting == "failFirstAttempts" && value != Math.Floor(value))
+                    throw new ChaosScenarioException($"Scenario '{name}': {layer}.{setting} must be a whole number, not {value}.");
                 if (setting == "rejectStatus" && (value != Math.Floor(value) || value < 400 || value > 599))
                     throw new ChaosScenarioException($"Scenario '{name}': {layer}.{setting} must be a whole HTTP status from 400 to 599, not {value}.");
             }
@@ -124,6 +134,7 @@ public sealed class ChaosScenario
             string? name = null;
             long? seed = null;
             var layers = new Dictionary<string, IReadOnlyDictionary<string, double>>();
+            var sections = new Dictionary<string, JsonElement>();
             foreach (var property in doc.RootElement.EnumerateObject())
             {
                 switch (property.Name)
@@ -149,14 +160,113 @@ public sealed class ChaosScenario
                         }
 
                         break;
+                    case "where" or "off" or "signals":
+                        sections[property.Name] = property.Value.Clone();
+                        break;
                     default:
-                        throw new ChaosScenarioException($"Unexpected or mistyped property '{property.Name}' (a scenario has name, seed and layers).");
+                        throw new ChaosScenarioException(
+                            $"Unexpected or mistyped property '{property.Name}' (a scenario has name, seed, layers and, optionally, {string.Join(", ", Sections.Order())}).");
                 }
             }
 
             if (name is null) throw new ChaosScenarioException("A scenario needs a name.");
             if (seed is null) throw new ChaosScenarioException($"Scenario '{name}' needs a seed (a whole number).");
-            return new ChaosScenario(name, seed.Value, layers);
+            var scenario = new ChaosScenario(name, seed.Value, layers);
+            CheckSections(name, layers, sections);
+            return scenario;
+        }
+    }
+
+    // The where, off and signals sections are applied by the Node processes (the BFF's service clients). The C# services have no such client, so they
+    // only check the sections, with the same rules as packages/chaos, so one scenario file is valid for the whole stack or for none of it.
+    private static void CheckSections(string name, IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>> layers, Dictionary<string, JsonElement> sections)
+    {
+        void Present(string layer, string at)
+        {
+            if (!Known.ContainsKey(layer)) throw new ChaosScenarioException($"Scenario '{name}': {at} names layer '{layer}', which is not built.");
+            if (!layers.ContainsKey(layer)) throw new ChaosScenarioException($"Scenario '{name}': {at} names layer '{layer}', which the scenario does not have.");
+        }
+
+        void Match(JsonElement match, string at)
+        {
+            if (match.ValueKind != JsonValueKind.Object) throw new ChaosScenarioException($"Scenario '{name}': {at} must be an object ({string.Join(", ", MatchKeys)}).");
+            var any = false;
+            foreach (var p in match.EnumerateObject())
+            {
+                any = true;
+                if (!MatchKeys.Contains(p.Name)) throw new ChaosScenarioException($"Scenario '{name}': {at} has no property '{p.Name}'. Known: {string.Join(", ", MatchKeys)}.");
+                if (p.Name == "client" && p.Value.ValueKind == JsonValueKind.String && !Known.ContainsKey(p.Value.GetString()!))
+                    throw new ChaosScenarioException($"Scenario '{name}': {at}.client names layer '{p.Value.GetString()}', which is not built.");
+                if (p.Name != "payload" && (p.Value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(p.Value.GetString())))
+                    throw new ChaosScenarioException($"Scenario '{name}': {at}.{p.Name} must be a non-empty string.");
+            }
+
+            if (!any) throw new ChaosScenarioException($"Scenario '{name}': {at} matches everything; leave it out instead.");
+        }
+
+        if (sections.TryGetValue("where", out var where))
+        {
+            if (where.ValueKind != JsonValueKind.Object) throw new ChaosScenarioException($"Scenario '{name}': where must be an object of layers.");
+            foreach (var layer in where.EnumerateObject())
+            {
+                Present(layer.Name, "where");
+                if (layer.Value.ValueKind != JsonValueKind.Array || layer.Value.GetArrayLength() == 0)
+                    throw new ChaosScenarioException($"Scenario '{name}': where.{layer.Name} must be a list of matches.");
+                var i = 0;
+                foreach (var m in layer.Value.EnumerateArray()) Match(m, $"where.{layer.Name}[{i++}]");
+            }
+        }
+
+        if (sections.TryGetValue("off", out var off))
+        {
+            if (off.ValueKind != JsonValueKind.Array) throw new ChaosScenarioException($"Scenario '{name}': off must be a list of layers.");
+            foreach (var layer in off.EnumerateArray())
+            {
+                if (layer.ValueKind != JsonValueKind.String) throw new ChaosScenarioException($"Scenario '{name}': off must be a list of layers.");
+                Present(layer.GetString()!, "off");
+            }
+        }
+
+        if (sections.TryGetValue("signals", out var signals))
+        {
+            if (signals.ValueKind != JsonValueKind.Array) throw new ChaosScenarioException($"Scenario '{name}': signals must be a list.");
+            var i = 0;
+            foreach (var signal in signals.EnumerateArray())
+            {
+                var at = $"signals[{i++}]";
+                if (signal.ValueKind != JsonValueKind.Object) throw new ChaosScenarioException($"Scenario '{name}': {at} must be an object.");
+                string? action = null, layer = null, scenario = null;
+                JsonElement? when = null;
+                foreach (var p in signal.EnumerateObject())
+                {
+                    switch (p.Name)
+                    {
+                        case "do": action = p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : null; break;
+                        case "layer": layer = p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : ""; break;
+                        case "scenario": scenario = p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : ""; break;
+                        case "when": when = p.Value; break;
+                        default: throw new ChaosScenarioException($"Scenario '{name}': {at} has no property '{p.Name}' (do, layer, scenario, when).");
+                    }
+                }
+
+                if (action is null || !SignalActions.Contains(action))
+                    throw new ChaosScenarioException($"Scenario '{name}': {at}.do '{action}' is not an action. Known: {string.Join(", ", SignalActions.Order())}.");
+                if (when is null) throw new ChaosScenarioException($"Scenario '{name}': {at}.when must be an object (client, operation, customer, key, payload).");
+                Match(when.Value, $"{at}.when");
+                if (action is "enable" or "disable")
+                {
+                    if (layer is null) throw new ChaosScenarioException($"Scenario '{name}': {at} ({action}) needs a layer.");
+                    Present(layer, at);
+                }
+                else if (layer is not null) throw new ChaosScenarioException($"Scenario '{name}': {at} ({action}) takes no layer.");
+
+                if (action == "switch")
+                {
+                    if (scenario is null || !System.Text.RegularExpressions.Regex.IsMatch(scenario, "^[A-Za-z0-9][A-Za-z0-9_-]*$"))
+                        throw new ChaosScenarioException($"Scenario '{name}': {at} (switch) needs the plain name of a scenario file, not a path.");
+                }
+                else if (scenario is not null) throw new ChaosScenarioException($"Scenario '{name}': {at} ({action}) takes no scenario.");
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 import type http from 'node:http';
 import {
   ChaosRuntime,
+  describeCall,
   indicatorHeaders,
   requestFaults,
   runInRequestScope,
@@ -22,12 +23,6 @@ import type { TraceContext } from './trace.ts';
 const HANG_MAX_MS = 120_000;
 
 type Send = (code: number, body: unknown) => void;
-
-/** The first string argument that is not a credential, as the operation's key (an order id, an idempotency key); the method name when there is none. */
-function keyOf(method: string, args: readonly unknown[]): string {
-  const id = args.find((a) => typeof a === 'string' && !/^(bearer|basic)\s/i.test(a) && !a.startsWith('00-'));
-  return typeof id === 'string' ? id : method;
-}
 
 export class BffChaos {
   readonly runtime: ChaosRuntime;
@@ -133,14 +128,22 @@ export class BffChaos {
    * never a URL or a credential). With no such layer in the scenario the client is returned as it is.
    */
   wrap<T extends object>(client: T, layerName: 'bffCatalog' | 'bffOrdering', service: string): T {
-    const layer = this.runtime.layer(layerName);
-    if (!layer.active) return client;
+    const runtime = this.runtime;
+    const layer = runtime.layer(layerName);
+    // A client is wrapped when its layer is in the scenario (even switched off: a signal may turn it on) or when the scenario has signals (a signal may
+    // enable the layer, or switch to a scenario that has it).
+    if (!layer.declared && !runtime.hasSignals) return client;
     return new Proxy(client, {
       get(target, prop, receiver) {
         const value: unknown = Reflect.get(target, prop, receiver);
         if (typeof value !== 'function' || typeof prop !== 'string') return value;
         return async (...args: unknown[]) => {
-          const key = keyOf(prop, args);
+          const call = describeCall(layerName, prop, args);
+          runtime.signal(call); // a signal changes the state for this call as well as the later ones
+          if (!layer.active || !runtime.appliesTo(layerName, call))
+            return (value as (...a: unknown[]) => unknown).apply(target, args);
+          const key = call.key;
+          if (layer.failsFirstAttempts(prop, key)) throw new DownstreamError(`${service} request failed: TypeError`);
           await layer.before(
             prop,
             key,
