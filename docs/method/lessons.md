@@ -38,6 +38,10 @@
 | L-30 | Check a comment that states a rule against the code that enforces it | Observation |
 | L-31 | Take the date from the system and the remote branch list from the remote | Observation (two slips, one session) |
 | L-32 | Size a fixed placeholder from the real worst case, and run the flows around the state it holds | Observation |
+| L-33 | A survival assertion passes with the fault off: assert from the record that the fault happened first | Validated (found two weak tests) |
+| L-34 | Test the ambiguous failure, not only the failure before the call: the work was done and the answer was lost | Validated (found two unsafe retries) |
+| L-35 | Read what each environment's configuration really says before writing a gate on its name | Observation |
+| L-36 | Two languages stay in step through shared data checked by both, not through two copies kept by hand | Adopted (chaos scenarios) |
 | L-33 | Stop a recorder before the thing it records goes away, and measure a still screen by the clock | Observation |
 | L-34 | Mark in the file itself what has never been run | Observation |
 | L-35 | Test state belongs in seed data: add users, do not change one user at run time | Validated by the flows that use it |
@@ -193,3 +197,19 @@
 ## L-37 "Comprehensive" means every file read in full, with a finding or "no finding" for each
 
 **Situation.** The lead asked for a full pass over the repository before it is made public. The first folder pass read status lines, dates and numbers, sampled the specs and listed most of the remaining files for "a second pass", and the findings tables said "accept or read later". The lead corrected it: "we shouldn't be skimming or sampling, read and analyze them all". **Lesson.** When a task says comprehensive, full, every or all, build the inventory first (the count of files), read each file in full, record a finding or "no finding" per file, and say how many were read of how many. Do not defer files without the lead's agreement, and analyse every area before editing any of it. **Evidence.** The reading ledger of the pass (343 of 343 Markdown files read; the findings it produced are the commits that follow it), and the October review, whose own record says "sampling is not review" (`docs/history/review-2026-10/60-resume-here.md`, section 10). **Change.** The assistant's working notes; this entry. **Status.** Observation, corrected by the lead; the October review had already learned it once.
+
+## L-33 A survival assertion passes with the fault off: assert from the record that the fault happened first
+
+**Situation.** The first Redis chaos tests said "every message is handled after redelivery" with handlers failing half the time. They passed with the chaos switched off, because that statement is also true when nothing fails. A mutation check (injection disabled) showed it for two of six tests. **Lesson.** A test of a system's behaviour under an injected fault needs a record the injector keeps (here the chaos journal) and must assert from it that the fault happened, before asserting the system coped; the tests that could pass without the fault are not evidence. **What changed.** Every chaos test now asserts the journal first (rule in `chaos/README.md` and ADR-0024), and each layer was mutation-checked. *Status: validated, one project.*
+
+## L-34 Test the ambiguous failure, not only the failure before the call: the work was done and the answer was lost
+
+**Situation.** The first chaos layers only failed before the real call. Adding a "lost response" fault (the call is made, then the caller is told it timed out) in five layers on 2026-11-09 showed what the plain failures could not: checkout's idempotency holds (a replay with the same key returns the order the lost write stored) and a lost catalog reservation is given back, but a lost payment authorization is repeated by the retry, and a lost notification is sent twice (register 171). **Lesson.** Any call to something outside the process can succeed without the caller knowing; every retry of it must be idempotent, and the only way to see whether it is is to make it happen. *Status: validated, one project.*
+
+## L-35 Read what each environment's configuration really says before writing a gate on its name
+
+**Situation.** The first design of the chaos gate was an allow-list on the host environment name ("Development" and the dev deployment). The deployed dev stack's Terraform set `ASPNETCORE_ENVIRONMENT=Production`, so the allow-list could never have permitted dev. Changing dev to Development then brought side effects that the name hides: `appsettings.Development.json` turns on the Cosmos emulator's gateway mode, and the services relax their https checks for token metadata. The mock issuer had to stay Production, because that is what makes it enforce its own deployment guards. **Lesson.** Before a rule depends on an environment's name, read what each environment's configuration sets, and list what the name switches on elsewhere. **What changed.** A per-environment `host_environment` variable, the emulator setting pinned, https-only issuer addresses, and a separate `Deployment__Environment` setting that names the environment. *Status: observation.*
+
+## L-36 Two languages stay in step through shared data checked by both, not through two copies kept by hand
+
+**Situation.** The chaos libraries exist in C# and in TypeScript and must make the same decision for the same operation. They share `chaos/test-vectors.json` (expected numbers computed by a third, independent implementation, in Python) and `chaos/layers.json` (the layers and settings); each language's tests check against the files. The TypeScript library matched the vectors at the first run, including a 64-bit seed that a plain `JSON.parse` would have corrupted. **Lesson.** When behaviour must be identical in two places, keep the expected values in one file that neither implementation owns, and make both suites read it. *Status: adopted for the chaos scenarios.*

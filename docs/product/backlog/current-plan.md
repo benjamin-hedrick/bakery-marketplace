@@ -20,13 +20,13 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 ## What is in flight
 
-- **`feature/demo-film`** (pushed; the lead opens the PR): the dependency audit and SBOMs, the Android checkout layout fix (register 161), the film scripts and the film, and the sanitized usage records.
-- **`feature/docs-front-door`** (local): this documentation pass, which started on 2026-11-08: the factual refresh of the ADR index, the decision timeline, patterns (with register item 89), the NFRs, the evidence index and the test strategy, then a front door and hub pages for testing, NFRs and performance, and delivery practice, code-coverage tooling, and a generated test-count table.
+- **`feature/chaos-event-transport`** (local, 8 commits ahead of `origin/main`, not pushed; the lead opens the PR): chaos scenarios (ADR-0024, Proposed): the chaos event transport (`WI-EVT-004`), scenario files, keyed decisions, journal, gate and response indicator with the events and cache layers (`WI-CHAOS-001`), the repository, broadcast, payment, catalog-gateway and notification-sender layers (`WI-CHAOS-002`), the lost-response fault and the TypeScript package with the BFF's gate and client layers (`WI-CHAOS-003`), and the dev Terraform change (the .NET services run as Development through `host_environment`). What remains is in `docs/architecture/chaos-scenarios-proposal.md`, section 11, and register 169, 170 and 171.
+- **`feature/docs-front-door`** (merged 2026-11-09, no longer in flight): the documentation pass that started on 2026-11-08: the factual refresh of the ADR index, the decision timeline, patterns (with register item 89), the NFRs, the evidence index and the test strategy, then a front door and hub pages for testing, NFRs and performance, and delivery practice, code-coverage tooling, and a generated test-count table.
 - **Verification gaps still open:** all fifteen Maestro flows in one cold run; the container smoke of the newest journeys; the first Azure run of the `queue`, `session` and `mobile` jobs; the cold-machine run and a stranger's reading of the demo (`WI-DEMO-001`); register 165 and 166 (a catalog failure during checkout has no typed code, and three failures have not been run against a real outage).
 
 ## Next
 
-In this order, the lead deciding:
+In this order, the lead deciding (the chaos work in flight above has its own list: `chaos-scenarios-proposal.md`, section 11):
 
 1. **Close the documentation pass** (above), then the [pre-publish gaps](../../governance/pre-publish-gaps.md), before the repository is made public (the flip-day settings, register 93).
 2. **The vendor's listing and stock screens** are the largest product gap and have no spec yet: decide, then write one. Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens stay last.
