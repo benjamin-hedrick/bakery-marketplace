@@ -23,9 +23,9 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `README.md`, `after-2026-11-07.md`, `baseline-2026-11-07.md` and 2 more |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | Done | `ListingStockTests.cs`, `ConcurrencyContractTests.cs` | *none* |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | Done | `StockReservationTests.cs`, `BatchContractTests.cs` | *none* |
-| [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | In review | `ChaosHostTests.cs` | *none* |
-| [CHAOS-002](WI-CHAOS-002.md) | Chaos scenarios, phase 2: the repository, broadcast, payment, catalog-gateway and notification-sender layers | In review | `ChaosSenderTests.cs`, `ChaosHostTests.cs`, `ChaosRepositoryTests.cs` and 1 more | *none* |
-| [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | In review | `chaos-outcomes.test.ts` | *none* |
+| [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | In review | `ChaosHostTests.cs` | `ai-usage-2026-11-09-c.md` |
+| [CHAOS-002](WI-CHAOS-002.md) | Chaos scenarios, phase 2: the repository, broadcast, payment, catalog-gateway and notification-sender layers | In review | `ChaosSenderTests.cs`, `ChaosHostTests.cs`, `ChaosRepositoryTests.cs` and 1 more | `ai-usage-2026-11-09-c.md` |
+| [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | In review | `chaos-outcomes.test.ts` | `ai-usage-2026-11-09-c.md` |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | Done | *none* | *none* |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | Done | *none* | `baseline-2026-10-30.md` |
@@ -44,7 +44,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | Done | `walking-skeleton.spec.ts`, `SeederTests.cs` | `findings.md`, `findings.md` |
 | [EVT-001](WI-EVT-001.md) | Define IEventPublisher/IEventSubscriber interfaces + envelope + contract tests | Done | `EventTransportContractTests.cs`, `InMemoryEventTransportTests.cs` | *none* |
 | [EVT-003](WI-EVT-003.md) | RedisStreamsPublisher / RedisStreamsSubscriber implementation | Done | `RedisStreamsEventTransportTests.cs` | `findings.md` |
-| [EVT-004](WI-EVT-004.md) | ChaosEventTransport decorator + failure proof tests | In review | `ChaosEventTransportTests.cs`, `RedisChaosEventTransportTests.cs` | *none* |
+| [EVT-004](WI-EVT-004.md) | ChaosEventTransport decorator + failure proof tests | In review | `ChaosEventTransportTests.cs`, `RedisChaosEventTransportTests.cs` | `ai-usage-2026-11-09-c.md` |
 | [GOV-001](WI-GOV-001.md) | Fill in the architecture review / change-management document | Done | *none* | *none* |
 | [MGMT-001](WI-MGMT-001.md) | Draft the execution-level project plan | Done | *none* | `baseline-2026-10-30.md` |
 | [MGMT-002](WI-MGMT-002.md) | Draft the risk register | In review | *none* | *none* |
