@@ -6,7 +6,10 @@ Seeded, configured fault injection at the interfaces the system already has (ADR
 
 ```
 Chaos__Enabled=true Chaos__Scenario=flaky-broker dotnet run --project services/ordering-service/src
+CHAOS_ENABLED=true CHAOS_SCENARIO=bff-door DEPLOYMENT_ENVIRONMENT=local node services/graphql-bff/src/main.ts
 ```
+
+The Node processes (the BFF) use `CHAOS_ENABLED`, `CHAOS_SCENARIO` and `DEPLOYMENT_ENVIRONMENT` (`local` or `dev`; `NODE_ENV` of `development` or `test` also counts, because the container image sets `NODE_ENV=production` everywhere and an unset `NODE_ENV` on a real host is not permission). They refuse to start with chaos on anywhere else.
 
 `Chaos__Scenario` is a name (this folder's `scenarios/<name>.json`, found by walking up from the app) or a path. The service logs one warning naming the scenario and the seed, every response carries `X-Chaos-Scenario`, and `X-Chaos-Injected` lists the faults injected while that response was produced. Chaos is refused at startup unless the host is `Development` or `Deployment__Environment=dev`.
 
@@ -20,19 +23,23 @@ Settings ending in `Rate` are probabilities from 0 to 1; the others are non-nega
 
 | Layer | Wraps | Settings |
 |---|---|---|
-| `events` | `IEventPublisher`, `IEventSubscriber` | `publishFailureRate`, `dropRate`, `duplicateRate`, `reorderRate`, `handlerFailureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `events` | `IEventPublisher`, `IEventSubscriber` | `publishFailureRate`, `publishLostResponseRate`, `dropRate`, `duplicateRate`, `reorderRate`, `handlerFailureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 | `cache` | the primary cache store, under `ResilientCacheProvider` | `failureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
-| `repository` | every `IRepository<T>` and the `IBatchFactory` | `failureRate` (a Cosmos 503), `conflictRate` (a conditional save or batch loses its concurrency check), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `repository` | every `IRepository<T>` and the `IBatchFactory` | `failureRate` (a Cosmos 503), `lostResponseRate` (the write is made, then a 408), `conflictRate` (a conditional save or batch loses its concurrency check), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 | `broadcast` | `IBroadcastPublisher`, `IBroadcastSubscriber` (the live vendor screens' nudge) | `failureRate`, `dropRate`, `deliveryDropRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
-| `payment` | ordering's `IPaymentProcessor` | `failureRate` (the processor throws), `declineRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
-| `catalog` | ordering's `ICatalogGateway` | `unavailableRate` (the `DownstreamUnavailableException` a dead catalog gives), `rejectRate` (a refused reservation), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
-| `notification` | the notification service's `INotificationSender` | `failureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `payment` | ordering's `IPaymentProcessor` | `failureRate` (the processor throws), `lostResponseRate` (authorized, then a timeout), `declineRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `catalog` | ordering's `ICatalogGateway` | `unavailableRate` (the `DownstreamUnavailableException` a dead catalog gives), `lostResponseRate`, `rejectRate` (a refused reservation), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `notification` | the notification service's `INotificationSender` | `failureRate`, `lostResponseRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `bff` | the GraphQL BFF's door (a gate before the body is read; `/healthz` is never touched) | `rejectRate` and `rejectStatus` (400 to 599, default 503), `malformedRate` (a 200 that is not JSON), `resetRate` (the connection is closed), `hangRate` (no answer), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `bffCatalog`, `bffOrdering` | the BFF's two service clients | `unavailableRate` (fails as an unreachable service does), `serverErrorRate` (a 5xx), `malformedRate` (a body that is not JSON), `lostResponseRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 
-One scenario file serves a whole stack. A process applies the layers it has an interface for and logs, once it is up, which layers it applied and which the scenario names but it does not have (the admin service has no event transport; notification has no payment processor). A layer name that no process knows fails when the scenario is loaded. Outage windows are measured from the process's chaos start. Scenarios: `flaky-broker`, `broker-outage`, `slow-cache`, `checkout-trouble`. Not built yet: the TypeScript library and the BFF gate (register 169).
+`lostResponseRate` is the ambiguous failure: the operation **succeeds** and the caller is then told it timed out (a payment authorized, an order stored, a message sent, a stock reservation made). Whatever retries must be idempotent. The events layer's equivalent is `publishLostResponseRate`: the event is delivered and the publisher is told it failed, so the outbox publishes it again.
+
+One scenario file serves a whole stack. A process applies the layers it has an interface for and logs, once it is up, which layers it applied and which the scenario names but it does not have (the admin service has no event transport; notification has no payment processor). A layer name that no process knows fails when the scenario is loaded. Outage windows are measured from the process's chaos start. Scenarios: `flaky-broker`, `broker-outage`, `slow-cache`, `checkout-trouble`, `bff-door`. `layers.json` is the shared list of layers and settings; the C# and TypeScript libraries each test their copy against it. Not built yet: a scenario run on the whole real stack with evidence, and the web apps' server-side proxies (register 169).
 
 ## The decision function
 
-Whether a fault applies to an operation does not depend on call order or threads. It is the first 8 bytes of SHA-256 over `"{seed}|{layer}|{fault}|{key}"` (UTF-8), read big-endian as an unsigned integer, with the low 11 bits dropped and the rest divided by 2^53, a value in [0, 1) compared with the rate. The key is the operation's own identity (the event id, plus the attempt number for failures, so a retry is judged afresh). `test-vectors.json` holds expected numbers computed independently of the C# code; every implementation's tests must reproduce them.
+Whether a fault applies to an operation does not depend on call order or threads. It is the first 8 bytes of SHA-256 over `"{seed}|{layer}|{fault}|{key}"` (UTF-8), read big-endian as an unsigned integer, with the low 11 bits dropped and the rest divided by 2^53, a value in [0, 1) compared with the rate. The key is the operation's own identity (the event id, an order id, plus the attempt number for failures, so a retry is judged afresh). At the BFF's door the key is the trace id of the request when the caller sets its own `traceparent` (so a test chooses which requests are hit), otherwise the request's number. `test-vectors.json` holds expected numbers computed independently of the C# code; every implementation's tests must reproduce them.
 
 ## Writing a test
 

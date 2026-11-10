@@ -143,8 +143,20 @@ jobs:
         inputs:
           version: $(NODE_VERSION)
       - script: npm ci
+        workingDirectory: packages/chaos
+        displayName: Install the chaos package (the BFF links to it; ADR-0024)
+      - script: npm ci
         workingDirectory: services/graphql-bff
         displayName: Install
+      - script: npm run format:check
+        workingDirectory: packages/chaos
+        displayName: Format check, chaos package
+      - script: npm run typecheck
+        workingDirectory: packages/chaos
+        displayName: Typecheck, chaos package
+      - script: npm test
+        workingDirectory: packages/chaos
+        displayName: Test the chaos package (scenarios, the decision function against the shared vectors, the gate, the journal)
       - script: npm run format:check
         workingDirectory: services/graphql-bff
         displayName: Format check (Prettier)

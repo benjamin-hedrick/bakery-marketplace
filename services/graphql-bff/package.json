@@ -16,6 +16,7 @@
     "format:check": "prettier --check . --ignore-path ../../.prettierignore"
   },
   "dependencies": {
+    "@bakery/chaos": "file:../../packages/chaos",
     "graphql": "16.14.2",
     "graphql-sse": "2.6.3"
   },

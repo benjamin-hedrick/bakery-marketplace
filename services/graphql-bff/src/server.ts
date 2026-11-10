@@ -28,6 +28,7 @@ import {
   rateKey,
 } from './rate-limit.ts';
 import { startTrace, toTraceparent } from './trace.ts';
+import type { BffChaos } from './chaos.ts';
 
 const schema = buildSchema(readFileSync(fileURLToPath(new URL('../schema/schema.graphql', import.meta.url)), 'utf8'));
 const MAX_BODY_BYTES = 64 * 1024;
@@ -61,10 +62,17 @@ export const jsonLogger: Logger = {
 
 export function createServer(
   config: Config,
-  deps: { catalog?: CatalogClient; ordering?: OrderingClient; log?: Logger; exporter?: SpanExporter } = {},
+  deps: {
+    catalog?: CatalogClient;
+    ordering?: OrderingClient;
+    log?: Logger;
+    exporter?: SpanExporter;
+    chaos?: BffChaos;
+  } = {},
 ): http.Server {
-  const catalog = deps.catalog ?? createCatalogClient(config.catalogUrl, config.timeoutMs);
-  const ordering =
+  const chaos = deps.chaos; // ADR-0024: a scenario's gate at the door and its wrappers on the two service clients; absent unless chaos is switched on
+  const realCatalog = deps.catalog ?? createCatalogClient(config.catalogUrl, config.timeoutMs);
+  const realOrdering =
     deps.ordering ??
     createOrderingClient(
       config.orderingUrl,
@@ -73,6 +81,8 @@ export function createServer(
       config.checkoutTimeoutMs,
       config.streamIdleMs,
     );
+  const catalog = chaos ? chaos.wrap(realCatalog, 'bffCatalog', 'catalog') : realCatalog;
+  const ordering = chaos ? chaos.wrap(realOrdering, 'bffOrdering', 'ordering') : realOrdering;
   const log = deps.log ?? jsonLogger;
   const exportSpan = deps.exporter ?? createOtlpExporter(config.otlpEndpoint);
   const maxStreams = config.maxStreams ?? 500;
@@ -133,8 +143,9 @@ export function createServer(
     },
   });
 
-  return http.createServer(async (req, res) => {
+  const handle = async (req: http.IncomingMessage, res: http.ServerResponse) => {
     const trace = startTrace(headerValue(req.headers.traceparent));
+    chaos?.bindTrace(trace.traceId);
     const started = performance.now();
     const startedAtMs = Date.now();
     const send = (code: number, body: unknown) => {
@@ -148,12 +159,17 @@ export function createServer(
         // Response-only alias of the trace id (ADR-0016). An inbound X-Correlation-Id is never read.
         'x-correlation-id': trace.traceId,
         traceparent: toTraceparent(trace),
+        // The chaos indicator (ADR-0024), only while a scenario is on: the scenario's name and the faults injected while this answer was produced.
+        ...chaos?.headers(),
       });
-      res.end(JSON.stringify(body));
+      res.end(JSON.stringify(chaos ? chaos.decorate(body) : body));
     };
 
     if (req.url === '/healthz') return send(200, { ok: true });
     if (req.url !== '/graphql' || req.method !== 'POST') return send(404, { errors: [{ message: 'Not found' }] });
+
+    // Chaos (ADR-0024): the gate at the door, before the body is read or anything is called. /healthz is never disturbed.
+    if (chaos && (await chaos.gate(req, res, trace, send))) return;
 
     // The coarse backstop (register item 128): checked before the body is read or anything is called.
     const turn = limiter.take(rateKey(req.socket, req.headers[CLIENT_ADDRESS_HEADER], trusted));
@@ -203,6 +219,7 @@ export function createServer(
       res.setHeader('x-correlation-id', trace.traceId);
       res.setHeader('traceparent', toTraceparent(trace));
       res.setHeader('x-accel-buffering', 'no');
+      if (chaos) for (const [name, value] of Object.entries(chaos.headers())) res.setHeader(name, value);
       const writeHead = res.writeHead.bind(res) as (...a: unknown[]) => http.ServerResponse;
       res.writeHead = ((status: number, ...rest: unknown[]) => {
         const headers = rest.find((a) => typeof a === 'object' && a !== null) as Record<string, string> | undefined;
@@ -287,7 +304,8 @@ export function createServer(
       startedAtMs,
       durationMs: performance.now() - started,
     });
-  });
+  };
+  return http.createServer(chaos ? (req, res) => chaos.scoped(() => handle(req, res)) : handle);
 }
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>

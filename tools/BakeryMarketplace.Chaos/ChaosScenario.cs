@@ -16,7 +16,7 @@ public sealed class ChaosScenario
     {
         ["events"] = new HashSet<string>
         {
-            "publishFailureRate", "dropRate", "duplicateRate", "reorderRate", "handlerFailureRate",
+            "publishFailureRate", "publishLostResponseRate", "dropRate", "duplicateRate", "reorderRate", "handlerFailureRate",
             "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
         ["cache"] = new HashSet<string>
@@ -26,7 +26,7 @@ public sealed class ChaosScenario
         // A transient store error (a Cosmos 503), an optimistic-concurrency conflict on a conditional save or batch, and slowness.
         ["repository"] = new HashSet<string>
         {
-            "failureRate", "conflictRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+            "failureRate", "lostResponseRate", "conflictRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
         // The Pub/Sub nudge to the live vendor screens: a failed publish, a lost one, a lost delivery, slowness.
         ["broadcast"] = new HashSet<string>
@@ -36,17 +36,31 @@ public sealed class ChaosScenario
         // The payment processor seam in ordering: the processor failing, declining, or answering slowly.
         ["payment"] = new HashSet<string>
         {
-            "failureRate", "declineRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+            "failureRate", "lostResponseRate", "declineRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
         // Ordering's gateway to the catalog: unreachable, a refused reservation, slowness.
         ["catalog"] = new HashSet<string>
         {
-            "unavailableRate", "rejectRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+            "unavailableRate", "lostResponseRate", "rejectRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
         // The notification service's sender: a delivery that fails, slowness.
         ["notification"] = new HashSet<string>
         {
-            "failureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+            "failureRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
+        // The layers of the Node processes (the GraphQL BFF: its door and its two service clients). The C# services have nothing to wrap for them and report
+        // them as not applicable; they are accepted here so one scenario file can serve the whole stack. chaos/layers.json is the shared list.
+        ["bff"] = new HashSet<string>
+        {
+            "rejectRate", "rejectStatus", "malformedRate", "resetRate", "hangRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
+        ["bffCatalog"] = new HashSet<string>
+        {
+            "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
+        ["bffOrdering"] = new HashSet<string>
+        {
+            "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
     };
 
@@ -71,6 +85,8 @@ public sealed class ChaosScenario
                     throw new ChaosScenarioException($"Scenario '{name}': layer '{layer}' has no setting '{setting}'. Known: {string.Join(", ", allowed.Order())}.");
                 if (double.IsNaN(value) || value < 0 || (setting.EndsWith("Rate", StringComparison.Ordinal) && value > 1))
                     throw new ChaosScenarioException($"Scenario '{name}': {layer}.{setting} must be {(setting.EndsWith("Rate", StringComparison.Ordinal) ? "between 0 and 1" : "0 or more")}, not {value}.");
+                if (setting == "rejectStatus" && (value != Math.Floor(value) || value < 400 || value > 599))
+                    throw new ChaosScenarioException($"Scenario '{name}': {layer}.{setting} must be a whole HTTP status from 400 to 599, not {value}.");
             }
         }
 

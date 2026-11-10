@@ -28,6 +28,12 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
     internal static Exception StoreFailure() =>
         new CosmosException("ChaosRepository: simulated transient store failure.", HttpStatusCode.ServiceUnavailable, 0, string.Empty, 0);
 
+    /// <summary>The write was made, the answer never arrived (a request timeout).</summary>
+    internal static Exception LostResponse() =>
+        new CosmosException("ChaosRepository: the write was made but the response was lost.", HttpStatusCode.RequestTimeout, 0, string.Empty, 0);
+
+    private static string EntityKey(string partitionKey) => $"{typeof(T).Name}/{partitionKey}";
+
     private Task Before(string operation, string partitionKey, CancellationToken ct) =>
         _layer.BeforeAsync(operation, $"{typeof(T).Name}/{partitionKey}", "failure", "failureRate", StoreFailure, ct);
 
@@ -40,7 +46,9 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
     public async Task<T> SaveAsync(T entity, string partitionKey, CancellationToken ct = default)
     {
         await Before("save", partitionKey, ct);
-        return await _inner.SaveAsync(entity, partitionKey, ct);
+        var saved = await _inner.SaveAsync(entity, partitionKey, ct);
+        if (_layer.LostResponse("save", EntityKey(partitionKey))) throw LostResponse();
+        return saved;
     }
 
     public async Task<T?> SaveIfUnchangedAsync(T entity, string partitionKey, CancellationToken ct = default)
@@ -48,13 +56,16 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
         await Before("saveIfUnchanged", partitionKey, ct);
         if (_layer.InjectAttempt("saveIfUnchanged", $"{typeof(T).Name}/{partitionKey}", "conflict", "conflictRate"))
             return null; // the document "changed": nothing is saved
-        return await _inner.SaveIfUnchangedAsync(entity, partitionKey, ct);
+        var saved = await _inner.SaveIfUnchangedAsync(entity, partitionKey, ct);
+        if (saved is not null && _layer.LostResponse("saveIfUnchanged", EntityKey(partitionKey))) throw LostResponse();
+        return saved;
     }
 
     public async Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default)
     {
         await Before("delete", partitionKey, ct);
         await _inner.DeleteAsync(id, partitionKey, ct);
+        if (_layer.LostResponse("delete", EntityKey(partitionKey))) throw LostResponse();
     }
 
     public async IAsyncEnumerable<T> QueryAsync(
@@ -101,7 +112,9 @@ public sealed class ChaosBatchFactory : IBatchFactory
             await layer.BeforeAsync("batch", partitionKey, "failure", "failureRate", ChaosRepository<object>.StoreFailure, ct);
             if (layer.InjectAttempt("batch", partitionKey, "conflict", "conflictRate"))
                 return false; // the optimistic-concurrency check "failed": nothing was written
-            return await inner.ExecuteAsync(ct);
+            var applied = await inner.ExecuteAsync(ct);
+            if (applied && layer.LostResponse("batch", partitionKey)) throw ChaosRepository<object>.LostResponse();
+            return applied;
         }
     }
 }

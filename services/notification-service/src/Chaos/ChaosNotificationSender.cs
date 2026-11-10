@@ -15,5 +15,9 @@ public sealed class ChaosNotificationSender(INotificationSender inner, ChaosLaye
         await layer.BeforeAsync("send", notification.EventId.ToString(), "failure", "failureRate",
             () => new InvalidOperationException("ChaosNotificationSender: simulated delivery failure."), ct);
         await inner.SendAsync(notification, ct);
+
+        // The message was sent, the provider's answer never arrived: "try again later" will send it a second time.
+        if (layer.LostResponse("send", notification.EventId.ToString()))
+            throw new TimeoutException("ChaosNotificationSender: the message was sent but the response was lost.");
     }
 }

@@ -1,0 +1,21 @@
+{
+  "name": "bff-door",
+  "seed": 20261109,
+  "layers": {
+    "bff": {
+      "latencyMs": 150,
+      "rejectRate": 0.2,
+      "rejectStatus": 503,
+      "malformedRate": 0.1,
+      "resetRate": 0.05
+    },
+    "bffCatalog": {
+      "unavailableRate": 0.1,
+      "lostResponseRate": 0.05
+    },
+    "bffOrdering": {
+      "serverErrorRate": 0.1,
+      "lostResponseRate": 0.1
+    }
+  }
+}

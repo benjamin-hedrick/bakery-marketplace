@@ -65,6 +65,20 @@ public sealed class ChaosSenderTests
     }
 
     [Fact]
+    public async Task ALostResponse_MeansTheMessageWasSent_AndARetryWillSendItASecondTime()
+    {
+        var (sender, inner, runtime) = Build(1, ("lostResponseRate", 1));
+        var id = Guid.NewGuid();
+
+        await Assert.ThrowsAsync<TimeoutException>(() => sender.SendAsync(Message(id)));
+        await Assert.ThrowsAsync<TimeoutException>(() => sender.SendAsync(Message(id))); // "try again later"
+
+        Assert.Equal(2, runtime.Journal.Count("notification", "lostResponse"));
+        // Sent twice for one event: nothing in the sender contract prevents it. A real provider needs an idempotency key (register 171).
+        Assert.Equal(2, inner.Sent.Count(n => n.EventId == id));
+    }
+
+    [Fact]
     public async Task AnOutageWindowFailsSends_ThenRecovers()
     {
         var (sender, inner, runtime) = Build(1, ("outageWindowSeconds", 0.2));

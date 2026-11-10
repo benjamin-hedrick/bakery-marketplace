@@ -90,6 +90,29 @@ public sealed class ChaosScenarioTests
     }
 
     [Fact]
+    public void TheLayersAndSettingsAreTheOnesInChaosLayersJson_WhichTheTypeScriptLibraryIsAlsoTestedAgainst()
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(RepoChaos.Path("layers.json")));
+        var shared = doc.RootElement.GetProperty("layers").EnumerateObject()
+            .ToDictionary(l => l.Name, l => l.Value.EnumerateArray().Select(s => s.GetString()!).Order(StringComparer.Ordinal).ToArray());
+        var known = ChaosScenario.Known.ToDictionary(l => l.Key, l => l.Value.Order(StringComparer.Ordinal).ToArray());
+
+        Assert.Equal(shared.Keys.Order(StringComparer.Ordinal), known.Keys.Order(StringComparer.Ordinal));
+        foreach (var (layer, settings) in shared) Assert.Equal(settings, known[layer]);
+    }
+
+    [Theory]
+    [InlineData(200)]
+    [InlineData(600)]
+    [InlineData(503.5)]
+    public void ARejectStatusMustBeAWholeHttpErrorStatus(double status)
+    {
+        var e = Assert.Throws<ChaosScenarioException>(() =>
+            ChaosScenario.Of("n", 1, "bff", ("rejectStatus", status)));
+        Assert.Contains("from 400 to 599", e.Message);
+    }
+
+    [Fact]
     public void ReadsNameSeedAndLayerSettings()
     {
         var scenario = ChaosScenario.Parse("""{ "name": "n", "seed": 5, "layers": { "events": { "dropRate": 0.25, "latencyMs": 100 } } }""");
