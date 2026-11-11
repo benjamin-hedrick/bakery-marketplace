@@ -231,6 +231,17 @@ run "an_unknown_host_environment_is_refused" {
   expect_failures = [var.host_environment]
 }
 
+run "development_is_refused_for_an_environment_that_is_not_dev" {
+  command = plan
+
+  variables {
+    environment      = "uat"
+    host_environment = "Development"
+  }
+
+  expect_failures = [var.host_environment]
+}
+
 run "a_plain_http_issuer_address_is_refused" {
   command = plan
 

@@ -11,7 +11,7 @@ The layers, from the cheapest to the widest claim ([test strategy](process/test-
 | Layer | What it checks | Where |
 |---|---|---|
 | Unit | Cart, checkout input, allergen matching, session logic, the queue display's logic | `packages/customer-core`, `packages/web-session`, `apps/mobile-customer`, `apps/web-queue-display` |
-| Contract | Every adapter (cache, repository, event transport, session store) passes one shared suite, with a chaos decorator injecting failure where resilience matters | `tools/tests/*`, [patterns 1](architecture/patterns.md) |
+| Contract | Every adapter (cache, repository, event transport, session store) passes one shared suite; seeded chaos scenarios (ADR-0024, `chaos/README.md`) then inject faults at those interfaces and at the BFF, from scenario files, and the journal shows what was injected | `tools/tests/*`, [patterns 1](architecture/patterns.md) |
 | Service | The catalog, ordering and notification services hosted in process, on in-memory backends or on Redis and the Cosmos emulator | `services/*/tests` |
 | BFF | Field mapping, error mapping, token forwarding, generated-input tests | `services/graphql-bff/test` |
 | Browser, mock-backed | Each web app in a real browser against a mock BFF, including accessibility scans; Chromium, Firefox, WebKit and phone profiles | `apps/web-customer/tests/e2e`, `apps/web-queue-display/tests/e2e` |

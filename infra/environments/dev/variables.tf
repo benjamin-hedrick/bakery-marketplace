@@ -13,6 +13,13 @@ variable "host_environment" {
     condition     = contains(["Development", "Staging", "Production"], var.host_environment)
     error_message = "host_environment must be Development, Staging or Production."
   }
+
+  # Development turns chaos scenarios on (ADR-0024) and relaxes nothing else (register 176), so only the dev environment's own root may use it. A UAT or
+  # production root is another environment name and has to set Staging or Production: it cannot take Development by leaving the default.
+  validation {
+    condition     = var.host_environment != "Development" || var.environment == "dev"
+    error_message = "host_environment may be Development only when environment is dev; other environments must set Staging or Production."
+  }
 }
 
 variable "name_prefix" {

@@ -181,3 +181,10 @@ Worked through with the lead after section 11. Item 3 there (retire the stop-the
 **What stays process control.** Flow 15 (the issuer restarts) and any proof of a real restart (cold start, reconnect): an in-process gate cannot give a process that is gone.
 
 **Limits.** Counters last for the life of the BFF process; the runner starts a fresh one for a full run, and a second run of a flow against the same running stack would not fail the second time (a `reset` signal covers that if it is ever needed). A signal changes the state of the process that sees the request (the BFF); it does not reach ordering or catalog.
+
+## 13. Done on 2026-11-11 (from the lists in sections 11 and 12)
+
+- **Flow 07 on a scenario** (item 3, register 173): the new seed listing `listing-cardamom-latte-001`; opening it makes the BFF switch to `mobile-flows-07`. Tested against the real files in `chaos-calls.test.ts`; **not run on the emulator**.
+- **One `Unavailable` outcome** (item 5, register 170): `PaymentUnavailableException` and `StoreUnavailableException` (Data library), mapped by `CheckoutService` to the 503 `downstream_unavailable`. The requirements of register 171 are written into the `PAY-001` entry and `WI-NOT-002` (no code).
+- **Auth** (register 176): plain http for the mock issuer only on a local Development host, not on the deployed dev stack.
+- **Small gaps:** the .NET image holds `chaos/scenarios`; the dev Terraform refuses `host_environment = "Development"` for an environment that is not dev (`development_is_refused_for_an_environment_that_is_not_dev`, run with the mocked provider); the README and `docs/testing.md` wording. Still open from section 11 item 6: the contact directory layer, the cache layer in the local backend, the repository layer against real Cosmos, `extensions.chaos` on streams.
