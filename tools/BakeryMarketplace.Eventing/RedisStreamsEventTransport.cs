@@ -27,7 +27,7 @@ public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEvent
     public RedisStreamsEventTransport(
         IConnectionMultiplexer multiplexer,
         int db = -1,
-        int maxDeliveryAttempts = 6,
+        int maxDeliveryAttempts = 10,
         int? maxStreamLength = null,
         string? serviceName = null,
         TimeSpan? redeliverAfter = null,
@@ -39,7 +39,7 @@ public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEvent
     /// <param name="logger">Where failures are reported: a poll that failed, a handler that threw, an entry that could not be read. Null logs nothing.</param>
     public RedisStreamsEventTransport(
         IDatabase database,
-        int maxDeliveryAttempts = 6,
+        int maxDeliveryAttempts = 10,
         int? maxStreamLength = null,
         string? serviceName = null,
         TimeSpan? redeliverAfter = null,
@@ -64,11 +64,11 @@ public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEvent
     public static readonly TimeSpan DefaultRedeliverAfter = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    /// How long a message that has been delivered <paramref name="deliveries"/> times waits before the next delivery: the redeliver time doubled for
-    /// each earlier failure, up to 16 times (register item 183). A handler outage that lasts a few minutes is outlasted instead of dead-lettered.
+    /// How long a message that has been delivered <paramref name="deliveries"/> times waits before the next delivery: the redeliver time doubled once, for
+    /// any earlier failure, so 30 s then 60 s by default (register item 183). A handler outage that lasts a few minutes is outlasted instead of dead-lettered.
     /// </summary>
     internal TimeSpan RedeliveryDelay(long deliveries) =>
-        _redeliverAfter * Math.Pow(2, Math.Clamp(deliveries - 1, 0, 4));
+        _redeliverAfter * Math.Pow(2, Math.Clamp(deliveries - 1, 0, 1));
 
     private static int? ValidateMaxStreamLength(int? value) =>
         value is null or > 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), "The stream length limit must be positive, or null for no limit.");

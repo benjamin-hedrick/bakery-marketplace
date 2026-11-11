@@ -81,7 +81,7 @@ export async function placeBatchAndCheck(
   const secondsToQueueConvergence = await secondsUntil(async () => {
     const queue = new Set(await vendorOrderIds(vendor));
     return want.every((id) => queue.has(id));
-  });
+  }, 180); // a failing handler's event is redelivered after 30 s, then 60 s (register 183), so convergence is measured in minutes, not seconds
   expect(secondsToQueueConvergence, 'the vendor queue never held every confirmed order').not.toBeNull();
   const queueAfter = await vendorOrderIds(vendor);
   const stray = queueAfter.filter((id) => !queueBefore.has(id) && !want.includes(id));
