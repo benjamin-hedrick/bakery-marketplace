@@ -142,7 +142,8 @@ Each Claude Code session's cost, model time and size were copied by the lead fro
 | 2026-11-09 (fifth session) | chaos scenarios: ADR-0024, the .NET layers, the lost-response fault, the TypeScript package and the BFF's gate | 6.12 | 38 min | 5,249 |
 | 2026-11-10 | chaos scenarios: aimed faults, token identity, signals, flow 11 on a scenario | 1.25 | 9 min | 874 |
 | 2026-11-11 | approvals and development: flow 07, one Unavailable outcome, the web gate, the small gaps, the scenario name, the usage format, `CLAUDE.md` | 3.39 | 17 min | 835 |
-| **Total** |  | **141.12** | **12 h 25 min** | **62,298** |
+| 2026-11-11 (evening) | chaos specs per scenario: the runner, four scenarios run on the whole stack, three defects fixed, two found open | 2.12 | 14 min | 980 |
+| **Total** |  | **143.24** | **12 h 39 min** | **63,278** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the relative cost by the 85 items gives about 1.61 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
 
