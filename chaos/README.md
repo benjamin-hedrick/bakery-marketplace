@@ -2,6 +2,10 @@
 
 Seeded, configured fault injection at the interfaces the system already has (ADR-0024, `docs/architecture/chaos-scenarios-proposal.md`). A scenario is a JSON file here; a running process switches it on with configuration; nothing in the service's own code changes.
 
+## The Node package
+
+`packages/chaos` is the TypeScript side (the BFF and the two web servers link it; `packages/web-session` carries the web gate). It has no run-time dependencies; run `npm ci` in it before the BFF and `packages/web-session`, whose type checks read its sources. Then `npm run typecheck`, `npm test` (no Docker needed) and `npm run format:check` in `packages/chaos`. The C# side is `tools/BakeryMarketplace.Chaos` (`dotnet test tools/tests/BakeryMarketplace.Chaos.Tests`).
+
 ## Run the whole local stack with a scenario
 
 ```

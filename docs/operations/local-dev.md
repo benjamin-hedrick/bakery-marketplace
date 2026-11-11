@@ -36,13 +36,15 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 Data__B
   ServiceAuth__ClientSecret="$(grep '^ORDERING_CLIENT_SECRET=' .env | cut -d= -f2-)" \
   dotnet run --no-launch-profile --project services/ordering-service/src
 
-# 6. GraphQL BFF on :4100
+# 6. GraphQL BFF on :4100. It links the chaos package (ADR-0024, packages/chaos), which has no run-time dependencies but needs its own `npm ci` for its types
+#    and tests; install it first. The customer app and the queue display link it too, through packages/web-session (step 7).
+(cd packages/chaos && npm ci)
 (cd services/graphql-bff && npm ci)
 (cd services/graphql-bff && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)
 
 # 7. Customer web app on :3000 (everything is read at run time, on every request). The login runs on its server (ADR-0019): it needs the sessions Redis
 #    (`docker compose --profile with-redis up -d`, sessions Redis on port 6381) and the encryption key that init-env.mjs wrote to .env as SESSION_ENCRYPTION_KEY.
-(cd packages/web-session && npm ci)
+(cd packages/web-session && npm ci)    # after packages/chaos (step 6), which it links
 (cd apps/web-customer && npm ci)
 (cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run build)    # also compiles the Relay artifacts, which are git-ignored
 (cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql AUTH_ISSUER=http://localhost:5100 AUTH_CLIENT_ID=web-customer APP_ORIGIN=http://localhost:3000 SESSION_REDIS_URL=redis://127.0.0.1:6381 SESSION_ENCRYPTION_KEY="$SESSION_ENCRYPTION_KEY" npx next start -p 3000)
