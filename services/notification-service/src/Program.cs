@@ -34,8 +34,9 @@ else
 }
 
 // Contacts: seeded from the mock identity's customers behind a cache; delivery: the log sender (no real provider is built).
+builder.Services.AddSingleton<IContactStore>(SeededContactDirectory.FromMockIdentity());
 builder.Services.AddSingleton<IContactDirectory>(sp => new CachedContactDirectory(
-    SeededContactDirectory.FromMockIdentity(), sp.GetRequiredService<ICacheProvider>(), sp.GetRequiredService<ILogger<CachedContactDirectory>>()));
+    sp.GetRequiredService<IContactStore>(), sp.GetRequiredService<ICacheProvider>(), sp.GetRequiredService<ILogger<CachedContactDirectory>>()));
 builder.Services.AddSingleton<INotificationSender, LogNotificationSender>();
 builder.Services.AddSingleton<IMessageComposer, TemplateMessageComposer>();
 builder.Services.AddSingleton(sp => new SentLedger(sp.GetRequiredService<ICacheProvider>()));
@@ -44,6 +45,7 @@ builder.Services.AddHostedService<OrderEventSubscriptions>();
 
 // Chaos scenarios (ADR-0024): does nothing unless Chaos:Enabled is set, and then only in Development or the dev deployment.
 builder.Services.AddBakeryChaos(builder.Configuration, builder.Environment);
+builder.Services.AddChaosLayer<IContactStore>("contacts", (inner, layer) => new NotificationService.Chaos.ChaosContactStore(inner, layer));
 builder.Services.AddChaosLayer<INotificationSender>("notification", (inner, layer) => new NotificationService.Chaos.ChaosNotificationSender(inner, layer));
 
 var app = builder.Build();

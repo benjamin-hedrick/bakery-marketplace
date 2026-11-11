@@ -35,6 +35,7 @@ export const KNOWN_LAYERS: Readonly<Record<string, readonly string[]>> = {
     'outageFromSeconds',
     'outageWindowSeconds',
   ],
+  contacts: ['failureRate', 'latencyMs', 'outageFromSeconds', 'outageWindowSeconds'],
   notification: ['failureRate', 'lostResponseRate', 'latencyMs', 'outageFromSeconds', 'outageWindowSeconds'],
   bff: [
     'rejectRate',

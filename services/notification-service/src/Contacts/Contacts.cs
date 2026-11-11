@@ -15,11 +15,14 @@ public interface IContactDirectory
     Task<IReadOnlyDictionary<string, Contact>> GetContactsAsync(IReadOnlyCollection<string> customerIds, CancellationToken ct = default);
 }
 
+/// <summary>The source of record under the cache (a seeded list today, a real store later, register item 138): the seam the <c>contacts</c> chaos layer wraps, so a failing store is seen through the cache as it would be in life.</summary>
+public interface IContactStore : IContactDirectory;
+
 /// <summary>
 /// Seeded contacts for the local and dev environments: the customers of the mock identity (the same ids a login produces, so an order
 /// placed by Alice reaches Alice's address). A real store replaces this behind <see cref="IContactDirectory"/> (register item 138).
 /// </summary>
-public sealed class SeededContactDirectory : IContactDirectory
+public sealed class SeededContactDirectory : IContactStore
 {
     private readonly IReadOnlyDictionary<string, Contact> _contacts;
 

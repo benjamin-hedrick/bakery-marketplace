@@ -43,7 +43,7 @@ public class CosmosRepository<T> : IRepository<T> where T : class
         {
             return null;
         }
-        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        catch (Exception ex) when (StoreUnavailableException.IsTransportFailure(ex))
         {
             throw StoreUnavailableException.From(ex);
         }
@@ -62,7 +62,7 @@ public class CosmosRepository<T> : IRepository<T> where T : class
 
             return response.Resource;
         }
-        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        catch (Exception ex) when (StoreUnavailableException.IsTransportFailure(ex))
         {
             throw StoreUnavailableException.From(ex);
         }
@@ -89,7 +89,7 @@ public class CosmosRepository<T> : IRepository<T> where T : class
             // Changed, created or deleted by someone else since it was read.
             return null;
         }
-        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        catch (Exception ex) when (StoreUnavailableException.IsTransportFailure(ex))
         {
             throw StoreUnavailableException.From(ex);
         }
@@ -110,7 +110,7 @@ public class CosmosRepository<T> : IRepository<T> where T : class
         {
             // Idempotent delete: ignore if not found
         }
-        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        catch (Exception ex) when (StoreUnavailableException.IsTransportFailure(ex))
         {
             throw StoreUnavailableException.From(ex);
         }
@@ -150,7 +150,7 @@ public class CosmosRepository<T> : IRepository<T> where T : class
         {
             return await iterator.ReadNextAsync(ct);
         }
-        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        catch (Exception ex) when (StoreUnavailableException.IsTransportFailure(ex))
         {
             throw StoreUnavailableException.From(ex);
         }
