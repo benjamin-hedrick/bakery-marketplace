@@ -60,11 +60,9 @@ test('orders placed before, during and after an event outage are all accepted an
   });
 });
 
-// Register 183 (open, needs a decision): an outage parks the outbox of every order whose events failed 5 times (register 74: parking was meant for events that
-// can never succeed), and a parked order waits for an operator, so these orders never reach the vendor's queue or the notifications. Stated here as the
-// behaviour we want; marked as an expected failure until 183 is decided and fixed (Playwright then flags it the day it is fixed).
-test('once the outage is over the vendor queue holds every confirmed order, once (register 182, known gap)', async () => {
-  test.fail(true, 'register 182: orders whose events failed during the outage are parked and never published');
+// Register 182 (fixed): an outage used to park the outbox of every order whose events failed 5 times, so those orders never reached the vendor's queue or the
+// notifications. A failure of the transport no longer counts toward parking; the relay retries it with a back-off until the broker is back.
+test('once the outage is over the vendor queue holds every confirmed order, once', async () => {
   const vendor = await userToken('vendor-shop-001');
   const want = placed.map((p) => vendorGlobalId(p.orderId));
   const seconds = await secondsUntil(async () => {

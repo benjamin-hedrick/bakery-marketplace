@@ -313,6 +313,30 @@ public class OutboxTests
     }
 
     [Fact]
+    public async Task ABrokerOutageNeverParksTheOrderAndTheEventGoesOutWhenTheBrokerIsBack()
+    {
+        var (store, events, publisher) = NewPublisher();
+        await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1");
+        events.FailAsTransport = true;
+        var attempts = new OutboxOptions().MaxPublishAttempts * 3;
+
+        OutboxPublishResult last = OutboxPublishResult.Nothing;
+        for (var i = 0; i < attempts; i++) last = await publisher.PublishPendingAsync((await store.GetAsync("order-1", "customer-1"))!);
+
+        Assert.Equal(new OutboxPublishResult(0, true), last);
+        var waiting = (await store.GetAsync("order-1", "customer-1"))!;
+        Assert.Null(waiting.Document.ParkedAt);
+        Assert.Equal(0, Assert.Single(waiting.Document.Outbox).Attempts); // transport failures are not counted
+        Assert.NotNull(waiting.Document.PendingSince); // still in the relay's query
+
+        events.FailAsTransport = false;
+        var recovered = await publisher.PublishPendingAsync(waiting);
+
+        Assert.Equal(1, recovered.Published);
+        Assert.Empty((await store.GetAsync("order-1", "customer-1"))!.Document.Outbox);
+    }
+
+    [Fact]
     public async Task AParkedOrderIsNotRetriedNotEvenByTheInlinePathAndIsNotFoundByTheRelayQuery()
     {
         var (store, events, publisher) = NewPublisher();

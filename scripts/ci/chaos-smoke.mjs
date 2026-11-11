@@ -114,13 +114,9 @@ function summarize() {
       ...readFileSync(path.join(stack.out, 'notification.log'), 'utf8').matchAll(/moved to the dead-letter stream/g),
     ].length;
     notifications.eventsMovedToTheDeadLetterStream = deadLettered;
-    if (missing > 0 && scenario === 'broker-outage')
+    if (missing > 0 && deadLettered > 0)
       gaps.push(
-        `register 182: ${missing} confirmed orders never got an OrderPlaced notification (their outbox is parked)`,
-      );
-    else if (missing > 0 && deadLettered > 0)
-      gaps.push(
-        `register 183: ${missing} confirmed orders have no OrderPlaced notification; ${deadLettered} events were dead-lettered after 3 failed deliveries and nothing replays them`,
+        `register 183: ${missing} confirmed orders have no OrderPlaced notification; ${deadLettered} events were dead-lettered after their last delivery and nothing replays them`,
       );
     else if (missing > 0)
       problems.push(`${missing} confirmed orders have no OrderPlaced notification, and no event was dead-lettered`);

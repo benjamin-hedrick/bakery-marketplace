@@ -86,8 +86,15 @@ public static class OutboxTiming
 }
 
 /// <summary>What <see cref="OutboxPublishing.PublishInOrderAsync{TEntry}"/> did: the ids it sent, and the entry it stopped at, if any.</summary>
-public sealed record OrderedPublishOutcome<TEntry>(IReadOnlyList<string> PublishedIds, TEntry? Failed)
-    where TEntry : class;
+public sealed record OrderedPublishOutcome<TEntry>(IReadOnlyList<string> PublishedIds, TEntry? Failed, Exception? Error = null)
+    where TEntry : class
+{
+    /// <summary>
+    /// Whether the failed attempt counts toward parking. A transport failure (broker unreachable, timeout) does not: it may pass, so the relay
+    /// keeps retrying it with a back-off. Any other failure is one retrying may never fix.
+    /// </summary>
+    public bool CountsTowardParking => Failed is not null && Error is not EventTransportException;
+}
 
 public static class OutboxPublishing
 {
@@ -114,7 +121,7 @@ public static class OutboxPublishing
             catch (Exception e) when (e is not OperationCanceledException)
             {
                 onFailure(entry, e);
-                return new OrderedPublishOutcome<TEntry>(published, entry); // later events wait: they must not overtake this one
+                return new OrderedPublishOutcome<TEntry>(published, entry, e); // later events wait: they must not overtake this one
             }
         }
         return new OrderedPublishOutcome<TEntry>(published, null);
@@ -143,8 +150,9 @@ public abstract partial class OutboxRelayBase(OutboxOptions options, OutboxSigna
         {
             try
             {
-                var (found, _) = await SweepOnceAsync(stoppingToken);
-                empty = found == 0 ? empty + 1 : 0;
+                var (found, sent) = await SweepOnceAsync(stoppingToken);
+                // Events found but none sent means the broker is failing: back off like an idle relay instead of hammering it.
+                empty = found == 0 || sent == 0 ? empty + 1 : 0;
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

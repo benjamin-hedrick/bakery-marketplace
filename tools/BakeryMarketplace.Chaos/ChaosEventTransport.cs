@@ -50,11 +50,11 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
         if (_layer.InOutage)
         {
             _layer.Record("outage", key);
-            throw new InvalidOperationException("ChaosEventTransport: simulated outage window is active.");
+            throw new EventTransportException("ChaosEventTransport: simulated outage window is active.");
         }
 
         if (_layer.Setting("publishFailureRate") > 0 && _layer.Inject("publishFailure", "publishFailureRate", AttemptKey("publishFailure", envelope.EventId)))
-            throw new InvalidOperationException("ChaosEventTransport: simulated publish failure.");
+            throw new EventTransportException("ChaosEventTransport: simulated publish failure.");
 
         if (_layer.Inject("drop", "dropRate", key))
             return;
@@ -81,7 +81,7 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
 
         // The event was delivered but the publisher is told it failed: the outbox will publish it again, so consumers see it twice.
         if (_layer.Setting("publishLostResponseRate") > 0 && _layer.Inject("lostResponse", "publishLostResponseRate", AttemptKey("lostResponse", envelope.EventId)))
-            throw new TimeoutException("ChaosEventTransport: the event was published but the response was lost.");
+            throw new EventTransportException("ChaosEventTransport: the event was published but the response was lost.", new TimeoutException());
     }
 
     /// <summary>Delivers the event held back by <c>reorderRate</c>, if there is one (for a last event with nothing after it).</summary>

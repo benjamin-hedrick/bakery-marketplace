@@ -65,7 +65,7 @@ public sealed partial class OrderEventPublisher(
             ct);
 
         if (outcome.PublishedIds.Count > 0) await RemoveAsync(stored, outcome.PublishedIds, ct);
-        var parked = outcome.Failed is not null && await RecordFailureAsync(stored, outcome.Failed, ct);
+        var parked = outcome is { CountsTowardParking: true, Failed: { } failedEntry } && await RecordFailureAsync(stored, failedEntry, ct);
         return new OutboxPublishResult(outcome.PublishedIds.Count, outcome.Failed is not null, parked);
     }
 
