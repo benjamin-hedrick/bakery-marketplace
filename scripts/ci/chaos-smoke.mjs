@@ -8,7 +8,7 @@
 // faults injected per layer and fault). Exit code: the test run's. Needs what skeleton-smoke needs (Docker, .NET SDK, Node >= 24, npm ci in apps/web-customer).
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createStack, root } from '../lib/local-stack.mjs';
 
@@ -183,6 +183,9 @@ let settleSeconds = null;
 
 let exitCode = 1;
 try {
+  // A spec that fails before it records its figures must not leave the last run's behind: the summary would judge this run by that one.
+  for (const f of existsSync(stack.out) ? readdirSync(stack.out) : [])
+    if (f.startsWith('metrics-') && f.endsWith('.json')) unlinkSync(path.join(stack.out, f));
   stack.up();
   await stack.startServices({ notification: true });
   await stack.startWeb();
