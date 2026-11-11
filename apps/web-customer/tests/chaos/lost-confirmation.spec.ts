@@ -9,15 +9,10 @@ import { newKey, onlyUnder, orderInput, placeWithRetries, recordMetrics } from '
 // queue that agrees. Needs the whole local stack: node scripts/ci/chaos-smoke.mjs lost-confirmation
 onlyUnder('lost-confirmation');
 
-test('an order made but whose confirmation was lost: the retry finds it; none lost, none duplicated, the queue agrees', async () => {
-  await placeBatchAndCheck('lost-confirmation', 30, { assertStock: false }); // the stock figure is the next test (register 180)
-});
-
-// Register 180 (open): when the store write of an order succeeds but its answer is lost, checkout releases the reservation (it thinks the order failed),
-// while the order exists, so the stock is given back for an order that stands: stock can be oversold. Expected failure until 180 is decided and fixed.
-test('an order whose store write answer was lost still holds its stock (register 180, known gap)', async () => {
-  test.fail(true, 'register 180: the reservation is released although the order was stored');
-  await placeBatchAndCheck('lost-confirmation-stock', 12);
+// Includes the stock check (register 180): when the store write of an order succeeds but its answer is lost, checkout used to release the reservation while the
+// order stood, so stock could be sold twice. It now looks the order up first; the stock must fall by exactly the confirmed orders.
+test('an order made but whose confirmation was lost: the retry finds it; none lost, none duplicated, stock and the queue agree', async () => {
+  await placeBatchAndCheck('lost-confirmation', 30);
 });
 
 // Register 171, part 1 (open): a payment authorized whose answer was lost is authorized AGAIN by the customer's retry, because IPaymentProcessor has no

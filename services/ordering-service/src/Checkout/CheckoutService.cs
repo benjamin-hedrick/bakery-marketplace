@@ -185,7 +185,10 @@ public sealed partial class CheckoutService(
         }
         catch (Exception) when (reserved)
         {
-            await ReleaseQuietlyAsync(orderId, vendorId);
+            // Register 180: a failure here can be a store write that succeeded and whose answer was lost, so the order may exist and own the reservation. Releasing
+            // then would give back stock for an order that stands. Release only when the order is known not to exist; when that cannot be told, keep the
+            // reservation (the orphan sweep returns one that has no order, register item 62; stock sold twice cannot be returned).
+            if (await OrderIsKnownNotToExistAsync(orderId, customerId)) await ReleaseQuietlyAsync(orderId, vendorId);
             throw;
         }
     }
@@ -213,6 +216,19 @@ public sealed partial class CheckoutService(
             return new CheckoutResult(CheckoutOutcome.Invalid, Code: "invalid_quantity", Message: "A quantity is above the limit for an item.", StockRejections: rejections);
         }
         return new CheckoutResult(CheckoutOutcome.Conflict, Code: "conflict", Message: "The stock changed while placing the order. Please try again.");
+    }
+
+    private async Task<bool> OrderIsKnownNotToExistAsync(string orderId, string customerId)
+    {
+        try
+        {
+            return await orders.GetAsync(orderId, customerId, CancellationToken.None) is null;
+        }
+        catch (Exception e)
+        {
+            LogOrderLookupFailedBeforeRelease(logger, e, orderId);
+            return false;
+        }
     }
 
     private async Task ReleaseQuietlyAsync(string orderId, string vendorId)
@@ -314,6 +330,9 @@ public sealed partial class CheckoutService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId} refused: the payment token of method {PaymentMethodId} failed validation")]
     private static partial void LogPaymentMethodRefused(ILogger logger, string orderId, string paymentMethodId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Whether order {OrderId} exists could not be read after a failed checkout, so its stock reservation was kept (the orphan sweep returns it if there is no order)")]
+    private static partial void LogOrderLookupFailedBeforeRelease(ILogger logger, Exception exception, string orderId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stock reservation for {OrderId} could not be released; it needs cleanup")]
     private static partial void LogStockReleaseFailed(ILogger logger, Exception exception, string orderId);

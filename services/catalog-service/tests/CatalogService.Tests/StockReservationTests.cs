@@ -255,13 +255,32 @@ public sealed class StockReservationTests : IDisposable, IAsyncLifetime
     }
 
     [Fact]
-    public async Task AReleasedReservationCannotBeReservedAgain()
+    public async Task AReleasedReservationIsReservedAgainForTheSameLines()
     {
+        // Register 179: a checkout that failed gave the stock back; the customer's retry with the same idempotency key (the same order id) must take it again.
         var item = await ListingAsync(5);
         await Post(Reserve("order-13", _vendor, (item.Id, 2)));
         await Release("order-13");
+        Assert.Equal(5, await QuantityAsync(item.Id));
 
-        var response = await Post(Reserve("order-13", _vendor, (item.Id, 2)));
+        var again = await Post(Reserve("order-13", _vendor, (item.Id, 2)));
+
+        Assert.Equal(HttpStatusCode.Created, again.StatusCode);
+        Assert.Equal(3, await QuantityAsync(item.Id));
+        Assert.Equal(HttpStatusCode.OK, (await Post(Reserve("order-13", _vendor, (item.Id, 2)))).StatusCode); // and a repeat of that is the ordinary repeat: nothing more is taken
+        Assert.Equal(3, await QuantityAsync(item.Id));
+        await Release("order-13"); // it can be released again, once
+        Assert.Equal(5, await QuantityAsync(item.Id));
+    }
+
+    [Fact]
+    public async Task AReleasedReservationIsNotReservedAgainForDifferentLines()
+    {
+        var item = await ListingAsync(5);
+        await Post(Reserve("order-13b", _vendor, (item.Id, 2)));
+        await Release("order-13b");
+
+        var response = await Post(Reserve("order-13b", _vendor, (item.Id, 3)));
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Assert.Equal("reservation_released", (await JsonOf(response)).GetProperty("code").GetString());

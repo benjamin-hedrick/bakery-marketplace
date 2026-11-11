@@ -76,12 +76,23 @@ public sealed class StockReservationService
         for (var attempt = 0; attempt < ListingService.MaxSaveAttempts; attempt++)
         {
             var existing = await _reservations.GetAsync(reservationId, vendorId, ct);
+            // A released reservation for the SAME lines is reserved again (register 179): a checkout that failed after reserving gave the stock back, and the
+            // customer's retry with the same idempotency key (the same order id) must be able to take it again. The record is revived in place (back to Active, a
+            // new creation time for the orphan sweep, no expiry), in the same batch as the stock decrements. Different lines are still refused.
+            StockReservationDocument? revive = null;
             if (existing is not null)
             {
-                if (existing.State == ReservationStates.Released) return new ReservationResult(ReservationOutcome.ReservationReleased, existing);
-                return SameLines(existing, wanted)
-                    ? new ReservationResult(ReservationOutcome.AlreadyReserved, existing)
-                    : new ReservationResult(ReservationOutcome.DifferentLines, existing);
+                if (existing.State == ReservationStates.Released)
+                {
+                    if (!SameLines(existing, wanted)) return new ReservationResult(ReservationOutcome.ReservationReleased, existing);
+                    revive = existing;
+                }
+                else
+                {
+                    return SameLines(existing, wanted)
+                        ? new ReservationResult(ReservationOutcome.AlreadyReserved, existing)
+                        : new ReservationResult(ReservationOutcome.DifferentLines, existing);
+                }
             }
 
             if (!await _vendors.IsVerifiedAsync(vendorId, ct))
@@ -132,17 +143,15 @@ public sealed class StockReservationService
                 lines.Add(new ReservationLineDocument { ListingId = listingId, Quantity = (int)quantity, Limited = limited });
             }
 
-            var reservation = new StockReservationDocument
-            {
-                Id = reservationId,
-                VendorId = vendorId,
-                OrderId = orderId,
-                State = ReservationStates.Active,
-                Lines = lines,
-                CreatedAt = now,
-                CreatedAtMs = now.ToUnixTimeMilliseconds(),
-            };
-            batch.Create(reservation);
+            var reservation = revive ?? new StockReservationDocument { Id = reservationId, VendorId = vendorId, OrderId = orderId };
+            reservation.State = ReservationStates.Active;
+            reservation.Lines = lines;
+            reservation.CreatedAt = now;
+            reservation.CreatedAtMs = now.ToUnixTimeMilliseconds();
+            reservation.ReleasedAt = null;
+            reservation.TimeToLiveSeconds = null;
+            if (revive is null) batch.Create(reservation);
+            else batch.ReplaceIfUnchanged(reservation);
 
             if (await batch.ExecuteAsync(ct))
             {

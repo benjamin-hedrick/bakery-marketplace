@@ -287,6 +287,7 @@ public sealed class ChaosHostTests : IAsyncLifetime
         Assert.True(runtime.Journal.Count("repository", "lostResponse") >= 1, "the write must have been made and its response lost");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, first.StatusCode); // the customer is told to try again ...
         Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync($"/ordering/orders/{orderId}")).StatusCode); // ... but the order is there
+        Assert.True(_catalog.Reservations.ContainsKey(orderId), "the order exists, so it keeps its stock: the reservation must not have been released (register 180)");
 
         var replay = await PostCheckout(customer, Checkout(), key); // the customer tries again with the same idempotency key
 
