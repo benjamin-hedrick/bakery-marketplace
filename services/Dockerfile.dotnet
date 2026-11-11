@@ -17,6 +17,9 @@ ARG PORT
 # No tzdata install: the aspnet base image ships /usr/share/zoneinfo, which the pickup schedule needs (America/New_York; gap T-65, checked 2026-10-31).
 WORKDIR /app
 COPY --from=build /app .
+# The scenario files a named Chaos__Scenario is read from (ADR-0024); nothing happens unless Chaos__Enabled is set, and the host refuses to start with it outside
+# Development or the deployed dev environment. Found by searching upward from /app.
+COPY chaos/scenarios chaos/scenarios
 ENV ASPNETCORE_URLS=http://+:${PORT} \
     ASSEMBLY=${ASSEMBLY}
 EXPOSE ${PORT}
