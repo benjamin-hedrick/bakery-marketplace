@@ -2,6 +2,15 @@
 
 Seeded, configured fault injection at the interfaces the system already has (ADR-0024, `docs/architecture/chaos-scenarios-proposal.md`). A scenario is a JSON file here; a running process switches it on with configuration; nothing in the service's own code changes.
 
+## Run the whole local stack with a scenario
+
+```
+STACK_CHAOS_SCENARIO=checkout-trouble node scripts/ci/skeleton-smoke.mjs
+STACK_CHAOS_SCENARIO=web-door node scripts/dev/demo.mjs
+```
+
+One environment variable names the scenario for a run (the name of a file here). The stack runner (`scripts/lib/local-stack.mjs`) gives it to every process it starts: the .NET services as `Chaos__Enabled` and `Chaos__Scenario`, the BFF, the customer app and the queue display as `CHAOS_ENABLED`, `CHAOS_SCENARIO` and `DEPLOYMENT_ENVIRONMENT=local`. Each process applies the layers it has and reports the rest as not applicable. A name that is not a plain scenario name or has no file stops the run before anything starts. A test that runs under the runner reads the same variable, so it knows which faults to expect and can look for them in the journal (it does not choose them: no request can name a scenario). Not supported with `--containers` and by `mobile-flows.mjs`, which gives the BFF a scenario of its own.
+
 ## Run a service with a scenario
 
 ```
