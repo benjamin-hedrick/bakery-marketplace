@@ -13,14 +13,9 @@ test('orders placed through payment, catalog, repository and broadcast faults: n
   await placeBatchAndCheck('checkout-trouble', 30);
 });
 
-// Register 179 (open): after a checkout fails and gives its stock back, a retry with the SAME idempotency key can never succeed, because the catalog keeps the
-// released reservation for 30 days and refuses to reuse it. This states the behaviour we want (a careful client's retries recover) and is marked as an
-// expected failure until 179 is decided and fixed; Playwright then reports it as failing as expected, and as a failure the day it is fixed.
-test('a client that retries with the same idempotency key recovers from a decline or an unavailable service (register 179, known gap)', async () => {
-  test.fail(
-    true,
-    'register 179: a released reservation cannot be reused, so a same-key retry after a failed checkout gets CONFLICT',
-  );
+// Register 179: after a checkout failed and gave its stock back, a retry with the SAME idempotency key used to get CONFLICT for 30 days (the catalog refused to
+// reuse the released reservation). The catalog now reserves again for the same lines; this keeps that true: a careful client's retries recover.
+test('a client that retries with the same idempotency key recovers from a decline or an unavailable service (register 179)', async () => {
   const customer = await userToken('user-customer-1');
   const placements = [];
   for (let i = 0; i < 12; i++)
