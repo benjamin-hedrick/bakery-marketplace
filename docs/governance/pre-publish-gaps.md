@@ -24,7 +24,7 @@
 
 ## AI collaboration: the evidence is thinner than the practice
 
-The record has the method, the errors and what caught them, and the cost and time of 22 sessions. It does not have, and the repository says so ("what is measured and what is not"):
+The record has the method, the errors and what caught them, and the cost and time of 23 sessions. It does not have, and the repository says so ("what is measured and what is not"):
 
 | # | Gap | A way to capture it |
 |---|---|---|
@@ -166,7 +166,7 @@ A read of the front door and the claims in the documents against the code, as a 
 | R4-5 | `docs/governance/review-statement.md` | The secret-scan row cited only the 2026-11-08 scan | Notes the 2026-11-09 rerun (486 commits, no findings; recorded in `docs/evidence/runs-2026-11-09.md`) |
 | R4-6 | `packages/customer-core/`, `scripts/` | No README | Pointer READMEs written |
 | R4-7 | `docs/architecture/adr/README.md` | The "Not built" cache Redis line | Checked: it now says "wired into the deployed environment", which is accurate; no change |
-| R4-8 | `README.md`, `docs/product/okrs.md` | Session count | Consistent at 18; with the usage record of the later 2026-11-09 session written (`ai-usage-2026-11-09-b.md`) all four places said 19 sessions, a relative cost of 130.37 (converted from the screen's dollars at the base 2.00, register 175); with the chaos session recorded (`ai-usage-2026-11-09-c.md`) they said 20 sessions, 136.48; with the two sessions of 2026-11-10 and 2026-11-11 (`ai-usage-2026-11-11.md`) they say 22 sessions, 141.12 |
+| R4-8 | `README.md`, `docs/product/okrs.md` | Session count | Consistent at 18; with the usage record of the later 2026-11-09 session written (`ai-usage-2026-11-09-b.md`) all four places said 19 sessions, a relative cost of 130.37 (converted from the screen's dollars at the base 2.00, register 175); with the chaos session recorded (`ai-usage-2026-11-09-c.md`) they said 20 sessions, 136.48; with the two sessions of 2026-11-10 and 2026-11-11 (`ai-usage-2026-11-11.md`) they said 22 sessions, 141.12; with the evening session of 2026-11-11 (`ai-usage-2026-11-11-b.md`) they say 23 sessions, 143.24 |
 
 ## Before the repository is public
 
