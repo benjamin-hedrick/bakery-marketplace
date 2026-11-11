@@ -2,7 +2,7 @@
 // scripts/dev/demo.mjs (starts it, waits for a person). Docker Compose runs Redis Streams, the Cosmos emulator and the mock issuer;
 // the catalog service, the ordering service, the GraphQL BFF and the Next.js app run as host processes.
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, createWriteStream, readFileSync } from 'node:fs';
+import { mkdirSync, createWriteStream, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -16,6 +16,31 @@ const isWin = process.platform === 'win32';
 const EMULATOR_KEY = 'C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==';
 export const cosmos =
   process.env.Cosmos__ConnectionString ?? `AccountEndpoint=http://localhost:8081/;AccountKey=${EMULATOR_KEY}`;
+
+/**
+ * The chaos scenario a run names (ADR-0024): the environment variable STACK_CHAOS_SCENARIO, the name of a file in chaos/scenarios/. The runner passes it to every
+ * process this stack starts (the .NET services as Chaos__Enabled and Chaos__Scenario; the BFF and the two web servers as CHAOS_ENABLED and CHAOS_SCENARIO with
+ * DEPLOYMENT_ENVIRONMENT=local); each process applies the layers it has and reports the rest as not applicable. Nothing in a request names a scenario. A test
+ * that runs under the runner reads the same variable, so it knows which faults to expect. Unset: no chaos anywhere. A name that is not a plain scenario name,
+ * or has no file, stops the run before anything starts.
+ * @returns {string | undefined}
+ */
+export function chaosScenarioFromEnv(env = process.env) {
+  const name = env.STACK_CHAOS_SCENARIO?.trim();
+  if (!name) return undefined;
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(name))
+    throw new Error(
+      `STACK_CHAOS_SCENARIO must be the name of a scenario file (letters, digits and dashes), not '${name}'`,
+    );
+  if (!existsSync(path.join(root, 'chaos', 'scenarios', `${name}.json`)))
+    throw new Error(`STACK_CHAOS_SCENARIO names '${name}', but chaos/scenarios/${name}.json does not exist`);
+  return name;
+}
+
+/** The settings that switch a scenario on, for a .NET service and for a Node process. */
+export const dotnetChaosEnv = (scenario) => (scenario ? { Chaos__Enabled: 'true', Chaos__Scenario: scenario } : {});
+export const nodeChaosEnv = (scenario) =>
+  scenario ? { CHAOS_ENABLED: 'true', CHAOS_SCENARIO: scenario, DEPLOYMENT_ENVIRONMENT: 'local' } : {};
 
 /** A value from the git-ignored `.env` that scripts/dev/init-env.mjs writes. Never logged. */
 function envValue(key) {
@@ -35,6 +60,9 @@ function envValue(key) {
 export function createStack({ label, outDir, distDir, logExits = false }) {
   const out = path.join(root, outDir);
   mkdirSync(out, { recursive: true });
+  const scenario = chaosScenarioFromEnv(); // validated now, before anything starts
+  if (scenario)
+    console.log(`[${label}] chaos scenario '${scenario}' (STACK_CHAOS_SCENARIO) goes to every process this run starts`);
   const children = [];
   const specs = new Map(); // how each process was started, so a test can stop one and start it again
   const log = (m) => console.log(`[${label}] ${m}`);
@@ -116,7 +144,11 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
      * the runner sets the scenario for the process it starts, nothing in a request can); the BFF keeps it when startOne starts it again.
      */
     async startServices({ bffChaos } = {}) {
+      // A runner that has a scenario of its own for the BFF (the Android flows) cannot also be given another for the whole stack.
+      if (bffChaos && scenario)
+        throw new Error(`this run has its own BFF scenario '${bffChaos}'; unset STACK_CHAOS_SCENARIO ('${scenario}')`);
       const dotnetEnv = {
+        ...dotnetChaosEnv(scenario),
         ASPNETCORE_ENVIRONMENT: 'Development', // appsettings.Development.json supplies the authority, the catalog URL and the service-auth settings
         Data__Backend: 'cosmos',
         Events__Backend: 'redis',
@@ -140,7 +172,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
           CATALOG_URL: `http://localhost:${ports.catalog}`,
           ORDERING_URL: `http://localhost:${ports.ordering}`,
           BFF_TRUSTED_CLIENT_SOURCES: '127.0.0.1,::1', // the web app runs on this machine (register 137)
-          ...(bffChaos ? { CHAOS_ENABLED: 'true', CHAOS_SCENARIO: bffChaos, DEPLOYMENT_ENVIRONMENT: 'local' } : {}),
+          ...nodeChaosEnv(bffChaos ?? scenario),
         },
       });
       await waitFor('catalog', `http://localhost:${ports.catalog}/health`);
@@ -153,6 +185,10 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
      * startWeb. The web container is given the BFF address of the Compose network at run time; the browser reaches the BFF through the same-origin /api/graphql route.
      */
     async startContainers() {
+      if (scenario)
+        throw new Error(
+          'STACK_CHAOS_SCENARIO is not supported with --containers (the Compose services take no scenario yet); run the host processes',
+        );
       run(
         'app containers',
         'docker',
@@ -185,7 +221,10 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       run('queue relay compile', 'node', ['scripts/ensure-artifact-dir.mjs'], { cwd: queueDir });
       run('queue relay compile', 'node', [path.join('node_modules', 'relay-compiler', 'cli.js')], { cwd: queueDir });
       run('queue build', 'node', [next, 'build'], { cwd: queueDir, env: queueEnv });
-      start('queue', 'node', [next, 'start', '-p', String(ports.queue)], { cwd: queueDir, env: queueEnv });
+      start('queue', 'node', [next, 'start', '-p', String(ports.queue)], {
+        cwd: queueDir,
+        env: { ...queueEnv, ...nodeChaosEnv(scenario) },
+      });
       await waitFor('queue', `http://localhost:${ports.queue}/`);
     },
 
@@ -198,7 +237,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       run('web build', 'node', [next, 'build'], { cwd: web, env: webEnv });
       start('web', 'node', [next, 'start', '-p', String(ports.web)], {
         cwd: web,
-        env: { ...webEnv, SESSION_ENCRYPTION_KEY: envValue('SESSION_ENCRYPTION_KEY') },
+        env: { ...webEnv, ...nodeChaosEnv(scenario), SESSION_ENCRYPTION_KEY: envValue('SESSION_ENCRYPTION_KEY') },
       });
       await waitFor('web', `http://localhost:${ports.web}/`);
     },
