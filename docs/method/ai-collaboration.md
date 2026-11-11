@@ -116,7 +116,7 @@ What has worked in this repository, stated as practice:
 
 ## What the sessions cost
 
-Each Claude Code session's cost, model time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. **Cost is shown as a relative cost, not as money:** the screen's figure divided by a base of 2.00 (the size of a small session), to two decimals, so a session of 12.00 was about twelve times that small one. The screen's dollar figures are not an accurate measure of what the work costs most users, and they were left out on purpose (register 175, 2026-11-11). Wall-clock time is not recorded: it is mostly the lead reading, deciding and waiting, and says little. Twenty sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
+Each Claude Code session's cost, model time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. **Cost is shown as a relative cost, not as money:** the screen's figure divided by a base of 2.00 (the size of a small session), to two decimals, so a session of 12.00 was about twelve times that small one. The screen's dollar figures are not an accurate measure of what the work costs most users, and they were left out on purpose (register 175, 2026-11-11). Wall-clock time is not recorded: it is mostly the lead reading, deciding and waiting, and says little. Twenty-two sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
 
 | Session | Work | Relative cost | API time | Lines added |
 |---|---|---:|---:|---:|
@@ -140,7 +140,9 @@ Each Claude Code session's cost, model time and size were copied by the lead fro
 | 2026-11-08 into 2026-11-09 (third session) | review fixes, the full test report, the Cosmos test fix, the latency run, the Maestro runs | 9.45 | 30 min | 1,056 |
 | 2026-11-09 (fourth session) | the failed CI check, the full Maestro and browser runs, the Cosmos tests, the stranger's-eye fixes, the push | 1.62 | 10 min | 267 |
 | 2026-11-09 (fifth session) | chaos scenarios: ADR-0024, the .NET layers, the lost-response fault, the TypeScript package and the BFF's gate | 6.12 | 38 min | 5,249 |
-| **Total** |  | **136.48** | **11 h 59 min** | **60,589** |
+| 2026-11-10 | chaos scenarios: aimed faults, token identity, signals, flow 11 on a scenario | 1.25 | 9 min | 874 |
+| 2026-11-11 | approvals and development: flow 07, one Unavailable outcome, the web gate, the small gaps, the scenario name, the usage format, `CLAUDE.md` | 3.39 | 17 min | 835 |
+| **Total** |  | **141.12** | **12 h 25 min** | **62,298** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the relative cost by the 85 items gives about 1.61 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
 
