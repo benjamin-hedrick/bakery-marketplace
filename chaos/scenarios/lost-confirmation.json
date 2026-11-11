@@ -1,0 +1,15 @@
+{
+  "name": "lost-confirmation",
+  "seed": 20261112,
+  "layers": {
+    "repository": {
+      "lostResponseRate": 0.2
+    },
+    "payment": {
+      "lostResponseRate": 0.4
+    },
+    "bffOrdering": {
+      "lostResponseRate": 0.2
+    }
+  }
+}

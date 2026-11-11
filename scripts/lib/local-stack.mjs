@@ -2,7 +2,7 @@
 // scripts/dev/demo.mjs (starts it, waits for a person). Docker Compose runs Redis Streams, the Cosmos emulator and the mock issuer;
 // the catalog service, the ordering service, the GraphQL BFF and the Next.js app run as host processes.
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, createWriteStream, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, openSync, closeSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -93,16 +93,17 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
 
   function start(name, cmd, args, opts) {
     specs.set(name, { cmd, args, opts });
-    const file = createWriteStream(path.join(out, `${name}.log`));
+    // The child writes straight to its log file (a file descriptor for stdout and stderr), not through Node pipes into a stream. Two pipes into one stream
+    // stopped at about 64 KB for every process, so a long run's logs, and the chaos journal in them (ADR-0024), were cut off.
+    const fd = openSync(path.join(out, `${name}.log`), 'w');
     const child = spawn(cmd, args, {
       cwd: root,
       ...opts,
       env: { ...process.env, ...opts.env },
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', fd, fd],
       detached: !isWin,
     });
-    child.stdout.pipe(file);
-    child.stderr.pipe(file);
+    closeSync(fd); // the child has its own copy
     if (logExits) child.on('exit', (code) => log(`${name} exited (${code})`));
     children.push({ name, child });
     return child;
