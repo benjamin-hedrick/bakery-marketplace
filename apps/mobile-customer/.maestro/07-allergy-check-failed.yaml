@@ -1,9 +1,9 @@
-# WI-MOB-002: Nora (a seeded tree-nut allergy); if the allergy check cannot be made, the screen says so plainly (never "no conflicts") and still lets the customer order. The runner's flow-control
-# server takes the BFF away while checkout opens and brings it back before the order is placed (the payment methods are asked for again then, WI-ORD-010).
+# WI-MOB-002: Nora (a seeded tree-nut allergy); if the allergy check cannot be made, the screen says so plainly (never "no conflicts") and still lets the customer order.
+# The failures come from the chaos scenario the runner gives the BFF (ADR-0024, WI-CHAOS-003, register 173): opening the Cardamom Honey Latte (a seeded listing only this
+# flow uses) is the request that switches the BFF to `mobile-flows-07`, which fails Nora's first allergy-profile, allergy-check and payment-method calls and lets the
+# retry of the payment methods through (the payment methods are asked for again, WI-ORD-010). The BFF is never stopped.
 appId: com.bakerymarketplace.mobile
 name: A failed allergy check is said plainly and does not block the order
-onFlowComplete:
-  - runScript: scripts/bff-start.js
 ---
 - launchApp:
     clearState: true
@@ -13,10 +13,9 @@ onFlowComplete:
       USER_NAME: Nora
       USER_ROW: 1
 - tapOn:
-    id: listing-Oat Milk Latte # any item will do: the check fails whatever is in the order (and the latte is made to order, so it never runs out)
+    id: listing-Cardamom Honey Latte # the request that opens it arms the scenario; it is made to order, so it never runs out
 - tapOn:
     id: add-to-order
-- runScript: scripts/bff-stop.js
 - tapOn:
     id: to-checkout
 - assertVisible:
@@ -26,11 +25,10 @@ onFlowComplete:
     id: no-profile
 - assertNotVisible:
     id: conflict-0
-# The payment methods come from the same BFF, so they are not loaded either (WI-ORD-010): the order needs one, so the button is off until the BFF is back
-# and the customer asks again. The failed allergy check itself never blocks the order.
+# The payment methods come from the same BFF, so they failed too: the order needs one, so the button is off until the customer asks again. The failed allergy
+# check itself never blocks the order.
 - assertVisible:
     id: payment-methods-failed
-- runScript: scripts/bff-start.js
 - tapOn:
     id: payment-methods-retry
 - assertVisible:

@@ -1,0 +1,28 @@
+{
+  "name": "mobile-flows-07",
+  "seed": 20261110,
+  "layers": {
+    "bffCatalog": {
+      "failFirstAttempts": 1
+    },
+    "bffOrdering": {
+      "failFirstAttempts": 1
+    }
+  },
+  "where": {
+    "bffCatalog": [
+      { "operation": "getPreferences", "customer": "user-customer-treenut" },
+      { "operation": "checkCart", "customer": "user-customer-treenut" }
+    ],
+    "bffOrdering": [
+      { "operation": "listPaymentMethods", "customer": "user-customer-treenut" },
+      {
+        "operation": "placeOrder",
+        "payload": {
+          "paymentMethodId": "pm-alice-ok",
+          "lineItems": [{ "listingId": "listing-latte-001", "quantity": 2 }]
+        }
+      }
+    ]
+  }
+}

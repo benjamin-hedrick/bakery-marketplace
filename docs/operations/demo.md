@@ -60,7 +60,7 @@ The BFF forwards the caller's token unchanged and every service validates it its
 | Step | Do | Expect |
 |---|---|---|
 | 1. Start | `node scripts/dev/demo.mjs`, wait for the guide | `http://localhost:3000`, the mock users, the steps |
-| 2. Browse | Open the URL | Six listings with price, stock, allergens and tags: "Blueberry Oat Muffin" is sold out, "Almond Croissant" is low stock. The tag chips filter the list |
+| 2. Browse | Open the URL | Seven listings with price, stock, allergens and tags: "Blueberry Oat Muffin" is sold out, "Almond Croissant" is low stock. The tag chips filter the list |
 | 3. Choose | Open "Country Sourdough"; pick quantity 2 (or the sesame option) | The estimate updates; options show their allergens ("contains sesame") |
 | 4. Add | Add to order, then open "Your order" | The cart shows the line with what it contains; checkout asks you to log in |
 | 5. Log in | Log in | The mock issuer's own page; choose "Login as Alice Customer (Customer)". Her name then shows in the header |

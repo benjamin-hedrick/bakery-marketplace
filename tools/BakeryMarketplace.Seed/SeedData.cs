@@ -63,6 +63,11 @@ public static class SeedData
             "Espresso with steamed oat milk.",
             Array.Empty<string>(),
             Mod("mod-extra-shot", "Extra shot", 75), Mod("mod-vanilla", "Vanilla syrup", 50)),
+        // Used only by Android flow 07 (WI-MOB-003, chaos scenario mobile-flows): opening it is the request that arms the scenario's faults for that flow.
+        // Made to order, so it never runs out and nothing else depends on it.
+        Listing("listing-cardamom-latte-001", ShopVendorId, "Cardamom Honey Latte", "coffee", 550,
+            "Espresso with steamed milk, honey and a pinch of cardamom.",
+            Array.Empty<string>()),
         Listing("listing-cookies-001", IndependentVendorId, "Brown Butter Cookies", "cookies", 350,
             "Half-dozen brown butter cookies.",
             GlutenDairyEgg,

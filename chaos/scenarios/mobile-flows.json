@@ -16,5 +16,12 @@
         }
       }
     ]
-  }
+  },
+  "signals": [
+    {
+      "when": { "client": "bffCatalog", "operation": "get", "key": "listing-cardamom-latte-001" },
+      "do": "switch",
+      "scenario": "mobile-flows-07"
+    }
+  ]
 }
