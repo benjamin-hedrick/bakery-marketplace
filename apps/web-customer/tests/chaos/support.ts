@@ -33,7 +33,13 @@ export interface GqlResult {
   } | null;
   /** A failure of the call itself (a reset connection, a non-JSON answer). */
   transportError?: string;
+  /** The faults the BFF says it injected into this answer (response header X-Chaos-Injected, ADR-0024); empty when none or when the answer never came. */
+  injected?: string[];
+  /** The correlation id of the answer (X-Correlation-Id, ADR-0016), when it has one. */
+  correlationId?: string;
 }
+
+const injectedFaults = (res: Response) => (res.headers.get('x-chaos-injected') ?? '').split(',').filter(Boolean);
 
 export async function gql(token: string | null, query: string, variables: object = {}): Promise<GqlResult> {
   try {
@@ -44,9 +50,14 @@ export async function gql(token: string | null, query: string, variables: object
     });
     const text = await res.text();
     try {
-      return { status: res.status, body: JSON.parse(text) };
+      return {
+        status: res.status,
+        body: JSON.parse(text),
+        injected: injectedFaults(res),
+        correlationId: res.headers.get('x-correlation-id') ?? undefined,
+      };
     } catch {
-      return { status: res.status, body: null, transportError: 'not JSON' };
+      return { status: res.status, body: null, transportError: 'not JSON', injected: injectedFaults(res) };
     }
   } catch (e) {
     return { status: 0, body: null, transportError: (e as Error).message };
