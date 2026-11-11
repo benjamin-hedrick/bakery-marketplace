@@ -40,7 +40,7 @@ public sealed class SeederTests : IAsyncLifetime
 
         var (items, _) = await _service.BrowseAsync(50, null);
 
-        Assert.Equal(6, items.Count);
+        Assert.Equal(7, items.Count); // six of the first slice plus the Cardamom Honey Latte of Android flow 07
         Assert.DoesNotContain(items, l => l.Id == "listing-draft-001");
         Assert.Contains(items, l => l.VendorId == SeedData.ShopVendorId);
         Assert.Contains(items, l => l.VendorId == SeedData.IndependentVendorId);

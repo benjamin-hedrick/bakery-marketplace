@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ChaosRuntime, parseScenario } from '@bakery/chaos';
+import { ChaosRuntime, chaosFromEnv, parseScenario } from '@bakery/chaos';
 import { BffChaos } from '../src/chaos.ts';
 import { DownstreamError } from '../src/errors.ts';
 
@@ -103,5 +103,49 @@ describe('a signal arms a layer for the calls that follow', () => {
     const runtime = new ChaosRuntime(parseScenario(`{ "name": "n", "seed": 1, "layers": { "bffCatalog": {} } }`));
     const { ordering } = fakeClients();
     assert.equal(new BffChaos(runtime).wrap(ordering, 'bffOrdering', 'ordering'), ordering);
+  });
+});
+
+describe('the scenario file of the Android flows (flow 07 and flow 11)', () => {
+  const nora = token('user-customer-treenut');
+  const setup = () => {
+    const runtime = chaosFromEnv(
+      { CHAOS_ENABLED: 'true', CHAOS_SCENARIO: 'mobile-flows', DEPLOYMENT_ENVIRONMENT: 'local' },
+      { cwd: import.meta.dirname },
+    );
+    assert.ok(runtime);
+    const chaos = new BffChaos(runtime);
+    const { catalog, ordering } = fakeClients();
+    return {
+      runtime,
+      c: chaos.wrap(catalog, 'bffCatalog', 'catalog'),
+      o: chaos.wrap(ordering, 'bffOrdering', 'ordering'),
+    };
+  };
+
+  test('Nora is untouched until the Cardamom Honey Latte is opened (flow 05 comes first); then her first payment-methods call fails and the retry works', async () => {
+    const { runtime, o, c } = setup();
+    assert.deepEqual(await o.listPaymentMethods(nora, trace), ['pm']);
+    await c.get('listing-latte-001', trace);
+    assert.equal(runtime.journal.count('signal'), 0);
+
+    await c.get('listing-cardamom-latte-001', trace);
+    assert.equal(runtime.journal.count('signal', 'switch:mobile-flows-07'), 1);
+    await assert.rejects(o.listPaymentMethods(nora, trace), DownstreamError);
+    assert.deepEqual(await o.listPaymentMethods(nora, trace), ['pm']);
+    assert.deepEqual(await o.listPaymentMethods(token('user-customer-alice'), trace), ['pm']); // nobody else is disturbed
+  });
+
+  test('flow 11 still works on its own, and after the switch', async () => {
+    const { o, c } = setup();
+    const order = { paymentMethodId: 'pm-alice-ok', lineItems: [{ listingId: 'listing-latte-001', quantity: 2 }] };
+    await assert.rejects(o.placeOrder(order, token('a'), 'k1', trace), DownstreamError);
+    assert.equal(await o.placeOrder(order, token('a'), 'k1', trace), 'placed');
+
+    const second = setup();
+    await second.c.get('listing-cardamom-latte-001', trace);
+    await assert.rejects(second.o.placeOrder(order, token('a'), 'k2', trace), DownstreamError);
+    assert.equal(await second.o.placeOrder(order, token('a'), 'k2', trace), 'placed');
+    void c;
   });
 });
