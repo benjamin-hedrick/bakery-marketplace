@@ -54,6 +54,10 @@ public sealed class ChaosScenario
         {
             "rejectRate", "rejectStatus", "malformedRate", "resetRate", "hangRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
+        ["web"] = new HashSet<string>
+        {
+            "rejectRate", "rejectStatus", "malformedRate", "resetRate", "hangRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
         ["bffCatalog"] = new HashSet<string>
         {
             "failFirstAttempts", "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",

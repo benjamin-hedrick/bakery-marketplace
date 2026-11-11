@@ -398,3 +398,42 @@ describe('the ready-made routes', () => {
     }
   });
 });
+
+describe('the chaos gate in front of the GraphQL route (ADR-0024)', () => {
+  test('a gate that answers stops the request before the session, the limits and the BFF are touched; one that does not lets it through', async () => {
+    const r = rig();
+    let bffCalls = 0;
+    const fetchImpl = (async () => {
+      bffCalls++;
+      return Response.json({ data: {} });
+    }) as unknown as typeof fetch;
+    const answering = createGraphqlHandler({
+      config: r.config,
+      service: r.service,
+      target: () => 'http://bff.internal:4100/graphql',
+      fetchImpl,
+      gate: async (_req, response) => {
+        response.status(503);
+        response.json({ error: 'chaos' });
+        return true;
+      },
+    });
+    const passing = createGraphqlHandler({
+      config: r.config,
+      service: r.service,
+      target: () => 'http://bff.internal:4100/graphql',
+      fetchImpl,
+      gate: async () => false,
+    });
+
+    const refused = res();
+    await answering(req('POST', post(), { body: '{}' }), refused.api);
+    assert.equal(refused.out.statusCode, 503);
+    assert.equal(bffCalls, 0);
+
+    const through = res();
+    await passing(req('POST', post(), { body: '{}' }), through.api);
+    assert.equal(through.out.statusCode, 200);
+    assert.equal(bffCalls, 1);
+  });
+});

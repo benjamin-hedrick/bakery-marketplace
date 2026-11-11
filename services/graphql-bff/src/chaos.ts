@@ -4,9 +4,9 @@ import {
   describeCall,
   indicatorHeaders,
   requestFaults,
+  runDoor,
   runInRequestScope,
   setRequestTrace,
-  sleep,
   type ChaosLayer,
 } from '@bakery/chaos';
 import { DownstreamError } from './errors.ts';
@@ -18,9 +18,6 @@ import type { TraceContext } from './trace.ts';
 //   `bffCatalog`/`bffOrdering` a wrapper around a service client: the call fails as an unreachable service does, answers a 5xx, answers a body that is
 //                             not JSON, or succeeds and then loses its answer. The errors are the DownstreamError the real clients throw.
 // Faults a service injects (ordering, catalog) are reported by that service, not copied here; the journals are joined by trace id.
-
-/** How long a "never answers" request is held before the connection is dropped, so a test run cannot leak sockets for ever. */
-const HANG_MAX_MS = 120_000;
 
 type Send = (code: number, body: unknown) => void;
 
@@ -66,47 +63,19 @@ export class BffChaos {
     if (!door.active) return false;
     // A caller that sets its own traceparent chooses the key, so a test can say which requests will be hit; otherwise it is the request's number.
     const key = trace.continued ? trace.traceId : `seq:${++this.#seq}`;
-
-    const latency = door.latencyMs;
-    if (latency !== undefined) {
-      door.record('latency', key);
-      const gone = new AbortController();
-      res.once('close', () => gone.abort());
-      await sleep(latency, gone.signal);
-      if (gone.signal.aborted) return true;
-    }
-
-    if (door.inOutage) {
-      door.record('outage', key);
-      this.#reject(res, send);
-      return true;
-    }
-    if (door.inject('reset', 'resetRate', key)) {
-      req.socket.destroy();
-      return true;
-    }
-    if (door.inject('hang', 'hangRate', key)) {
-      const timer = setTimeout(() => res.destroy(), HANG_MAX_MS);
-      timer.unref();
-      res.once('close', () => clearTimeout(timer));
-      return true; // no answer; the caller's own timeout ends it
-    }
-    if (door.inject('malformed', 'malformedRate', key)) {
-      res.writeHead(200, {
-        'content-type': 'text/html',
-        'cache-control': 'private, no-store',
-        'x-content-type-options': 'nosniff',
-        'x-correlation-id': trace.traceId,
-        ...this.headers(),
-      });
-      res.end('<html><body>Bad gateway</body></html>');
-      return true;
-    }
-    if (door.inject('reject', 'rejectRate', key)) {
-      this.#reject(res, send);
-      return true;
-    }
-    return false;
+    return runDoor(door, req, res, key, {
+      reject: () => this.#reject(res, send),
+      malformed: () => {
+        res.writeHead(200, {
+          'content-type': 'text/html',
+          'cache-control': 'private, no-store',
+          'x-content-type-options': 'nosniff',
+          'x-correlation-id': trace.traceId,
+          ...this.headers(),
+        });
+        res.end('<html><body>Bad gateway</body></html>');
+      },
+    });
   }
 
   #reject(res: http.ServerResponse, send: Send): void {

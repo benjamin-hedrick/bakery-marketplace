@@ -46,6 +46,16 @@ export const KNOWN_LAYERS: Readonly<Record<string, readonly string[]>> = {
     'outageFromSeconds',
     'outageWindowSeconds',
   ],
+  web: [
+    'rejectRate',
+    'rejectStatus',
+    'malformedRate',
+    'resetRate',
+    'hangRate',
+    'latencyMs',
+    'outageFromSeconds',
+    'outageWindowSeconds',
+  ],
   bffCatalog: [
     'failFirstAttempts',
     'unavailableRate',

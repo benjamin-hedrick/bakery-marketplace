@@ -9,7 +9,7 @@ module.exports = {
   poweredByHeader: false, // no `X-Powered-By: Next.js`: a scan reports it as information about the stack
   headers,
   // The shared packages ship TypeScript source (ADR-0019 session; WI-MOB-001 customer cart and wording).
-  transpilePackages: ['@bakery/web-session', '@bakery/customer-core'],
+  transpilePackages: ['@bakery/web-session', '@bakery/customer-core', '@bakery/chaos'],
   // The package lives outside this folder (packages/*), and Turbopack only reads files under its root: the repository.
   turbopack: { root: path.join(__dirname, '..', '..') },
   // skeleton-smoke.mjs sets NEXT_DIST_DIR so its build cannot overwrite the `.next` that the mock-backed `npm run test:e2e` uses.

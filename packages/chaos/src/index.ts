@@ -1,4 +1,5 @@
 export { applies, unit } from './decider.ts';
+export { HANG_MAX_MS, runDoor, type DoorAnswers } from './door.ts';
 export { chaosFromEnv, indicatorHeaders, isAllowed, locateScenario, requireAllowed } from './environment.ts';
 export {
   ChaosJournal,
