@@ -89,10 +89,10 @@ public sealed class ChaosRepositoryBehaviourTests
     {
         var (repo, runtime) = Build(1, ("failureRate", 1));
 
-        var save = await Assert.ThrowsAsync<CosmosException>(() => repo.SaveAsync(Entity("a"), "p"));
-        await Assert.ThrowsAsync<CosmosException>(() => repo.GetAsync("a", "p"));
-        await Assert.ThrowsAsync<CosmosException>(() => repo.DeleteAsync("a", "p"));
-        await Assert.ThrowsAsync<CosmosException>(async () =>
+        var save = await Assert.ThrowsAsync<StoreUnavailableException>(() => repo.SaveAsync(Entity("a"), "p"));
+        await Assert.ThrowsAsync<StoreUnavailableException>(() => repo.GetAsync("a", "p"));
+        await Assert.ThrowsAsync<StoreUnavailableException>(() => repo.DeleteAsync("a", "p"));
+        await Assert.ThrowsAsync<StoreUnavailableException>(async () =>
         {
             await foreach (var _ in repo.QueryAsync("p", q => q)) { }
         });
@@ -137,17 +137,17 @@ public sealed class ChaosRepositoryBehaviourTests
         var inner = new FakeRepository<VersionedEntity>(e => e.Id, database);
         var repo = new ChaosRepository<VersionedEntity>(inner, runtime);
 
-        var save = await Assert.ThrowsAsync<CosmosException>(() => repo.SaveAsync(Entity("a"), "p"));
+        var save = await Assert.ThrowsAsync<StoreUnavailableException>(() => repo.SaveAsync(Entity("a"), "p"));
 
         Assert.Equal(1, runtime.Journal.Count("repository", "lostResponse"));
         Assert.Equal(HttpStatusCode.RequestTimeout, save.StatusCode);
         Assert.NotNull(await inner.GetAsync("a", "p")); // the data is there although the caller was told it failed
 
-        await Assert.ThrowsAsync<CosmosException>(() => repo.DeleteAsync("a", "p"));
+        await Assert.ThrowsAsync<StoreUnavailableException>(() => repo.DeleteAsync("a", "p"));
         Assert.Null(await inner.GetAsync("a", "p")); // and a lost delete really deleted
 
         var batch = new ChaosBatchFactory(new FakeBatchFactory(database), runtime).CreateBatch("p");
-        await Assert.ThrowsAsync<CosmosException>(() => batch.Create(Entity("b")).ExecuteAsync());
+        await Assert.ThrowsAsync<StoreUnavailableException>(() => batch.Create(Entity("b")).ExecuteAsync());
         Assert.NotNull(await inner.GetAsync("b", "p")); // a lost batch was applied
     }
 
@@ -161,7 +161,7 @@ public sealed class ChaosRepositoryBehaviourTests
         Assert.True(DateTime.UtcNow - started >= TimeSpan.FromMilliseconds(120));
 
         var (down, downRuntime) = Build(1, ("outageWindowSeconds", 0.2));
-        await Assert.ThrowsAsync<CosmosException>(() => down.GetAsync("a", "p"));
+        await Assert.ThrowsAsync<StoreUnavailableException>(() => down.GetAsync("a", "p"));
         Assert.Equal(1, downRuntime.Journal.Count("repository", "outage"));
         await Task.Delay(300);
         Assert.Null(await down.GetAsync("a", "p")); // recovered
@@ -177,7 +177,7 @@ public sealed class ChaosRepositoryBehaviourTests
             for (var i = 0; i < 40; i++)
             {
                 try { await repo.GetAsync($"id-{i}", $"partition-{i}"); outcome += "o"; }
-                catch (CosmosException) { outcome += "x"; }
+                catch (StoreUnavailableException) { outcome += "x"; }
             }
 
             return outcome;
@@ -195,10 +195,24 @@ public sealed class ChaosRepositoryBehaviourTests
         {
             attempts++;
             try { await retrying.GetAsync("same", "same"); break; }
-            catch (CosmosException) { }
+            catch (StoreUnavailableException) { }
         }
 
         Assert.True(attempts < 50, "a retried read must eventually get through");
         Assert.Equal(attempts - 1, runtime.Journal.Count("repository", "failure"));
     }
+}
+
+public class StoreUnavailableExceptionTests
+{
+    [Theory]
+    [InlineData(HttpStatusCode.ServiceUnavailable, true)]
+    [InlineData(HttpStatusCode.RequestTimeout, true)]
+    [InlineData(HttpStatusCode.TooManyRequests, true)]
+    [InlineData(HttpStatusCode.InternalServerError, false)] // a bug or a bad request is not "try again"
+    [InlineData(HttpStatusCode.BadRequest, false)]
+    [InlineData(HttpStatusCode.Conflict, false)]
+    [InlineData(HttpStatusCode.PreconditionFailed, false)]
+    public void OnlyTheTransportClassStatusesAreUnavailable(HttpStatusCode status, bool expected) =>
+        Assert.Equal(expected, StoreUnavailableException.IsTransport(status));
 }

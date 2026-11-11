@@ -6,6 +6,8 @@
 >
 > **Verified (local):** 16 template tests (exact text for the placed message, variants for the optional fields, every cancellation reason, offsets and multi-day windows, instructions never copied, a missing name, and a check that the subscribed event types equal the templated ones, so a new event type fails the build until it has a template) and an end-to-end test of a placed-to-completed sequence through the real host producing the five expected messages in order. A mutation (swapping the automatic and accepted wording) failed a test. The service now has 42 tests.
 >
+> **Requirement for the real provider (2026-11-11, register 171):** a notification whose answer is lost was sent, and "try again later" would send it again; the sent ledger is written after success and cannot prevent that. The real sender must pass an idempotency key per event (the event id and the channel) to the provider. Notification is off the request path, so nothing else changes. Shown by the `lostResponseRate` fault of the `notification` chaos layer (`ChaosSenderTests`).
+>
 > **Not done:** no check against the ordering service's list of event names (the two services are separate; the list is copied); no HTML or localisation; the allergy warning and low-stock alert are register item 138.
 
 ```

@@ -66,12 +66,20 @@ public sealed record PaymentRequest(string OrderId, string CustomerId, long Amou
 
 public sealed record PaymentResult(bool Approved, string? Reference = null);
 
+/// <summary>The payment processor could not be reached or did not answer in time. The checkout answers "try again" (503 <c>downstream_unavailable</c>), as for an unreachable catalog.</summary>
+public sealed class PaymentUnavailableException(string message, Exception? inner = null) : Exception(message, inner);
+
 /// <summary>
 /// The seam where a real payment authorization will go (<c>PAY-001</c>, ADR-0005: authorize at place, capture at confirm). Only a
 /// stub implements it today.
 /// </summary>
 public interface IPaymentProcessor
 {
+    /// <summary>
+    /// Returns the processor's answer (approved or not). Throws <see cref="PaymentUnavailableException"/> when the processor could not be reached or did not
+    /// answer in time (register 170): an implementation converts its own transport failures (connection, timeout, 5xx) to it and nothing else, so a bug stays a bug.
+    /// The money may have been held even then (register 171): the real processor needs the order id as its idempotency key and a void for an answer it cannot confirm.
+    /// </summary>
     Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default);
 }
 

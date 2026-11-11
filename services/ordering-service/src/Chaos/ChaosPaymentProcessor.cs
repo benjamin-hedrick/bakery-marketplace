@@ -13,7 +13,7 @@ public sealed class ChaosPaymentProcessor(IPaymentProcessor inner, ChaosLayer la
     public async Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
     {
         await layer.BeforeAsync("authorize", request.OrderId, "failure", "failureRate",
-            () => new InvalidOperationException("ChaosPaymentProcessor: simulated processor failure."), ct);
+            () => new PaymentUnavailableException("ChaosPaymentProcessor: simulated processor failure."), ct);
 
         if (layer.InjectAttempt("authorize", request.OrderId, "decline", "declineRate"))
             return new PaymentResult(false);
@@ -22,7 +22,7 @@ public sealed class ChaosPaymentProcessor(IPaymentProcessor inner, ChaosLayer la
 
         // The authorization was made, the answer never arrived: the caller sees a timeout for money that may be held.
         if (layer.LostResponse("authorize", request.OrderId))
-            throw new TimeoutException("ChaosPaymentProcessor: the authorization was made but the response was lost.");
+            throw new PaymentUnavailableException("ChaosPaymentProcessor: the authorization was made but the response was lost.", new TimeoutException());
         return result;
     }
 }
