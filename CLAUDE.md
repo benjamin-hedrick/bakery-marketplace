@@ -1,119 +1,55 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code in this repository. Keep it short: it is sent with every request. Dated status belongs in the generated and planning documents named below, not here.
 
 ## What this repo is
 
-A portfolio project: a pickup-based bakery/coffee marketplace, built to show architecture, product and engineering ownership. It is **mostly documentation plus shared C# libraries**. `catalog-service` has real listing endpoints (`WI-CAT-001`; in-memory backends by default, Cosmos and Redis verified against the local Compose stack) and a listing cache (`WI-CAT-003`, In review: in-process by default, `Cache__Backend=redis` for the cache Redis). `ordering-service` has the `Order` aggregate and persistence, checkout with idempotency, pickup windows, vendor and customer order actions, automatic confirmation, and an outbox with a relay that publishes order events (payment is a stub); `notification-service` consumes the order events in batches and sends through a sender adapter (`NOT-001`, `NOT-002`; local only, no real provider); `admin-service` is an empty scaffold (`Program.cs` only) and `docker-compose.yml` runs the local infrastructure (Redis Streams, Cosmos vNext emulator, mock OIDC issuer; `docs/operations/local-dev.md`) but no application containers. `apps/web-customer` implements slice 1 (login, browse with stock, cart, checkout, order status) on Next.js + Relay, and the GraphQL BFF in `services/graphql-bff` sits in front of the services; `web-admin` is empty. `apps/mobile-customer` is an Expo Android customer app (`WI-MOB-001`: sign-in with PKCE, menu, cart, checkout, order status) with fifteen Maestro flows (four from `WI-MOB-001`, six allergen flows from `WI-MOB-002`, logging in as seeded customers with saved allergen profiles, and three from `WI-MOB-003`: a failed checkout request, order edits, a refused session, one from `WI-ORD-010`: a customer with no saved payment method, and one from `WI-ORD-011`: a customer cancels their order) of which the first ten passed on 2026-11-04 and flows 11 to 13 on 2026-11-05 on the `bakery_pixel` emulator against the local stack (a cold run of all fourteen on 2026-11-07 passed twelve; flow 07 and the no-payment-method flow (now 14, so the issuer-restart flow 15 stays last) were fixed and passed on their own, the cancel flow, 13-cancel-order, also passed on its own on 2026-11-07; all fifteen then passed in one run on 2026-11-09: 9 min 45 s, after `startOne` stopped starting a second BFF, register 164). Current status per work item is in `docs/product/backlog/STATUS.md`, plus allergy warnings, an acknowledgement and "Signed in as" in the app; Android only, local only; there is no test build or test hook any more (`WI-ORD-010`). `apps/web-queue-display` (`WI-QUE-002`, `WI-QUE-003`, `WI-QUE-004`) is the vendor's live order-queue screen (the web apps also limit request rates, `WI-RATE-001`, and send browser hardening headers; the BFF limits the size of a GraphQL operation; see `docs/architecture/threat-model.md`): live by push with polling as the fallback, and the vendor can accept, decline, start, mark ready and hand over an order from its buttons; its browser suite passes against a mock BFF and a stubbed issuer, and the real-stack journeys (`skeleton-smoke.mjs`) have run against the real services and the mock issuer, not a real identity provider. All of it runs locally only; nothing is deployed. Don't describe anything as working unless you've run it.
+A portfolio project: a pickup-based bakery and coffee marketplace, built to show architecture, product and engineering ownership. C# services (`catalog`, `ordering`, `notification`; `admin` is an empty scaffold), a Node/TypeScript GraphQL BFF, a customer web app, a vendor queue display, an Android customer app, shared libraries in `tools/` and `packages/`, and a large body of documentation. **Everything runs locally only; nothing is deployed.** Don't describe anything as working unless you've run it.
+
+Where the current state lives (read these, don't restate them here): `docs/product/backlog/STATUS.md` (generated from the spec banners), `docs/product/backlog/current-plan.md`, `docs/governance/open-items-register.md`, `docs/operations/local-dev.md`, `docs/operations/scripts.md` (every script and command).
 
 ## Commands
 
-.NET 10 (projects target `net10.0`; the `.slnx` format needs SDK 9+). There are two solutions:
-
-- `BakeryMarketplace.slnx` (root): the 4 service projects, the 10 `tools/` projects, and the catalog, ordering and notification service test projects (`services/*/tests/`).
-- `tools/BakeryMarketplace.slnx`: the 9 library test projects under `tools/tests/` (`Chaos.Tests` covers the chaos scenario library; `Seed.Tests` checks the seeded payment methods against ordering's token rule) (**not** the service tests; run those via their own path or the root solution).
+.NET 10 (`.slnx` needs SDK 9+). Two solutions: `BakeryMarketplace.slnx` (services, `tools/`, the three service test projects) and `tools/BakeryMarketplace.slnx` (the library test projects under `tools/tests/`, not the service tests).
 
 ```
 dotnet build BakeryMarketplace.slnx
 dotnet test tools/BakeryMarketplace.slnx
-dotnet test tools/tests/BakeryMarketplace.Auth.Tests --filter "FullyQualifiedName~MockOidcIssuerTests"
-dotnet test services/catalog-service/tests/CatalogService.Tests   # some tests skip without the emulator (set COSMOS_CONNECTION_STRING); hosts the real service in-process
-dotnet test services/ordering-service/tests/OrderingService.Tests # some tests skip without Redis and Cosmos (set REDIS_CONNECTION_STRING and COSMOS_CONNECTION_STRING; with both up nothing skips)
-dotnet test services/notification-service/tests/NotificationService.Tests # one test needs Redis (REDIS_CONNECTION_STRING)
+dotnet test services/<catalog|ordering|notification>-service/tests/<Name>Service.Tests
+dotnet format whitespace|style BakeryMarketplace.slnx   # also tools/BakeryMarketplace.slnx; --verify-no-changes before pushing
 ```
 
-The framework is xUnit. The Redis and Cosmos adapter tests read `REDIS_CONNECTION_STRING` (default `localhost:6379`), and the Redis ones can fall back to in-memory fakes when Docker dependencies aren't running (reconciliation finding A8; the Cosmos ones skip instead, register item 31). A green run without Docker doesn't prove the real adapters work.
-
-Frontend proof (`apps/web-customer`, Node 25.9.0 was used; exact LTS pin is still open). Run from that directory:
-
-```
-npm ci
-npm run typecheck        # relay-compiler, then tsc
-npm run build            # relay-compiler + next build
-npm run mock             # mock GraphQL on :4000
-ENABLE_TEST_HOOKS=1 npx next start -p 3000
-npm run test:isolation   # 200 concurrent SSR requests, two fixtures
-npm run test:e2e         # Playwright (Chromium); `npx playwright install chromium` first
-npm run test:skeleton    # WI-PORT-002 smoke; needs the whole local stack (docs/operations/local-dev.md)
-```
-
-GraphQL BFF (`services/graphql-bff`, Node >=24, port 4100): `npm ci`, `npm run typecheck`, `npm test` (no Docker needed), `CATALOG_URL=... ORDERING_URL=... npm start` (ORDERING_URL defaults to http://localhost:5300; `CHECKOUT_TIMEOUT_MS` defaults to 15000; `BFF_TRUSTED_CLIENT_SOURCES` names the web app's address so the BFF counts rate limits per client, register 137). The GraphQL schema lives in `services/graphql-bff/schema/schema.graphql` and is also read by the Relay compiler.
-
-Chaos package (`packages/chaos`, ADR-0024, `WI-CHAOS-003`; the Node side of the chaos scenarios, linked into the BFF; run `npm ci` here before in `services/graphql-bff`): `npm ci`, `npm run typecheck`, `npm test` (no Docker needed). The BFF runs a scenario with `CHAOS_ENABLED=true CHAOS_SCENARIO=bff-door DEPLOYMENT_ENVIRONMENT=local node src/main.ts`; `chaos/README.md` has the C# and Node settings and the layers.
-
-Shared customer package (`packages/customer-core`, `WI-MOB-001`; the cart, checkout input, allergen and diet wording, plain TypeScript used by web-customer and later the Android app; run `npm ci` here before in the app): `npm ci`, `npm run typecheck`, `npm test` (no Docker needed).
-
-Session package (`packages/web-session`, `WI-AUTH-007`, used by both web apps since 2026-11-02; run `npm ci` here before in an app): `npm ci`, `npm run typecheck`, `npm test` (the Redis store tests run only with `REDIS_CONNECTION_STRING=127.0.0.1:6379` and Redis up, and are skipped otherwise). The apps' browser tests use its fake issuer (`npm run mock-issuer`) and need no Redis; the real-stack login needs the cache Redis (`docker compose --profile with-redis up -d`).
-
-Android app (`apps/mobile-customer`, `WI-MOB-001`; Expo, Android only, local only, no CI): `npm ci` here and in `packages/customer-core`, `npm run typecheck`, `npm run format:check`, `npm test` (unit tests of the session and API logic, `WI-MOB-003`; no emulator needed); the Maestro flows (`apps/mobile-customer/.maestro/`, 15 flows) run with `node scripts/dev/mobile-flows.mjs` (boots the `bakery_pixel` emulator, starts the stack, builds and installs the app, runs the flows, tears down; needs JDK 17, the Android SDK and Maestro, see its README); `node scripts/dev/mobile-stack.mjs` starts only the backend and the `adb reverse` for 5100 and 4100; `node scripts/dev/mobile-demo.mjs` is the Android demo. Every script and command (start, stop, demo, test, gates) is indexed in `docs/operations/scripts.md`; `node scripts/docs/scripts-index.mjs --check` (in node-gates) fails when a script is missing there.
-
-Queue display (`apps/web-queue-display`, port 3100): `npm ci`, `npm run typecheck`, `npm run test:unit`, `npm run test:e2e` (Playwright tests against `npm run mock` on :4101, the fake issuer on :5101 and a second copy of the app on :3101 with tight rate limits).
-
-Generated Relay artifacts (`src/__generated__/`) are gitignored; `npm run relay` recreates them. `ENABLE_TEST_HOOKS` must never be set outside tests. Details: `apps/web-customer/README.md`.
-
-Local infrastructure (needs Docker; full guide and verification status in `docs/operations/local-dev.md`):
-
-```
-docker compose up -d --build                # redis-events, cosmos, mock-oidc
-docker compose --profile with-redis up -d   # plus the cache Redis
-docker compose --profile apps up -d --build  # plus the catalog, ordering, BFF and web containers (needs ORDERING_CLIENT_SECRET from init-env; set COMPOSE_PARALLEL_LIMIT=1)
-node scripts/ci/skeleton-smoke.mjs --containers  # the Playwright journeys against those containers, then tears down (--keep leaves them)
-node scripts/dev/check-env.mjs --wait 90    # exit 0 when up, 1 otherwise
-node scripts/dev/init-env.mjs               # creates local secrets in the git-ignored .env (service client secret for the mock issuer)
-node scripts/ci/node-gates.mjs            # run before every push: format, lint, typecheck in the BFF, web app and queue display, plus the docs status, traceability and link checks; --tests adds the unit tests; exit 1 = a failure
-node scripts/ci/terraform-checks.mjs         # Terraform format, init, validate and mocked-provider tests for infra/ (Docker; no Azure account); the pipeline's `terraform` job runs it
-node --test "scripts/ci/tests/*.test.mjs"   # the destroy guard and the pipeline files (also in node-gates --tests)
-node scripts/ci/secret-scan.mjs            # run before every push: gitleaks over the full committed history (Docker); exit 1 = a finding (config .gitleaks.toml)
-node scripts/ci/linux-check.mjs             # runs the .NET test steps on Linux in a container limited to 2 CPUs like the agent, with a 3 minute hang timeout (committed tree); the pipeline is Ubuntu, development here is Windows. Tests must not block on tasks (register item 117)
-node scripts/dev/demo.mjs                  # starts the whole slice-1 stack, warms it, prints a guide, waits; Enter or Ctrl+C tears down (docs/operations/demo.md)
-node scripts/dev/check-stream-passthrough.mjs  # WI-QUE-003: the built queue display relays an event stream incrementally, uncompressed, and frees the BFF call when the browser leaves (needs `npm run build` in apps/web-queue-display)
-node scripts/dev/film/film.mjs --dry-run   # the demo film (register 163, docs/operations/demo-film.md): scripted, never run; compose.mjs makes the video, record-phone.mjs records the emulator
-node scripts/dev/capture-journey.mjs        # screenshots of the journey into docs/operations/demo/, against a running demo
-node scripts/dev/measure-latency.mjs        # sequential latency of reads and checkout against a running demo (p50, p95, max)
-node scripts/dev/load-test.mjs --minutes 3  # WI-SEC-005: load and soak of the live vendor queue on the real stack (five screens, orders, an ordering restart, memory); the 66-minute run is in docs/evidence/WI-SEC-005/
-node scripts/ci/zap-scan.mjs                # WI-SEC-005: OWASP ZAP baseline of both web apps and an API scan of the BFF (Docker; unauthenticated)
-node scripts/ci/repeat-suite.mjs --runs 10  # the mock-backed browser suite repeated, with a quality report (scripts/ci/quality-report.mjs)
-node scripts/docs/traceability.mjs          # regenerate docs/product/backlog/TRACEABILITY.md (--check to verify)
-docker compose down                         # resets all state
-```
-
-Run services on the host against these ports. The Cosmos emulator needs Cosmos SDK 3.63.x+ (older versions fail on whole-document queries), and the `CosmosRepositoryTests` are skipped without `COSMOS_CONNECTION_STRING` and fail when it is set and the emulator cannot be reached (they no longer fall back to a fake; open item #31 resolved 2026-11-09, 4 of 4 pass against the real emulator).
-
-Docs site: `mkdocs.yml` (Material theme, `docs_dir: docs`). mkdocs isn't installed here, so the nav is unbuilt.
-
-Formatting and linting (decided 2026-10-28, `docs/process/quality-gates.md`): `dotnet format whitespace|style BakeryMarketplace.slnx` for C#; in `apps/web-customer` and `services/graphql-bff`, `npm run format` (Prettier) and `npm run lint` (ESLint). Run the `--verify-no-changes` / `format:check` variants before pushing. CI is Azure Pipelines only (ADR-0015; the GitHub `ci.yml` placeholder was removed 2026-10-28, and the Azure check is a soft manual gate, not a required check). `azure-pipelines.yml` exists (`WI-PORT-003`) and has run green on Azure DevOps (reported by the human lead 2026-10-28, with the Cosmos-adapter warning; not yet verified on `ubuntu-26.04`); commands, gaps and the results format are in `docs/process/quality-gates.md`. `node scripts/ci/skeleton-smoke.mjs` runs the whole real stack plus the Playwright smoke locally. Set `REDIS_CONNECTION_STRING=127.0.0.1:6379` when running the Redis adapter tests: with `localhost` they can silently use fakes.
+- Redis and Cosmos tests: set `REDIS_CONNECTION_STRING=127.0.0.1:6379` (with `localhost` they can silently use fakes) and `COSMOS_CONNECTION_STRING` (the Cosmos tests are skipped without it and fail if it is set and the emulator is unreachable). A green run without Docker doesn't prove the real adapters work. The emulator needs Cosmos SDK 3.63.x or later.
+- Local infrastructure (Docker): `docker compose up -d --build` (Redis Streams, Cosmos vNext emulator, mock OIDC issuer); `--profile with-redis` adds the cache Redis, `--profile apps` the application containers. `node scripts/dev/init-env.mjs` creates the git-ignored `.env`; `node scripts/dev/check-env.mjs --wait 90` checks the stack; `docker compose down` resets all state.
+- The whole stack on the host: `node scripts/dev/demo.mjs` (demo), `node scripts/ci/skeleton-smoke.mjs` (Playwright journeys against the real services). `STACK_CHAOS_SCENARIO=<name>` before either runs it under a chaos scenario (`chaos/README.md`).
+- Node packages and apps (each: `npm ci`, `npm run typecheck`, `npm test`, `npm run format:check`, `npm run lint` where the package has them; run `npm ci` in `packages/web-session`, `packages/chaos` and `packages/customer-core` before the apps and the BFF that link them): `services/graphql-bff` (Node >=24, port 4100), `apps/web-customer` (`npm run test:e2e` is Playwright; `npm run relay` makes the gitignored `src/__generated__`), `apps/web-queue-display`, `apps/mobile-customer` (Android, Maestro flows run by `node scripts/dev/mobile-flows.mjs`), `packages/chaos`, `packages/customer-core`, `packages/web-session`.
+- **Before every push:** `node scripts/ci/node-gates.mjs` (format, lint, typecheck, docs status, traceability and link checks; `--tests` adds the unit tests) and `node scripts/ci/secret-scan.mjs` (Docker). `node scripts/ci/linux-check.mjs` runs the .NET tests on Linux in a limited container (CI is Ubuntu, development is Windows; tests must not block on tasks). `node scripts/ci/terraform-checks.mjs` for `infra/`.
+- `ENABLE_TEST_HOOKS` must never be set outside tests. `mkdocs` isn't installed here, so the docs nav is unbuilt. CI is Azure Pipelines only (ADR-0015).
 
 ## Architecture (needs several files to see)
 
-**Decisions live in `docs/architecture/adr/` (0001–0024, all written; 0024 is Proposed).** Read the ADR index first. Amendments are appended as dated notes at the bottom of the ADR, never by rewriting its decision text. Superseded ADRs stay in place with a status line (ADR-0011 is superseded by ADR-0012).
+**Decisions live in `docs/architecture/adr/`.** Read the ADR index first. Amendments are appended as dated notes at the bottom of an ADR, never by rewriting its decision text; a superseded ADR stays in place with a status line.
 
-**Shape (ADR-0012/0013, adopted 2026-10-26; built and run locally only, not deployed):** Next.js Pages Router apps (SSR only for public listing pages) → Node/TypeScript GraphQL BFF with a Relay client → C# REST services. In the cloud the BFF calls services through Azure API Management; locally it calls them directly. **C# services own all business rules, pricing, availability and order state; the BFF is composition and error mapping only.** Don't put domain logic in the BFF or let the GraphQL schema become a second domain model.
-
-**Services (ADR-0009):** 13 bounded contexts are grouped onto 4 services (`catalog`, `ordering`, `admin`, `notification`) under a modular-monolith rule: co-located contexts still talk through the same interfaces and events they would use if they were separate.
-
-**`tools/` shared libraries follow an adapter + fallback + contract-test pattern**, and new infrastructure code should too: an interface (`ICacheProvider`, `IRepository<T>`, `IEventPublisher`/`IEventSubscriber`), a real and a local/fake implementation, a shared abstract contract-test base that every implementation inherits (e.g. `CacheProviderContractTests`), and a chaos decorator where resilience matters (chaos is switched on by a seeded scenario file in `chaos/scenarios/`, ADR-0024, `chaos/README.md`: `Chaos__Enabled=true Chaos__Scenario=<name>`, local Development and dev only). Auth, secrets and payments deliberately sit outside this pattern (ADR-0005/0006/0007).
-
-**Caching is three layers (ADR-0014):** the server cache is ADR-0002's `ICacheProvider` + `ResilientCacheProvider` (built and tested). Relay's client store and HTTP/CDN caching are governed by ADR-0014. Authenticated or personalized responses default to `private, no-store`. Order and cart data is never cached.
-
-**Correlation (ADR-0016):** W3C `traceparent` is the only propagated mechanism. `X-Correlation-Id` becomes a response-only alias of the trace ID. `CorrelationIdMiddleware` never adopts an inbound header (done, ADR-0016).
-
-**Auth:** `tools/BakeryMarketplace.Auth` holds the JWT/ownership middleware and a local mock OIDC issuer (PKCE). Every service validates tokens and ownership itself, even behind the gateway (zero trust, ADR-0006/0008).
+- **Shape (ADR-0012/0013):** Next.js Pages Router apps → Node/TypeScript GraphQL BFF (Relay client) → C# REST services. In the cloud the BFF calls services through API Management; locally it calls them directly. **C# services own all business rules, pricing, availability and order state; the BFF is composition and error mapping only.** Don't put domain logic in the BFF or let the GraphQL schema become a second domain model. The schema is `services/graphql-bff/schema/schema.graphql`, also read by the Relay compiler.
+- **Services (ADR-0009):** 13 bounded contexts grouped onto 4 services under a modular-monolith rule: co-located contexts still talk through the interfaces and events they would use if separate.
+- **`tools/` libraries follow adapter + fallback + contract test**, and new infrastructure code should too: an interface (`ICacheProvider`, `IRepository<T>`, `IEventPublisher`), a real and a local/fake implementation, a shared abstract contract-test base every implementation inherits, and where resilience matters a chaos layer (seeded scenario files in `chaos/scenarios/`, ADR-0024, `chaos/README.md`; local Development and dev only). Auth, secrets and payments sit outside this pattern (ADR-0005/0006/0007).
+- **Caching has three layers (ADR-0014).** Authenticated or personalized responses default to `private, no-store`. Order and cart data is never cached.
+- **Correlation (ADR-0016):** W3C `traceparent` is the only propagated mechanism; `X-Correlation-Id` is a response-only alias of the trace id.
+- **Auth:** `tools/BakeryMarketplace.Auth` holds the JWT and ownership middleware and the local mock OIDC issuer (PKCE). Every service validates tokens and ownership itself, even behind the gateway (zero trust, ADR-0006/0008).
 
 ## Working conventions
 
-- No secrets in files
-- **Work items are the unit of work.** Specs are `docs/product/backlog/WI-*.md`; commits map to one work item (say which in the message), while a branch and PR may group several related work items and is named for the theme (e.g. `feature/slice-ordering`; `feature/<WI-ID>-short-description` still fits a single item). Trunk-based, `docs/process/branching-strategy.md`. To limit conflicts: rebase on `origin/main` before pushing, check `git status` before `git add -A`, and keep shared-file edits (register, `STATUS.md` inputs, `epic-catalog.md`, `mkdocs.yml`) to one branch at a time. Start from `docs/product/backlog/current-plan.md` and `docs/product/backlog/STATUS.md`.
-- **Keep specs accurate, and never edit ADR decision text.** Status words, notes and the spec rules are in `docs/method/status-and-supersession.md`: a Ready spec is rewritten to the current design; a built spec gets an as-built body with a short "Changes from the original plan" section (git keeps the original); supersession or adjustment is a dated note at the top of the file. **The status banner on line 1 of the spec is authoritative; `docs/product/backlog/STATUS.md` is generated from the banners** (`node scripts/docs/status.mjs`, with `--check` to verify). Run it after changing any banner or ADR status line.
-- **Reconciliation records** go in `docs/product/backlog/reconciliation/RECONCILIATION-DISPOSITIONS-<date>.md`. The activity log is closed and kept unchanged in `docs/history/ACTIVITY-LOG.md`; put what happened in commit messages and the PR description, and unresolved items in the register.
-- Shared-file edits (schema, lockfile, root config, pipeline YAML, central docs) need a single owner at a time: `docs/management/portfolio-slice/07-shared-file-ownership-and-coordination.md`.
-- **Don't build functionality only to close a gap in testing.** An endpoint, a server, a flag, a hook, a screen or a branch in product code that exists only so a test can set something up or reach something is the wrong fix. Close the gap with **data** (seed data, fixtures, the stores' own contents) or with interfaces that already exist; if a test truly needs something new, ask the lead first and say plainly that it is test-only. Test *tooling* that drives the system from outside (a runner, a stack script) is fine, but say what it is and log it for review. Test state a flow needs (a customer's saved profile, an order) belongs in seed data with a named, self-describing fixture, not in a flow that changes it at run time. A deliberately test-only mechanism that already exists (the control server of the Android flows, the web app's `x-fixture` and `x-delay-ms` headers) is listed in the register for review, not extended.
-- **Unreconciled items go in `docs/governance/open-items-register.md`** (the running list) in the same change that finds them, so nothing is dropped and later sessions don't re-analyze it. Mark resolved items `Resolved <date>`; don't delete them.
-- Cosmos access uses parameterized queries via the SDK only; no raw query string construction (`nfrs.md` §3.4).
+- No secrets in files.
+- **Work items are the unit of work.** Specs are `docs/product/backlog/WI-*.md`; a commit maps to one work item (say which in the message); a branch and PR may group related items and is named for the theme. Trunk-based (`docs/process/branching-strategy.md`). Rebase on `origin/main` before pushing, check `git status` before `git add -A`, keep shared-file edits (register, `STATUS.md` inputs, `epic-catalog.md`, `mkdocs.yml`) to one branch at a time.
+- **Pushing and PRs.** Push only when the lead asks, and never to a branch with an open PR or under review unless asked. A pasted check failure or log is a request to fix locally and report, not to push: reproduce each failure, run every pipeline gate against the final tree (`docs/process/branching-strategy.md` step 3), say what passed, and push once when agreed. The lead opens and merges PRs; don't open one. `git push` runs as its own command.
+- **Keep specs accurate, and never edit ADR decision text.** The status banner on line 1 of a spec is authoritative; `STATUS.md` is generated from the banners (`node scripts/docs/status.mjs`, `--check` to verify; run it after changing a banner or an ADR status line). Rules for status words, notes and supersession: `docs/method/status-and-supersession.md`.
+- **Unreconciled items go in `docs/governance/open-items-register.md`** in the same change that finds them. Mark resolved items `Resolved <date>`; don't delete them. Reconciliation records go in `docs/product/backlog/reconciliation/`. The activity log is closed (`docs/history/`); put what happened in commit messages and the PR description.
+- **Don't build functionality only to close a gap in testing** (an endpoint, flag, hook or branch that exists so a test can reach something). Use **data**: a new named seed data point, a fixture, or interfaces that already exist. If a test truly needs something new, ask first and say plainly that it is test-only. Existing test-only mechanisms (the Android flows' control server, the web app's `x-fixture` and `x-delay-ms` headers) are on the register for review, not to be extended.
+- Cosmos access uses parameterized queries via the SDK only (`nfrs.md` §3.4).
 - Report passed, failed, not-run and blocked results distinctly. Don't claim an endpoint, pipeline or deployment is operational without evidence.
-- `_incoming/` is a transient staging folder for packets awaiting reconciliation; don't treat its contents as repo truth.
-- `.claude/settings.json` denies reads of `dist/`, `build/`, `*.generated.*` and `vendor/`.
-- **Shell edits:** no files or multi-line scripts through a heredoc. Write documents with the Write tool; write an edit script to a file with the Write tool and run it (`python <path>`), asserting each target occurs exactly once; use Edit for single changes. `git push` runs as its own command.
+- `_incoming/` is transient staging, not repo truth. `.claude/settings.json` denies reads of `dist/`, `build/`, `*.generated.*` and `vendor/`.
+- **Shell edits:** no files or multi-line scripts through a heredoc. Write documents with the Write tool; write an edit script to a file and run it (assert each target occurs exactly once); use Edit for single changes.
 
 ## Human approval required
-Security, auth logic, IAM/RBAC changes
-Before expanding scope of work item or refactoring code
+
+Security, auth logic, IAM/RBAC changes. Before expanding the scope of a work item or refactoring code.
