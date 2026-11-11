@@ -6,6 +6,8 @@ FROM node:24-slim AS build
 WORKDIR /repo
 # The shared session package (ADR-0019) is linked into the app (file:../../packages/web-session) and holds the Redis client, so it is installed
 # first and kept at the same relative path in the final image.
+# It links the chaos package (ADR-0024, no dependencies), which must exist when it is installed.
+COPY packages/chaos packages/chaos
 COPY packages/web-session/package.json packages/web-session/package-lock.json packages/web-session/
 RUN cd packages/web-session && npm ci
 COPY packages/web-session packages/web-session
@@ -22,6 +24,9 @@ ENV NODE_ENV=production
 WORKDIR /repo/apps/web-customer
 COPY --from=build /repo/apps/web-customer ./
 COPY --from=build /repo/packages/web-session /repo/packages/web-session
+COPY --from=build /repo/packages/chaos /repo/packages/chaos
+# The scenario files a named CHAOS_SCENARIO is read from; nothing happens unless CHAOS_ENABLED is set, and the process refuses it outside local and dev.
+COPY chaos/scenarios /repo/chaos/scenarios
 COPY --from=build /repo/packages/customer-core /repo/packages/customer-core
 COPY --from=build /repo/services/graphql-bff/schema /repo/services/graphql-bff/schema
 EXPOSE 3000

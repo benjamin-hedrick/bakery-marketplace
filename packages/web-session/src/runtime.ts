@@ -6,6 +6,7 @@ import { createSessionService, type SessionService } from './service.ts';
 import { createMemoryStore, createRedisStore, type SessionStore } from './store.ts';
 import type { ApiRequest, ApiResponse } from './handlers.ts';
 import type { StreamResponse } from './graphql-proxy.ts';
+import { webChaosGateFromEnv } from './chaos-door.ts';
 
 export interface SessionRuntime {
   config: SessionConfig;
@@ -55,6 +56,7 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
         : createRedisStore(sealer, config.redisUrl, env['SESSION_REDIS_PREFIX'] || defaultStorePrefix(config.clientId));
     const service = createSessionService({ config, store, log });
     const limits = createWebRateLimits(limitSettings.settings);
+    const gate = webChaosGateFromEnv(env); // undefined unless CHAOS_ENABLED (ADR-0024)
     result = {
       ok: true,
       runtime: {
@@ -69,6 +71,7 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
           extraHeaders: () => process.env['GRAPHQL_EXTRA_FORWARDED_HEADERS'],
           log,
           limits,
+          gate,
         }),
         graphqlStream: createGraphqlStreamHandler({
           config,
@@ -77,6 +80,7 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
           extraHeaders: () => process.env['GRAPHQL_EXTRA_FORWARDED_HEADERS'],
           log,
           limits,
+          gate,
         }),
       },
     };

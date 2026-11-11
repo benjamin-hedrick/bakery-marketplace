@@ -1,0 +1,13 @@
+{
+  "name": "web-door",
+  "seed": 20261111,
+  "layers": {
+    "web": {
+      "latencyMs": 150,
+      "rejectRate": 0.2,
+      "rejectStatus": 503,
+      "malformedRate": 0.1,
+      "resetRate": 0.05
+    }
+  }
+}

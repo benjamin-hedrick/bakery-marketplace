@@ -20,6 +20,7 @@
     "format:check": "prettier --check . --ignore-path ../../.prettierignore"
   },
   "dependencies": {
+    "@bakery/chaos": "file:../chaos",
     "ioredis": "6.0.0"
   },
   "devDependencies": {

@@ -1,4 +1,5 @@
 import type { IncomingHttpHeaders } from 'node:http';
+import type { RequestGate } from './chaos-door.ts';
 import type { SessionConfig } from './config.ts';
 import { checkStateChangingRequest } from './csrf.ts';
 import {
@@ -157,6 +158,8 @@ export interface GraphqlHandlerDeps {
   log?: (event: string) => void;
   /** Rate limits; none when absent. */
   limits?: WebRateLimits | undefined;
+  /** The chaos door (ADR-0024, layer `web`); absent unless a scenario is switched on. Asked first, before any limit or check. */
+  gate?: RequestGate | undefined;
 }
 
 /**
@@ -171,8 +174,10 @@ export function createGraphqlHandler({
   fetchImpl,
   log = () => {},
   limits,
+  gate,
 }: GraphqlHandlerDeps) {
   return async function graphql(req: ApiRequest, res: ApiResponse): Promise<void> {
+    if (gate && (await gate(req, res))) return;
     // The address ceiling comes first, before the session store is asked about a cookie, so a flood of junk cookies cannot reach it without limit.
     const address = limits ? addressOf(req, limits) : '';
     const wait = limits?.address.take(address);
@@ -245,10 +250,12 @@ export function createGraphqlStreamHandler({
   maxPerSession = 5,
   maxFailedChecks = 3,
   limits,
+  gate,
 }: GraphqlStreamHandlerDeps) {
   let open = 0;
   const perSession = new Map<string, number>();
   return async function graphqlStream(req: ApiRequest, res: ApiResponse & StreamResponse): Promise<void> {
+    if (gate && (await gate(req, res))) return;
     res.setHeader('Cache-Control', 'no-store');
     if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
     const address = limits ? addressOf(req, limits) : '';
