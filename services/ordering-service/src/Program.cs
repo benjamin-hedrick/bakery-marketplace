@@ -20,7 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddBakeryTelemetry(builder.Configuration, "ordering-service", VendorOrderStreamHub.MeterName);
 
 // Auth (ADR-0006): customers call this service with their own token; Authority and Audience come from config.
-builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !builder.Environment.IsDevelopment());
+builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !LocalDevelopment.AllowsPlainHttp(builder.Environment, builder.Configuration));
 
 // Data (ADR-0004). "fake" is the in-memory default for local development and tests; "cosmos" stores orders in the `orders` container,
 // partitioned by customer. Creating the database and container here is a local convenience only (deployed environments use Terraform).
@@ -80,8 +80,8 @@ builder.Services.AddSingleton<IPaymentProcessor, StubPaymentProcessor>(); // a s
 // The catalog: public listing reads need no credentials; stock reserve and release authenticate as this service (ADR-0018). A missing or unsafe
 // value stops the service at startup rather than at the first order.
 SecretValidator.ValidateUriSecret(builder.Configuration, "Catalog:BaseUrl");
-// Development only may send the client secret to a plain-http issuer that is not loopback: the issuer is another container on the Compose network.
-builder.Services.AddBakeryServiceAuth(builder.Configuration, allowInsecureTokenEndpoint: builder.Environment.IsDevelopment());
+// Only a local Development host (not a named deployment) may send the client secret to a plain-http issuer that is not loopback: the issuer is another container on the Compose network.
+builder.Services.AddBakeryServiceAuth(builder.Configuration, allowInsecureTokenEndpoint: LocalDevelopment.AllowsPlainHttp(builder.Environment, builder.Configuration));
 var catalogUrl = new Uri(builder.Configuration["Catalog:BaseUrl"]!);
 var catalogTimeout = TimeSpan.FromSeconds(builder.Configuration.GetValue("Catalog:TimeoutSeconds", 5));
 builder.Services.AddHttpClient(CatalogGateway.PublicClientName, c => { c.BaseAddress = catalogUrl; c.Timeout = catalogTimeout; });

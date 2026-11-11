@@ -20,7 +20,7 @@ builder.Services.AddBakeryTelemetry(builder.Configuration, "catalog-service");
 
 // Auth (ADR-0006): JWT bearer + role policies from the shared library; Authority/Audience come from config, so the
 // local mock issuer and Entra External ID are a config swap. Plain-HTTP metadata is allowed only in Development.
-builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !builder.Environment.IsDevelopment());
+builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !LocalDevelopment.AllowsPlainHttp(builder.Environment, builder.Configuration));
 builder.Services.AddSingleton<IAuthorizationHandler, ListingOwnershipHandler>();
 
 // Data (ADR-0004). "fake" is the in-memory default for local dev and tests; "cosmos" uses the shared Cosmos adapter
