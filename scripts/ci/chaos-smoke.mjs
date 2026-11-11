@@ -37,11 +37,37 @@ const stack = createStack({
 const mustHaveInjected = {
   'checkout-trouble': [['payment:decline', 'catalog:unavailable', 'catalog:reject', 'repository:conflict']],
   'lost-confirmation': [['repository:lostResponse'], ['payment:lostResponse']],
+  'flaky-broker': [['events:publishFailure'], ['events:duplicate'], ['events:reorder'], ['events:handlerFailure']],
+  'broker-outage': [['events:outage']],
 };
 // Behaviour known not to hold yet: reported in the summary, and the run still passes while it is the only problem.
 const knownGaps = {
   'lost-confirmation': 'register 171: a payment authorized whose answer was lost is authorized again by the retry',
 };
+
+/**
+ * What the notification service sent (its log lines "Notification for order X (Type, event E) produced"): an event sent more than once is a duplicate, and a
+ * confirmed order (the ids the spec recorded) with no OrderPlaced notification by the time the services stopped is a missing one. Null when it did not run.
+ */
+function notificationChecks(metrics) {
+  const file = path.join(stack.out, 'notification.log');
+  if (!existsSync(file)) return null;
+  const sent = new Map(); // event id -> times sent
+  const orderPlaced = new Set();
+  for (const m of readFileSync(file, 'utf8').matchAll(
+    /Notification for order (\S+) \((\S+), event (\S+)\) produced/g,
+  )) {
+    sent.set(m[3], (sent.get(m[3]) ?? 0) + 1);
+    if (m[2] === 'OrderPlaced') orderPlaced.add(m[1]);
+  }
+  const confirmed = Object.values(metrics).flatMap((m) => m.confirmedServiceOrderIds ?? []);
+  return {
+    notificationsSent: [...sent.values()].reduce((a, b) => a + b, 0),
+    eventsSentMoreThanOnce: [...sent.values()].filter((n) => n > 1).length,
+    confirmedOrders: confirmed.length,
+    confirmedOrdersWithoutAnOrderPlacedNotification: confirmed.filter((id) => !orderPlaced.has(id)).length,
+  };
+}
 
 /** Orders whose payment was authorized more than once, from the keys the lost-confirmation spec recorded and the ordering service's log. */
 function doubleAuthorizations(metrics) {
@@ -74,8 +100,32 @@ function summarize() {
   for (const group of mustHaveInjected[scenario] ?? [])
     if (!group.some((k) => (counts[k] ?? 0) > 0))
       problems.push(`no fault of ${group.join(' or ')} was injected: the pass would prove nothing`);
-  const doubled = doubleAuthorizations(metrics);
+  const notifications = notificationChecks(metrics);
   const gaps = [];
+  if (notifications) {
+    notifications.secondsWaitedForNotificationsToSettle = settleSeconds;
+    // Known: delivery is at-least-once and the sent ledger is written after the send, so a redelivered or retried event can send twice (register 171 part 2).
+    if (notifications.eventsSentMoreThanOnce > 0)
+      gaps.push(
+        `register 171 (notifications): ${notifications.eventsSentMoreThanOnce} events were sent as a notification more than once`,
+      );
+    const missing = notifications.confirmedOrdersWithoutAnOrderPlacedNotification;
+    const deadLettered = [
+      ...readFileSync(path.join(stack.out, 'notification.log'), 'utf8').matchAll(/moved to the dead-letter stream/g),
+    ].length;
+    notifications.eventsMovedToTheDeadLetterStream = deadLettered;
+    if (missing > 0 && scenario === 'broker-outage')
+      gaps.push(
+        `register 182: ${missing} confirmed orders never got an OrderPlaced notification (their outbox is parked)`,
+      );
+    else if (missing > 0 && deadLettered > 0)
+      gaps.push(
+        `register 183: ${missing} confirmed orders have no OrderPlaced notification; ${deadLettered} events were dead-lettered after 3 failed deliveries and nothing replays them`,
+      );
+    else if (missing > 0)
+      problems.push(`${missing} confirmed orders have no OrderPlaced notification, and no event was dead-lettered`);
+  }
+  const doubled = doubleAuthorizations(metrics);
   if (doubled !== null) {
     metrics['lost-confirmation-payment'].ordersAuthorizedMoreThanOnce = doubled;
     if (doubled > 0) gaps.push(`${knownGaps[scenario]} (${doubled} orders)`);
@@ -83,7 +133,14 @@ function summarize() {
   writeFileSync(
     path.join(stack.out, 'summary.json'),
     JSON.stringify(
-      { scenario, faultsInjectedByTheServices: counts, specMetrics: metrics, knownGapsObserved: gaps, problems },
+      {
+        scenario,
+        faultsInjectedByTheServices: counts,
+        notifications,
+        specMetrics: metrics,
+        knownGapsObserved: gaps,
+        problems,
+      },
       null,
       2,
     ),
@@ -94,10 +151,35 @@ function summarize() {
   return problems;
 }
 
+/** The recorded metrics of the specs, read from their files (the specs have finished; the run's summary reads them again after the services stop). */
+function readMetrics() {
+  const metrics = {};
+  for (const f of readdirSync(stack.out).filter((n) => n.startsWith('metrics-') && n.endsWith('.json')))
+    metrics[f.slice(8, -5)] = JSON.parse(readFileSync(path.join(stack.out, f), 'utf8'));
+  return metrics;
+}
+
+/**
+ * The notification service works after the specs are done (it retries failed events), so stopping the services at once would count a late notification as a
+ * missing one. Wait, up to two minutes, until every confirmed order has an OrderPlaced notification; the time it took is a recovery figure in the summary.
+ */
+async function settleNotifications() {
+  if (!existsSync(path.join(stack.out, 'notification.log'))) return;
+  const started = Date.now();
+  while (Date.now() - started < 120_000) {
+    const c = notificationChecks(readMetrics());
+    if (!c || c.confirmedOrders === 0 || c.confirmedOrdersWithoutAnOrderPlacedNotification === 0) break;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  settleSeconds = Math.round((Date.now() - started) / 1000);
+  stack.log(`waited ${settleSeconds}s for the notifications to settle`);
+}
+let settleSeconds = null;
+
 let exitCode = 1;
 try {
   stack.up();
-  await stack.startServices();
+  await stack.startServices({ notification: true });
   await stack.startWeb();
   await stack.startQueue();
 
@@ -142,6 +224,7 @@ try {
   );
   exitCode = pw.status ?? 1;
   stack.log(`Playwright exit code ${exitCode}`);
+  await settleNotifications();
 } catch (e) {
   console.error(`[chaos] ERROR: ${e.message}`);
 } finally {

@@ -8,6 +8,7 @@ import path from 'node:path';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const ports = { catalog: 5200, ordering: 5300, bff: 4100, web: 3000, queue: 3100 };
+const notificationPort = 5400; // the notification service, only when a run asks for it (startServices({ notification: true }))
 export const issuerUrl = 'http://localhost:5100';
 export const bffUrl = `http://localhost:${ports.bff}/graphql`;
 const isWin = process.platform === 'win32';
@@ -144,7 +145,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
      * The catalog service, the ordering service and the BFF, each waited for. `bffChaos` names a scenario of chaos/scenarios/ for the BFF alone (ADR-0024:
      * the runner sets the scenario for the process it starts, nothing in a request can); the BFF keeps it when startOne starts it again.
      */
-    async startServices({ bffChaos } = {}) {
+    async startServices({ bffChaos, notification = false } = {}) {
       // A runner that has a scenario of its own for the BFF (the Android flows) cannot also be given another for the whole stack.
       if (bffChaos && scenario)
         throw new Error(`this run has its own BFF scenario '${bffChaos}'; unset STACK_CHAOS_SCENARIO ('${scenario}')`);
@@ -166,6 +167,17 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
           ServiceAuth__ClientSecret: envValue('ORDERING_CLIENT_SECRET'),
         },
       });
+      // Opt-in (the chaos runner): it consumes the order events and "sends" through the log sender, so a run can count what was sent. Not started by the
+      // default scripts, which stay as they were.
+      if (notification)
+        start(
+          'notification',
+          'dotnet',
+          ['run', '--no-launch-profile', '--project', 'services/notification-service/src'],
+          {
+            env: { ...dotnetEnv, ASPNETCORE_URLS: `http://localhost:${notificationPort}` },
+          },
+        );
       start('bff', 'node', ['src/main.ts'], {
         cwd: bff,
         env: {
@@ -179,6 +191,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
       await waitFor('catalog', `http://localhost:${ports.catalog}/health`);
       await waitFor('ordering', `http://localhost:${ports.ordering}/health`);
       await waitFor('bff', `http://localhost:${ports.bff}/healthz`);
+      if (notification) await waitFor('notification', `http://localhost:${notificationPort}/health`);
     },
 
     /**
