@@ -9,6 +9,7 @@ const SEEDED_PUBLISHED = [
   'Almond Croissant',
   'Blueberry Oat Muffin',
   'Brown Butter Cookies',
+  'Cardamom Honey Latte',
   'Country Sourdough',
   'Lemon Loaf',
   'Oat Milk Latte',
