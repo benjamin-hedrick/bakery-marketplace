@@ -145,7 +145,7 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
      * The catalog service, the ordering service and the BFF, each waited for. `bffChaos` names a scenario of chaos/scenarios/ for the BFF alone (ADR-0024:
      * the runner sets the scenario for the process it starts, nothing in a request can); the BFF keeps it when startOne starts it again.
      */
-    async startServices({ bffChaos, notification = false } = {}) {
+    async startServices({ bffChaos, notification = false, cacheRedis = false } = {}) {
       // A runner that has a scenario of its own for the BFF (the Android flows) cannot also be given another for the whole stack.
       if (bffChaos && scenario)
         throw new Error(`this run has its own BFF scenario '${bffChaos}'; unset STACK_CHAOS_SCENARIO ('${scenario}')`);
@@ -158,7 +158,12 @@ export function createStack({ label, outDir, distDir, logExits = false }) {
         Cosmos__ConnectionString: cosmos,
       };
       start('catalog', 'dotnet', ['run', '--no-launch-profile', '--project', 'services/catalog-service/src'], {
-        env: { ...dotnetEnv, ASPNETCORE_URLS: `http://localhost:${ports.catalog}` },
+        env: {
+          ...dotnetEnv,
+          ASPNETCORE_URLS: `http://localhost:${ports.catalog}`,
+          // The cache chaos layer wraps the primary store, which only exists with the Redis backend (the with-redis profile's cache Redis, port 6380).
+          ...(cacheRedis ? { Cache__Backend: 'redis', Cache__Redis__ConnectionString: '127.0.0.1:6380' } : {}),
+        },
       });
       start('ordering', 'dotnet', ['run', '--no-launch-profile', '--project', 'services/ordering-service/src'], {
         env: {

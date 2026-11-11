@@ -37,6 +37,8 @@ export interface GqlResult {
   injected?: string[];
   /** The correlation id of the answer (X-Correlation-Id, ADR-0016), when it has one. */
   correlationId?: string;
+  /** The Cache-Control header of the answer (ADR-0014: an authenticated answer is private, no-store). */
+  cacheControl?: string;
 }
 
 const injectedFaults = (res: Response) => (res.headers.get('x-chaos-injected') ?? '').split(',').filter(Boolean);
@@ -55,6 +57,7 @@ export async function gql(token: string | null, query: string, variables: object
         body: JSON.parse(text),
         injected: injectedFaults(res),
         correlationId: res.headers.get('x-correlation-id') ?? undefined,
+        cacheControl: res.headers.get('cache-control') ?? undefined,
       };
     } catch {
       return { status: res.status, body: null, transportError: 'not JSON', injected: injectedFaults(res) };

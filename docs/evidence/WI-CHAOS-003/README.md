@@ -1,0 +1,17 @@
+# Chaos scenarios on the whole local stack (WI-CHAOS-003, ADR-0024)
+
+> **Status:** Current · runs of 2026-11-11 on the real local stack (Docker infrastructure, the .NET services, the BFF and both web servers as processes), one scenario per run, by `node scripts/ci/chaos-smoke.mjs <scenario>`. Each file is the run's `summary.json` copied from `artifacts/chaos/<scenario>/` (the folder is git-ignored). Order ids in them are local, synthetic ones.
+
+How to read a summary: `faultsInjectedByTheServices` is the journal counted per layer and fault (read from the services' logs once they stopped; the web servers log none, so for `web-door` it is empty and the spec's own figures in `specMetrics` show the faults reaching the browser); `notifications` is what the notification service sent against the orders the spec confirmed; `knownGapsObserved` lists behaviour known not to hold yet; `problems` must be empty for a pass.
+
+| Scenario | Summary | What the run showed |
+|---|---|---|
+| `checkout-trouble` | [`summary-checkout-trouble.json`](summary-checkout-trouble.json) | 30 orders through payment declines, catalog and repository faults: none lost, none duplicated, stock and the vendor queue agree. No known gap. |
+| `lost-confirmation` | [`summary-lost-confirmation.json`](summary-lost-confirmation.json) | Lost answers from the order store and the payment processor: 30 of 30 orders confirmed, stock exact. Known gap 171 observed (13 orders authorized twice by the stub). |
+| `flaky-broker` | [`summary-flaky-broker.json`](summary-flaky-broker.json) | Publish failures, duplicates, reordering and failing handlers: 30 of 30 orders in the vendor queue and notified, nothing dead-lettered (register 183 fixed). Known gap 171 observed (5 events notified twice). |
+| `broker-outage` | [`summary-broker-outage.json`](summary-broker-outage.json) | A 25 s event outage while orders are placed: 45 of 45 orders accepted, in the vendor queue and notified, nothing parked (register 182 fixed; before the fix 11 of 45 were lost to parking). |
+| `bff-door` | [`summary-bff-door.json`](summary-bff-door.json) | Rejections, bad pages and resets at the BFF's door and failing calls to the services: orders none lost or duplicated, reads a plain failure or the right data, a same-key retry gives one order, the browser history says it could not load and recovers. |
+| `web-door` | [`summary-web-door.json`](summary-web-door.json) | The same at the web server's GraphQL route: no blank page or stuck spinner, Try again recovers (2 of 15 reloads needed it). |
+| `slow-cache` | [`summary-slow-cache.json`](summary-slow-cache.json) | The catalog's cache Redis slow and failing half its operations: 40 of 40 listing reads correct, orders never stale, authenticated answers `private, no-store`. **Not shown:** a failed invalidation leaving a stale entry until the TTL (all eight status changes reached the customer at once, so that path was not hit). |
+
+Not covered by these runs: the aimed faults and signals of the ADR's amendment of 2026-11-10 on the Android emulator (flows 07 and 11, never run), and the web servers' own journal (they log no applied layers).

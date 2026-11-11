@@ -184,7 +184,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | ADR | Title | Status | Status line |
 |---|---|---|---|
 | [0001](../../architecture/adr/0001-fulfillment-strategy-extensibility.md) | Fulfillment Strategy Extensibility — Pickup-Only v1, Delivery Deferred | Accepted | Accepted, amended 2026-10-30 and 2026-11-07 |
-| [0002](../../architecture/adr/0002-cache-strategy.md) | Cache Strategy — Environment-Conditional Managed Redis with Local Fallback | Accepted | Accepted, amended 2026-09-11 to 2026-11-07 |
+| [0002](../../architecture/adr/0002-cache-strategy.md) | Cache Strategy — Environment-Conditional Managed Redis with Local Fallback | Accepted | Accepted, amended 2026-09-11 to 2026-11-11 |
 | [0003](../../architecture/adr/0003-event-driven-backbone.md) | Event-Driven Backbone | Accepted | Accepted, amended 2026-10-30 |
 | [0004](../../architecture/adr/0004-data-store-choice.md) | Primary Data Store — Azure Cosmos DB (SQL API), Container-per-Context | Accepted | Accepted, amended 2026-10-30 |
 | [0005](../../architecture/adr/0005-payments-buy-vs-build.md) | Payments — Buy (Stripe Connect) Rather Than Build | Accepted | Accepted |
@@ -206,9 +206,9 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Accepted | Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age... |
 | [0022](../../architecture/adr/0022-tags.md) | Tags (a catalog-owned registry of kinds and tags, assigned to listings and options) | Accepted | Accepted (2026-11-04, approved by the lead; drafted the same day as Proposed). Drafted from the lead's deci... |
 | [0023](../../architecture/adr/0023-native-app-sign-in.md) | Native App Sign-In: Authorization Code with PKCE in the System Browser, Tokens on the Device | Accepted | Accepted (2026-11-04) by the lead, who chose option A over a dev-only shortcut and accepted the text. It ch... |
-| [0024](../../architecture/adr/0024-chaos-scenarios.md) | Chaos Scenarios: Seeded, Configured Fault Injection at the Interface Layer | Proposed | Proposed (2026-11-09). The lead decided the location, the scope (all services and the BFF) and that a new A... |
+| [0024](../../architecture/adr/0024-chaos-scenarios.md) | Chaos Scenarios: Seeded, Configured Fault Injection at the Interface Layer | Accepted | Accepted (2026-11-11), after the seven scenarios ran on the whole local stack (see the note at the end). Pr... |
 
-Accepted: 22 · Superseded: 1 · Proposed: 1
+Accepted: 23 · Superseded: 1
 
 ## Open-items register
 
