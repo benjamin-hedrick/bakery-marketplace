@@ -1,0 +1,77 @@
+{
+  "scenario": "broker-outage",
+  "faultsInjectedByTheServices": {
+    "events:outage": 121
+  },
+  "notifications": {
+    "notificationsSent": 90,
+    "eventsSentMoreThanOnce": 0,
+    "confirmedOrders": 45,
+    "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
+    "secondsWaitedForNotificationsToSettle": 0,
+    "eventsMovedToTheDeadLetterStream": 0
+  },
+  "specMetrics": {
+    "broker-outage-queue": {
+      "scenario": "broker-outage",
+      "confirmedOrders": 45,
+      "missingFromTheQueueAfter90Seconds": 0,
+      "secondsToConverge": 0.025
+    },
+    "broker-outage": {
+      "scenario": "broker-outage",
+      "ordersConfirmed": 45,
+      "ordersNotAccepted": 0,
+      "ordersPlacedInTheFirst40Seconds": 26,
+      "confirmedServiceOrderIds": [
+        "order-71818d773314db5d15efbf9b25dfd9f2",
+        "order-545f7afb9366408f6aea09e6f74aa091",
+        "order-5443fe6a943f1d6774506fbb43c34f67",
+        "order-5ab5f338b7b7ff76a9c109aac84308d8",
+        "order-f3df3ab2ee461b6779c0fa0db825235c",
+        "order-093d61c07fea722c01822e997303a2d3",
+        "order-94aa4600edbb1b99562b39a79d9c4357",
+        "order-b479311a90bed8d4325715d2100e17ec",
+        "order-d123daaf63dd0dd50d83c03e689fb269",
+        "order-23de67aa131de6048453929b8e3b8e3c",
+        "order-1105fefbbeb9b326cd5b7935944debeb",
+        "order-c8f77483579f766a7b5cb151025cbc2d",
+        "order-1ec939a4c2ec0aa24e9564e2dbc4cbbe",
+        "order-6ce6a1dfc5f19fcb819f58840240d028",
+        "order-fd5ba1d0c87b6e98ce38c6014c8a8afd",
+        "order-02be2350b56a04b3d72c0fa83447b850",
+        "order-b6783bd08fa00e6ea96d0eb7eace7d20",
+        "order-7777157a06b354f3c36608ec8fd9ecb5",
+        "order-875c45ba1408d777f610e195790afee2",
+        "order-785efc364d073378d69edb4ece07db05",
+        "order-957c8d99678eafd2ec71feb77c5d23ff",
+        "order-c06c95f45d766cedc6acfb8885536ccd",
+        "order-78da48b217d339e9d316e9ea17cdf62e",
+        "order-5e4d8726bb5e216c5589866073d2711d",
+        "order-a3509a06c093673d423409b8e0fa5975",
+        "order-cb2e5dfa9c3dc75fcbf03ec97198ccea",
+        "order-88aa8e70444bdf3134d65bd0b2a7d570",
+        "order-29b1c2b926ffb18b0691fe4652f43151",
+        "order-2a7188cfae9b9bbf728245b875826bfc",
+        "order-efb21190b24b46b9232ad32f3fd98a11",
+        "order-f6826328f8063f1a0b317108ab698884",
+        "order-be43a64b0b3dbd2e04639eb962eba5ef",
+        "order-9c3a5ab8ef441c55a34f771cbcf394df",
+        "order-24f97ee360c5d908796930bcd6a6716d",
+        "order-160bc20b75ef4a5e5275874087a8413f",
+        "order-0feda4e5968d7f86c273c2722145d470",
+        "order-bd6c0b57b7d817001fa604078ed8d528",
+        "order-f7c604903631ba8ad97f8e93853130b4",
+        "order-e3c79d3d24c2f0f5f98fdbe23f78733f",
+        "order-cacd82c1d933a5da13af13028ee1d974",
+        "order-c50c16870c607bd2ac6471ac65d7b17d",
+        "order-4c72b818b2284fee12ab2eca338d76ce",
+        "order-f4d95e54d68267b8a0c860349808ba01",
+        "order-a37b3767b7bc78d7c0ec67ee4bed7260",
+        "order-a7ed6e54733527679ab894fbade09ade"
+      ]
+    }
+  },
+  "knownGapsObserved": [],
+  "problems": []
+}

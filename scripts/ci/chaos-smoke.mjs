@@ -39,6 +39,10 @@ const mustHaveInjected = {
   'lost-confirmation': [['repository:lostResponse'], ['payment:lostResponse']],
   'flaky-broker': [['events:publishFailure'], ['events:duplicate'], ['events:reorder'], ['events:handlerFailure']],
   'broker-outage': [['events:outage']],
+  'bff-door': [
+    ['bff:reject', 'bff:malformed', 'bff:reset'],
+    ['bffCatalog:unavailable', 'bffOrdering:serverError'],
+  ],
 };
 // Behaviour known not to hold yet: reported in the summary, and the run still passes while it is the only problem.
 const knownGaps = {
@@ -90,6 +94,11 @@ function summarize() {
   for (const f of readdirSync(stack.out).filter((n) => n.endsWith('.log'))) {
     const text = readFileSync(path.join(stack.out, f), 'utf8');
     for (const m of text.matchAll(/chaos injected: layer=(\S+) fault=(\S+) key=/g)) {
+      const k = `${m[1]}:${m[2].split(':')[0]}`;
+      counts[k] = (counts[k] ?? 0) + 1;
+    }
+    // The BFF's journal lines are JSON ({"msg":"chaos injected","layer":...,"fault":...}); the web servers log none (their faults show in X-Chaos-Injected).
+    for (const m of text.matchAll(/"msg":"chaos injected","layer":"([^"]+)","fault":"([^"]+)"/g)) {
       const k = `${m[1]}:${m[2].split(':')[0]}`;
       counts[k] = (counts[k] ?? 0) + 1;
     }

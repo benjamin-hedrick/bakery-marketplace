@@ -1,0 +1,27 @@
+{
+  "scenario": "web-door",
+  "faultsInjectedByTheServices": {},
+  "notifications": {
+    "notificationsSent": 2,
+    "eventsSentMoreThanOnce": 0,
+    "confirmedOrders": 0,
+    "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
+    "secondsWaitedForNotificationsToSettle": 0,
+    "eventsMovedToTheDeadLetterStream": 0
+  },
+  "specMetrics": {
+    "web-door-browser": {
+      "scenario": "web-door",
+      "failuresShown": 0,
+      "chaosAnswersSeen": 0,
+      "nonJsonAnswersSeen": 0
+    },
+    "web-door-reloads": {
+      "scenario": "web-door",
+      "orders": 13,
+      "failedThenRecovered": 2
+    }
+  },
+  "knownGapsObserved": [],
+  "problems": []
+}
