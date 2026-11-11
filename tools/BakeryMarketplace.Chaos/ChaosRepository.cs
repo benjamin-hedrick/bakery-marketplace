@@ -26,11 +26,11 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
     }
 
     internal static Exception StoreFailure() =>
-        new CosmosException("ChaosRepository: simulated transient store failure.", HttpStatusCode.ServiceUnavailable, 0, string.Empty, 0);
+        new StoreUnavailableException("ChaosRepository: simulated transient store failure (as the Cosmos adapter reports a 503).", HttpStatusCode.ServiceUnavailable);
 
     /// <summary>The write was made, the answer never arrived (a request timeout).</summary>
     internal static Exception LostResponse() =>
-        new CosmosException("ChaosRepository: the write was made but the response was lost.", HttpStatusCode.RequestTimeout, 0, string.Empty, 0);
+        new StoreUnavailableException("ChaosRepository: the write was made but the response was lost (as the Cosmos adapter reports a 408).", HttpStatusCode.RequestTimeout);
 
     private static string EntityKey(string partitionKey) => $"{typeof(T).Name}/{partitionKey}";
 

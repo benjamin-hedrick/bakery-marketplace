@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using BakeryMarketplace.Data;
 using BakeryMarketplace.EventSchemas;
 using Microsoft.Extensions.Options;
 using OrderingService.Domain;
@@ -42,6 +43,23 @@ public sealed partial class CheckoutService(
 
     public async Task<CheckoutResult> CheckoutAsync(
         string customerId, string? idempotencyKey, CheckoutRequest? request, CancellationToken ct = default)
+    {
+        try
+        {
+            return await CheckoutCoreAsync(customerId, idempotencyKey, request, ct);
+        }
+        catch (Exception e) when (e is PaymentUnavailableException or StoreUnavailableException)
+        {
+            // The processor or the store could not be reached (register 170): the same answer as an unreachable catalog. Stock already taken has been given back by
+            // the step that failed. The customer's retry with the same key is safe for the store (a replay finds the order); for a payment whose answer was lost
+            // see register 171.
+            LogCheckoutUnavailable(logger, e, OrderIdFor(customerId, idempotencyKey ?? string.Empty));
+            return Unavailable();
+        }
+    }
+
+    private async Task<CheckoutResult> CheckoutCoreAsync(
+        string customerId, string? idempotencyKey, CheckoutRequest? request, CancellationToken ct)
     {
         var shape = ValidateShape(idempotencyKey, request, allergenRegistry.MaxRequestIds);
         if (shape.Count > 0) return CheckoutResult.Invalid(shape);
@@ -299,4 +317,7 @@ public sealed partial class CheckoutService(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stock reservation for {OrderId} could not be released; it needs cleanup")]
     private static partial void LogStockReleaseFailed(ILogger logger, Exception exception, string orderId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Checkout for {OrderId} answered 'try again': the payment processor or the store could not be reached")]
+    private static partial void LogCheckoutUnavailable(ILogger logger, Exception exception, string orderId);
 }

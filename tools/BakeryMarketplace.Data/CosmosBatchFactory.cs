@@ -44,7 +44,17 @@ public sealed class CosmosBatchFactory : IBatchFactory
         {
             if (_operations == 0) throw new InvalidOperationException("A batch needs at least one operation.");
 
-            using TransactionalBatchResponse response = await batch.ExecuteAsync(ct);
+            TransactionalBatchResponse response;
+            try
+            {
+                response = await batch.ExecuteAsync(ct);
+            }
+            catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+            {
+                throw StoreUnavailableException.From(ex);
+            }
+
+            using var _ = response;
             if (response.IsSuccessStatusCode) return true;
 
             // When a batch fails, the operation that failed carries the real status and the rest are 424 (failed dependency).
@@ -53,6 +63,8 @@ public sealed class CosmosBatchFactory : IBatchFactory
                 .FirstOrDefault(code => code != HttpStatusCode.FailedDependency && (int)code >= 400, response.StatusCode);
 
             if (cause is HttpStatusCode.PreconditionFailed or HttpStatusCode.Conflict or HttpStatusCode.NotFound) return false;
+            if (StoreUnavailableException.IsTransport(cause))
+                throw new StoreUnavailableException($"The store could not be reached or did not answer in time (HTTP {(int)cause}).", cause);
             throw new InvalidOperationException($"The transactional batch failed with HTTP {(int)cause} ({response.ErrorMessage}).");
         }
 

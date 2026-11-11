@@ -140,7 +140,7 @@ public sealed class ChaosHostTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AProcessorThatFails_LeavesNoReservationBehind_AndTheCustomerGetsAServerError()
+    public async Task AProcessorThatFails_LeavesNoReservationBehind_AndTheCustomerGets503()
     {
         await using var factory = Host("""{ "payment": { "failureRate": 1 } }""");
         var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
@@ -150,9 +150,9 @@ public sealed class ChaosHostTests : IAsyncLifetime
 
         Assert.Equal(1, runtime.Journal.Count("payment", "failure"));
         Assert.Empty(_catalog.Reservations); // released even though the step threw (the reserved flag in CheckoutService)
-        // What the chaos layer showed: a processor that cannot be reached is a bare 500, where a catalog that cannot be reached is a 503
-        // "downstream_unavailable". Recorded in the register (169); this test pins today's behaviour so a change to it is deliberate.
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        // A processor that cannot be reached is the same answer as a catalog that cannot be reached (register 170): 503 "downstream_unavailable".
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Contains("downstream_unavailable", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public sealed class ChaosHostTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AStoreThatFails_LeavesNoReservationBehind_AndTheCustomerGetsAServerError()
+    public async Task AStoreThatFails_LeavesNoReservationBehind_AndTheCustomerGets503()
     {
         await using var factory = Host("""{ "repository": { "failureRate": 1 } }""");
         var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
@@ -224,8 +224,8 @@ public sealed class ChaosHostTests : IAsyncLifetime
         Assert.True(runtime.Journal.Count("repository", "failure") >= 1);
         Assert.Contains("repository:failure", response.Headers.GetValues(ChaosIndicatorMiddleware.InjectedHeader).Single());
         Assert.Empty(_catalog.Reservations); // whatever the store did, the reservation was given back
-        // What the chaos layer showed: a failing store is a bare 500, where a catalog that cannot be reached is a 503 (register 170).
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        // A store that cannot be reached is the same answer as a catalog that cannot be reached (register 170).
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
     }
 
     // ---- the ambiguous failure: the work was done, the answer was lost ----
@@ -249,8 +249,8 @@ public sealed class ChaosHostTests : IAsyncLifetime
         var chaos = new OrderingService.Chaos.ChaosPaymentProcessor(inner, runtime.Layer("payment"));
         var request = new PaymentRequest("order-1", "customer-1", 900, "USD", "tok");
 
-        await Assert.ThrowsAsync<TimeoutException>(() => chaos.AuthorizeAsync(request));
-        await Assert.ThrowsAsync<TimeoutException>(() => chaos.AuthorizeAsync(request)); // the customer retries the checkout
+        await Assert.ThrowsAsync<PaymentUnavailableException>(() => chaos.AuthorizeAsync(request));
+        await Assert.ThrowsAsync<PaymentUnavailableException>(() => chaos.AuthorizeAsync(request)); // the customer retries the checkout
 
         Assert.Equal(2, runtime.Journal.Count("payment", "lostResponse"));
         // Two authorizations for one order: today's processor interface has no idempotency key and no void. A real processor must be called with the
@@ -259,7 +259,7 @@ public sealed class ChaosHostTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ACheckoutWhosePaymentResponseIsLost_ReleasesTheStock_AndTheCustomerGetsAServerError()
+    public async Task ACheckoutWhosePaymentResponseIsLost_ReleasesTheStock_AndTheCustomerGets503()
     {
         await using var factory = Host("""{ "payment": { "lostResponseRate": 1 } }""");
         var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
@@ -270,7 +270,7 @@ public sealed class ChaosHostTests : IAsyncLifetime
         Assert.Equal(1, runtime.Journal.Count("payment", "lostResponse"));
         Assert.Contains("payment:lostResponse", response.Headers.GetValues(ChaosIndicatorMiddleware.InjectedHeader).Single());
         Assert.Empty(_catalog.Reservations);
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode); // register 170
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode); // register 170
     }
 
     [Fact]
@@ -285,7 +285,7 @@ public sealed class ChaosHostTests : IAsyncLifetime
         var first = await PostCheckout(customer, Checkout(), key);
 
         Assert.True(runtime.Journal.Count("repository", "lostResponse") >= 1, "the write must have been made and its response lost");
-        Assert.Equal(HttpStatusCode.InternalServerError, first.StatusCode); // the customer is told it failed ...
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, first.StatusCode); // the customer is told to try again ...
         Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync($"/ordering/orders/{orderId}")).StatusCode); // ... but the order is there
 
         var replay = await PostCheckout(customer, Checkout(), key); // the customer tries again with the same idempotency key

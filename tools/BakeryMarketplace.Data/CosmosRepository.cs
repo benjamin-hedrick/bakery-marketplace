@@ -43,18 +43,29 @@ public class CosmosRepository<T> : IRepository<T> where T : class
         {
             return null;
         }
+        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        {
+            throw StoreUnavailableException.From(ex);
+        }
     }
 
     public async Task<T> SaveAsync(T entity, string partitionKey, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        ItemResponse<T> response = await _container.UpsertItemAsync<T>(
-            entity,
-            new PartitionKey(partitionKey ?? string.Empty),
-            cancellationToken: ct);
+        try
+        {
+            ItemResponse<T> response = await _container.UpsertItemAsync<T>(
+                entity,
+                new PartitionKey(partitionKey ?? string.Empty),
+                cancellationToken: ct);
 
-        return response.Resource;
+            return response.Resource;
+        }
+        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        {
+            throw StoreUnavailableException.From(ex);
+        }
     }
 
     public async Task<T?> SaveIfUnchangedAsync(T entity, string partitionKey, CancellationToken ct = default)
@@ -78,6 +89,10 @@ public class CosmosRepository<T> : IRepository<T> where T : class
             // Changed, created or deleted by someone else since it was read.
             return null;
         }
+        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        {
+            throw StoreUnavailableException.From(ex);
+        }
     }
 
     public async Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default)
@@ -94,6 +109,10 @@ public class CosmosRepository<T> : IRepository<T> where T : class
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
             // Idempotent delete: ignore if not found
+        }
+        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        {
+            throw StoreUnavailableException.From(ex);
         }
     }
 
@@ -117,11 +136,23 @@ public class CosmosRepository<T> : IRepository<T> where T : class
 
         while (feedIterator.HasMoreResults)
         {
-            FeedResponse<T> response = await feedIterator.ReadNextAsync(ct);
+            FeedResponse<T> response = await ReadNextAsync(feedIterator, ct);
             foreach (T item in response)
             {
                 yield return item;
             }
+        }
+    }
+
+    private static async Task<FeedResponse<T>> ReadNextAsync(FeedIterator<T> iterator, CancellationToken ct)
+    {
+        try
+        {
+            return await iterator.ReadNextAsync(ct);
+        }
+        catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+        {
+            throw StoreUnavailableException.From(ex);
         }
     }
 }
