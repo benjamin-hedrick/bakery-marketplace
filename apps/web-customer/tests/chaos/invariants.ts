@@ -86,6 +86,7 @@ export async function placeBatchAndCheck(
   const queueAfter = await vendorOrderIds(vendor);
   const stray = queueAfter.filter((id) => !queueBefore.has(id) && !want.includes(id));
   expect(stray, 'the vendor queue shows orders that were never confirmed').toEqual([]);
+  expect(new Set(queueAfter).size, 'an order appears twice in the vendor queue').toBe(queueAfter.length);
 
   const attemptsPerOrder = placements.map((p) => p.attempts);
   recordMetrics(name, {
@@ -97,6 +98,7 @@ export async function placeBatchAndCheck(
     stockBefore,
     stockAfter,
     confirmedOrdersWhoseStockIsNotHeld: stockDiscrepancy,
+    confirmedServiceOrderIds: confirmed.map((id) => Buffer.from(id, 'base64').toString('utf8').split(':')[1]),
     outcomesOfUnconfirmedOrders: unconfirmed.map((u) => ({
       orderId: serviceOrderId('user-customer-1', u.key),
       outcomes: u.outcomes,
