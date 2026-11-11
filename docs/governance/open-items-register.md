@@ -954,7 +954,7 @@ The calls that must fail at checkout (`listPaymentMethods`, `getPreferences`, `c
 
 **174. Review and streamline `CLAUDE.md`**
 Type: Process · Source: the lead, 2026-11-10 · Hat: Process
-Status: Open (a note; no work started)
+Status: Resolved 2026-11-11 (the lead approved the draft: `CLAUDE.md` went from 19.8 KB to about 8.6 KB. Dated status now lives only in `STATUS.md`, `current-plan.md`, the register and `scripts.md`; the push and PR rule was added to it; the commands it dropped were checked against the READMEs, `local-dev.md` and `quality-gates.md`, and two gaps found there (the `packages/chaos` install order and its package commands) were fixed)
 `CLAUDE.md` has grown long and carries a lot of status that goes stale (the first paragraph repeats what `current-plan.md` and `STATUS.md` say; the command list mixes stable commands with per-session verification history). The usage screen says the same: about 5k tokens of it are sent with every request, and it names trimming it as 20% of what drives usage (readings of 2026-11-09 and 2026-11-10). Review it and cut it to what a session needs to start: what the repo is, the commands, the architecture rules, the working conventions and the approval rules. Move or drop dated status; keep what a new session cannot find in a file in two minutes. Needs the lead's review of what stays.
 
 **175. Change the session usage record: no wall time, relative cost instead of dollars**
