@@ -116,33 +116,33 @@ What has worked in this repository, stated as practice:
 
 ## What the sessions cost
 
-Each Claude Code session's cost, time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. Twenty sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
+Each Claude Code session's cost, model time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. **Cost is shown as a relative cost, not as money:** the screen's figure divided by a base of 2.00 (the size of a small session), to two decimals, so a session of 12.00 was about twelve times that small one. The screen's dollar figures are not an accurate measure of what the work costs most users, and they were left out on purpose (register 175, 2026-11-11). Wall-clock time is not recorded: it is mostly the lead reading, deciding and waiting, and says little. Twenty sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
 
-| Session | Work | Cost | API time | Wall-clock | Lines added |
-|---|---|---:|---:|---:|---:|
-| A (date not recorded) | an earlier session | $9.59 | 37 min | 4 h 20 min | 2,720 |
-| B, 2026-10-31 | the dev-environment and teardown work | $2.88 | 12 min | 3 h 19 min | 1,224 |
-| C, 2026-11-01 | browser sessions and the vendor queue's read side | $34.81 | 1 h 27 min | 12 h 59 min | 11,083 |
-| D, 2026-11-02 | the live vendor queue | $21.33 | 1 h 5 min | 6 h 28 min | 6,992 |
-| E, 2026-11-02 evening | vendor actions, rate limits, the security and quality pass | $13.81 | 41 min | 5 h 58 min | 3,462 |
-| F, 2026-11-03 | the notification service | $2.44 | 12 min | 1 h 30 min | 1,252 |
-| G, 2026-11-03 to 04 | order history, start of personalization | $14.07 | 42 min | 3 h 34 min | 4,761 |
-| H, 2026-11-04 | the rest of personalization | $18.82 | 1 h 3 min | 3 h 44 min | 7,529 |
-| 2026-11-04 | the mobile spike | $2.05 | 9 min | 1 h 17 min | 184 |
-| 2026-11-04 | the Android app build | $22.90 | 50 min | 5 h 19 min | 3,243 |
-| 2026-11-05 | static analysis and documents | $1.34 | 6 min | 46 min | 198 |
-| 2026-11-06 | the register walk-through | $5.47 | 25 min | 4 h 35 min | 624 |
-| 2026-11-06 | register items and payment methods (`WI-ORD-010`) | $10.18 | 37 min | 4 h 5 min | 2,161 |
-| 2026-11-07 | CI fixes, the listing cache, cancel buttons, order polling | $24.38 | 49 min | 6 h 4 min | 3,850 |
-| 2026-11-07 (second) | the fulfillment strategy, the dependency audit, the demo film's scripts | $9.73 | 25 min | 3 h 46 min | 2,213 |
-| 2026-11-08 | the demo film's runs and the documentation pass | $11.14 | 33 min | 4 h 27 min | 1,076 |
-| 2026-11-08 (second session) | the full documentation read, code review rounds 1 and 2, the transport and outbox fixes | $33.65 | 48 min | 4 h 1 min | 1,445 |
-| 2026-11-08 into 2026-11-09 (third session) | review fixes, the full test report, the Cosmos test fix, the latency run, the Maestro runs | $18.89 | 30 min | 4 h 26 min | 1,056 |
-| 2026-11-09 (fourth session) | the failed CI check, the full Maestro and browser runs, the Cosmos tests, the stranger's-eye fixes, the push | $3.25 | 10 min | 4 h 22 min | 267 |
-| 2026-11-09 (fifth session) | chaos scenarios: ADR-0024, the .NET layers, the lost-response fault, the TypeScript package and the BFF's gate | $12.23 | 38 min | 3 h 40 min | 5,249 |
-| **Total** | | **$272.96** | **11 h 59 min** | **88 h 41 min** | **60,589** |
+| Session | Work | Relative cost | API time | Lines added |
+|---|---|---:|---:|---:|
+| A (date not recorded) | an earlier session | 4.79 | 37 min | 2,720 |
+| B, 2026-10-31 | the dev-environment and teardown work | 1.44 | 12 min | 1,224 |
+| C, 2026-11-01 | browser sessions and the vendor queue's read side | 17.41 | 1 h 27 min | 11,083 |
+| D, 2026-11-02 | the live vendor queue | 10.66 | 1 h 5 min | 6,992 |
+| E, 2026-11-02 evening | vendor actions, rate limits, the security and quality pass | 6.91 | 41 min | 3,462 |
+| F, 2026-11-03 | the notification service | 1.22 | 12 min | 1,252 |
+| G, 2026-11-03 to 04 | order history, start of personalization | 7.04 | 42 min | 4,761 |
+| H, 2026-11-04 | the rest of personalization | 9.41 | 1 h 3 min | 7,529 |
+| 2026-11-04 | the mobile spike | 1.02 | 9 min | 184 |
+| 2026-11-04 | the Android app build | 11.45 | 50 min | 3,243 |
+| 2026-11-05 | static analysis and documents | 0.67 | 6 min | 198 |
+| 2026-11-06 | the register walk-through | 2.73 | 25 min | 624 |
+| 2026-11-06 | register items and payment methods (`WI-ORD-010`) | 5.09 | 37 min | 2,161 |
+| 2026-11-07 | CI fixes, the listing cache, cancel buttons, order polling | 12.19 | 49 min | 3,850 |
+| 2026-11-07 (second) | the fulfillment strategy, the dependency audit, the demo film's scripts | 4.87 | 25 min | 2,213 |
+| 2026-11-08 | the demo film's runs and the documentation pass | 5.57 | 33 min | 1,076 |
+| 2026-11-08 (second session) | the full documentation read, code review rounds 1 and 2, the transport and outbox fixes | 16.82 | 48 min | 1,445 |
+| 2026-11-08 into 2026-11-09 (third session) | review fixes, the full test report, the Cosmos test fix, the latency run, the Maestro runs | 9.45 | 30 min | 1,056 |
+| 2026-11-09 (fourth session) | the failed CI check, the full Maestro and browser runs, the Cosmos tests, the stranger's-eye fixes, the push | 1.62 | 10 min | 267 |
+| 2026-11-09 (fifth session) | chaos scenarios: ADR-0024, the .NET layers, the lost-response fault, the TypeScript package and the BFF's gate | 6.12 | 38 min | 5,249 |
+| **Total** |  | **136.48** | **11 h 59 min** | **60,589** |
 
-Read it with care. A session's wall-clock time is mostly the lead reading, deciding and waiting (API time is the assistant working: about one hour in seven). Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the cost by the 85 items gives about $2.40 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
+Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), 23 decisions, a test suite and a set of evidence records; dividing the relative cost by the 85 items gives about 1.61 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
 
 ## AI-assisted testing
 
