@@ -44,6 +44,10 @@ public sealed class ChaosScenario
             "unavailableRate", "lostResponseRate", "rejectRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
         // The notification service's sender: a delivery that fails, slowness.
+        ["contacts"] = new HashSet<string>
+        {
+            "failureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
         ["notification"] = new HashSet<string>
         {
             "failureRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",

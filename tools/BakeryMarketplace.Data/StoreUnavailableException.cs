@@ -18,6 +18,15 @@ public sealed class StoreUnavailableException(string message, HttpStatusCode sta
     public static bool IsTransport(HttpStatusCode status) =>
         status is HttpStatusCode.ServiceUnavailable or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests;
 
-    internal static StoreUnavailableException From(CosmosException e) =>
-        new($"The store could not be reached or did not answer in time (HTTP {(int)e.StatusCode}).", e.StatusCode, e);
+    /// <summary>
+    /// True for what a store that cannot be reached looks like to the SDK's caller: a Cosmos 503, 408 or 429, or the <see cref="HttpRequestException"/> the SDK
+    /// lets through when it cannot even connect (found by running the SDK against a closed port: no CosmosException is made then). Nothing else: not a
+    /// cancellation by the caller, not a bug, not a conflict.
+    /// </summary>
+    public static bool IsTransportFailure(Exception e) =>
+        e is CosmosException c ? IsTransport(c.StatusCode) : e is HttpRequestException;
+
+    internal static StoreUnavailableException From(Exception e) => e is CosmosException c
+        ? new($"The store could not be reached or did not answer in time (HTTP {(int)c.StatusCode}).", c.StatusCode, c)
+        : new("The store could not be reached.", HttpStatusCode.ServiceUnavailable, e);
 }

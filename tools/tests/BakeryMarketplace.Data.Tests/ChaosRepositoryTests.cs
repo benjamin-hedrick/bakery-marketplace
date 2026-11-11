@@ -216,3 +216,15 @@ public class StoreUnavailableExceptionTests
     public void OnlyTheTransportClassStatusesAreUnavailable(HttpStatusCode status, bool expected) =>
         Assert.Equal(expected, StoreUnavailableException.IsTransport(status));
 }
+
+public class StoreUnavailableClassificationTests
+{
+    [Fact]
+    public void ACouldNotConnectFailureIsTransport_ACallersCancellationAndABugAreNot()
+    {
+        Assert.True(StoreUnavailableException.IsTransportFailure(new HttpRequestException("refused")));
+        Assert.False(StoreUnavailableException.IsTransportFailure(new OperationCanceledException()));
+        Assert.False(StoreUnavailableException.IsTransportFailure(new InvalidOperationException()));
+        Assert.False(StoreUnavailableException.IsTransportFailure(new ArgumentException()));
+    }
+}

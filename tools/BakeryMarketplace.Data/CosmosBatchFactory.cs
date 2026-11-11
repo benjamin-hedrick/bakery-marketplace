@@ -49,7 +49,7 @@ public sealed class CosmosBatchFactory : IBatchFactory
             {
                 response = await batch.ExecuteAsync(ct);
             }
-            catch (CosmosException ex) when (StoreUnavailableException.IsTransport(ex.StatusCode))
+            catch (Exception ex) when (StoreUnavailableException.IsTransportFailure(ex))
             {
                 throw StoreUnavailableException.From(ex);
             }
