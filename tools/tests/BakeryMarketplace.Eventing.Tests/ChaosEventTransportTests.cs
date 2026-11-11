@@ -51,7 +51,7 @@ public sealed class ChaosEventTransportTests
         var (chaos, runtime) = Build(("publishFailureRate", 1.0));
         var received = await Collect(chaos);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => chaos.PublishAsync(Make("a")));
+        await Assert.ThrowsAsync<EventTransportException>(() => chaos.PublishAsync(Make("a")));
 
         Assert.Equal(1, runtime.Journal.Count("events", "publishFailure"));
         Assert.Empty(received);
@@ -63,7 +63,7 @@ public sealed class ChaosEventTransportTests
         var (chaos, runtime) = Build(("outageWindowSeconds", 0.2));
         var received = await Collect(chaos);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => chaos.PublishAsync(Make("during")));
+        await Assert.ThrowsAsync<EventTransportException>(() => chaos.PublishAsync(Make("during")));
         await Task.Delay(300);
         await chaos.PublishAsync(Make("after"));
 
@@ -106,8 +106,8 @@ public sealed class ChaosEventTransportTests
         var received = await Collect(chaos);
         var envelope = Make("sent-but-unconfirmed");
 
-        await Assert.ThrowsAsync<TimeoutException>(() => chaos.PublishAsync(envelope));
-        await Assert.ThrowsAsync<TimeoutException>(() => chaos.PublishAsync(envelope)); // the outbox's retry
+        await Assert.ThrowsAsync<EventTransportException>(() => chaos.PublishAsync(envelope));
+        await Assert.ThrowsAsync<EventTransportException>(() => chaos.PublishAsync(envelope)); // the outbox's retry
 
         Assert.Equal(2, runtime.Journal.Count("events", "lostResponse"));
         Assert.Equal(2, received.Count); // delivered twice, both times with the same id: consumers must be idempotent
@@ -216,7 +216,7 @@ public sealed class ChaosEventTransportTests
             foreach (var id in ids)
             {
                 try { await chaos.PublishAsync(Make("p") with { EventId = id }); outcome += "o"; }
-                catch (InvalidOperationException) { outcome += "x"; }
+                catch (EventTransportException) { outcome += "x"; }
             }
 
             return outcome;
@@ -237,7 +237,7 @@ public sealed class ChaosEventTransportTests
         {
             attempts++;
             try { await retrying.PublishAsync(envelope); break; }
-            catch (InvalidOperationException) { }
+            catch (EventTransportException) { }
         }
 
         Assert.True(attempts < 50, "a retried event must eventually get through");

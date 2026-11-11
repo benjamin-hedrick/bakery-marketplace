@@ -341,6 +341,9 @@ internal sealed class RecordingEvents : BakeryMarketplace.Eventing.IEventPublish
 
     public bool Fail { get; set; }
 
+    /// <summary>Fails the way an unreachable broker does (register item 182): a failure retrying may fix.</summary>
+    public bool FailAsTransport { get; set; }
+
     /// <summary>When set, publishing waits for this to complete (a hung broker).</summary>
     public Task? Hang { get; set; }
 
@@ -358,6 +361,7 @@ internal sealed class RecordingEvents : BakeryMarketplace.Eventing.IEventPublish
     public async Task PublishAsync<T>(BakeryMarketplace.Eventing.DomainEventEnvelope<T> envelope, CancellationToken ct = default)
     {
         if (Hang is not null) await Hang;
+        if (FailAsTransport) throw new BakeryMarketplace.Eventing.EventTransportException("scripted broker outage");
         if (Fail || FailOnlyType == envelope.EventType) throw new InvalidOperationException("scripted broker failure");
         lock (_gate)
         {

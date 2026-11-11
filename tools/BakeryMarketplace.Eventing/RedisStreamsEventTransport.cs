@@ -27,7 +27,7 @@ public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEvent
     public RedisStreamsEventTransport(
         IConnectionMultiplexer multiplexer,
         int db = -1,
-        int maxDeliveryAttempts = 3,
+        int maxDeliveryAttempts = 6,
         int? maxStreamLength = null,
         string? serviceName = null,
         TimeSpan? redeliverAfter = null,
@@ -39,7 +39,7 @@ public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEvent
     /// <param name="logger">Where failures are reported: a poll that failed, a handler that threw, an entry that could not be read. Null logs nothing.</param>
     public RedisStreamsEventTransport(
         IDatabase database,
-        int maxDeliveryAttempts = 3,
+        int maxDeliveryAttempts = 6,
         int? maxStreamLength = null,
         string? serviceName = null,
         TimeSpan? redeliverAfter = null,
@@ -63,6 +63,13 @@ public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEvent
     /// <summary>How long a delivered message may stay unacknowledged before it is handed to a consumer again.</summary>
     public static readonly TimeSpan DefaultRedeliverAfter = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// How long a message that has been delivered <paramref name="deliveries"/> times waits before the next delivery: the redeliver time doubled for
+    /// each earlier failure, up to 16 times (register item 183). A handler outage that lasts a few minutes is outlasted instead of dead-lettered.
+    /// </summary>
+    internal TimeSpan RedeliveryDelay(long deliveries) =>
+        _redeliverAfter * Math.Pow(2, Math.Clamp(deliveries - 1, 0, 4));
+
     private static int? ValidateMaxStreamLength(int? value) =>
         value is null or > 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), "The stream length limit must be positive, or null for no limit.");
 
@@ -83,7 +90,15 @@ public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEvent
 
         // With a limit, Redis trims the oldest entries (approximately: whole internal blocks, so it is cheap). Trimming removes entries
         // even if a consumer group has not read them yet, so the limit must be far above the backlog a consumer could fall behind by.
-        await _database.StreamAddAsync(streamKey, entries, maxLength: _maxStreamLength, useApproximateMaxLength: _maxStreamLength is not null);
+        try
+        {
+            await _database.StreamAddAsync(streamKey, entries, maxLength: _maxStreamLength, useApproximateMaxLength: _maxStreamLength is not null);
+        }
+        catch (Exception ex) when (ex is RedisConnectionException or RedisTimeoutException or TimeoutException)
+        {
+            // The broker is unreachable or slow: a failure retrying may fix, told apart from one it cannot (register item 182).
+            throw new EventTransportException($"The event broker could not be reached to publish to {streamKey}: {ex.Message}", ex);
+        }
     }
 
     public Task SubscribeAsync<T>(
@@ -177,7 +192,7 @@ public sealed partial class RedisStreamsEventTransport : IEventPublisher, IEvent
                     {
                         lastReclaim = DateTimeOffset.UtcNow;
                         var pending = (await _database.StreamPendingMessagesAsync(streamKey, groupName, 10, RedisValue.Null))
-                            .Where(p => p.IdleTimeInMilliseconds >= _redeliverAfter.TotalMilliseconds).ToArray();
+                            .Where(p => p.IdleTimeInMilliseconds >= RedeliveryDelay(p.DeliveryCount).TotalMilliseconds).ToArray();
                         if (pending.Length > 0)
                         {
                             var claimed = await _database.StreamClaimAsync(

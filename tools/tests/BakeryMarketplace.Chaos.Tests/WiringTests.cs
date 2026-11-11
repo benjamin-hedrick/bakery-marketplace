@@ -62,7 +62,7 @@ public sealed class WiringTests
         for (var i = 0; i < 40; i++)
         {
             try { await publisher.PublishAsync(Make()); }
-            catch (InvalidOperationException) { failures++; }
+            catch (EventTransportException) { failures++; }
         }
 
         Assert.InRange(failures, 1, 39); // publishFailureRate 0.3: some fail, not all
@@ -89,7 +89,7 @@ public sealed class WiringTests
                     await publisher.PublishAsync(Make() with { EventId = id });
                     outcome += "o";
                 }
-                catch (InvalidOperationException) { outcome += "x"; }
+                catch (EventTransportException) { outcome += "x"; }
             }
 
             return outcome;

@@ -159,7 +159,7 @@ public sealed class RedisChaosEventTransportTests : IDisposable
         var handled = new List<string>();
         await chaos.SubscribeAsync<string>(type, (e, _) => { lock (handled) handled.Add(e.Payload); return Task.CompletedTask; });
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => chaos.PublishAsync(Envelope(type, "during")));
+        await Assert.ThrowsAsync<EventTransportException>(() => chaos.PublishAsync(Envelope(type, "during")));
         Assert.Equal(1, runtime.Journal.Count("events", "outage"));
         Assert.Equal(0, _redis.Value.GetDatabase().StreamLength($"events:{type}")); // nothing reached the stream
 
