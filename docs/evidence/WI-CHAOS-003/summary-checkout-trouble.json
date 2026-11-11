@@ -1,0 +1,46 @@
+{
+  "scenario": "checkout-trouble",
+  "faultsInjectedByTheServices": {
+    "repository:latency": 799,
+    "repository:conflict": 30,
+    "payment:latency": 53,
+    "broadcast:drop": 24,
+    "catalog:unavailable": 29,
+    "payment:decline": 5,
+    "catalog:reject": 5
+  },
+  "specMetrics": {
+    "checkout-trouble-recovery": {
+      "scenario": "checkout-trouble",
+      "orders": 12,
+      "neededARetry": 5,
+      "notRecoveredAfterRetries": 0,
+      "outcomesOfNotRecovered": []
+    },
+    "checkout-trouble": {
+      "scenario": "checkout-trouble",
+      "orders": 30,
+      "confirmed": 30,
+      "notConfirmedAfterRetries": 0,
+      "lostOrders": 0,
+      "duplicateOrders": 0,
+      "stockBefore": 70,
+      "stockAfter": 40,
+      "confirmedOrdersWhoseStockIsNotHeld": 0,
+      "outcomesOfUnconfirmedOrders": [],
+      "outcomesOfAllAttempts": {
+        "success": 30,
+        "INTERNAL": 25,
+        "PAYMENT_DECLINED": 4,
+        "CONFLICT": 3
+      },
+      "retriesNeeded": {
+        "max": 7,
+        "total": 32
+      },
+      "secondsToQueueConvergence": 0.076
+    }
+  },
+  "knownGapsObserved": [],
+  "problems": []
+}

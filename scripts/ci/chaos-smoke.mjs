@@ -39,6 +39,7 @@ const mustHaveInjected = {
   'lost-confirmation': [['repository:lostResponse'], ['payment:lostResponse']],
   'flaky-broker': [['events:publishFailure'], ['events:duplicate'], ['events:reorder'], ['events:handlerFailure']],
   'broker-outage': [['events:outage']],
+  'slow-cache': [['cache:failure', 'cache:latency']],
   'bff-door': [
     ['bff:reject', 'bff:malformed', 'bff:reset'],
     ['bffCatalog:unavailable', 'bffOrdering:serverError'],
@@ -187,7 +188,7 @@ try {
   for (const f of existsSync(stack.out) ? readdirSync(stack.out) : [])
     if (f.startsWith('metrics-') && f.endsWith('.json')) unlinkSync(path.join(stack.out, f));
   stack.up();
-  await stack.startServices({ notification: true });
+  await stack.startServices({ notification: true, cacheRedis: scenario === 'slow-cache' });
   await stack.startWeb();
   await stack.startQueue();
 

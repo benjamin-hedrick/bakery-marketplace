@@ -1,0 +1,50 @@
+{
+  "scenario": "slow-cache",
+  "faultsInjectedByTheServices": {
+    "cache:latency": 21,
+    "cache:failure": 7
+  },
+  "notifications": {
+    "notificationsSent": 16,
+    "eventsSentMoreThanOnce": 0,
+    "confirmedOrders": 0,
+    "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
+    "secondsWaitedForNotificationsToSettle": 0,
+    "eventsMovedToTheDeadLetterStream": 0
+  },
+  "specMetrics": {
+    "slow-cache-freshness": {
+      "scenario": "slow-cache",
+      "ttlSeconds": 60,
+      "secondsUntilCustomerSawSoldOut": [
+        0.014,
+        0.014,
+        0.014,
+        0.016
+      ],
+      "secondsUntilCustomerSawItAvailableAgain": [
+        0.013,
+        0.014,
+        0.024,
+        0.013
+      ],
+      "changesThatTookMoreThanASecond": 0
+    },
+    "slow-cache-orders": {
+      "scenario": "slow-cache",
+      "ordersPlaced": 8,
+      "ordersMissingFromTheListRightAfter": 0,
+      "cacheControlSeen": [
+        "private, no-store"
+      ]
+    },
+    "slow-cache-reads": {
+      "scenario": "slow-cache",
+      "reads": 40,
+      "failedReads": 0,
+      "distinctAnswers": 1
+    }
+  },
+  "knownGapsObserved": [],
+  "problems": []
+}

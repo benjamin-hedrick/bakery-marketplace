@@ -1,6 +1,6 @@
 # ADR-0024: Chaos Scenarios: Seeded, Configured Fault Injection at the Interface Layer
 
-**Status:** Proposed (2026-11-09). The lead decided the location, the scope (all services and the BFF) and that a new ADR is written; the text below is not yet accepted. It extends ADR-0002 (chaos decorators and the Production gate) and ADR-0003 (events) and does not change either decision text; ADR-0002 is to be amended after this settles. The design and its assessment are in [chaos-scenarios-proposal.md](../chaos-scenarios-proposal.md).
+**Status:** Accepted (2026-11-11), after the seven scenarios ran on the whole local stack (see the note at the end). Proposed 2026-11-09: the lead decided the location, the scope (all services and the BFF) and that a new ADR is written. It extends ADR-0002 (chaos decorators and the Production gate) and ADR-0003 (events) and does not change either decision text; ADR-0002 is to be amended after this settles. The design and its assessment are in [chaos-scenarios-proposal.md](../chaos-scenarios-proposal.md).
 
 ## Context
 
@@ -41,3 +41,7 @@ The decision text above is unchanged. Two things are added to the scenario file,
 3. **Identity.** The customer is read from the bearer token's payload without checking the signature, only to choose which calls a rule is about. It decides nothing about access; every service still validates the token itself (ADR-0006). The customer is not written to the journal or the logs.
 
 The gate is unchanged: nothing here exists where chaos is refused, and a scenario without these sections behaves as before. `chaos/layers.json` lists the sections and the signal actions, and both libraries are tested against it.
+
+## Acceptance note 2026-11-11
+
+The lead accepted this ADR on 2026-11-11 on the condition that the evidence is documented. The decision text is unchanged. The evidence is in [`docs/evidence/WI-CHAOS-003/`](../../evidence/WI-CHAOS-003/README.md): seven scenarios (`checkout-trouble`, `lost-confirmation`, `flaky-broker`, `broker-outage`, `bff-door`, `web-door`, `slow-cache`) were each run on the whole local stack with every layer the scenario names, each journal showed the faults injected, and no run ended with a problem. The runs found two defects in the system that the unit tests had not (register 179 and 180 in checkout, 182 and 183 in the event outbox and redelivery, all fixed) and one gap that stays open (171, payment authorized twice and a notification sent twice, to be closed with a real provider). What the evidence does **not** cover, and so what this acceptance does not claim: (1) the aimed faults and signals of the amendment of 2026-11-10 on the Android emulator (flows 07 and 11 were never run; they are covered by unit and host tests only); (2) a failed cache invalidation leaving a stale entry until the TTL (`slow-cache` did not reach it); (3) the web servers keep no journal of the layers they applied, so `web-door` is shown by the browser's own figures. The Node allow-list (`DEPLOYMENT_ENVIRONMENT` local or dev, or `NODE_ENV` development or test) is accepted as built. ADR-0002 carries the matching amendment note.

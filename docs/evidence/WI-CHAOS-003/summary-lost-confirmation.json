@@ -1,0 +1,68 @@
+{
+  "scenario": "lost-confirmation",
+  "faultsInjectedByTheServices": {
+    "repository:lostResponse": 73,
+    "payment:lostResponse": 35
+  },
+  "specMetrics": {
+    "lost-confirmation-payment": {
+      "scenario": "lost-confirmation",
+      "customerId": "user-customer-1",
+      "keys": [
+        "lost-payment-a19205af-19b2-4f69-85dc-2caf6a59d77d",
+        "lost-payment-02876a08-2b3f-4218-8a65-79a011487de9",
+        "lost-payment-9871899d-31c6-4e03-a065-1e41fc4091a8",
+        "lost-payment-7c99a56f-6778-4a28-9c33-21036f2adb05",
+        "lost-payment-5cd3363d-9f83-4ed0-bb9c-6f4c453f81de",
+        "lost-payment-6b90b3a3-1972-4da9-af26-9361bb4d1115",
+        "lost-payment-fa2704d9-6b33-4a7a-bb79-9dd8e0da6af6",
+        "lost-payment-fde36704-9482-448a-bf14-bfdc57cc03e5",
+        "lost-payment-083d55b3-ee99-4926-abde-2b7315547007",
+        "lost-payment-1e797829-9809-43ee-b4c6-413f362d83ec",
+        "lost-payment-6faf2edb-d4fe-4739-93f1-dc206ae3ad22",
+        "lost-payment-42c19778-abbb-4153-93b0-a5978140e3b9",
+        "lost-payment-eef584cc-b4d4-4ffd-8dc4-293b66900319",
+        "lost-payment-11583c39-1bad-49b7-8415-a07cc9a40d37",
+        "lost-payment-c084684b-580f-4cdb-874e-2176354b490a",
+        "lost-payment-2af5cacf-ab9f-4861-af81-4ca46bc918ef",
+        "lost-payment-42d49e8a-fdc7-41cd-b60c-ccb24af8b89e",
+        "lost-payment-4c61628c-75e8-4eda-b2e3-2a3ce490c66d",
+        "lost-payment-8d7d63cc-58d2-42c9-9f1e-010912ee7c8a",
+        "lost-payment-8ffbb60d-a729-4d64-b07c-b70a799b282c",
+        "lost-payment-bf16ff16-eae3-4ec8-bb59-17c7d8663dae",
+        "lost-payment-9b39c634-8a10-4cae-aa08-5c65b9e551ba",
+        "lost-payment-54787587-73af-4368-a7e4-6a6b271be364",
+        "lost-payment-a118787d-c57c-496f-8178-3612d1863f5b",
+        "lost-payment-190fb5b8-18e6-462d-867e-f181f501dd8a"
+      ],
+      "confirmed": 25,
+      "notRecoveredAfterRetries": 0,
+      "ordersAuthorizedMoreThanOnce": 13
+    },
+    "lost-confirmation": {
+      "scenario": "lost-confirmation",
+      "orders": 30,
+      "confirmed": 30,
+      "notConfirmedAfterRetries": 0,
+      "lostOrders": 0,
+      "duplicateOrders": 0,
+      "stockBefore": 70,
+      "stockAfter": 40,
+      "confirmedOrdersWhoseStockIsNotHeld": 0,
+      "outcomesOfUnconfirmedOrders": [],
+      "outcomesOfAllAttempts": {
+        "INTERNAL": 38,
+        "success": 30
+      },
+      "retriesNeeded": {
+        "max": 5,
+        "total": 38
+      },
+      "secondsToQueueConvergence": 2.33
+    }
+  },
+  "knownGapsObserved": [
+    "register 171: a payment authorized whose answer was lost is authorized again by the retry (13 orders)"
+  ],
+  "problems": []
+}
