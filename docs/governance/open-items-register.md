@@ -242,7 +242,7 @@ Resolution: Resolved 2026-10-28.
 
 **44. The green Azure run has no recorded run ID, and `ubuntu-26.04` is untested**
 Type: Evidence gap · Source: `WI-PORT-003` (2026-10-28) · Hat: Platform Engineering
-Status: Open
+Status: Resolved 2026-11-12 (the run ID half was recorded 2026-10-29; the `ubuntu-26.04` half is closed by the lead's decision to stop at local: the pipeline stays pinned to `ubuntu-24.04`, and a move to 26.04 is made only after a run on it, if the project is ever deployed)
 Progress: Run recorded 2026-10-29; the `ubuntu-26.04` half stays open.
 Recorded 2026-10-29: Azure Pipelines run `#20261029.4` (the PR build of `feature/slice-1-hardening`, passed, reported by the human lead) in `docs/evidence/WI-PORT-003/findings.md`; build id 18; a link is not recorded. Still open: the pipeline is pinned to `ubuntu-24.04`; move deliberately after a run on 26.04.
 
@@ -499,7 +499,7 @@ Resolution: 2026-11-08, read against the code and the evidence. `docs/architectu
 
 **90. The documentation status check is not enforced anywhere**
 Type: Decision · Source: the lead (2026-10-30) · Hat: Platform Engineering, Manager/Lead
-Status: Tracking · confirm on the first Azure run of the `docs` job
+Status: Resolved 2026-11-12 (confirmed: Azure Pipelines build ids 59 and 60 both passed, as reported by the lead, with the `docs` job in the pipeline) · first Azure run of the `docs` job was to be confirmed
 `node scripts/docs/status.mjs --check` fails when a spec has no banner, a header disagrees with its banner, an epic count disagrees with its specs, or `STATUS.md` is stale. As of 2026-10-30 nothing requires it: it is a line in the Definition of Done checklist and in `CLAUDE.md` (both rely on someone remembering), and it is not in `azure-pipelines.yml` or any hook. The link check (`scripts/docs/linkcheck.mjs`) is in the same position, with 202 unresolved backtick paths in a baseline that includes review records and history. Options, not exclusive: (a) a fast step in the Azure pipeline that runs the status check (the pipeline is a soft gate, so the reviewer must read it, ADR-0015); (b) a git pre-commit or pre-push hook, which only protects those who install it; (c) a Claude Code hook in `.claude/settings.json` that runs the check after edits under `docs/product/backlog/` or `docs/architecture/adr/`, which protects agent sessions; (d) a link-check mode that fails only on links and paths newly broken relative to a stored baseline. Recommendation to discuss: (a) and (c) for the status check, (d) for the link check once the clean-up has shrunk the baseline. Also add them to `docs/process/quality-gates.md` (edit-plan step 8) so the gates are listed in one place. Changing `.claude/settings.json` or the pipeline is a shared-file edit and needs the lead.
 Progress 2026-10-30: option (a) done: a `docs` job in `azure-pipelines.yml` runs the status check and the link check (`--fail-on-broken-links`; broken backtick paths are counted only), and both are in `scripts/ci/node-gates.mjs`. Checked on Windows, and on Linux in a container from the committed tree. The pipeline is a soft gate (ADR-0015), so a reviewer must still read it; making it a required check is the lead's decision. Options (b) and (c), a git hook and a Claude Code hook, were not added.
 
