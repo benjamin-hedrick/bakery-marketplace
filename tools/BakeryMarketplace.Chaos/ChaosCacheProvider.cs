@@ -73,6 +73,15 @@ public sealed class ChaosCacheProvider : ICacheProvider
     public async Task DeleteAsync(string key, CancellationToken ct = default)
     {
         await InjectAsync("delete", key, ct);
+
+        // A delete that fails and leaves the entry in place: what an invalidation that does not get through looks like, so a reader sees the old value until the
+        // entry expires. Separate from failureRate, which hits reads and writes alike and so rarely produces exactly this.
+        if (_layer.Setting("deleteFailureRate") > 0)
+        {
+            var attempt = _attempts.AddOrUpdate($"deleteOnly:{key}", 1, (_, n) => n + 1);
+            if (_layer.Inject("deleteFailure", "deleteFailureRate", $"delete:{key}:{attempt}"))
+                throw new InvalidOperationException("ChaosCacheProvider: simulated delete failure (the entry stays).");
+        }
         await _inner.DeleteAsync(key, ct);
     }
 

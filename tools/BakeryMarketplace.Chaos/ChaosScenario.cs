@@ -21,7 +21,7 @@ public sealed class ChaosScenario
         },
         ["cache"] = new HashSet<string>
         {
-            "failureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+            "failureRate", "deleteFailureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
         // A transient store error (a Cosmos 503), an optimistic-concurrency conflict on a conditional save or batch, and slowness.
         ["repository"] = new HashSet<string>

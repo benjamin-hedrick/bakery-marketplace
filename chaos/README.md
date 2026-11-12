@@ -37,7 +37,7 @@ Settings ending in `Rate` are probabilities from 0 to 1; the others are non-nega
 | Layer | Wraps | Settings |
 |---|---|---|
 | `events` | `IEventPublisher`, `IEventSubscriber` | `publishFailureRate`, `publishLostResponseRate`, `dropRate`, `duplicateRate`, `reorderRate`, `handlerFailureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
-| `cache` | the primary cache store, under `ResilientCacheProvider` | `failureRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
+| `cache` | the primary cache store, under `ResilientCacheProvider` | `failureRate`, `deleteFailureRate` (deletes only: the entry stays, as a failed invalidation leaves it), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 | `repository` | every `IRepository<T>` and the `IBatchFactory` | `failureRate` (a Cosmos 503), `lostResponseRate` (the write is made, then a 408), `conflictRate` (a conditional save or batch loses its concurrency check), `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 | `broadcast` | `IBroadcastPublisher`, `IBroadcastSubscriber` (the live vendor screens' nudge) | `failureRate`, `dropRate`, `deliveryDropRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
 | `payment` | ordering's `IPaymentProcessor` | `failureRate` (the processor throws), `lostResponseRate` (authorized, then a timeout), `declineRate`, `latencyMs`, `outageFromSeconds`, `outageWindowSeconds` |
@@ -50,7 +50,7 @@ Settings ending in `Rate` are probabilities from 0 to 1; the others are non-nega
 
 `lostResponseRate` is the ambiguous failure: the operation **succeeds** and the caller is then told it timed out (a payment authorized, an order stored, a message sent, a stock reservation made). Whatever retries must be idempotent. The events layer's equivalent is `publishLostResponseRate`: the event is delivered and the publisher is told it failed, so the outbox publishes it again.
 
-One scenario file serves a whole stack. A process applies the layers it has an interface for and logs, once it is up, which layers it applied and which the scenario names but it does not have (the admin service has no event transport; notification has no payment processor). A layer name that no process knows fails when the scenario is loaded. Outage windows are measured from the process's chaos start. Scenarios: `flaky-broker`, `broker-outage`, `slow-cache`, `checkout-trouble`, `bff-door`. `layers.json` is the shared list of layers and settings; the C# and TypeScript libraries each test their copy against it. Not built yet: a scenario run on the whole real stack with evidence, and the web apps' server-side proxies (register 169).
+One scenario file serves a whole stack. A process applies the layers it has an interface for and logs, once it is up, which layers it applied and which the scenario names but it does not have (the admin service has no event transport; notification has no payment processor). A layer name that no process knows fails when the scenario is loaded. Outage windows are measured from the process's chaos start. Scenarios: `flaky-broker`, `broker-outage`, `slow-cache`, `stale-cache`, `checkout-trouble`, `lost-confirmation`, `bff-door`, `web-door`. `layers.json` is the shared list of layers and settings; the C# and TypeScript libraries each test their copy against it. Not built yet: a scenario run on the whole real stack with evidence, and the web apps' server-side proxies (register 169).
 
 ## Aiming a fault, and signals (ADR-0024 amendment, 2026-11-10; the Node processes apply them, the C# library only checks them)
 
