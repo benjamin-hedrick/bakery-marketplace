@@ -37,7 +37,7 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at 239039048+benjamin-hedrick@users.noreply.github.com, or privately through **Report a vulnerability** on the repository's Security tab (see [SECURITY.md](SECURITY.md)). All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement privately through **Report a vulnerability** on the repository's Security tab (see [SECURITY.md](SECURITY.md)); the form reaches only the maintainer. All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 
