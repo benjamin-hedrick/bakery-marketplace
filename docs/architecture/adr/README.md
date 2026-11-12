@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> **Status:** Current · the table and the by-concern view verified 2026-11-08 against the records (24 records; 0011 is superseded, the rest Accepted)
+> **Status:** Current · the table and the by-concern view verified 2026-11-08 against the records (0011 is superseded, the rest Accepted)
 
 One file per decision: `0001-title.md`, `0002-title.md`, and so on, in the format of `template.md`. The decision text of an ADR is never edited. Later changes are dated notes appended at the bottom ("Amendment note", "Validation outcome", "Current reading"), and the status line says only what the vocabulary in `docs/method/status-and-supersession.md` allows. The statuses below are also generated into `docs/product/backlog/STATUS.md`.
 

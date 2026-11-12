@@ -17,7 +17,7 @@ The project is run the way a small product team would run one, by one lead with 
 ## Planning and the backlog
 
 - **Specifications as the unit of work.** 110 specs in [`product/backlog/`](product/backlog/README.md), each with a status on line 1 (Done 55, In review 30, In progress 5, Deferred 11, Proposed 4, Ready 2, Built 1, Superseded 2). The [status table](product/backlog/STATUS.md) and the [traceability table](product/backlog/TRACEABILITY.md) are generated from the banners and the tests; a gate fails when they are out of date.
-- **A lifecycle for every document,** with a vocabulary for status and for superseding a record without rewriting it ([status and supersession](method/status-and-supersession.md), [document lifecycles](method/document-lifecycles.md)). Decisions are ADRs that are amended with dated notes ([23 ADRs](architecture/adr/README.md), [how they changed](architecture/decision-timeline.md)).
+- **A lifecycle for every document,** with a vocabulary for status and for superseding a record without rewriting it ([status and supersession](method/status-and-supersession.md), [document lifecycles](method/document-lifecycles.md)). Decisions are ADRs that are amended with dated notes ([the ADRs](architecture/adr/README.md), [how they changed](architecture/decision-timeline.md)).
 - **Plans at two levels:** [the project plan](management/project-plan.md) (eight phases with entry and exit criteria) and [the current plan](product/backlog/current-plan.md) (what is built, in flight and next), with [how the phases actually ran](architecture/decision-timeline.md).
 - **Prioritization written down:** the slice-1 backlog has sized, ordered "next" items ([prioritized backlog](management/slice-1/03-prioritized-backlog.md)); the lead's order is the decision, the AI proposes.
 
@@ -41,7 +41,7 @@ From the git history and the recorded sessions of the AI assistant ([AI collabor
 |---|---|
 | Calendar span | 2026-09-04 to 2026-11-09, work on 26 days, more than 480 commits |
 | Work items | 110 specs; 85 Done or In review |
-| Decisions | 23 ADRs |
+| Decisions | [ADRs](architecture/adr/README.md) |
 | Evidence records | one beside each run, indexed in [evidence](evidence/README.md) |
 | Open items | 168 in the register, each with a status |
 
