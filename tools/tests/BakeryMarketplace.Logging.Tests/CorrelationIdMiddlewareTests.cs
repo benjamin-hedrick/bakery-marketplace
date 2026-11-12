@@ -1,7 +1,7 @@
 using System.Diagnostics;
+using BakeryMarketplace.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using BakeryMarketplace.Logging;
 
 namespace BakeryMarketplace.Logging.Tests;
 
