@@ -27,5 +27,10 @@
     "format:check": "prettier --check App.tsx index.ts metro.config.js app.json tsconfig.json package.json README.md src plugins",
     "test": "node --experimental-transform-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./tests/register.mjs --test \"tests/**/*.test.ts\""
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "@expo/fingerprint": {
+      "minimatch": "^11.0.1"
+    }
+  }
 }
