@@ -1,17 +1,18 @@
 {
   "scenario": "flaky-broker",
   "faultsInjectedByTheServices": {
-    "events:handlerFailure": 83,
-    "events:reorder": 11,
-    "events:publishFailure": 18,
-    "events:duplicate": 8
+    "events:handlerFailure": 72,
+    "events:publishFailure": 15,
+    "events:reorder": 15,
+    "events:duplicate": 6
   },
   "notifications": {
-    "notificationsSent": 63,
-    "eventsSentMoreThanOnce": 5,
+    "notificationsSent": 59,
+    "eventsSentMoreThanOnce": 0,
     "confirmedOrders": 30,
     "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
-    "secondsWaitedForNotificationsToSettle": 105,
+    "secondsWaitedForNotificationsToSettle": 6,
+    "repeatsAbsorbedByTheEventIdKey": 0,
     "eventsMovedToTheDeadLetterStream": 0
   },
   "specMetrics": {
@@ -26,36 +27,36 @@
       "stockAfter": 40,
       "confirmedOrdersWhoseStockIsNotHeld": 0,
       "confirmedServiceOrderIds": [
-        "order-733332da6e46304eb375cbc9a221cc4c",
-        "order-3fb1e9ecc57da7bb09d49d5bd1339e4d",
-        "order-47cb2f346b8a5dc67ad93973b4cc26cf",
-        "order-cd290cafc0ce3af651b782d43b387ff7",
-        "order-b9bdfff54db884a8df2a4e93de69e23b",
-        "order-70436e0a2fff8798babf87bdc7a87b3f",
-        "order-7e48526e166f06cd18be070d70e2d0bb",
-        "order-b7ce88182c5e0a19de573f76b3b76239",
-        "order-b97e6b1b78aca61b79780a8904927351",
-        "order-51dce41e933bd50c78cfae2b355c14ad",
-        "order-12fe2ba6cdef40675c8f53f1fa69a478",
-        "order-e2bb68a197cdb9a540b752e3a6071eb2",
-        "order-970a9a369e0a89fc934d5809c85e11cd",
-        "order-28d0bce658107d575e2ad0977245705d",
-        "order-f71a929d393f70d1c6632a7f341eea21",
-        "order-3768bed8edb6026bd6c50e0e625d415e",
-        "order-3f9b14a7dc8ca769b70a6fd47c81f3f5",
-        "order-526c433554c4249adb3835c56da167e3",
-        "order-a760cd9cc6dcbb759b339738b6131a34",
-        "order-0eeb0536183f2363e6c31cf00920359e",
-        "order-9323970caf5cab3644fa538b43b2d1f5",
-        "order-328be0f84ed94522e54230f20e1a493e",
-        "order-6ed95e1ee3d8e28e075e1eec3deabfe5",
-        "order-93e8ceb4f11fac2b8a35d69d5191d167",
-        "order-524f5a011b8c197d15be969aa710188f",
-        "order-32bf877d32cee5f3de6bb650eb461227",
-        "order-198bf1add1e9c5294ee15462b6405001",
-        "order-ffa845d9cd5a2151c62ae2e67e519608",
-        "order-41908a464a1637bba184cb04666ddbc5",
-        "order-1a6118276c04bc9dbc6a043107ce0113"
+        "order-973343c08729e79b63e0af6a8026edd8",
+        "order-df53d42cd2ffb323ac4589538c8af0d0",
+        "order-344d60669d227430c067187afc3292f9",
+        "order-17f2d0b923e486fd3b7d4efd3d484d69",
+        "order-8c20cc2a5907c160938812cb6f676460",
+        "order-9fec673e32abdc8d0e2a9a6e1b8e02ff",
+        "order-736fc138db77c36da1a2795e9e0e56da",
+        "order-041ac24e2f82c1cacc4c4fc1b65fbea9",
+        "order-9ffeaad064a2a39fa1cf41990667098f",
+        "order-64631de35b8a35bb7c41d074929480f0",
+        "order-90f9d51c2adc2c8653d682a52031cc37",
+        "order-668de264522c507d2fd84688c4ec5e9f",
+        "order-8fac3ab9c27d116090e3a6559001bdd2",
+        "order-ac149f792e818f29fbd68187c6b17bf2",
+        "order-4f34207fa25aabc08be9b7be9222a4ab",
+        "order-646a061f9a515f63390a92bff3722444",
+        "order-7ef3ae2fa7e6c763fc80bb08a5b048d7",
+        "order-334582f3acc91b0ef166f1192c368fe0",
+        "order-0f062a79f223e0a3dcdeefa76bed5511",
+        "order-54a9cfef64ecffb46542ccb3b0bb450c",
+        "order-0a3f753c2c3ae513bcebed47a1d8bd99",
+        "order-dc19ec91eefd599b04da69c2a8f7974b",
+        "order-56e6ba11ccedf27c7de406f024b0e65b",
+        "order-228a0cbde0811ab67038de910b32b3cd",
+        "order-9cc7e29bef345910e5439a54c065724d",
+        "order-f312292feb948a8786bd60f1f317214a",
+        "order-29fe80c15fb80852a2d4a1352d07c51a",
+        "order-d7a4489a60d5e77ce91ae6518fd81d3b",
+        "order-5ce48169e6c6d3352afc735465b8e8fa",
+        "order-bd61a4fdecdc0019c3e1710a9538aabd"
       ],
       "outcomesOfUnconfirmedOrders": [],
       "outcomesOfAllAttempts": {
@@ -65,11 +66,9 @@
         "max": 0,
         "total": 0
       },
-      "secondsToQueueConvergence": 50.669
+      "secondsToQueueConvergence": 92.481
     }
   },
-  "knownGapsObserved": [
-    "register 171 (notifications): 5 events were sent as a notification more than once"
-  ],
+  "knownGapsObserved": [],
   "problems": []
 }

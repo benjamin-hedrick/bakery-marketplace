@@ -20,9 +20,23 @@ public interface IMessageComposer
 /// with a distributed cache it holds across instances and restarts; with the in-process fallback it holds for this instance only, and a
 /// restart can repeat a message. A crash between the send and the mark can repeat one as well: delivery is at-least-once.
 /// </summary>
-public sealed class SentLedger(ICacheProvider cache, TimeSpan? retention = null)
+public sealed class SentLedger(ICacheProvider cache, TimeSpan? retention = null, TimeSpan? claimLease = null)
 {
     private static string Key(Guid eventId) => $"notification:sent:{eventId:N}";
+
+    private static string ClaimKey(Guid eventId) => $"notification:claim:{eventId:N}";
+
+    /// <summary>
+    /// Claims the event before its message is sent, atomically: of two deliveries of one event handled at the same moment (two instances, two copies in flight),
+    /// one gets true and sends. The claim is a lease, so one whose holder died is free again after <see cref="ClaimLease"/> (register 171). It is not the ledger:
+    /// only <see cref="MarkSentAsync"/> says a message went out.
+    /// </summary>
+    public Task<bool> TryClaimAsync(Guid eventId, CancellationToken ct) => cache.SetIfAbsentAsync(ClaimKey(eventId), true, ClaimLease, ct);
+
+    /// <summary>Gives the claim up after a failed send, so the retry can take it at once instead of waiting out the lease.</summary>
+    public Task ReleaseClaimAsync(Guid eventId, CancellationToken ct) => cache.DeleteAsync(ClaimKey(eventId), ct);
+
+    public TimeSpan ClaimLease { get; } = claimLease ?? TimeSpan.FromMinutes(2);
 
     public Task<bool> WasSentAsync(Guid eventId, CancellationToken ct) => cache.ExistsAsync(Key(eventId), ct);
 
@@ -78,6 +92,14 @@ public sealed partial class OrderEventNotifier(
                 LogNoContactForCustomer(logger, orderId, e.EventId, e.EventType);
                 continue;
             }
+            // Claim the event before sending (register 171). Not claimed: another delivery of this event is being handled, or was. If that one has sent it,
+            // this one is done; if not (it may have failed or died), this one is tried again later rather than dropped, so a message is never lost to the claim.
+            // A claim that cannot be made because the cache is failing does not stop the send: a ledger failure may repeat a message, never lose one.
+            if (!await SafeAsync(() => ledger.TryClaimAsync(e.EventId, ct), true, "claim"))
+            {
+                if (!await SafeAsync(() => ledger.WasSentAsync(e.EventId, ct), false, "ledger read")) failed.Add(e.EventId);
+                continue;
+            }
             try
             {
                 var info = new OrderEventInfo(e.EventId, e.EventType, orderId, customerId, e.Payload!);
@@ -88,6 +110,7 @@ public sealed partial class OrderEventNotifier(
             {
                 LogNotificationSendFailed(logger, ex, orderId, e.EventId, e.EventType);
                 failed.Add(e.EventId);
+                await SafeAsync(async () => { await ledger.ReleaseClaimAsync(e.EventId, ct); return true; }, false, "claim release");
                 continue;
             }
             await SafeAsync(async () => { await ledger.MarkSentAsync(e.EventId, ct); return true; }, false, "ledger write");

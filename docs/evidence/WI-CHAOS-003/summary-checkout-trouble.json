@@ -1,19 +1,27 @@
 {
   "scenario": "checkout-trouble",
   "faultsInjectedByTheServices": {
-    "repository:latency": 799,
-    "repository:conflict": 30,
-    "payment:latency": 53,
-    "broadcast:drop": 24,
-    "catalog:unavailable": 29,
-    "payment:decline": 5,
-    "catalog:reject": 5
+    "repository:latency": 887,
+    "repository:conflict": 31,
+    "payment:latency": 64,
+    "broadcast:drop": 22,
+    "catalog:unavailable": 19,
+    "payment:decline": 16,
+    "catalog:reject": 7
+  },
+  "notifications": {
+    "notificationsSent": 84,
+    "eventsSentMoreThanOnce": 0,
+    "confirmedOrders": 30,
+    "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
+    "secondsWaitedForNotificationsToSettle": 0,
+    "eventsMovedToTheDeadLetterStream": 0
   },
   "specMetrics": {
     "checkout-trouble-recovery": {
       "scenario": "checkout-trouble",
       "orders": 12,
-      "neededARetry": 5,
+      "neededARetry": 8,
       "notRecoveredAfterRetries": 0,
       "outcomesOfNotRecovered": []
     },
@@ -27,18 +35,50 @@
       "stockBefore": 70,
       "stockAfter": 40,
       "confirmedOrdersWhoseStockIsNotHeld": 0,
+      "confirmedServiceOrderIds": [
+        "order-8079e7cbb4ed46ffa52e723b47937fe6",
+        "order-177069a04d4f28182fa41c8a1c2e1e1f",
+        "order-9bb354ae3804b96c55d08a45d2de0b69",
+        "order-0e8c397b53b0bf2a1ef90508a3946802",
+        "order-36b271f4581e474cb844a6128684ba2d",
+        "order-dd3962967dddca5f00a386c93cc3e3e3",
+        "order-7a24eb91395258e2ae7524a87d955ae2",
+        "order-70a77ba8785be347394dca3b70694843",
+        "order-e9058db4896f06017d322c56962b5cde",
+        "order-100a2d3089e9f4ba798779eb2a0499b7",
+        "order-c5613eb7592834c0c51366be925c8e8a",
+        "order-5afc8c118bda5a997cf8da9d7c7dcb96",
+        "order-eaf62c9d2702e1880ff02648523a1354",
+        "order-b0a432d2c594e9849cc6e50faf72292c",
+        "order-b73a781a1505ef04b86eef7c29260660",
+        "order-710bd942611a7a57e9304cb53f3eed40",
+        "order-bc1fc201de71afcf3234ec780b470254",
+        "order-60827a632380a54807feaf1fadbaf54e",
+        "order-dfb61ea5074f36e9ce26eec971c11156",
+        "order-fe6b25a203289f4099a40e154e841bd7",
+        "order-c841efa5cef9e39db573582a17e14fed",
+        "order-68cd20cd56ee967c36bcb612497e2084",
+        "order-c1c1db38537aa67a627f83c00ca25570",
+        "order-2695fcbff519d00eb1276bcfa9c19317",
+        "order-2e416becbe88ce62ef92861f6da4341a",
+        "order-dfdabe5f1c75290e08a1aafecea250c8",
+        "order-a20755e2de33ea1b0c06a2daef1847d9",
+        "order-62c83bc5379e46e54892d03dcd042f93",
+        "order-751e508e9c8706ad3c0766a033fc611d",
+        "order-67bdd12445a05e8a37db0bc1f2589a2d"
+      ],
       "outcomesOfUnconfirmedOrders": [],
       "outcomesOfAllAttempts": {
         "success": 30,
-        "INTERNAL": 25,
-        "PAYMENT_DECLINED": 4,
-        "CONFLICT": 3
+        "INTERNAL": 17,
+        "PAYMENT_DECLINED": 8,
+        "CONFLICT": 4
       },
       "retriesNeeded": {
         "max": 7,
-        "total": 32
+        "total": 29
       },
-      "secondsToQueueConvergence": 0.076
+      "secondsToQueueConvergence": 0.079
     }
   },
   "knownGapsObserved": [],

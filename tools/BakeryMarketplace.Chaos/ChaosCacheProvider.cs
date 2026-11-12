@@ -64,6 +64,12 @@ public sealed class ChaosCacheProvider : ICacheProvider
         await _inner.SetAsync(key, value, ttl, ct);
     }
 
+    public async Task<bool> SetIfAbsentAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
+    {
+        await InjectAsync("setIfAbsent", key, ct);
+        return await _inner.SetIfAbsentAsync(key, value, ttl, ct);
+    }
+
     public async Task DeleteAsync(string key, CancellationToken ct = default)
     {
         await InjectAsync("delete", key, ct);

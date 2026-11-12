@@ -120,10 +120,14 @@ function summarize() {
   const gaps = [];
   if (notifications) {
     notifications.secondsWaitedForNotificationsToSettle = settleSeconds;
-    // Known: delivery is at-least-once and the sent ledger is written after the send, so a redelivered or retried event can send twice (register 171 part 2).
+    // Register 171 (fixed): an event is claimed before it is sent and the event id is the sender's idempotency key, so no event is produced twice; a repeat the key
+    // absorbed shows as "asked for again" (it would have been a duplicate without the key).
+    notifications.repeatsAbsorbedByTheEventIdKey = [
+      ...readFileSync(path.join(stack.out, 'notification.log'), 'utf8').matchAll(/was asked for again/g),
+    ].length;
     if (notifications.eventsSentMoreThanOnce > 0)
-      gaps.push(
-        `register 171 (notifications): ${notifications.eventsSentMoreThanOnce} events were sent as a notification more than once`,
+      problems.push(
+        `${notifications.eventsSentMoreThanOnce} events were sent as a notification more than once (register 171: claim before sending, event id as the idempotency key)`,
       );
     const missing = notifications.confirmedOrdersWithoutAnOrderPlacedNotification;
     const deadLettered = [
@@ -183,14 +187,19 @@ function readMetrics() {
 
 /**
  * The notification service works after the specs are done (it retries failed events), so stopping the services at once would count a late notification as a
- * missing one. Wait, up to two minutes, until every confirmed order has an OrderPlaced notification; the time it took is a recovery figure in the summary.
+ * missing one. Wait, up to two minutes, until every confirmed order has an OrderPlaced notification and every lost send answer has been asked for again; the time it took is a recovery figure in the summary.
  */
 async function settleNotifications() {
   if (!existsSync(path.join(stack.out, 'notification.log'))) return;
   const started = Date.now();
   while (Date.now() - started < 120_000) {
     const c = notificationChecks(readMetrics());
-    if (!c || c.confirmedOrders === 0 || c.confirmedOrdersWithoutAnOrderPlacedNotification === 0) break;
+    if (!c || c.confirmedOrders === 0) break;
+    // Every message whose answer was lost is asked for again when its event is redelivered (30 s, then 60 s); wait for those too, so the event-id key is seen to work.
+    const log = readFileSync(path.join(stack.out, 'notification.log'), 'utf8');
+    const lost = [...log.matchAll(/layer=notification fault=lostResponse/g)].length;
+    const again = [...log.matchAll(/was asked for again/g)].length;
+    if (c.confirmedOrdersWithoutAnOrderPlacedNotification === 0 && again >= lost) break;
     await new Promise((r) => setTimeout(r, 2000));
   }
   settleSeconds = Math.round((Date.now() - started) / 1000);

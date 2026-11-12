@@ -74,6 +74,20 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         }
     }
 
+    public async Task<bool> SetIfAbsentAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _breaker.ExecuteAsync(
+                token => _primary.SetIfAbsentAsync(key, value, ttl, token), ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogFallback(nameof(SetIfAbsentAsync), key, ex);
+            return await _fallback.SetIfAbsentAsync(key, value, ttl, ct); // atomic in this process only; the claim holds for this instance
+        }
+    }
+
     public async Task DeleteAsync(string key, CancellationToken ct = default)
     {
         try

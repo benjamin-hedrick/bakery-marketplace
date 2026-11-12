@@ -15,6 +15,14 @@ public interface ICacheProvider
     /// </summary>
     Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default);
     Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sets the key only when it does not exist (or has expired), as one atomic step: of any number of callers racing for the same key exactly one gets true.
+    /// For a claim or a lease (register item 171); the value and ttl are as for <see cref="SetAsync{T}"/>. A distributed provider is atomic across instances;
+    /// the in-process one is atomic within its process.
+    /// </summary>
+    Task<bool> SetIfAbsentAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default);
+
     Task DeleteAsync(string key, CancellationToken ct = default);
     Task<bool> ExistsAsync(string key, CancellationToken ct = default);
 }
