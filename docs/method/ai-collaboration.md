@@ -116,7 +116,7 @@ What has worked in this repository, stated as practice:
 
 ## What the sessions cost
 
-Each Claude Code session's cost, model time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. **Cost is shown as a relative cost, not as money:** the screen's figure divided by a base of 2.00 (the size of a small session), to two decimals, so a session of 12.00 was about twelve times that small one. The screen's dollar figures are not an accurate measure of what the work costs most users, and they were left out on purpose (register 175, 2026-11-11). Wall-clock time is not recorded: it is mostly the lead reading, deciding and waiting, and says little. Twenty-two sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
+Each Claude Code session's cost, model time and size were copied by the lead from the usage screen at its end and recorded under `docs/evidence/ai-usage-*.md`. The screen labels its figures approximate and the repository did not measure them. **Cost is shown as a relative cost, not as money:** the screen's figure divided by a base of 2.00 (the size of a small session), to two decimals, so a session of 12.00 was about twelve times that small one. The screen's dollar figures are not an accurate measure of what the work costs most users, and they were left out on purpose (register 175, 2026-11-11). Wall-clock time is not recorded: it is mostly the lead reading, deciding and waiting, and says little. Twenty-three sessions are recorded (the planning in chat before the repository and the September delegation packets are not in this table).
 
 | Session | Work | Relative cost | API time | Lines added |
 |---|---|---:|---:|---:|
@@ -144,7 +144,8 @@ Each Claude Code session's cost, model time and size were copied by the lead fro
 | 2026-11-11 | approvals and development: flow 07, one Unavailable outcome, the web gate, the small gaps, the scenario name, the usage format, `CLAUDE.md` | 3.39 | 17 min | 835 |
 | 2026-11-11 (evening) | chaos specs per scenario: the runner, four scenarios run on the whole stack, three defects fixed, two found open | 2.12 | 14 min | 980 |
 | 2026-11-11 (late) | the chaos work closed out: three defects fixed (182, 183, 171), eight scenarios and two emulator flows run, ADR-0024 accepted, one cache gap fixed and one documented (184) | 6.32 | 1 h 3 min | 1,453 |
-| **Total** |  | **149.56** | **13 h 42 min** | **64,731** |
+| 2026-11-12 | Dependabot alerts fixed, 15 Android flows run, register items closed on the lead's decisions | 0.48 | 3 min | 29 |
+| **Total** |  | **150.04** | **13 h 45 min** | **64,760** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew to 110 specifications (85 Done or In review), a set of decision records, a test suite and a set of evidence records; dividing the relative cost by the 85 items gives about 1.61 an item, which is indicative only, because not every item was built in a recorded session. Nothing here compares with doing the work by hand.
 
