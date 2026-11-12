@@ -100,6 +100,8 @@ Decided 2026-10-28 to save build minutes: **no runs on pushes to any branch, inc
 
 GitHub rulesets with required checks are not available on this plan (they need an enterprise account), so the Azure Pipelines check (shown on PRs as "Azure Pipelines", 5 checks) is **not enforced**. The human lead reads it and approves the PR by hand, and `main` is also gated by a manual pipeline run. The placeholder `.github/workflows/ci.yml` (check "CI / build-and-test") was removed on 2026-10-28; make sure no branch protection rule still lists it as required, or PRs will wait on it forever. See the ADR-0015 amendment.
 
+**Update 2026-11-11:** since the repository became public (it can then use rulesets on this plan) a ruleset on `main` requires a pull request and nine of the ten Azure job checks to pass, allows rebase merge only and keeps history linear; the walking skeleton and the overall check are not required (see `docs/governance/pre-publish-gaps.md`, "Flip day, done"). The paragraph above describes the state before and stays as the history; the instruction not to leave a removed check as a required one still stands. A required check that never reports blocks the pull request, and the pipeline does not run on draft pull requests.
+
 ## Evidence format (flake and execution time)
 
 `summarize-results.mjs` prints a markdown table and, with `--json`, one record per run:
