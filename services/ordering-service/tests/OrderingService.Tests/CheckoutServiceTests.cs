@@ -476,6 +476,46 @@ public class CheckoutServiceTests
     }
 
     [Fact]
+    public async Task AFailureToStoreAfterThePaymentVoidsThePaymentAndThenReleasesTheStock()
+    {
+        var f = new CheckoutFixture();
+        f.Repository.FailWrites = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.CheckoutAsync());
+
+        Assert.Single(f.Payments.Requests); // the payment was authorized...
+        Assert.Equal([f.Payments.Requests[0].OrderId], f.Payments.Voids); // ...and given back (register 171)
+        Assert.Single(f.Catalog.ReleaseCalls);
+    }
+
+    [Fact]
+    public async Task AVoidThatCannotBeMadeKeepsTheReservationSoTheOrphanSweepCanFinishTheJob()
+    {
+        var f = new CheckoutFixture();
+        f.Repository.FailWrites = true;
+        f.Payments.FailVoid = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.CheckoutAsync());
+
+        Assert.Empty(f.Payments.Voids);
+        Assert.Empty(f.Catalog.ReleaseCalls); // not released: the payment may still be held
+        Assert.Single(f.Catalog.ReservedOrders); // the reservation stays, and the sweep finds an Active reservation with no order
+    }
+
+    [Fact]
+    public async Task ADeclinedPaymentHoldsNothingSoNothingIsVoided()
+    {
+        var f = new CheckoutFixture();
+        f.Payments.Decline = true;
+
+        var result = await f.CheckoutAsync();
+
+        Assert.Equal(CheckoutOutcome.PaymentDeclined, result.Outcome);
+        Assert.Empty(f.Payments.Voids);
+        Assert.Single(f.Catalog.ReleaseCalls);
+    }
+
+    [Fact]
     public async Task ACatalogOutageWhileReadingListingsIsUnavailable_AndNothingElseHappens()
     {
         var f = new CheckoutFixture();

@@ -220,11 +220,24 @@ internal sealed class RecordingPayments : IPaymentProcessor
     /// <summary>A processor that refuses the authorization (a provider saying no), to prove the checkout cleans up after a refusal that comes after the reservation.</summary>
     public bool Decline { get; set; }
 
+    /// <summary>The order ids whose authorization was voided, in order.</summary>
+    public List<string> Voids { get; } = [];
+
+    /// <summary>Makes every void fail as an unreachable processor does, to prove the reservation is kept for the orphan sweep.</summary>
+    public bool FailVoid { get; set; }
+
     public async Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
     {
         await Task.Yield();
         lock (_gate) Requests.Add(request);
         return Decline ? new PaymentResult(false) : new PaymentResult(true, "recorded");
+    }
+
+    public Task VoidAsync(string orderId, CancellationToken ct = default)
+    {
+        if (FailVoid) throw new PaymentUnavailableException("scripted processor outage");
+        lock (_gate) Voids.Add(orderId);
+        return Task.CompletedTask;
     }
 }
 

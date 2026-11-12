@@ -140,7 +140,7 @@ public sealed class ChaosHostTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AProcessorThatFails_LeavesNoReservationBehind_AndTheCustomerGets503()
+    public async Task AProcessorThatFails_KeepsTheReservationForTheOrphanSweep_BecauseTheVoidFailsToo_AndTheCustomerGets503()
     {
         await using var factory = Host("""{ "payment": { "failureRate": 1 } }""");
         var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
@@ -148,8 +148,8 @@ public sealed class ChaosHostTests : IAsyncLifetime
 
         var response = await PostCheckout(customer, Checkout());
 
-        Assert.Equal(1, runtime.Journal.Count("payment", "failure"));
-        Assert.Empty(_catalog.Reservations); // released even though the step threw (the reserved flag in CheckoutService)
+        Assert.Equal(2, runtime.Journal.Count("payment", "failure")); // the authorization, then the void of an authorization whose existence is unknown
+        Assert.Single(_catalog.Reservations); // kept: the processor cannot be reached to void, so the orphan sweep voids it and releases the stock later (register 171)
         // A processor that cannot be reached is the same answer as a catalog that cannot be reached (register 170): 503 "downstream_unavailable".
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Contains("downstream_unavailable", await response.Content.ReadAsStringAsync());
@@ -242,6 +242,12 @@ public sealed class ChaosHostTests : IAsyncLifetime
             _held.TryAdd(request.OrderId, true);
             return Task.FromResult(new PaymentResult(true, "ref-" + request.OrderId));
         }
+
+        public Task VoidAsync(string orderId, CancellationToken ct = default)
+        {
+            _held.TryRemove(orderId, out _);
+            return Task.CompletedTask;
+        }
     }
 
     [Fact]
@@ -261,7 +267,7 @@ public sealed class ChaosHostTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ACheckoutWhosePaymentResponseIsLost_ReleasesTheStock_AndTheCustomerGets503()
+    public async Task ACheckoutWhosePaymentResponseIsLost_KeepsTheReservationBecauseTheVoidIsLostToo_AndTheCustomerGets503()
     {
         await using var factory = Host("""{ "payment": { "lostResponseRate": 1 } }""");
         var runtime = factory.Services.GetRequiredService<ChaosRuntime>();
@@ -269,9 +275,9 @@ public sealed class ChaosHostTests : IAsyncLifetime
 
         var response = await PostCheckout(customer, Checkout());
 
-        Assert.Equal(1, runtime.Journal.Count("payment", "lostResponse"));
+        Assert.Equal(2, runtime.Journal.Count("payment", "lostResponse")); // the authorization, then the void (also lost: it cannot be told to have worked)
         Assert.Contains("payment:lostResponse", response.Headers.GetValues(ChaosIndicatorMiddleware.InjectedHeader).Single());
-        Assert.Empty(_catalog.Reservations);
+        Assert.Single(_catalog.Reservations); // kept for the orphan sweep, which voids again (a repeated void is a no-op) and releases
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode); // register 170
     }
 

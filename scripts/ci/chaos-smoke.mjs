@@ -72,18 +72,26 @@ function notificationChecks(metrics) {
   };
 }
 
-/** Orders whose payment was authorized more than once, from the keys the lost-confirmation spec recorded and the ordering service's log. */
+/**
+ * Orders whose payment was authorized while an authorization for it was already held, from the keys the lost-confirmation spec recorded and the ordering
+ * service's log (register 171). An authorization after a void is not a second hold: a failed checkout voids, and the customer's retry holds again.
+ */
 function doubleAuthorizations(metrics) {
   const rec = metrics['lost-confirmation-payment'];
   if (!rec) return null;
   const log = readFileSync(path.join(stack.out, 'ordering.log'), 'utf8');
-  const per = new Map();
-  for (const m of log.matchAll(/payment authorization for order (order-[0-9a-f]+)/g))
-    per.set(m[1], (per.get(m[1]) ?? 0) + 1);
+  const held = new Set();
+  const doubled = new Set();
+  for (const m of log.matchAll(/(payment authorization|void of the authorization) for order (order-[0-9a-f]+)/g)) {
+    if (m[1] === 'payment authorization') {
+      if (held.has(m[2])) doubled.add(m[2]);
+      held.add(m[2]);
+    } else held.delete(m[2]);
+  }
   const ids = rec.keys.map(
     (k) => 'order-' + createHash('sha256').update(`${rec.customerId}\n${k}`, 'utf8').digest('hex').slice(0, 32),
   );
-  return ids.filter((id) => (per.get(id) ?? 0) > 1).length;
+  return ids.filter((id) => doubled.has(id)).length;
 }
 
 /** The "chaos injected" lines of the services' logs, counted per layer:fault (the journal's summary, kept as evidence). Returns the problems found. */
@@ -133,6 +141,9 @@ function summarize() {
   if (doubled !== null) {
     metrics['lost-confirmation-payment'].ordersAuthorizedMoreThanOnce = doubled;
     // Register 171 (fixed): the processor is idempotent on the order id, so a retry after a lost answer holds nothing again; a repeat shows as an answer from the first.
+    metrics['lost-confirmation-payment'].voidsMade = [
+      ...readFileSync(path.join(stack.out, 'ordering.log'), 'utf8').matchAll(/void of the authorization for order/g),
+    ].length;
     metrics['lost-confirmation-payment'].repeatsAnsweredFromTheFirstAuthorization = [
       ...readFileSync(path.join(stack.out, 'ordering.log'), 'utf8').matchAll(/answered from its first authorization/g),
     ].length;
