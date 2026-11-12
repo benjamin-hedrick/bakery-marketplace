@@ -32,6 +32,7 @@ public sealed class OrphanReservationOptions
 public sealed partial class OrphanReservationSweeper(
     ICatalogGateway catalog,
     OrderStore orders,
+    IPaymentProcessor payments,
     IOptions<OrphanReservationOptions> options,
     ILogger<OrphanReservationSweeper> logger) : BackgroundService
 {
@@ -83,6 +84,18 @@ public sealed partial class OrphanReservationSweeper(
                 checkedCount++;
                 if (await orders.ExistsAsync(reservation.OrderId, ct)) continue;
 
+                // A checkout that failed after the payment step may have left a payment held (register 171). Void it first, by the order id (idempotent, a no-op
+                // when nothing is held); if that cannot be done the reservation stays Active and the next sweep tries again.
+                try
+                {
+                    await payments.VoidAsync(reservation.OrderId, ct);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    LogOrphanPaymentVoidFailed(logger, e, reservation.OrderId);
+                    continue;
+                }
+
                 await catalog.ReleaseAsync(reservation.OrderId, reservation.VendorId, ct);
                 released++;
                 LogOrphanReservationReleased(logger, reservation.OrderId, reservation.VendorId, reservation.CreatedAt);
@@ -92,6 +105,9 @@ public sealed partial class OrphanReservationSweeper(
         while (after is not null);
         return (checkedCount, released);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId} has a reservation and no order, and its payment could not be voided; the reservation is kept and the next sweep tries again")]
+    private static partial void LogOrphanPaymentVoidFailed(ILogger logger, Exception exception, string orderId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Orphan reservation sweep failed; it will be retried")]
     private static partial void LogOrphanSweepFailed(ILogger logger, Exception exception);

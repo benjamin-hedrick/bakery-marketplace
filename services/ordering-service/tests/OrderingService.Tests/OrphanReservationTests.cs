@@ -13,7 +13,7 @@ public class OrphanReservationTests
         new(orderId, vendor, new DateTimeOffset(2026, 11, 1, 10, 0, 0, TimeSpan.Zero));
 
     private static OrphanReservationSweeper NewSweeper(CheckoutFixture f, OrphanReservationOptions? options = null) =>
-        new(f.Catalog, f.Store, Options.Create(options ?? new OrphanReservationOptions()), NullLogger<OrphanReservationSweeper>.Instance);
+        new(f.Catalog, f.Store, f.Payments, Options.Create(options ?? new OrphanReservationOptions()), NullLogger<OrphanReservationSweeper>.Instance);
 
     [Fact]
     public async Task AReservationWithNoOrderIsReleasedAndOneWithAnOrderIsLeftAlone()
@@ -31,6 +31,40 @@ public class OrphanReservationTests
         Assert.Equal((2, 1), result);
         Assert.Equal(["order-never-saved"], f.Catalog.ReleaseCalls);
         Assert.Contains(realOrderId, f.Catalog.ReservedOrders); // the real order keeps its stock
+    }
+
+    [Fact]
+    public async Task AnOrphansPaymentIsVoidedBeforeItsStockIsReleased()
+    {
+        var f = new CheckoutFixture();
+        f.Catalog.ActiveReservations.Add(Reserved("order-never-saved"));
+        f.Catalog.ReservedOrders.Add("order-never-saved");
+
+        await NewSweeper(f).SweepOnceAsync(default);
+
+        Assert.Equal(["order-never-saved"], f.Payments.Voids);
+        Assert.Equal(["order-never-saved"], f.Catalog.ReleaseCalls);
+    }
+
+    [Fact]
+    public async Task AnOrphanWhosePaymentCannotBeVoidedKeepsItsReservationUntilTheNextSweep()
+    {
+        var f = new CheckoutFixture();
+        f.Catalog.ActiveReservations.Add(Reserved("order-never-saved"));
+        var sweeper = NewSweeper(f);
+        f.Payments.FailVoid = true;
+
+        var first = await sweeper.SweepOnceAsync(default);
+
+        Assert.Equal((1, 0), first);
+        Assert.Empty(f.Catalog.ReleaseCalls);
+
+        f.Payments.FailVoid = false;
+        var second = await sweeper.SweepOnceAsync(default);
+
+        Assert.Equal((1, 1), second);
+        Assert.Equal(["order-never-saved"], f.Payments.Voids);
+        Assert.Equal(["order-never-saved"], f.Catalog.ReleaseCalls);
     }
 
     [Fact]

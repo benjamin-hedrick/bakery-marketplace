@@ -85,6 +85,13 @@ public interface IPaymentProcessor
     /// the implementation's to say; the checkout never retries a decline.
     /// </summary>
     Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Releases whatever is held for the order id, if anything: idempotent, and a no-op when nothing is held, so it is safe for an authorization whose answer was
+    /// lost and whose existence is therefore unknown (register 171). Throws <see cref="PaymentUnavailableException"/> when the processor could not be reached; the
+    /// caller must then treat the authorization as still held. After a void the same order id can be authorized again (a customer's later retry).
+    /// </summary>
+    Task VoidAsync(string orderId, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -113,6 +120,15 @@ public sealed partial class StubPaymentProcessor(ILogger<StubPaymentProcessor> l
         LogStubAuthorization(logger, ProcessorName, request.OrderId, request.AmountCents, request.Currency);
         return Task.FromResult(result);
     }
+
+    public Task VoidAsync(string orderId, CancellationToken ct = default)
+    {
+        if (_authorized.TryRemove(orderId, out _)) LogStubVoid(logger, ProcessorName, orderId);
+        return Task.CompletedTask;
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Processor} void of the authorization for order {OrderId}. No payment provider was called and no money moved.")]
+    private static partial void LogStubVoid(ILogger logger, string processor, string orderId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{Processor} payment authorization for order {OrderId}, {AmountCents} {Currency}. No payment provider was called and no money moved.")]
     private static partial void LogStubAuthorization(ILogger logger, string processor, string orderId, long amountCents, string currency);

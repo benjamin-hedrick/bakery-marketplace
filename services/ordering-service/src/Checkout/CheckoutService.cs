@@ -188,7 +188,9 @@ public sealed partial class CheckoutService(
             // Register 180: a failure here can be a store write that succeeded and whose answer was lost, so the order may exist and own the reservation. Releasing
             // then would give back stock for an order that stands. Release only when the order is known not to exist; when that cannot be told, keep the
             // reservation (the orphan sweep returns one that has no order, register item 62; stock sold twice cannot be returned).
-            if (await OrderIsKnownNotToExistAsync(orderId, customerId)) await ReleaseQuietlyAsync(orderId, vendorId);
+            // Register 171: the payment may be held even when its answer never came, so it is voided first (idempotent; a no-op when nothing is held), and the
+            // stock is given back only once that has worked. A void that cannot be made leaves the reservation, which the orphan sweep voids and releases later.
+            if (await OrderIsKnownNotToExistAsync(orderId, customerId)) await VoidThenReleaseAsync(orderId, vendorId);
             throw;
         }
     }
@@ -229,6 +231,20 @@ public sealed partial class CheckoutService(
             LogOrderLookupFailedBeforeRelease(logger, e, orderId);
             return false;
         }
+    }
+
+    private async Task VoidThenReleaseAsync(string orderId, string vendorId)
+    {
+        try
+        {
+            await payments.VoidAsync(orderId, CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            LogPaymentVoidFailed(logger, e, orderId);
+            return; // still held as far as we know: keep the reservation so the orphan sweep finds the order, voids again and releases
+        }
+        await ReleaseQuietlyAsync(orderId, vendorId);
     }
 
     private async Task ReleaseQuietlyAsync(string orderId, string vendorId)
@@ -336,6 +352,9 @@ public sealed partial class CheckoutService(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stock reservation for {OrderId} could not be released; it needs cleanup")]
     private static partial void LogStockReleaseFailed(ILogger logger, Exception exception, string orderId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId}: the payment could not be voided after a failed checkout; the reservation is kept and the orphan sweep will void it and release the stock")]
+    private static partial void LogPaymentVoidFailed(ILogger logger, Exception exception, string orderId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Checkout for {OrderId} answered 'try again': the payment processor or the store could not be reached")]
     private static partial void LogCheckoutUnavailable(ILogger logger, Exception exception, string orderId);

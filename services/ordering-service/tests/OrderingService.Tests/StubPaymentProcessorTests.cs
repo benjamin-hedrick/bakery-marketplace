@@ -35,6 +35,22 @@ public sealed class StubPaymentProcessorTests
     }
 
     [Fact]
+    public async Task AVoidReleasesTheHoldAndANewRequestForTheSameOrderAuthorizesAgain_AVoidOfNothingIsANoOp()
+    {
+        var log = new Lines();
+        var stub = new StubPaymentProcessor(log);
+
+        await stub.VoidAsync("order-1"); // nothing held
+        await stub.AuthorizeAsync(Request("order-1"));
+        await stub.VoidAsync("order-1");
+        await stub.VoidAsync("order-1"); // a repeat
+        await stub.AuthorizeAsync(Request("order-1"));
+
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("payment authorization for order order-1")));
+        Assert.Single(log.Messages, m => m.Contains("void of the authorization for order order-1"));
+    }
+
+    [Fact]
     public async Task DifferentOrdersAreAuthorizedSeparately()
     {
         var log = new Lines();

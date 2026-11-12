@@ -25,4 +25,16 @@ public sealed class ChaosPaymentProcessor(IPaymentProcessor inner, ChaosLayer la
             throw new PaymentUnavailableException("ChaosPaymentProcessor: the authorization was made but the response was lost.", new TimeoutException());
         return result;
     }
+
+    public async Task VoidAsync(string orderId, CancellationToken ct = default)
+    {
+        await layer.BeforeAsync("void", orderId, "failure", "failureRate",
+            () => new PaymentUnavailableException("ChaosPaymentProcessor: simulated processor failure."), ct);
+
+        await inner.VoidAsync(orderId, ct);
+
+        // The void was made, the answer never arrived: the caller must treat the authorization as still held and try again; a repeated void is a no-op.
+        if (layer.LostResponse("void", orderId))
+            throw new PaymentUnavailableException("ChaosPaymentProcessor: the void was made but the response was lost.", new TimeoutException());
+    }
 }
