@@ -42,6 +42,49 @@ public abstract class CacheProviderContractTests : IDisposable
     }
 
     [Fact]
+    public async Task SetIfAbsent_FirstCallerWins_TheSecondGetsFalse_AndTheFirstValueStays()
+    {
+        var key = $"test:claim:{Guid.NewGuid()}";
+
+        Assert.True(await _provider.SetIfAbsentAsync(key, "first", TimeSpan.FromMinutes(1)));
+        Assert.False(await _provider.SetIfAbsentAsync(key, "second", TimeSpan.FromMinutes(1)));
+
+        Assert.Equal("first", (await _provider.GetAsync<string>(key)).Value);
+    }
+
+    [Fact]
+    public async Task SetIfAbsent_IsTrueAgainOnceTheKeyIsDeleted()
+    {
+        var key = $"test:claim-delete:{Guid.NewGuid()}";
+        await _provider.SetIfAbsentAsync(key, "a", TimeSpan.FromMinutes(1));
+
+        await _provider.DeleteAsync(key);
+
+        Assert.True(await _provider.SetIfAbsentAsync(key, "b", TimeSpan.FromMinutes(1)));
+    }
+
+    [Fact]
+    public async Task SetIfAbsent_IsTrueAgainOnceTheEntryHasExpired()
+    {
+        var key = $"test:claim-expiry:{Guid.NewGuid()}";
+        Assert.True(await _provider.SetIfAbsentAsync(key, "a", TimeSpan.FromMilliseconds(200)));
+
+        await Task.Delay(500);
+
+        Assert.True(await _provider.SetIfAbsentAsync(key, "b", TimeSpan.FromMinutes(1)));
+    }
+
+    [Fact]
+    public async Task SetIfAbsent_OfManyRacingCallers_ExactlyOneWins()
+    {
+        var key = $"test:claim-race:{Guid.NewGuid()}";
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 20).Select(_ => _provider.SetIfAbsentAsync(key, "x", TimeSpan.FromMinutes(1))));
+
+        Assert.Equal(1, results.Count(r => r));
+    }
+
+    [Fact]
     public async Task GetMissingKey_ReturnsMiss_NotException()
     {
         // Arrange

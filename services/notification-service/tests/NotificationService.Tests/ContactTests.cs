@@ -135,6 +135,7 @@ public sealed class CachedContactDirectoryTests : ContactDirectoryContractTests
         public Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken ct = default) => throw Down();
         public Task<IReadOnlyDictionary<string, T>> GetManyAsync<T>(IReadOnlyCollection<string> keys, CancellationToken ct = default) => throw Down();
         public Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default) => throw Down();
+        public Task<bool> SetIfAbsentAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default) => throw Down();
         public Task DeleteAsync(string key, CancellationToken ct = default) => throw Down();
         public Task<bool> ExistsAsync(string key, CancellationToken ct = default) => throw Down();
     }

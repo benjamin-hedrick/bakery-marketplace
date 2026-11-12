@@ -45,6 +45,18 @@ public sealed class LocalCacheProvider : ICacheProvider
         return Task.CompletedTask;
     }
 
+    private readonly object _claimGate = new();
+
+    public Task<bool> SetIfAbsentAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
+    {
+        lock (_claimGate)
+        {
+            if (_cache.TryGetValue(key, out _)) return Task.FromResult(false);
+            _cache.Set(key, value, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl ?? DefaultTtl });
+            return Task.FromResult(true);
+        }
+    }
+
     public Task DeleteAsync(string key, CancellationToken ct = default)
     {
         _cache.Remove(key);

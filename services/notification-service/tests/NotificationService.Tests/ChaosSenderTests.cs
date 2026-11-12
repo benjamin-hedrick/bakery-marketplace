@@ -7,8 +7,12 @@ namespace NotificationService.Tests;
 /// <summary>With every setting off the chaos sender is invisible: the shared sender contract passes through it (WI-CHAOS-002).</summary>
 public sealed class ChaosSenderContractTests : NotificationSenderContractTests
 {
+    private readonly RecordingNotificationSender _inner = new();
+
     protected override INotificationSender Create() =>
-        new ChaosNotificationSender(new RecordingNotificationSender(), ChaosRuntime.ForTests(ChaosScenario.Of("off", 1, "notification")).Layer("notification"));
+        new ChaosNotificationSender(_inner, ChaosRuntime.ForTests(ChaosScenario.Of("off", 1, "notification")).Layer("notification"));
+
+    protected override int Delivered(INotificationSender sender, Notification message) => _inner.Sent.Count(n => n.EventId == message.EventId);
 }
 
 /// <summary>The notification layer: a delivery that fails (the sender contract says a throw means "not delivered, try again later"), slowness, an outage.</summary>
@@ -65,7 +69,7 @@ public sealed class ChaosSenderTests
     }
 
     [Fact]
-    public async Task ALostResponse_MeansTheMessageWasSent_AndARetryWillSendItASecondTime()
+    public async Task ALostResponse_MeansTheMessageWasSent_AndTheRetryDoesNotSendItAgain_BecauseTheEventIdIsTheIdempotencyKey()
     {
         var (sender, inner, runtime) = Build(1, ("lostResponseRate", 1));
         var id = Guid.NewGuid();
@@ -74,8 +78,8 @@ public sealed class ChaosSenderTests
         await Assert.ThrowsAsync<TimeoutException>(() => sender.SendAsync(Message(id))); // "try again later"
 
         Assert.Equal(2, runtime.Journal.Count("notification", "lostResponse"));
-        // Sent twice for one event: nothing in the sender contract prevents it. A real provider needs an idempotency key (register 171).
-        Assert.Equal(2, inner.Sent.Count(n => n.EventId == id));
+        // Sent once for one event: the sender contract makes the event id the idempotency key (register 171), and the wrapped sender honors it.
+        Assert.Equal(1, inner.Sent.Count(n => n.EventId == id));
     }
 
     [Fact]

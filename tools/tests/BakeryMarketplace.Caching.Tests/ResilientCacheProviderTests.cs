@@ -109,6 +109,8 @@ public sealed class ResilientCacheProviderTests
             throw new InvalidOperationException("Simulated primary failure.");
         public Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default) =>
             throw new InvalidOperationException("Simulated primary failure.");
+        public Task<bool> SetIfAbsentAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default) =>
+            throw new InvalidOperationException("Simulated primary failure.");
         public Task DeleteAsync(string key, CancellationToken ct = default) =>
             throw new InvalidOperationException("Simulated primary failure.");
         public Task<bool> ExistsAsync(string key, CancellationToken ct = default) =>
@@ -140,6 +142,12 @@ public sealed class ResilientCacheProviderTests
             if (ShouldFail) throw new InvalidOperationException("Toggled to fail.");
             _store[key] = value;
             return Task.CompletedTask;
+        }
+
+        public Task<bool> SetIfAbsentAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
+        {
+            if (ShouldFail) throw new InvalidOperationException("Toggled to fail.");
+            return Task.FromResult(_store.TryAdd(key, value));
         }
 
         public Task DeleteAsync(string key, CancellationToken ct = default)

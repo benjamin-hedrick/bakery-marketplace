@@ -94,6 +94,15 @@ public class RedisCacheProvider : ICacheProvider
         await _database.StringSetAsync(key, serialized, expiry: ttl);
     }
 
+    public async Task<bool> SetIfAbsentAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", nameof(key));
+        ArgumentNullException.ThrowIfNull(value);
+
+        string serialized = JsonSerializer.Serialize(value, _jsonOptions);
+        return await _database.StringSetAsync(key, serialized, expiry: ttl, when: When.NotExists);
+    }
+
     public async Task DeleteAsync(string key, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", nameof(key));

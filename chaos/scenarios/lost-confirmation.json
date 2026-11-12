@@ -10,6 +10,9 @@
     },
     "bffOrdering": {
       "lostResponseRate": 0.2
+    },
+    "notification": {
+      "lostResponseRate": 0.3
     }
   }
 }
