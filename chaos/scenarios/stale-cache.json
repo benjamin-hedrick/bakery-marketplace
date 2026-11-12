@@ -1,0 +1,9 @@
+{
+  "name": "stale-cache",
+  "seed": 20261113,
+  "layers": {
+    "cache": {
+      "deleteFailureRate": 1
+    }
+  }
+}

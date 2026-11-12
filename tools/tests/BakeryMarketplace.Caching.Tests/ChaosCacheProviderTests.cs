@@ -106,6 +106,54 @@ public sealed class ChaosCacheProviderTests
         Assert.Contains('x', first);
     }
 
+    [Fact]
+    public async Task DeleteFailureRateOfOne_FailsDeletesOnly_AndTheEntryStaysUntilItExpires()
+    {
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("t", 1, "cache", ("deleteFailureRate", 1)));
+        var inner = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
+        var chaos = new ChaosCacheProvider(inner, runtime);
+
+        await chaos.SetAsync("k", "old", TimeSpan.FromMinutes(1)); // writes and reads are untouched
+        Assert.Equal("old", (await chaos.GetAsync<string>("k")).Value);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => chaos.DeleteAsync("k"));
+
+        Assert.Equal("old", (await chaos.GetAsync<string>("k")).Value); // the invalidation did not get through: the old value is still served
+        Assert.Equal(1, runtime.Journal.Count("cache", "deleteFailure"));
+        Assert.Equal(0, runtime.Journal.Count("cache", "failure"));
+    }
+
+    [Fact]
+    public async Task DeleteFailureRateOfZero_LeavesDeletesAlone()
+    {
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("t", 1, "cache", ("latencyMs", 1)));
+        var chaos = new ChaosCacheProvider(new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions())), runtime);
+        await chaos.SetAsync("k", "v");
+
+        await chaos.DeleteAsync("k");
+
+        Assert.False((await chaos.GetAsync<string>("k")).Found);
+        Assert.Equal(0, runtime.Journal.Count("cache", "deleteFailure"));
+    }
+
+    [Fact]
+    public async Task ADeleteFailureBehindTheResilientProviderStillLeavesTheOldValueServed()
+    {
+        // Resilient(Chaos(primary)): the failed primary delete falls back to deleting in the local fallback only, so a reader of the primary sees the old entry.
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("t", 1, "cache", ("deleteFailureRate", 1)));
+        var primary = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
+        await primary.SetAsync("k", "old", TimeSpan.FromMinutes(1));
+        // A breaker that does not open on one failure, as in use (the helper above opens at the first, to exercise the fallback).
+        var sut = new ResilientCacheProvider(
+            new ChaosCacheProvider(primary, runtime), new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions())),
+            new PollyCircuitBreakerPolicy(exceptionsAllowedBeforeBreaking: 5, durationOfBreak: TimeSpan.FromSeconds(30)),
+            new FakeLogger<ResilientCacheProvider>(new FakeLogCollector()));
+
+        await sut.DeleteAsync("k"); // does not throw: the resilient provider absorbs it
+
+        Assert.Equal("old", (await sut.GetAsync<string>("k")).Value);
+    }
+
     private static ChaosRuntime Outage(double seconds) =>
         ChaosRuntime.ForTests(ChaosScenario.Of("outage", 1, "cache", ("outageWindowSeconds", seconds)));
 

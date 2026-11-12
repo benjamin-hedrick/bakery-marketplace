@@ -16,7 +16,7 @@ export const KNOWN_LAYERS: Readonly<Record<string, readonly string[]>> = {
     'outageFromSeconds',
     'outageWindowSeconds',
   ],
-  cache: ['failureRate', 'latencyMs', 'outageFromSeconds', 'outageWindowSeconds'],
+  cache: ['failureRate', 'deleteFailureRate', 'latencyMs', 'outageFromSeconds', 'outageWindowSeconds'],
   repository: [
     'failureRate',
     'lostResponseRate',
