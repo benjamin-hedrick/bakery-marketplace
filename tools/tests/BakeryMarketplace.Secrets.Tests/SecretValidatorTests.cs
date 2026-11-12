@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Configuration;
 using BakeryMarketplace.Secrets;
+using Microsoft.Extensions.Configuration;
 
 namespace BakeryMarketplace.Secrets.Tests;
 

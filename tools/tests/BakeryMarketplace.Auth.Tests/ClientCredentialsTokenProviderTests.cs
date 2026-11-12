@@ -1,10 +1,10 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using BakeryMarketplace.Secrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using BakeryMarketplace.Secrets;
 
 namespace BakeryMarketplace.Auth.Tests;
 
