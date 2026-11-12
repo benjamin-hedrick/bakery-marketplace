@@ -41,5 +41,13 @@
     "prettier": "3.9.10",
     "relay-compiler": "21.0.1",
     "typescript": "5.9.3"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.1"
+    },
+    "typescript-eslint": {
+      "minimatch": "^11.0.1"
+    }
   }
 }
