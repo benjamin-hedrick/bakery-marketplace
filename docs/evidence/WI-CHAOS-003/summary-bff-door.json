@@ -1,12 +1,12 @@
 {
   "scenario": "bff-door",
   "faultsInjectedByTheServices": {
-    "bff:latency": 202,
+    "bff:latency": 199,
     "bff:reject": 36,
-    "bffOrdering:serverError": 8,
+    "bffOrdering:lostResponse": 5,
     "bff:reset": 10,
     "bff:malformed": 17,
-    "bffOrdering:lostResponse": 9,
+    "bffOrdering:serverError": 9,
     "bffCatalog:unavailable": 9,
     "bffCatalog:lostResponse": 6
   },
@@ -16,14 +16,15 @@
     "confirmedOrders": 30,
     "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
     "secondsWaitedForNotificationsToSettle": 0,
+    "repeatsAbsorbedByTheEventIdKey": 0,
     "eventsMovedToTheDeadLetterStream": 0
   },
   "specMetrics": {
     "bff-door-browser": {
       "scenario": "bff-door",
       "failuresShown": 0,
-      "chaosAnswersSeen": 20,
-      "nonJsonAnswersSeen": 1,
+      "chaosAnswersSeen": 22,
+      "nonJsonAnswersSeen": 2,
       "reloads": {
         "orders": 10,
         "failedThenRecovered": 5
@@ -32,21 +33,21 @@
     "bff-door-reads": {
       "scenario": "bff-door",
       "reads": 40,
-      "failedAnswers": 47,
-      "readsThatNeededARetry": 18,
-      "mostAttemptsForOneRead": 9,
-      "answersWithAnInjectedFault": 83,
+      "failedAnswers": 49,
+      "readsThatNeededARetry": 23,
+      "mostAttemptsForOneRead": 6,
+      "answersWithAnInjectedFault": 85,
       "failureKinds": {
-        "UNAVAILABLE": 20,
-        "INTERNAL": 15,
-        "not JSON": 8,
-        "fetch failed": 4
+        "not JSON": 9,
+        "UNAVAILABLE": 21,
+        "fetch failed": 4,
+        "INTERNAL": 15
       }
     },
     "bff-door-retry": {
       "scenario": "bff-door",
       "orders": 15,
-      "neededARetry": 6,
+      "neededARetry": 5,
       "notRecoveredAfterRetries": 0
     },
     "bff-door": {
@@ -60,50 +61,50 @@
       "stockAfter": 40,
       "confirmedOrdersWhoseStockIsNotHeld": 0,
       "confirmedServiceOrderIds": [
-        "order-89a3177ec4222eb6cbecfbc9d97f1771",
-        "order-26469ca680a22d2f7dbaef3dc81763e8",
-        "order-3e1ce4826cdc6b778f8e1f32fd4ad804",
-        "order-83ea22dcfc5c2799208cd24f98a9ff7a",
-        "order-2119abf691c2073c87834c54f597152c",
-        "order-5b62286fe712f858bdb5fde7a259be7a",
-        "order-e3f65d1412dc076d91adf442995fba3e",
-        "order-c9e05afab5579aa119d60372222cd697",
-        "order-53808ff958a4957571a05358b46a87d6",
-        "order-2bf699d8488c7552f6992c4d7a853cdd",
-        "order-2e63dc0204d47b2db003f33c337c96b6",
-        "order-0b348694dd68ce2f182603b918a4bf02",
-        "order-91f1192044e2c5f244a768586806aed3",
-        "order-18b9d7c0ef54c8b1b518ad10f51ad362",
-        "order-58177f7debfe40b152db2e49afc011b6",
-        "order-047385d144c0dae998929a61e0bf2eb1",
-        "order-bd3eddd822a6b10fd523a306bf9a379f",
-        "order-c1fc57663dc44c24da04e83192876fe4",
-        "order-8287ec994490e9d8b6d4fc86783686cc",
-        "order-5bb21962d56e41373a9b71cd1e18c8df",
-        "order-49882aa3c7edac2d96680e75188d3442",
-        "order-f35fcca526aea918e4be816fa24b13c6",
-        "order-9c19343eb3f2337f057ade8e5f848f83",
-        "order-da4134df8b7319fdfd2fcd55fdba4662",
-        "order-c49165f33df516ed5eb35f4e08746774",
-        "order-7dc6fe94149909ed5fd9d8e050c3e1ee",
-        "order-89b3f4b0adbc0326565b36b8152dab9a",
-        "order-3d5685e1e428221385336ca5b0cd0818",
-        "order-8c2399e958811c769062d7da3d53cc00",
-        "order-70f1ff41334580d25c1ad03b07391e45"
+        "order-29a5ed5036507f8c240fba8325cf2f03",
+        "order-cc57ab1414a0ef46b49a280600e6e975",
+        "order-c225e9b545c93af64d01139cdb694f3a",
+        "order-61a40a412e2c99fd922b4f6a5b5ab767",
+        "order-a2010b4b72ba96c64084f9c8a5350db6",
+        "order-9089fd3575e7e4eb71b9433c6cde3042",
+        "order-9983deffed4c9440cbe0cd0c81535388",
+        "order-ed92322184baf3202d0c8d79c3269e35",
+        "order-4c8437ed66edc4fc3ec91fff1c9f671c",
+        "order-12e7dbaa4c477425a18139554a2380b5",
+        "order-b4887198ebbc1886789b797476ad85ab",
+        "order-636dd6bf55693edf869776053f06864f",
+        "order-59cdb8d70bbdb7bc5e637c853720e586",
+        "order-f1d92af49f831bd010c77485d5e59cf5",
+        "order-bf2e7a2628c3b05e198966553ccfce8d",
+        "order-51363e093d67d6dbdb3a6c3dc82a5dd7",
+        "order-3b0ceec259f86900f1c318fe7aa77a04",
+        "order-2e55deb11123f63fe0b00c555b822dae",
+        "order-171753786089c778240d5730c1eae4df",
+        "order-6ec160b76e913f81795a21ad64d16829",
+        "order-38cc69a527948e4e54803fa26112df55",
+        "order-52ff26108b059d13f81eafcb9557868f",
+        "order-222d0ab26d985a7dc9d0f9c9399a9c94",
+        "order-5db29be52af4b848e966eabf6c2c6afd",
+        "order-ff475407dac917a2226f12e5771df3ee",
+        "order-34871669dac86916eb2591a3102e5d5a",
+        "order-7932c1e0ce4634d3187f9689fa2e03fc",
+        "order-3602ac944f87232fc2dfb4d024a2bcda",
+        "order-d76995944764e6eb423a780a610d9a5f",
+        "order-d971ba84f1d3a874a79cc0113c1ed977"
       ],
       "outcomesOfUnconfirmedOrders": [],
       "outcomesOfAllAttempts": {
         "success": 30,
-        "UNAVAILABLE": 11,
-        "INTERNAL": 10,
+        "UNAVAILABLE": 9,
+        "INTERNAL": 5,
         "fetch failed": 2,
         "not JSON": 5
       },
       "retriesNeeded": {
-        "max": 6,
-        "total": 28
+        "max": 4,
+        "total": 21
       },
-      "secondsToQueueConvergence": 1.648
+      "secondsToQueueConvergence": 0.178
     }
   },
   "knownGapsObserved": [],

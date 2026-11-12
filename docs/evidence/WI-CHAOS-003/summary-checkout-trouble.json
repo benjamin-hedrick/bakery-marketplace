@@ -1,13 +1,13 @@
 {
   "scenario": "checkout-trouble",
   "faultsInjectedByTheServices": {
-    "repository:latency": 887,
+    "repository:latency": 890,
     "repository:conflict": 31,
+    "catalog:unavailable": 16,
     "payment:latency": 64,
-    "broadcast:drop": 22,
-    "catalog:unavailable": 19,
     "payment:decline": 16,
-    "catalog:reject": 7
+    "catalog:reject": 5,
+    "broadcast:drop": 19
   },
   "notifications": {
     "notificationsSent": 84,
@@ -15,13 +15,14 @@
     "confirmedOrders": 30,
     "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
     "secondsWaitedForNotificationsToSettle": 0,
+    "repeatsAbsorbedByTheEventIdKey": 0,
     "eventsMovedToTheDeadLetterStream": 0
   },
   "specMetrics": {
     "checkout-trouble-recovery": {
       "scenario": "checkout-trouble",
       "orders": 12,
-      "neededARetry": 8,
+      "neededARetry": 9,
       "notRecoveredAfterRetries": 0,
       "outcomesOfNotRecovered": []
     },
@@ -36,49 +37,49 @@
       "stockAfter": 40,
       "confirmedOrdersWhoseStockIsNotHeld": 0,
       "confirmedServiceOrderIds": [
-        "order-8079e7cbb4ed46ffa52e723b47937fe6",
-        "order-177069a04d4f28182fa41c8a1c2e1e1f",
-        "order-9bb354ae3804b96c55d08a45d2de0b69",
-        "order-0e8c397b53b0bf2a1ef90508a3946802",
-        "order-36b271f4581e474cb844a6128684ba2d",
-        "order-dd3962967dddca5f00a386c93cc3e3e3",
-        "order-7a24eb91395258e2ae7524a87d955ae2",
-        "order-70a77ba8785be347394dca3b70694843",
-        "order-e9058db4896f06017d322c56962b5cde",
-        "order-100a2d3089e9f4ba798779eb2a0499b7",
-        "order-c5613eb7592834c0c51366be925c8e8a",
-        "order-5afc8c118bda5a997cf8da9d7c7dcb96",
-        "order-eaf62c9d2702e1880ff02648523a1354",
-        "order-b0a432d2c594e9849cc6e50faf72292c",
-        "order-b73a781a1505ef04b86eef7c29260660",
-        "order-710bd942611a7a57e9304cb53f3eed40",
-        "order-bc1fc201de71afcf3234ec780b470254",
-        "order-60827a632380a54807feaf1fadbaf54e",
-        "order-dfb61ea5074f36e9ce26eec971c11156",
-        "order-fe6b25a203289f4099a40e154e841bd7",
-        "order-c841efa5cef9e39db573582a17e14fed",
-        "order-68cd20cd56ee967c36bcb612497e2084",
-        "order-c1c1db38537aa67a627f83c00ca25570",
-        "order-2695fcbff519d00eb1276bcfa9c19317",
-        "order-2e416becbe88ce62ef92861f6da4341a",
-        "order-dfdabe5f1c75290e08a1aafecea250c8",
-        "order-a20755e2de33ea1b0c06a2daef1847d9",
-        "order-62c83bc5379e46e54892d03dcd042f93",
-        "order-751e508e9c8706ad3c0766a033fc611d",
-        "order-67bdd12445a05e8a37db0bc1f2589a2d"
+        "order-31c5bc05a4c95bfb86c9797494d611c9",
+        "order-fb3b97bcf4b937d34427ac0f1bb65397",
+        "order-c894941ebc9b10badce11055bd60f1df",
+        "order-335eae818cdb3873d751552b43dc9737",
+        "order-edccaa0ce1e4cbe0e0e1b4d88dee6291",
+        "order-65ece184f199240f85e673557d7a758b",
+        "order-6fc059eac8e4c8a7666410bd7ccf1fcf",
+        "order-fe69a5aafa51d3713b40a7ef15fe52b1",
+        "order-ddc165f3211ccb32233c32753382b8ca",
+        "order-cc99e3723ad41e19b75101ff903ae212",
+        "order-8d24261be7627faa447dc2f60a738b21",
+        "order-0bcedac2cda15fc21a6c720f32b001c0",
+        "order-b64973897e77d5b7158dda63b965f51f",
+        "order-059c4b6d3e3d62b39019bd1ede5b294a",
+        "order-9c3afdf959967b399c69cc4a523d3af9",
+        "order-dfd39a445d815a603aa0c4ea755420ea",
+        "order-580b3d722bb998e396e3dad6cbaecb9c",
+        "order-6fd50da52a8f7c32ba3d9d9ab4222725",
+        "order-602ef7e27be962f3e86ec178679e4d58",
+        "order-a2fabeb9616434a5c65c7577b0939716",
+        "order-2db44fa2d302555a154cbf697801f389",
+        "order-40e459f46b5fa762fcf287d1b1fc7890",
+        "order-ad9b0f352abe1a4591ff5d774568000f",
+        "order-40cb9590f3ecfad087d8dc7f91e6f754",
+        "order-35db57d51ff130f79ced0427e9932455",
+        "order-a220c6dd6f6eda385bc67992e01e449a",
+        "order-3283234c876627f4949bc0bddf589dfb",
+        "order-8abf0332aa59ca019a2e225e00542e7b",
+        "order-fc37f48a6579b06abc09e455077f9258",
+        "order-a07175dd9273ea23eb766f9098d43efa"
       ],
       "outcomesOfUnconfirmedOrders": [],
       "outcomesOfAllAttempts": {
+        "INTERNAL": 16,
+        "PAYMENT_DECLINED": 9,
         "success": 30,
-        "INTERNAL": 17,
-        "PAYMENT_DECLINED": 8,
-        "CONFLICT": 4
+        "CONFLICT": 3
       },
       "retriesNeeded": {
         "max": 7,
-        "total": 29
+        "total": 28
       },
-      "secondsToQueueConvergence": 0.079
+      "secondsToQueueConvergence": 0.085
     }
   },
   "knownGapsObserved": [],
