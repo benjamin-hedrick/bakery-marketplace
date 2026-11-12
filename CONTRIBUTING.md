@@ -2,6 +2,10 @@
 
 This is a single-maintainer reference project. It runs on a developer machine only; nothing is deployed. The [README](README.md) says what it is and how to run it, and [docs/index.md](docs/index.md) is the map of the documents.
 
+## Conduct
+
+Participation is under the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Questions and issues
 
 Questions and issues are welcome. Please look at the README and the documents first; the [open-items register](docs/governance/open-items-register.md) lists what is already known and its status.
