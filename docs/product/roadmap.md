@@ -49,7 +49,7 @@ A fresh second iteration of the product on a new stack was planned in September 
 |---|---|
 | 1 Vision and personas | Done |
 | 2 Capability map, bounded contexts, glossary | Done |
-| 3 Key ADRs | Done (23 records) |
+| 3 Key ADRs | Done ([ADR index](../architecture/adr/README.md)) |
 | 4 C4 context and container | Done |
 | 5 Backlog, prioritization and definition of ready | Done, with prioritization partly (see [scope](scope.md)) |
 | 6 Repository scaffolding, local environment, CI skeleton | Done |
