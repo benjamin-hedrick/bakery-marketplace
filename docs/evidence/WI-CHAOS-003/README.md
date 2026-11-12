@@ -14,4 +14,4 @@ How to read a summary: `faultsInjectedByTheServices` is the journal counted per 
 | `web-door` | [`summary-web-door.json`](summary-web-door.json) | The same at the web server's GraphQL route: no blank page or stuck spinner, Try again recovers (2 of 15 reloads needed it). |
 | `slow-cache` | [`summary-slow-cache.json`](summary-slow-cache.json) | The catalog's cache Redis slow and failing half its operations: 40 of 40 listing reads correct, orders never stale, authenticated answers `private, no-store`. **Not shown:** a failed invalidation leaving a stale entry until the TTL (all eight status changes reached the customer at once, so that path was not hit). |
 
-Not covered by these runs: the aimed faults and signals of the ADR's amendment of 2026-11-10 on the Android emulator (flows 07 and 11, never run), and the web servers' own journal (they log no applied layers).
+The aimed faults and signals of the ADR's amendment of 2026-11-10 are shown on the Android emulator by [`flows-07-11-2026-11-11.md`](flows-07-11-2026-11-11.md). Not covered: the web servers' own journal (they log no applied layers).
