@@ -46,9 +46,7 @@ const mustHaveInjected = {
   ],
 };
 // Behaviour known not to hold yet: reported in the summary, and the run still passes while it is the only problem.
-const knownGaps = {
-  'lost-confirmation': 'register 171: a payment authorized whose answer was lost is authorized again by the retry',
-};
+const knownGaps = {};
 
 /**
  * What the notification service sent (its log lines "Notification for order X (Type, event E) produced"): an event sent more than once is a duplicate, and a
@@ -134,7 +132,14 @@ function summarize() {
   const doubled = doubleAuthorizations(metrics);
   if (doubled !== null) {
     metrics['lost-confirmation-payment'].ordersAuthorizedMoreThanOnce = doubled;
-    if (doubled > 0) gaps.push(`${knownGaps[scenario]} (${doubled} orders)`);
+    // Register 171 (fixed): the processor is idempotent on the order id, so a retry after a lost answer holds nothing again; a repeat shows as an answer from the first.
+    metrics['lost-confirmation-payment'].repeatsAnsweredFromTheFirstAuthorization = [
+      ...readFileSync(path.join(stack.out, 'ordering.log'), 'utf8').matchAll(/answered from its first authorization/g),
+    ].length;
+    if (doubled > 0)
+      problems.push(
+        `${doubled} orders were authorized more than once (register 171: the processor must be idempotent on the order id)`,
+      );
   }
   writeFileSync(
     path.join(stack.out, 'summary.json'),

@@ -230,19 +230,22 @@ public sealed class ChaosHostTests : IAsyncLifetime
 
     // ---- the ambiguous failure: the work was done, the answer was lost ----
 
+    // Idempotent on the order id, as IPaymentProcessor says a processor is (register 171): a repeat is answered from the first call and holds nothing again.
     private sealed class CountingProcessor : IPaymentProcessor
     {
-        public int Authorizations;
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _held = new();
+
+        public int Authorizations => _held.Count;
 
         public Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
         {
-            Interlocked.Increment(ref Authorizations);
+            _held.TryAdd(request.OrderId, true);
             return Task.FromResult(new PaymentResult(true, "ref-" + request.OrderId));
         }
     }
 
     [Fact]
-    public async Task APaymentWhoseResponseIsLost_WasAuthorized_ButTheCustomerIsToldItFailed_AndAReplayAuthorizesAgain()
+    public async Task APaymentWhoseResponseIsLost_WasAuthorized_ButTheCustomerIsToldItFailed_AndTheReplayHoldsNothingAgain()
     {
         var inner = new CountingProcessor();
         var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("t", 1, "payment", ("lostResponseRate", 1)));
@@ -253,9 +256,8 @@ public sealed class ChaosHostTests : IAsyncLifetime
         await Assert.ThrowsAsync<PaymentUnavailableException>(() => chaos.AuthorizeAsync(request)); // the customer retries the checkout
 
         Assert.Equal(2, runtime.Journal.Count("payment", "lostResponse"));
-        // Two authorizations for one order: today's processor interface has no idempotency key and no void. A real processor must be called with the
-        // order id as its idempotency key, and a failed checkout must void (register 171).
-        Assert.Equal(2, inner.Authorizations);
+        // One authorization for one order: the replay carries the same order id, which is the processor's idempotency key (register 171).
+        Assert.Equal(1, inner.Authorizations);
     }
 
     [Fact]

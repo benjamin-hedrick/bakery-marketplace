@@ -103,6 +103,18 @@ public sealed class OrderEventNotifierTests
     }
 
     [Fact]
+    public async Task TheSameEventTwiceInOneBatchSendsOneMessage()
+    {
+        var e = Confirmed("o1", "c1");
+
+        var failed = await Handle(_notifier, e, e, Confirmed("o2", "c2"));
+
+        Assert.Empty(failed);
+        Assert.Equal(2, _sender.Sent.Count);
+        Assert.Single(_sender.Sent, n => n.OrderId == "o1");
+    }
+
+    [Fact]
     public async Task AFailedSendIsReportedForRetry_TheOthersAreSent_AndTheRetrySucceeds()
     {
         var bad = Confirmed("o-bad", "c1");
