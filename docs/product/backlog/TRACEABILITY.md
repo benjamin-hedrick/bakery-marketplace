@@ -25,7 +25,7 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | Done | `StockReservationTests.cs`, `BatchContractTests.cs` | *none* |
 | [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | In review | `ChaosHostTests.cs` | `ai-usage-2026-11-09-c.md` |
 | [CHAOS-002](WI-CHAOS-002.md) | Chaos scenarios, phase 2: the repository, broadcast, payment, catalog-gateway and notification-sender layers | In review | `ChaosSenderTests.cs`, `ChaosHostTests.cs`, `ChaosRepositoryTests.cs` and 1 more | `ai-usage-2026-11-09-c.md` |
-| [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | In review | `chaos-outcomes.test.ts` | `README.md`, `README.md`, `ai-usage-2026-11-09-c.md` |
+| [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | In review | `chaos-outcomes.test.ts` | `README.md`, `README.md`, `flows-07-11-2026-11-11.md` and 1 more |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | Done | *none* | *none* |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | Done | *none* | `baseline-2026-10-30.md` |

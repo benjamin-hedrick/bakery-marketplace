@@ -6,6 +6,7 @@
 
 | Record | What it shows |
 |---|---|
+| [`WI-CHAOS-003/flows-07-11-2026-11-11.md`](WI-CHAOS-003/flows-07-11-2026-11-11.md) | Android flows 07 and 11 on the emulator under the BFF chaos scenarios: both passed; the journal shows the signal that switches the scenario, the aimed faults on Nora and the first `placeOrder`, and no BFF stop. |
 | [`WI-CHAOS-003/README.md`](WI-CHAOS-003/README.md) | The seven chaos scenarios run on the whole local stack (2026-11-11), one summary each: no order lost or duplicated, the vendor queue and notifications converge, two defects found and fixed by them (registers 182 and 183), the known gap 171 observed. |
 | [`WI-CAT-003/after-2026-11-07.md`](WI-CAT-003/after-2026-11-07.md), with [`baseline`](WI-CAT-003/baseline-2026-11-07.md) | The catalog's listing cache: BFF listings query p50 about 20 ms to about 3 ms and the server-rendered home page about 24 ms to about 8 ms, checkout unchanged; three runs each, in-process provider, small seeded catalog |
 | [`WI-SEC-005/client-address-load-2026-11-07.md`](WI-SEC-005/client-address-load-2026-11-07.md) | A control and a fix under load: with one shared rate-limit counter 51 of 54 orders were refused, with per-client counting none |
