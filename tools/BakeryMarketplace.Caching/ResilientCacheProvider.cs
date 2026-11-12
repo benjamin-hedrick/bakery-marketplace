@@ -98,8 +98,11 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFallback(nameof(DeleteAsync), key, ex);
-            await _fallback.DeleteAsync(key, ct);
         }
+
+        // Always the fallback too, not only when the primary failed: the fallback may hold a copy filled while the breaker was open, and a delete that reached
+        // only the primary would leave that copy to be served (until its TTL) if the breaker opens again.
+        await _fallback.DeleteAsync(key, ct);
     }
 
     public async Task<bool> ExistsAsync(string key, CancellationToken ct = default)

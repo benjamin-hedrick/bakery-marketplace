@@ -99,6 +99,22 @@ public sealed class ResilientCacheProviderTests
         Assert.Equal("from-fallback", Assert.Single(result).Value);
     }
 
+    [Fact]
+    public async Task ASuccessfulDeleteAlsoRemovesTheCopyTheFallbackHolds()
+    {
+        // The fallback was filled while the breaker was open; the primary is healthy again and the key is invalidated. The stale fallback copy must go too,
+        // or it would be served if the breaker opened again.
+        var primary = new ToggleCacheProvider();
+        var fallback = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
+        var breaker = new PollyCircuitBreakerPolicy(exceptionsAllowedBeforeBreaking: 5, durationOfBreak: TimeSpan.FromSeconds(30));
+        var sut = new ResilientCacheProvider(primary, fallback, breaker, NullLogger<ResilientCacheProvider>.Instance);
+        await fallback.SetAsync("k", "stale-in-fallback");
+
+        await sut.DeleteAsync("k");
+
+        Assert.False((await fallback.GetAsync<string>("k")).Found);
+    }
+
     // ── Test doubles ─────────────────────────────────────────────────────────
 
     private sealed class AlwaysFailingCacheProvider : ICacheProvider
