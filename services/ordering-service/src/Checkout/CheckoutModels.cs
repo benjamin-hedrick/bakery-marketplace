@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using BakeryMarketplace.EventSchemas;
 using OrderingService.Domain;
 using OrderingService.Persistence;
@@ -78,7 +79,10 @@ public interface IPaymentProcessor
     /// <summary>
     /// Returns the processor's answer (approved or not). Throws <see cref="PaymentUnavailableException"/> when the processor could not be reached or did not
     /// answer in time (register 170): an implementation converts its own transport failures (connection, timeout, 5xx) to it and nothing else, so a bug stays a bug.
-    /// The money may have been held even then (register 171): the real processor needs the order id as its idempotency key and a void for an answer it cannot confirm.
+    /// The money may have been held even then, so <b>the call is idempotent on <see cref="PaymentRequest.OrderId"/></b> (register 171): the order id is derived from the
+    /// customer and the checkout's idempotency key, so a retry of the same checkout carries the same id, and an implementation answers a repeat with the answer to the
+    /// first call and holds nothing a second time. A real processor gets the order id as its idempotency key. Whether a declined answer is also repeated as declined is
+    /// the implementation's to say; the checkout never retries a decline.
     /// </summary>
     Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default);
 }
@@ -92,12 +96,27 @@ public sealed partial class StubPaymentProcessor(ILogger<StubPaymentProcessor> l
 {
     public const string ProcessorName = "STUB";
 
+    // Idempotent on the order id, as the contract says a real processor is (register 171): a repeat is answered from the first call and is not an authorization.
+    // Kept in memory and bounded: this is a stand-in, and a restart forgets it.
+    private const int Remembered = 10_000;
+    private readonly ConcurrentDictionary<string, PaymentResult> _authorized = new();
+
     public Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
     {
+        if (_authorized.TryGetValue(request.OrderId, out var first))
+        {
+            LogStubRepeat(logger, ProcessorName, request.OrderId);
+            return Task.FromResult(first);
+        }
+        if (_authorized.Count >= Remembered) _authorized.Clear();
+        var result = _authorized.GetOrAdd(request.OrderId, id => new PaymentResult(true, $"stub-{id}"));
         LogStubAuthorization(logger, ProcessorName, request.OrderId, request.AmountCents, request.Currency);
-        return Task.FromResult(new PaymentResult(true, $"stub-{request.OrderId}"));
+        return Task.FromResult(result);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{Processor} payment authorization for order {OrderId}, {AmountCents} {Currency}. No payment provider was called and no money moved.")]
     private static partial void LogStubAuthorization(ILogger logger, string processor, string orderId, long amountCents, string currency);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Processor} repeated request for order {OrderId} answered from its first authorization; nothing was held again.")]
+    private static partial void LogStubRepeat(ILogger logger, string processor, string orderId);
 }

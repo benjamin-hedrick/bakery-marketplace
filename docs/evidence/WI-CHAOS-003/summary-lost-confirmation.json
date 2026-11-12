@@ -1,43 +1,53 @@
 {
   "scenario": "lost-confirmation",
   "faultsInjectedByTheServices": {
-    "repository:lostResponse": 73,
-    "payment:lostResponse": 35
+    "bffOrdering:lostResponse": 21,
+    "repository:lostResponse": 68,
+    "payment:lostResponse": 25
+  },
+  "notifications": {
+    "notificationsSent": 106,
+    "eventsSentMoreThanOnce": 0,
+    "confirmedOrders": 30,
+    "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
+    "secondsWaitedForNotificationsToSettle": 0,
+    "eventsMovedToTheDeadLetterStream": 0
   },
   "specMetrics": {
     "lost-confirmation-payment": {
       "scenario": "lost-confirmation",
       "customerId": "user-customer-1",
       "keys": [
-        "lost-payment-a19205af-19b2-4f69-85dc-2caf6a59d77d",
-        "lost-payment-02876a08-2b3f-4218-8a65-79a011487de9",
-        "lost-payment-9871899d-31c6-4e03-a065-1e41fc4091a8",
-        "lost-payment-7c99a56f-6778-4a28-9c33-21036f2adb05",
-        "lost-payment-5cd3363d-9f83-4ed0-bb9c-6f4c453f81de",
-        "lost-payment-6b90b3a3-1972-4da9-af26-9361bb4d1115",
-        "lost-payment-fa2704d9-6b33-4a7a-bb79-9dd8e0da6af6",
-        "lost-payment-fde36704-9482-448a-bf14-bfdc57cc03e5",
-        "lost-payment-083d55b3-ee99-4926-abde-2b7315547007",
-        "lost-payment-1e797829-9809-43ee-b4c6-413f362d83ec",
-        "lost-payment-6faf2edb-d4fe-4739-93f1-dc206ae3ad22",
-        "lost-payment-42c19778-abbb-4153-93b0-a5978140e3b9",
-        "lost-payment-eef584cc-b4d4-4ffd-8dc4-293b66900319",
-        "lost-payment-11583c39-1bad-49b7-8415-a07cc9a40d37",
-        "lost-payment-c084684b-580f-4cdb-874e-2176354b490a",
-        "lost-payment-2af5cacf-ab9f-4861-af81-4ca46bc918ef",
-        "lost-payment-42d49e8a-fdc7-41cd-b60c-ccb24af8b89e",
-        "lost-payment-4c61628c-75e8-4eda-b2e3-2a3ce490c66d",
-        "lost-payment-8d7d63cc-58d2-42c9-9f1e-010912ee7c8a",
-        "lost-payment-8ffbb60d-a729-4d64-b07c-b70a799b282c",
-        "lost-payment-bf16ff16-eae3-4ec8-bb59-17c7d8663dae",
-        "lost-payment-9b39c634-8a10-4cae-aa08-5c65b9e551ba",
-        "lost-payment-54787587-73af-4368-a7e4-6a6b271be364",
-        "lost-payment-a118787d-c57c-496f-8178-3612d1863f5b",
-        "lost-payment-190fb5b8-18e6-462d-867e-f181f501dd8a"
+        "lost-payment-7c997aae-ce00-4bda-844d-acb1d2623f54",
+        "lost-payment-eba34520-095b-4728-9605-b0f665e907d6",
+        "lost-payment-23130280-d3e4-4b29-b180-4aa441b223e6",
+        "lost-payment-70800a1f-6c83-47a2-883d-78b12549319d",
+        "lost-payment-c3790e67-4ddc-49d0-888a-4c5e61ea3321",
+        "lost-payment-3f6d2700-282b-4ddd-8441-e8e0ca863d89",
+        "lost-payment-e7a8928a-782f-4b07-9b92-ba1042c4e6a3",
+        "lost-payment-ffe8c703-1608-480d-8c09-bd0a6ff32d2c",
+        "lost-payment-fe28d8bf-1c11-46cb-a899-b00df70c209d",
+        "lost-payment-37b2fd22-def8-43be-bed3-8839f3f130b8",
+        "lost-payment-60a57985-7067-48f1-a01b-182ff396bc0c",
+        "lost-payment-298f056b-d51f-421f-b32e-fff09193a0a1",
+        "lost-payment-d20214a6-2fb6-493d-84de-d07986713a9d",
+        "lost-payment-be1b60c3-f38f-4a8a-ae3c-674143070915",
+        "lost-payment-9f997c38-a23e-4cc0-a93c-e7fce151aaf7",
+        "lost-payment-09870e07-31eb-4925-a059-ca27ade06f4d",
+        "lost-payment-1254aa17-a48a-40d4-8a02-65e8f9e0d7da",
+        "lost-payment-64acebfb-fb64-4684-84fa-45a7c0f5f8d8",
+        "lost-payment-9b196523-8446-4a30-a05d-4452e8e6a5b1",
+        "lost-payment-cab9ddc7-8f1f-4d86-9f5a-7517f0e0df61",
+        "lost-payment-f5b7360d-9c67-4b6b-b1a6-5dc3d8a96a50",
+        "lost-payment-bee89254-7e7e-487e-ba13-2b1de298428c",
+        "lost-payment-49a111be-01be-4d60-bc5a-66671fac3044",
+        "lost-payment-46b93b15-6135-4563-b9e3-cb65f864f6ac",
+        "lost-payment-ba41b16e-ecd1-4a6e-a50d-51518423b9a7"
       ],
       "confirmed": 25,
       "notRecoveredAfterRetries": 0,
-      "ordersAuthorizedMoreThanOnce": 13
+      "ordersAuthorizedMoreThanOnce": 0,
+      "repeatsAnsweredFromTheFirstAuthorization": 25
     },
     "lost-confirmation": {
       "scenario": "lost-confirmation",
@@ -49,20 +59,50 @@
       "stockBefore": 70,
       "stockAfter": 40,
       "confirmedOrdersWhoseStockIsNotHeld": 0,
+      "confirmedServiceOrderIds": [
+        "order-82157ff7baa4627951a7bb719d580288",
+        "order-21dced092fdbb23b3b930611f19d7c43",
+        "order-4afc4cadb78a0e2a34453323dcf82435",
+        "order-bd1ff1c0fddcc9ac74e650fa3f12cbc5",
+        "order-98df605e288fa7789c19cf2ca54100ad",
+        "order-2c30232363848c648d0eecb5695a1c78",
+        "order-a537189f7deff9f9a04237ab571420de",
+        "order-d79ad0208f01b3ef4a87cc73984b51eb",
+        "order-3df7c1b9b6166b2636a458aaf5d657c2",
+        "order-05468cdaf126e274d816756d1175654c",
+        "order-88ee21a432ff1b17fd14432ef8472592",
+        "order-47f016888e68c3952e55f3bdd4a1eb9a",
+        "order-00b0229d0fc1208376f407a3b79fdc20",
+        "order-75bf1f792b26433f5e8dd9942d708bcf",
+        "order-e2ee256078b727dd4c1d5623db9d2b1a",
+        "order-41773d8a9db9a4507cc6f4ab371aea6c",
+        "order-fa4e44e0ec16bd28db159eea2af7c8c9",
+        "order-174d6ab232057389963a8ee83f179f0a",
+        "order-dfcc96844b1b3049a69aeeea40ad51f3",
+        "order-76158f7b3a7fa81fc3fab48f67e1ae1c",
+        "order-345416fcb34765fd062d825ba84b4213",
+        "order-e21479b93293d1978a4629b58df28371",
+        "order-adf55e08c85e797c02ba45efdf603467",
+        "order-a14ef3dcff1433dd3a61b289319409b0",
+        "order-5e7a689b1ca2bfd457d919f734e1fe92",
+        "order-5972113791c5fb5dd0293e2a2c5c3e7c",
+        "order-76164aee3ea18ca42ab5accfb5c6daa5",
+        "order-dbd0ac0cda76169df81f51adb57ad76f",
+        "order-e7be5651561d85b28e94ec7608286806",
+        "order-2c66cd1b9d2597b0fd8541eb05ba80a9"
+      ],
       "outcomesOfUnconfirmedOrders": [],
       "outcomesOfAllAttempts": {
-        "INTERNAL": 38,
+        "INTERNAL": 31,
         "success": 30
       },
       "retriesNeeded": {
-        "max": 5,
-        "total": 38
+        "max": 3,
+        "total": 31
       },
-      "secondsToQueueConvergence": 2.33
+      "secondsToQueueConvergence": 2.873
     }
   },
-  "knownGapsObserved": [
-    "register 171: a payment authorized whose answer was lost is authorized again by the retry (13 orders)"
-  ],
+  "knownGapsObserved": [],
   "problems": []
 }

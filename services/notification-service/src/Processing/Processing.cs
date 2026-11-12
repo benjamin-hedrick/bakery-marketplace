@@ -43,8 +43,12 @@ public sealed partial class OrderEventNotifier(
     {
         var failed = new List<Guid>();
         var pending = new List<(DomainEventEnvelope<T> Event, string OrderId, string CustomerId)>();
+        var seen = new HashSet<Guid>();
         foreach (var e in events)
         {
+            // The same event can arrive twice in one batch (a duplicated publish, a redelivery in the same poll); both copies would pass the ledger
+            // check below before either is marked, so the second is dropped here. Its entry is acknowledged with the first (register 171).
+            if (!seen.Add(e.EventId)) continue;
             if (await SafeAsync(() => ledger.WasSentAsync(e.EventId, ct), false, "ledger read")) continue; // a ledger failure may repeat a message, never lose one
             var customerId = customerOf(e.Payload);
             if (string.IsNullOrEmpty(customerId))
