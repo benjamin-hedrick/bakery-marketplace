@@ -212,10 +212,13 @@ public class VendorOrderProjectionTests
         public Task<OrderDocument?> SaveIfUnchangedAsync(OrderDocument entity, string partitionKey, CancellationToken ct = default) => inner.SaveIfUnchangedAsync(entity, partitionKey, ct);
         public Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default) => inner.DeleteAsync(id, partitionKey, ct);
 
-        public IAsyncEnumerable<OrderDocument> QueryAsync(string partitionKey, Func<IQueryable<OrderDocument>, IQueryable<OrderDocument>> query, CancellationToken ct = default)
+        public IAsyncEnumerable<OrderDocument> QueryAsync(string partitionKey, Func<IQueryable<OrderDocument>, IQueryable<OrderDocument>> query, CancellationToken ct = default) =>
+            inner.QueryAsync(partitionKey, query, ct);
+
+        public IAsyncEnumerable<OrderDocument> QueryAcrossPartitionsAsync(Func<IQueryable<OrderDocument>, IQueryable<OrderDocument>> query, CancellationToken ct = default)
         {
-            if (partitionKey.Length == 0) AcrossPartitions++;
-            return inner.QueryAsync(partitionKey, query, ct);
+            AcrossPartitions++;
+            return inner.QueryAcrossPartitionsAsync(query, ct);
         }
     }
 

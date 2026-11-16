@@ -217,7 +217,7 @@ public sealed class StockReservationService
         // The window is filtered by the store; the order and the cursor are applied here, like the public browse, because a string
         // comparison is not something to rely on a store query to translate.
         var inWindow = new List<StockReservationDocument>();
-        await foreach (var doc in _reservations.QueryAsync("", q => q.Where(d =>
+        await foreach (var doc in _reservations.QueryAcrossPartitionsAsync(q => q.Where(d =>
                            d.DocType == "stockReservation" && d.State == ReservationStates.Active
                            && d.CreatedAtMs <= newest && d.CreatedAtMs >= oldest), ct))
         {

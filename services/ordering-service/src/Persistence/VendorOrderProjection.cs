@@ -122,7 +122,7 @@ public sealed partial class VendorOrderProjection(
 
     private async Task<VendorOrderDocument?> FindAnywhereAsync(string orderId, CancellationToken ct)
     {
-        await foreach (var d in documents.QueryAsync("", q => q.Where(x => x.Id == orderId).Take(1), ct)) return d;
+        await foreach (var d in documents.QueryAcrossPartitionsAsync(q => q.Where(x => x.Id == orderId).Take(1), ct)) return d;
         return null;
     }
 

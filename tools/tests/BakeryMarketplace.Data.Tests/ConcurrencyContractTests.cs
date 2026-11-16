@@ -106,7 +106,15 @@ public abstract class ConcurrencyContractTests
         Assert.Equal("first", two!.Name);
     }
 
-    protected async Task Run_AQueryWithNoPartitionKeySpansAllPartitions()
+    protected async Task Run_AnEmptyPartitionKeyIsRefusedInsteadOfReadingEveryPartition()
+    {
+        var repo = CreateRepository();
+        await repo.SaveIfUnchangedAsync(New("e1", "ep-a"), "ep-a");
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => Collect(repo.QueryAsync("", q => q)));
+    }
+
+    protected async Task Run_AQueryAcrossPartitionsSpansAllPartitions()
     {
         var repo = CreateRepository();
         await repo.SaveIfUnchangedAsync(New("q1", "qp-a"), "qp-a");
@@ -114,7 +122,7 @@ public abstract class ConcurrencyContractTests
         await repo.SaveIfUnchangedAsync(New("q3", "qp-b"), "qp-b");
 
         var one = await Collect(repo.QueryAsync("qp-b", q => q.Where(e => e.Name == "first" && e.Counter == 0 && e.Id != "q1")));
-        var all = await Collect(repo.QueryAsync("", q => q.Where(e => e.Id == "q1" || e.Id == "q2" || e.Id == "q3")));
+        var all = await Collect(repo.QueryAcrossPartitionsAsync(q => q.Where(e => e.Id == "q1" || e.Id == "q2" || e.Id == "q3")));
 
         Assert.Equal(["q2", "q3"], one.Select(e => e.Id).OrderBy(i => i));
         Assert.Equal(["q1", "q2", "q3"], all.Select(e => e.Id).OrderBy(i => i));
@@ -161,7 +169,8 @@ public sealed class FakeConcurrencyTests : ConcurrencyContractTests
     [Fact] public Task ADeletedEntityCannotBeSavedConditionally() => Run_ADeletedEntityCannotBeSavedConditionally();
     [Fact] public Task ReadersGetIndependentCopies() => Run_ReadersGetIndependentCopies();
     [Fact] public Task ConcurrentReadModifyWriteLoopsLoseNoUpdate() => Run_ConcurrentReadModifyWriteLoopsLoseNoUpdate();
-    [Fact] public Task AQueryWithNoPartitionKeySpansAllPartitions() => Run_AQueryWithNoPartitionKeySpansAllPartitions();
+    [Fact] public Task AQueryAcrossPartitionsSpansAllPartitions() => Run_AQueryAcrossPartitionsSpansAllPartitions();
+    [Fact] public Task AnEmptyPartitionKeyIsRefusedInsteadOfReadingEveryPartition() => Run_AnEmptyPartitionKeyIsRefusedInsteadOfReadingEveryPartition();
 
     [Fact]
     public async Task AnEntityTypeWithoutETagsCannotBeSavedConditionally()
@@ -224,5 +233,6 @@ public sealed class CosmosConcurrencyTests : ConcurrencyContractTests, IAsyncLif
     [EmulatorFact] public Task ADeletedEntityCannotBeSavedConditionally() => Run_ADeletedEntityCannotBeSavedConditionally();
     [EmulatorFact] public Task ReadersGetIndependentCopies() => Run_ReadersGetIndependentCopies();
     [EmulatorFact] public Task ConcurrentReadModifyWriteLoopsLoseNoUpdate() => Run_ConcurrentReadModifyWriteLoopsLoseNoUpdate();
-    [EmulatorFact] public Task AQueryWithNoPartitionKeySpansAllPartitions() => Run_AQueryWithNoPartitionKeySpansAllPartitions();
+    [EmulatorFact] public Task AQueryAcrossPartitionsSpansAllPartitions() => Run_AQueryAcrossPartitionsSpansAllPartitions();
+    [EmulatorFact] public Task AnEmptyPartitionKeyIsRefusedInsteadOfReadingEveryPartition() => Run_AnEmptyPartitionKeyIsRefusedInsteadOfReadingEveryPartition();
 }
