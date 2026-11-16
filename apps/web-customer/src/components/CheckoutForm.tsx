@@ -7,11 +7,19 @@ import type { CheckoutPaymentMethodsQuery } from '../__generated__/CheckoutPayme
 import type { CheckoutPlaceOrderMutation } from '../__generated__/CheckoutPlaceOrderMutation.graphql';
 import type { CheckoutWindowsQuery } from '../__generated__/CheckoutWindowsQuery.graphql';
 import {
+  allergensToTell,
+  allergyConflictKey,
+  dietCartText,
   estimatedTotalCents,
   fingerprint,
+  formatMoney,
+  lineAllergenSentences,
+  lineConflictText,
   lineTotalCents,
   MAX_QUANTITY,
+  needsAcknowledgement,
   NO_PAYMENT_METHODS_TEXT,
+  randomUrlSafe,
   removeLine,
   selectedPaymentMethodId,
   setQuantity,
@@ -20,16 +28,6 @@ import {
   type PaymentMethod,
 } from '@bakery/customer-core';
 import { cartStore, useCart } from '../lib/cart/useCart.ts';
-import {
-  allergensToTell,
-  allergyConflictKey,
-  lineAllergenSentences,
-  lineConflictText,
-  needsAcknowledgement,
-} from '@bakery/customer-core';
-import { dietCartText } from '@bakery/customer-core';
-import { randomUrlSafe } from '@bakery/customer-core';
-import { formatMoney } from '@bakery/customer-core';
 import { GraphQLRequestError, UnauthenticatedError } from '../lib/relay/environment';
 import { useCheckoutAllergens } from './useCheckoutAllergens';
 
