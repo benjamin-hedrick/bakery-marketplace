@@ -97,17 +97,19 @@ public sealed partial class CheckoutService(
         if (method is null)
             return CheckoutResult.Invalid([new CheckoutProblem("validation_failed", "paymentMethodId", "Choose one of your saved payment methods.")]);
 
-        // ---- read and price ----
-        var listings = new Dictionary<string, CatalogListing?>(StringComparer.Ordinal);
+        // ---- read and price: one catalog read per distinct listing, all at once ----
+        var ids = request.LineItems!.Select(l => l.ListingId!).Distinct(StringComparer.Ordinal).ToList();
+        CatalogListing?[] found;
         try
         {
-            foreach (var id in request.LineItems!.Select(l => l.ListingId!).Distinct(StringComparer.Ordinal))
-                listings[id] = await catalog.GetListingAsync(id, ct);
+            found = await Task.WhenAll(ids.Select(id => catalog.GetListingAsync(id, ct)));
         }
         catch (DownstreamUnavailableException)
         {
             return Unavailable();
         }
+        var listings = new Dictionary<string, CatalogListing?>(StringComparer.Ordinal);
+        for (var i = 0; i < ids.Count; i++) listings[ids[i]] = found[i];
 
         var (lines, problems) = CheckoutPricing.Price(vendorId, request.LineItems!, listings);
         if (problems.Count > 0)
@@ -255,7 +257,7 @@ public sealed partial class CheckoutService(
         }
         catch (Exception e)
         {
-            // Open item 62: a reservation without an order needs a cleanup. Nothing here can do more than record it.
+            // A reservation left without an order is returned by the orphan reservation sweep (OrphanReservationSweeper, register item 62); here it is only recorded.
             LogStockReleaseFailed(logger, e, orderId);
         }
     }
