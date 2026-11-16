@@ -25,13 +25,14 @@ export function requireAllowed(nodeEnv: string | undefined, deploymentEnvironmen
 /** Finds a scenario by name: a path as given, or `chaos/scenarios/<name>.json` searched upward from the working directory and from this package. */
 export function locateScenario(reference: string, cwd: string = process.cwd()): string {
   if (reference.endsWith('.json') || reference.includes('/') || reference.includes('\\')) {
-    const full = path.resolve(cwd, reference);
+    // turbopackIgnore: scenario files are read from disk at run time, never bundled; without it the Next.js build traces the whole project.
+    const full = path.resolve(/* turbopackIgnore: true */ cwd, reference);
     if (!existsSync(full)) throw new ScenarioError(`Chaos scenario file not found: ${full}`);
     return full;
   }
   for (const start of [cwd, path.dirname(fileURLToPath(import.meta.url))]) {
-    for (let dir = path.resolve(start); ; dir = path.dirname(dir)) {
-      const candidate = path.join(dir, 'chaos', 'scenarios', `${reference}.json`);
+    for (let dir = path.resolve(/* turbopackIgnore: true */ start); ; dir = path.dirname(dir)) {
+      const candidate = path.join(/* turbopackIgnore: true */ dir, 'chaos', 'scenarios', `${reference}.json`);
       if (existsSync(candidate)) return candidate;
       if (path.dirname(dir) === dir) break;
     }
