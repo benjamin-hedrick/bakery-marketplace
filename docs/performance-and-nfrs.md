@@ -1,6 +1,6 @@
 # Performance, scalability and non-functional requirements
 
-> **Status:** Current · written 2026-11-08 as a guide to documents that already exist; every figure below is quoted from its source record, which states the commit, the machine and the limits. All of it ran on one developer machine (Windows 11, Docker Desktop) with the stack local; nothing is deployed.
+> **Status:** Current · written 2026-11-08 as a guide to documents that already exist, chaos scenarios added 2026-11-16; every figure below is quoted from its source record, which states the commit, the machine and the limits. All of it ran on one developer machine (Windows 11, Docker Desktop) with the stack local; nothing is deployed.
 
 The requirements are written as targets with the decision or principle each traces to, then measured where a measurement could be made. Targets and measurements are kept apart: a target is a planning assumption, and a measurement says what was run.
 
@@ -26,6 +26,7 @@ The requirements are written as targets with the decision or principle each trac
 | Rate limiting under load, control and fix | with one shared counter 51 of 54 orders were refused; with per-client counting none | [client-address load](evidence/WI-SEC-005/client-address-load-2026-11-07.md) |
 | Order-event delivery with the broker down | orders confirmed in about 2.1 s; events published within 6 s of recovery | [runbook run](evidence/runbook-event-broker-2026-10-30.md) |
 | Concurrency | 200 of 200 concurrent server-rendered requests contained only their own data; twelve simultaneous identical checkouts made one order | [baseline](evidence/baseline-2026-10-30.md), [patterns](architecture/patterns.md) |
+| Faults injected on purpose (chaos scenarios) | a broker outage, a flaky broker, lost answers from the store, the payment processor and the notification sender, checkout trouble, a slow and a stale cache, faults at the BFF and the web app: no order lost or duplicated, stock exact, the vendor's queue converged; three defects found and fixed | [chaos runs](evidence/WI-CHAOS-003/README.md), [ADR-0024](architecture/adr/0024-chaos-scenarios.md) |
 
 How they were taken: `scripts/dev/measure-latency.mjs` (sequential reads and checkout), `scripts/dev/load-test.mjs` (load and soak), `scripts/ci/repeat-suite.mjs` (repeated browser runs). Each record says what it does not show: for example the soak overlapped some of the author's own test runs, so its p99 is the weaker figure, and the cache numbers are for a small seeded catalog and the in-process provider.
 
@@ -36,7 +37,7 @@ How they were taken: `scripts/dev/measure-latency.mjs` (sequential reads and che
 - **Caching in three owned layers** with invalidation and a single flight against stampedes ([patterns 7](architecture/patterns.md), [ADR-0014](architecture/adr/0014-cache-layers.md)).
 - **Push as a nudge with polling as the floor,** bounded streams and silence limits ([patterns 9](architecture/patterns.md), [ADR-0021](architecture/adr/0021-live-updates-to-the-vendor-queue.md)).
 - **Idempotent writes, reserve and release, optimistic concurrency** ([patterns 4 to 6](architecture/patterns.md)).
-- **What happens when a dependency fails,** with how each case was established, and where each technique is tested against the real dependency ([patterns 14 and 15](architecture/patterns.md)).
+- **What happens when a dependency fails,** with how each case was established, and where each technique is tested against the real dependency ([patterns 14 and 15](architecture/patterns.md)); seeded chaos scenarios inject those failures on the whole local stack and check that nothing is lost ([ADR-0024](architecture/adr/0024-chaos-scenarios.md), [`chaos/README.md`](../chaos/README.md)).
 - **Observability:** OpenTelemetry traces with W3C trace context ([ADR-0016](architecture/adr/0016-opentelemetry-tracing.md)), a monitoring and alerting plan and a runbook ([monitoring](operations/monitoring-alerting.md), [runbooks](operations/runbooks/README.md)).
 
 ## Security as a quality attribute
