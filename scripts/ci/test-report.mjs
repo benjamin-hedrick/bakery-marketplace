@@ -8,7 +8,7 @@
 //   --write       also write docs/evidence/test-and-coverage-<date>.md (the dated, commit-stamped record)
 //
 // What it runs: every .NET test project (tools/tests/*, services/*/tests/*) with coverlet's collector and a TRX log; the JavaScript suites that use
-// `node --test` (graphql-bff, customer-core, web-session, mobile-customer, web-queue-display unit) with Node's built-in coverage. It only LISTS the Playwright suites
+// `node --test` (graphql-bff, chaos, customer-core, web-session, mobile-customer, web-queue-display unit) with Node's built-in coverage. It only LISTS the Playwright suites
 // (counts, not run: they need a built app and servers, see repeat-suite.mjs and skeleton-smoke.mjs) and counts the Maestro flows.
 //
 // Coverage is LINE coverage. For .NET the reports of all projects are merged by file and line, so a library covered from two test projects counts once and
@@ -134,6 +134,7 @@ function runDotnet() {
 // ---- JavaScript (node --test) ------------------------------------------------------------------------------------------------------------------------------
 const JS = [
   { name: 'graphql-bff', dir: 'services/graphql-bff', glob: 'test/**/*.test.ts', pre: [] },
+  { name: 'chaos', dir: 'packages/chaos', glob: 'tests/**/*.test.ts', pre: [] },
   { name: 'customer-core', dir: 'packages/customer-core', glob: 'tests/**/*.test.ts', pre: [] },
   { name: 'web-session', dir: 'packages/web-session', glob: 'tests/**/*.test.ts', pre: [] },
   {
@@ -171,7 +172,8 @@ function runJs() {
   const coverage = [];
   for (const s of JS.filter((s) => wanted(s.name))) {
     const cwd = path.join(root, s.dir);
-    if (!existsSync(path.join(cwd, 'node_modules')) && s.dir !== 'packages/customer-core')
+    // customer-core and chaos have no runtime dependencies: their tests run without an install.
+    if (!existsSync(path.join(cwd, 'node_modules')) && s.dir !== 'packages/customer-core' && s.dir !== 'packages/chaos')
       log(`  ${s.name}: node_modules missing (npm ci)`);
     const lcov = path.join(work, 'js', `${s.name.replace(/\W+/g, '-')}.lcov`);
     mkdirSync(path.dirname(lcov), { recursive: true });
