@@ -74,3 +74,7 @@ ADR-0021 (Accepted 2026-11-02) amends the queue display's line above: it still p
 ## Note, 2026-11-02: the queue display has its pushed stream
 
 The queue display now has the pushed stream that ADR-0021 added in front of its polling (`WI-QUE-003`): a `vendorOrderChanged` subscription served by the GraphQL BFF over Server-Sent Events (the BFF stays composition and error mapping: ordering-service decides what a vendor sees and validates the token), reached by the browser through the web app's own origin at `/api/graphql-stream`, where the session's token is attached on the server (ADR-0019). Polling is unchanged and remains the baseline and the fallback (7 seconds when the stream is down, a 60-second check while it is up). The rest of this ADR stands: the BFF is still the only API the browser talks to, and the apps are still Next.js Pages Router apps with a Relay client; the subscription is the one place where Relay's network layer is not used for transport (the `graphql-sse` client carries it), because Relay's subscription support needs a transport the application supplies. Evidence: `docs/evidence/WI-QUE-003/`.
+
+## Note, 2026-11-16: Next.js 16.4.6
+
+Next.js 16.4.3 is affected by GHSA-mfr8-8qww-v76h (moderate, published after the last green run), and `next build` now refuses to build an affected version, so the demo and the real-stack smoke failed on a fresh clone. Both web apps moved to 16.4.6 (with `eslint-config-next`); `npm audit` reports 0. The version floor in the validation outcome above is superseded by this note.
