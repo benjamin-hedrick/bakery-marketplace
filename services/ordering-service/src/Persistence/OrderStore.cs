@@ -71,7 +71,8 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
             if (direct is not null && direct.VendorId == vendorId) return new StoredOrder(direct.ToOrder(), direct);
         }
 
-        await foreach (var document in documents.QueryAsync("", q => q.Where(d => d.Id == orderId && d.VendorId == vendorId).Take(1), ct))
+        // The one cross-partition query on a request path (register item 76): only for an order newer than the vendor read model, and bounded to one result.
+        await foreach (var document in documents.QueryAcrossPartitionsAsync(q => q.Where(d => d.Id == orderId && d.VendorId == vendorId).Take(1), ct))
         {
             return new StoredOrder(document.ToOrder(), document);
         }
@@ -84,7 +85,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     /// </summary>
     public async Task<bool> ExistsAsync(string orderId, CancellationToken ct = default)
     {
-        await foreach (var _ in documents.QueryAsync("", q => q.Where(d => d.Id == orderId).Take(1), ct)) return true;
+        await foreach (var _ in documents.QueryAcrossPartitionsAsync(q => q.Where(d => d.Id == orderId).Take(1), ct)) return true;
         return false;
     }
 
@@ -169,7 +170,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     public async Task<IReadOnlyList<StoredOrder>> FindParkedAsync(int take, CancellationToken ct = default)
     {
         var found = new List<StoredOrder>();
-        await foreach (var document in documents.QueryAsync("", q => q.Where(d => d.ParkedAt > 0).Take(take), ct))
+        await foreach (var document in documents.QueryAcrossPartitionsAsync(q => q.Where(d => d.ParkedAt > 0).Take(take), ct))
         {
             found.Add(new StoredOrder(document.ToOrder(), document));
         }
@@ -195,7 +196,7 @@ public sealed class OrderStore(IRepository<OrderDocument> documents, IRepository
     {
         var cutoff = pendingBefore.ToUnixTimeMilliseconds();
         var found = new List<StoredOrder>();
-        await foreach (var document in documents.QueryAsync("", q => q.Where(d => d.PendingSince <= cutoff).Take(take), ct))
+        await foreach (var document in documents.QueryAcrossPartitionsAsync(q => q.Where(d => d.PendingSince <= cutoff).Take(take), ct))
         {
             found.Add(new StoredOrder(document.ToOrder(), document));
         }

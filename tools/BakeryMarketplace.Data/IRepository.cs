@@ -32,11 +32,20 @@ public interface IRepository<T> where T : class
     /// Returns entities within <paramref name="partitionKey"/> matching the composed predicate.
     /// The <paramref name="query"/> function receives an IQueryable and returns a filtered/ordered IQueryable.
     /// The implementation translates this to a safe, parameterized store query — never raw string concatenation.
-    /// An empty <paramref name="partitionKey"/> queries across ALL partitions (as <see cref="CosmosRepository{T}"/> and the fake both do). That costs more than a single-partition query: use it for background maintenance, such as sweeping for pending outbox
-    /// events, never on a request path.
+    /// <paramref name="partitionKey"/> must not be empty (an <see cref="ArgumentException"/>): an empty key never widens a query to every
+    /// partition by accident, for example a customer id that was not set. Reading every partition is <see cref="QueryAcrossPartitionsAsync"/>.
     /// </summary>
     IAsyncEnumerable<T> QueryAsync(
         string partitionKey,
+        Func<IQueryable<T>, IQueryable<T>> query,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns entities from EVERY partition matching the composed predicate, translated like <see cref="QueryAsync"/>. It costs more than a
+    /// single-partition query: use it for background maintenance (the outbox relays, the orphan reservation sweep), never on a request path
+    /// unless the call site says why (one does: a vendor's order not yet in the vendor read model, register item 76).
+    /// </summary>
+    IAsyncEnumerable<T> QueryAcrossPartitionsAsync(
         Func<IQueryable<T>, IQueryable<T>> query,
         CancellationToken ct = default);
 }

@@ -77,6 +77,16 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
         await foreach (var item in _inner.QueryAsync(partitionKey, query, ct).WithCancellation(ct))
             yield return item;
     }
+
+    /// <summary>The same query fault; the decision key is the empty partition key, as it was when a cross-partition query was a query with an empty key.</summary>
+    public async IAsyncEnumerable<T> QueryAcrossPartitionsAsync(
+        Func<IQueryable<T>, IQueryable<T>> query,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        await Before("query", "", ct);
+        await foreach (var item in _inner.QueryAcrossPartitionsAsync(query, ct).WithCancellation(ct))
+            yield return item;
+    }
 }
 
 /// <summary>The same layer for transactional batches: a batch can fail, or lose its optimistic-concurrency check (<c>ExecuteAsync</c> returns false).</summary>

@@ -45,13 +45,15 @@ public sealed class ListingCacheTests
         public Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default) => inner.DeleteAsync(id, partitionKey, ct);
 
         public IAsyncEnumerable<T> QueryAsync(string partitionKey, Func<IQueryable<T>, IQueryable<T>> query, CancellationToken ct = default) =>
-            Answer(Interlocked.Increment(ref _queries), partitionKey, query, ct);
+            Answer(Interlocked.Increment(ref _queries), inner.QueryAsync(partitionKey, query, ct));
 
-        private async IAsyncEnumerable<T> Answer(
-            int number, string partitionKey, Func<IQueryable<T>, IQueryable<T>> query, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+        public IAsyncEnumerable<T> QueryAcrossPartitionsAsync(Func<IQueryable<T>, IQueryable<T>> query, CancellationToken ct = default) =>
+            Answer(Interlocked.Increment(ref _queries), inner.QueryAcrossPartitionsAsync(query, ct));
+
+        private async IAsyncEnumerable<T> Answer(int number, IAsyncEnumerable<T> source)
         {
             var items = new List<T>();
-            await foreach (var item in inner.QueryAsync(partitionKey, query, ct)) items.Add(item);
+            await foreach (var item in source) items.Add(item);
             if (AfterRead is not null) await AfterRead(number);
             foreach (var item in items) yield return item;
         }

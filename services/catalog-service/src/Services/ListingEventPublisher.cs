@@ -90,7 +90,7 @@ public sealed partial class ListingEventPublisher(
     public async Task<IReadOnlyList<ListingDocument>> FindParkedAsync(int take, CancellationToken ct = default)
     {
         var found = new List<ListingDocument>();
-        await foreach (var doc in listings.QueryAsync("", q => q.Where(d => d.ParkedAt > 0).Take(take), ct)) found.Add(doc);
+        await foreach (var doc in listings.QueryAcrossPartitionsAsync(q => q.Where(d => d.ParkedAt > 0).Take(take), ct)) found.Add(doc);
         return found;
     }
 
@@ -198,7 +198,7 @@ public sealed partial class ListingOutboxRelay(
     {
         var cutoff = time.GetUtcNow().AddSeconds(-Options.GraceSeconds).ToUnixTimeMilliseconds();
         var pending = new List<ListingDocument>();
-        await foreach (var doc in listings.QueryAsync("", q => q.Where(d => d.PendingSince <= cutoff).Take(Options.BatchSize), ct)) pending.Add(doc);
+        await foreach (var doc in listings.QueryAcrossPartitionsAsync(q => q.Where(d => d.PendingSince <= cutoff).Take(Options.BatchSize), ct)) pending.Add(doc);
 
         var published = 0;
         foreach (var doc in pending) published += (await publisher.PublishPendingAsync(doc, ct)).Published;

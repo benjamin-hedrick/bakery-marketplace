@@ -116,19 +116,27 @@ public class CosmosRepository<T> : IRepository<T> where T : class
         }
     }
 
-    public async IAsyncEnumerable<T> QueryAsync(
+    public IAsyncEnumerable<T> QueryAsync(
         string partitionKey,
         Func<IQueryable<T>, IQueryable<T>> query,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(partitionKey);
+        ArgumentNullException.ThrowIfNull(query);
+        return RunQueryAsync(new QueryRequestOptions { PartitionKey = new PartitionKey(partitionKey) }, query, ct);
+    }
+
+    public IAsyncEnumerable<T> QueryAcrossPartitionsAsync(Func<IQueryable<T>, IQueryable<T>> query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
+        return RunQueryAsync(new QueryRequestOptions(), query, ct);
+    }
 
-        var requestOptions = new QueryRequestOptions();
-        if (!string.IsNullOrEmpty(partitionKey))
-        {
-            requestOptions.PartitionKey = new PartitionKey(partitionKey);
-        }
-
+    private async IAsyncEnumerable<T> RunQueryAsync(
+        QueryRequestOptions requestOptions,
+        Func<IQueryable<T>, IQueryable<T>> query,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
         IQueryable<T> linqable = _container.GetItemLinqQueryable<T>(requestOptions: requestOptions);
         IQueryable<T> composedQuery = query(linqable);
 

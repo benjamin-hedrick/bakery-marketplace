@@ -43,7 +43,8 @@ public sealed class ChaosConcurrencyContractTests : ConcurrencyContractTests
     [Fact] public Task ADeletedEntityCannotBeSavedConditionally() => Run_ADeletedEntityCannotBeSavedConditionally();
     [Fact] public Task ReadersGetIndependentCopies() => Run_ReadersGetIndependentCopies();
     [Fact] public Task ConcurrentReadModifyWriteLoopsLoseNoUpdate() => Run_ConcurrentReadModifyWriteLoopsLoseNoUpdate();
-    [Fact] public Task AQueryWithNoPartitionKeySpansAllPartitions() => Run_AQueryWithNoPartitionKeySpansAllPartitions();
+    [Fact] public Task AQueryAcrossPartitionsSpansAllPartitions() => Run_AQueryAcrossPartitionsSpansAllPartitions();
+    [Fact] public Task AnEmptyPartitionKeyIsRefusedInsteadOfReadingEveryPartition() => Run_AnEmptyPartitionKeyIsRefusedInsteadOfReadingEveryPartition();
 }
 
 public sealed class ChaosBatchContractTests : BatchContractTests

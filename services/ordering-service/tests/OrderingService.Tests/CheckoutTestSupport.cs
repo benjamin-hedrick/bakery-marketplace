@@ -210,6 +210,11 @@ internal sealed class TestPaymentMethodRepository : IRepository<PaymentMethodDoc
         if (HasNone(partitionKey)) yield break;
         foreach (var d in query(PaymentMethods.For(partitionKey).Where(m => saved.All(s => s.Id != m.Id)).AsQueryable())) yield return d;
     }
+
+    /// <summary>Saved methods only: the default methods are per customer and nothing reads payment methods across customers.</summary>
+    public IAsyncEnumerable<PaymentMethodDocument> QueryAcrossPartitionsAsync(
+        Func<IQueryable<PaymentMethodDocument>, IQueryable<PaymentMethodDocument>> query, CancellationToken ct = default) =>
+        _inner.QueryAcrossPartitionsAsync(query, ct);
 }
 
 internal sealed class RecordingPayments : IPaymentProcessor
@@ -265,6 +270,10 @@ internal sealed class FlakyOrderRepository(IRepository<OrderDocument> inner) : I
     public IAsyncEnumerable<OrderDocument> QueryAsync(
         string partitionKey, Func<IQueryable<OrderDocument>, IQueryable<OrderDocument>> query, CancellationToken ct = default) =>
         inner.QueryAsync(partitionKey, query, ct);
+
+    public IAsyncEnumerable<OrderDocument> QueryAcrossPartitionsAsync(
+        Func<IQueryable<OrderDocument>, IQueryable<OrderDocument>> query, CancellationToken ct = default) =>
+        inner.QueryAcrossPartitionsAsync(query, ct);
 
     public Task<OrderDocument?> SaveIfUnchangedAsync(OrderDocument entity, string partitionKey, CancellationToken ct = default)
     {
