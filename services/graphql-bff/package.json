@@ -8,7 +8,8 @@
     "node": ">=24"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "codegen": "graphql-codegen --config codegen.yml",
+    "typecheck": "graphql-codegen --config codegen.yml --check && tsc --noEmit",
     "test": "node --test \"test/**/*.test.ts\"",
     "start": "node src/main.ts",
     "lint": "eslint .",
@@ -22,6 +23,9 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@graphql-codegen/cli": "8.0.0",
+    "@graphql-codegen/typescript": "7.0.1",
+    "@graphql-codegen/typescript-resolvers": "7.0.1",
     "@types/node": "25.9.9",
     "eslint": "10.13.0",
     "globals": "17.13.0",
@@ -34,6 +38,9 @@
       "minimatch": "^11.0.1"
     },
     "typescript-eslint": {
+      "minimatch": "^11.0.1"
+    },
+    "@graphql-codegen/cli": {
       "minimatch": "^11.0.1"
     }
   }
