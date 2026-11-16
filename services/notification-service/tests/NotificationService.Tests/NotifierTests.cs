@@ -56,7 +56,7 @@ public sealed class LogSenderTests : NotificationSenderContractTests
     protected override INotificationSender Create() => new LogNotificationSender(_produced);
 
     protected override int Delivered(INotificationSender sender, Notification message) =>
-        _produced.Lines.Count(l => l.Contains(message.EventId.ToString()) && l.EndsWith("not delivered to a provider"));
+        _produced.Lines.Count(l => l.Contains(message.EventId.ToString()) && l.EndsWith("not delivered to a provider", StringComparison.Ordinal));
 
     [Fact]
     public async Task TheLogCarriesNeitherTheAddressNorTheText()
