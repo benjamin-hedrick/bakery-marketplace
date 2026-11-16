@@ -1032,3 +1032,13 @@ Status: Open
 Type: Documentation drift · Source: the pre-publish review (2026-11-08); moved here 2026-11-16 · Hat: Architect
 Status: Open
 The status lines of ADR-0019, 0021, 0022 and 0023 carry who approved what and what each amends; the rule in `docs/method/status-and-supersession.md` is a short status line with the detail in a dated note. Reconciled when each is shortened and the removed text is kept as a dated note at the bottom of the record (the decision text is not touched).
+
+**189. The library test projects build with analyzer and deprecation warnings**
+Type: Tech debt · Source: the public-presentation review, 2026-11-16 (`dotnet build tools/BakeryMarketplace.slnx`) · Hat: Engineering
+Status: Open
+The root solution builds with no warning; the tools solution (the library tests) has 35 on 2026-11-16: `ASPDEPR004` and `ASPDEPR008` (the auth tests host the middleware with the deprecated `WebHostBuilder`: `MockOidcMiddlewareIntegrationTests`, `ServiceAuthIntegrationTests`, the `MockOidc*` tests, `RefreshTokenGrantTests`, `CorrelationIdMiddlewareTests`), and `CA2263`, `CA1850` and `CA1852` in the tests (`FulfillmentContractsTests` among them). A reviewer who builds that solution sees them first. Reconciled when the tests host the middleware with `WebApplication` and the analyzer findings are fixed. The auth tests are auth code's tests, so the change is the lead's to approve.
+
+**190. Two front-page items need the lead's accounts: an inline film player and a pipeline badge**
+Type: Gap · Source: the public-presentation review, 2026-11-16 · Hat: Manager/Lead
+Status: Open
+The README links the demo film (`docs/operations/demo/demo-film.mp4`) through its poster; GitHub plays a video inline in a README only when the file is uploaded through GitHub's editor (a `user-attachments` address), which needs the lead's GitHub session. A build badge needs the Azure DevOps project's badge address and the project's visibility settings (register 93 lists the Azure DevOps settings), neither of which is in the repository. Reconciled when the lead uploads the film and gives the badge address (or decides against either), and the README is updated.
