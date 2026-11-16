@@ -11,6 +11,15 @@ import { ClientError, DownstreamError, forbidden, unauthenticated } from './erro
 import { fromGlobalId, serviceIdFor, toGlobalId } from './global-id.ts';
 import type { OrderActionName, OrderingClient, OrderingOrder, OrderingVendorOrder } from './ordering-client.ts';
 import type { TraceContext } from './trace.ts';
+import type {
+  MutationCancelOrderArgs,
+  MutationPlaceOrderArgs,
+  MutationResolvers,
+  MutationSavePreferencesArgs,
+  MutationVendorOrderActionArgs,
+  QueryCartCheckArgs,
+  QueryResolvers,
+} from './__generated__/schema-types.ts';
 
 export interface Context {
   catalog: CatalogClient;
@@ -25,11 +34,23 @@ export interface Context {
   signal?: AbortSignal | undefined;
 }
 
+/**
+ * The resolver of each root field, typed from the schema (`npm run codegen`, `codegen.yml`). graphql-js calls a root value's function as
+ * (args, context, info), not (parent, args, context, info) as a resolver map does, so this takes each generated resolver type's arguments and
+ * gives that shape; every field of the schema must have one, and a resolver for a field the schema does not have is an error. What a resolver
+ * answers stays `unknown`: the mapping returns objects with lazy fields (a function for a part that may fail on its own), which the generated
+ * result types do not describe.
+ */
+type RootField<R> = R extends (parent: never, args: infer A, context: never, info: never) => unknown
+  ? (args: A, ctx: Context) => unknown
+  : never;
+type RootFields<T> = { [K in keyof T]-?: RootField<NonNullable<T[K]>> };
+
 const MAX_PAGE = 50;
 const money = (cents: number, currency = 'USD') => ({ cents, currency });
 
 /** The page size a caller asked for, kept within what the BFF serves. */
-const pageSize = (first: number | undefined) => Math.min(Math.max(first ?? 20, 1), MAX_PAGE);
+const pageSize = (first: number | null | undefined) => Math.min(Math.max(first ?? 20, 1), MAX_PAGE);
 
 /** A Relay connection of one page: an edge per item, and the cursor to ask for the next page with (the service's, else the last edge's). */
 function connection<T, N>(
@@ -184,16 +205,8 @@ export const subscriptionRoot = {
 };
 
 // ---- placeOrder -------------------------------------------------------------------------------------------------------------
-
-interface PlaceOrderInput {
-  idempotencyKey: string;
-  vendorId: string;
-  lineItems: { listingId: string; modifierIds: string[]; quantity: number }[];
-  pickupWindow?: { start: string; end: string } | null;
-  allergens?: string[] | null;
-  /** The id of one of the caller's saved payment methods (WI-ORD-010). Only the id crosses: the token stays in ordering-service. */
-  paymentMethodId: string;
-}
+// The input's `paymentMethodId` is the id of one of the caller's saved payment methods (WI-ORD-010). Only the id crosses: the token stays in
+// ordering-service.
 
 // Expected failures, by the error code ordering-service returns. The client sees the BFF's own fixed text, never ordering's (first-slice
 // contract section 6). A code that is not here is a contract violation: an internal error, not a guess.
@@ -238,7 +251,7 @@ function fieldProblems(errors: Record<string, string[]> | null | undefined) {
     .slice(0, MAX_FIELD_PROBLEMS);
 }
 
-async function placeOrder(args: { input: PlaceOrderInput }, ctx: Context) {
+async function placeOrder(args: MutationPlaceOrderArgs, ctx: Context) {
   if (!ctx.authorization) throw unauthenticated();
   const { input } = args;
 
@@ -323,7 +336,7 @@ async function runOrderAction(
 }
 
 /** A vendor's action on one of their orders (WI-QUE-004). The enum becomes ordering's path; everything else is ordering's to decide. */
-async function vendorOrderAction(args: { input: { orderId: string; action: string } }, ctx: Context) {
+async function vendorOrderAction(args: MutationVendorOrderActionArgs, ctx: Context) {
   if (!ctx.authorization) throw unauthenticated();
   const action = VENDOR_ACTIONS[args.input.action];
   if (action === undefined) throw new DownstreamError('unknown vendor action'); // the schema's enum makes this unreachable
@@ -338,7 +351,7 @@ async function vendorOrderAction(args: { input: { orderId: string; action: strin
 }
 
 /** A customer cancels their own order: the same ordering endpoint, with the customer's token. */
-async function cancelOrder(args: { input: { orderId: string } }, ctx: Context) {
+async function cancelOrder(args: MutationCancelOrderArgs, ctx: Context) {
   const serviceId = serviceIdFor('Order', args.input.orderId);
   if (!ctx.authorization) throw unauthenticated();
   if (serviceId === null) return actionRejected('CancelOrderRejected', 'NOT_FOUND', 'That order could not be found.');
@@ -364,10 +377,7 @@ const toDietMatches = (matches: CatalogDietMatch[] | undefined) =>
   }));
 
 /** The profile is quasi-health data: it is passed through and never logged, and a refusal's text is the BFF's own. */
-async function savePreferences(
-  args: { input: { allergies: string[]; avoid: string[]; prefer?: string[] | null } },
-  ctx: Context,
-) {
+async function savePreferences(args: MutationSavePreferencesArgs, ctx: Context) {
   const result = await callWithToken(ctx, (authorization) =>
     ctx.catalog.savePreferences(
       {
@@ -412,7 +422,7 @@ const MAX_CART_LINES = 50;
 const MAX_OPTIONS_PER_LINE = 20;
 
 /** The cart against the profile. The rule is the catalog's; the BFF decodes the listing ids, keeps the order and maps the answer. */
-async function cartCheck(args: { lines: { listingId: string; optionIds: string[] }[] }, ctx: Context) {
+async function cartCheck(args: QueryCartCheckArgs, ctx: Context) {
   if (!ctx.authorization) throw unauthenticated();
   if (args.lines.length > MAX_CART_LINES)
     throw new ClientError('BAD_INPUT', `A cart check takes at most ${MAX_CART_LINES} lines.`);
@@ -444,14 +454,11 @@ async function cartCheck(args: { lines: { listingId: string; optionIds: string[]
   });
 }
 
-export const rootValue = {
+export const rootValue: RootFields<QueryResolvers & MutationResolvers> = {
   placeOrder,
   savePreferences,
   cartCheck,
-  async personalizedListings(
-    args: { first?: number; after?: string | null; hideConflicts?: boolean | null },
-    ctx: Context,
-  ) {
+  async personalizedListings(args, ctx) {
     const first = pageSize(args.first);
     const page = await callWithToken(ctx, (authorization) =>
       ctx.catalog.listPersonalized(
@@ -462,7 +469,7 @@ export const rootValue = {
     );
     return connection(page.items, page.nextCursor, (p) => p.listing.id, toPersonalized);
   },
-  async personalizedListing(args: { id: string }, ctx: Context) {
+  async personalizedListing(args, ctx) {
     const serviceId = serviceIdFor('Listing', args.id);
     if (serviceId === null) return null;
     const found = await callWithToken(ctx, (authorization) =>
@@ -470,14 +477,14 @@ export const rootValue = {
     );
     return found ? toPersonalized(found) : null;
   },
-  async preferences(_args: unknown, ctx: Context) {
+  async preferences(_args, ctx) {
     return toPreferences(
       await callWithToken(ctx, (authorization) => ctx.catalog.getPreferences(authorization, ctx.trace)),
     );
   },
   vendorOrderAction,
   cancelOrder,
-  async listings(args: { first?: number; after?: string | null; tags?: string[] | null }, ctx: Context) {
+  async listings(args, ctx) {
     const first = pageSize(args.first);
     const page = await ctx.catalog
       .list({ limit: first, after: args.after ?? undefined, tags: args.tags ?? undefined }, ctx.trace)
@@ -490,41 +497,41 @@ export const rootValue = {
       });
     return connection(page.items, page.nextCursor, (l) => l.id, toListing);
   },
-  async listing(args: { id: string }, ctx: Context) {
+  async listing(args, ctx) {
     const serviceId = serviceIdFor('Listing', args.id);
     if (serviceId === null) return null;
     const l = await ctx.catalog.get(serviceId, ctx.trace);
     return l ? toListing(l) : null;
   },
-  async tags(args: { kind?: string | null }, ctx: Context) {
+  async tags(args, ctx) {
     const tags = await ctx.catalog.tags(args.kind ? args.kind.toLowerCase() : undefined, ctx.trace);
     return toTags(tags);
   },
-  async pickupWindows(args: { vendorId: string }, ctx: Context) {
+  async pickupWindows(args, ctx) {
     // Public data: the caller's token is deliberately not sent.
     const windows = await ctx.ordering.pickupWindows(args.vendorId, ctx.trace);
     return windows.map((w) => ({ start: w.start, end: w.end }));
   },
-  async order(args: { id: string }, ctx: Context) {
+  async order(args, ctx) {
     const serviceId = serviceIdFor('Order', args.id);
     if (serviceId === null) return null;
     return readOrder(serviceId, ctx);
   },
   /** The caller's saved payment methods (WI-ORD-010): an id and a description each. Ordering-service never sends the token, so the BFF cannot pass it on. */
-  async paymentMethods(_args: unknown, ctx: Context) {
+  async paymentMethods(_args, ctx) {
     const methods = await callWithToken(ctx, (authorization) =>
       ctx.ordering.listPaymentMethods(authorization, ctx.trace),
     );
     return methods.map((m) => ({ id: m.id, description: m.description }));
   },
-  async orders(args: { first?: number; after?: string | null }, ctx: Context) {
+  async orders(args, ctx) {
     const first = pageSize(args.first);
     const page = await callWithToken(ctx, (authorization) =>
       ctx.ordering.listOrders({ limit: first, after: args.after ?? undefined }, authorization, ctx.trace),
     );
     return connection(page.items, page.nextCursor, (o) => o.id, toOrder);
   },
-  async vendorOrders(args: { status?: string | null; first?: number; after?: string | null }, ctx: Context) {
+  async vendorOrders(args, ctx) {
     const first = pageSize(args.first);
     const status = args.status ? VENDOR_ORDER_FILTER[args.status] : undefined;
     const page = await callWithToken(ctx, (authorization) =>
@@ -532,13 +539,13 @@ export const rootValue = {
     );
     return connection(page.items, page.nextCursor, (o) => o.id, toVendorOrder);
   },
-  async vendorOrder(args: { id: string }, ctx: Context) {
+  async vendorOrder(args, ctx) {
     const serviceId = serviceIdFor('VendorOrder', args.id);
     if (serviceId === null) return null;
     return readVendorOrder(serviceId, ctx);
   },
   // Listing and Order implement Node. An id of another type, or one that does not decode, is null.
-  async node(args: { id: string }, ctx: Context) {
+  async node(args, ctx) {
     const decoded = fromGlobalId(args.id);
     if (decoded?.type === 'Listing') {
       const l = await ctx.catalog.get(decoded.serviceId, ctx.trace);
