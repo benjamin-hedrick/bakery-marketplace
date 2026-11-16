@@ -7,6 +7,8 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
+  // One import statement per module, except that a type-only import may stand beside the value import.
+  { rules: { 'no-duplicate-imports': ['error', { allowSeparateTypeImports: true }] } },
   globalIgnores([
     '.next/',
     '.next-*/',

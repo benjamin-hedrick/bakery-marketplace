@@ -8,18 +8,18 @@ import {
   addLine,
   allergenNames,
   decideAdd,
+  formatMoney,
   lineTotalCents,
   MAX_QUANTITY,
   type AddRefusal,
   type CartLine,
   type FreshStockRead,
+  type Mark,
 } from '@bakery/customer-core';
 import { cartStore } from '../lib/cart/useCart.ts';
-import { formatMoney } from '@bakery/customer-core';
 import { ConflictMarks } from './ConflictMarks';
 import { TagChips, type TagView } from './TagChips';
 import { canOrder, type StockStatus } from './StockBadge';
-import type { Mark } from '@bakery/customer-core';
 
 interface Money {
   cents: number;

@@ -5,11 +5,11 @@ import { fetchQuery } from 'relay-runtime';
 import type { OrderLineListingQuery } from '../__generated__/OrderLineListingQuery.graphql';
 import type { OrderStatusCancelMutation } from '../__generated__/OrderStatusCancelMutation.graphql';
 import type { OrderStatusQuery, OrderStatusQuery$data } from '../__generated__/OrderStatusQuery.graphql';
-import { formatMoney } from '@bakery/customer-core';
 import {
   CANCEL_OUTCOME_TEXT,
   CANCEL_QUESTION,
   customerMayCancel,
+  formatMoney,
   HEADLINES,
   OrderPoller,
   referenceOf,
