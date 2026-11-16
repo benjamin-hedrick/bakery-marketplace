@@ -56,21 +56,21 @@ Of 55 work items marked Done: 29 are named by a test file, 18 by an evidence rec
 | [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | `identity.test.ts`, `flow-control.test.mjs`, `SeedCustomerProfilesTests.cs` | `README.md`, `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` and 1 more |
 | [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | In review | `api.test.ts`, `register.mjs`, `session.test.ts` and 1 more | `README.md`, `maestro-flows-2026-11-05.md`, `unit-tests-2026-11-05.md` |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
-| [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `README.md`, `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |
-| [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | In review | *none* | `README.md`, `ai-usage-2026-11-03.md` |
+| [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |
+| [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | In review | *none* | `ai-usage-2026-11-03.md` |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | Done | *none* | *none* |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | Done | *none* | `runbook-event-broker-2026-10-30.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | Done | *none* | *none* |
 | [ORD-001](WI-ORD-001.md) | Checkout (payment stubbed) | Done | `CheckoutApiTests.cs`, `CheckoutServiceTests.cs` | *none* |
 | [ORD-002](WI-ORD-002.md) | Order aggregate + lifecycle states | Done | `OrderLifecycleTests.cs` | *none* |
-| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In review | `vendor-actions.spec.ts`, `vendor-live.spec.ts`, `vendor-actions.test.ts` and 7 more | `README.md`, `ai-usage-2026-11-07-b.md`, `ai-usage-2026-11-07.md` and 1 more |
+| [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In review | `vendor-actions.spec.ts`, `vendor-live.spec.ts`, `vendor-actions.test.ts` and 7 more | `ai-usage-2026-11-07-b.md`, `ai-usage-2026-11-07.md`, `baseline-2026-10-30.md` |
 | [ORD-004](WI-ORD-004.md) | FulfillmentStrategy interface (ACL boundary) | Done | `FulfillmentContractsTests.cs` | *none* |
 | [ORD-005](WI-ORD-005.md) | Publish Order domain events via event backbone | Done | `OrderEventTests.cs`, `OutboxHostTests.cs`, `OutboxTests.cs` | *none* |
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | Done | `CosmosOrderStoreTests.cs`, `OrderPersistenceTests.cs` | *none* |
 | [ORD-007](WI-ORD-007.md) | Order action endpoints (confirm, decline, start, ready, complete, cancel) | Done | `OrderActionApiTests.cs`, `OrderActionTests.cs` | *none* |
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | Done | `journey.spec.ts`, `stack.spec.ts`, `vendor-queue.spec.ts` and 2 more | *none* |
 | [ORD-009](WI-ORD-009.md) | Allergens recorded on the order | In review | `order-allergens.spec.ts`, `order-allergens.test.ts`, `OrderAllergenApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
-| [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | In review | `checkout.spec.ts`, `paymentMethod.test.ts`, `SeedCustomerProfilesTests.cs` and 6 more | `README.md`, `maestro-flows-2026-11-05.md`, `ai-usage-2026-11-04-to-06.md` and 1 more |
+| [ORD-010](WI-ORD-010.md) | Payment methods as data: a customer's saved payment method is chosen at checkout, and the payment stub judges its token (replaces the decline switch and the X-Test-Payment header) | In review | `checkout.spec.ts`, `paymentMethod.test.ts`, `SeedCustomerProfilesTests.cs` and 6 more | `maestro-flows-2026-11-05.md`, `ai-usage-2026-11-04-to-06.md`, `ai-usage-2026-11-07.md` |
 | [ORD-011](WI-ORD-011.md) | Cancel buttons: a customer cancels from the order page, a vendor cancels an accepted order from the queue | In review | `cancel.test.ts` | `ai-usage-2026-11-07.md` |
 | [PORT-001](WI-PORT-001.md) | Prove Next.js Pages Router + Relay SSR | Done | *none* | `README.md`, `findings.md`, `findings.md` |
 | [PORT-002](WI-PORT-002.md) | Walking skeleton: Next.js SSR → GraphQL BFF → C# API | Done | `walking-skeleton.spec.ts` | `README.md`, `findings.md`, `findings.md` |

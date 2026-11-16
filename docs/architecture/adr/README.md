@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> **Status:** Current · the table and the by-concern view verified 2026-11-08 against the records (0011 is superseded, the rest Accepted)
+> **Status:** Current · the table and the by-concern view verified 2026-11-08 against the records, ADR-0024 added 2026-11-11, the built list checked 2026-11-16 (0011 is superseded, the rest Accepted)
 
 One file per decision: `0001-title.md`, `0002-title.md`, and so on, in the format of `template.md`. The decision text of an ADR is never edited. Later changes are dated notes appended at the bottom ("Amendment note", "Validation outcome", "Current reading"), and the status line says only what the vocabulary in `docs/method/status-and-supersession.md` allows. The statuses below are also generated into `docs/product/backlog/STATUS.md`.
 
@@ -54,9 +54,9 @@ For the order in which the decisions were made and changed, see [the decision ti
 
 ## What has been built, against these decisions
 
-Notes at the bottom of each record say what was built, what was not, and where the code differs from the text. In short (read against the code and the work-item specs on 2026-11-08; everything runs locally, nothing is deployed):
+Notes at the bottom of each record say what was built, what was not, and where the code differs from the text. In short (read against the code and the work-item specs on 2026-11-08, chaos added 2026-11-16; everything runs locally, nothing is deployed):
 
-- **Built and run:** the cache library (Redis, local, resilient and chaos providers) and the catalog's listing cache on top of it (ADR-0002, 0014, `WI-CAT-003`, In review); the Redis Streams transport with an outbox and relay in ordering, a consumer group per service and event type, and a consumer name so a strategy can be its own consumer (ADR-0001's note of 2026-11-07; `WI-ORD-003`, In review); Cosmos repositories on the vNext emulator; JWT middleware, ownership checks and a mock issuer with PKCE and a refresh grant (ADR-0006); client-credentials service callers (ADR-0018, phase 1); browser sessions in `packages/web-session` (ADR-0019); the GraphQL BFF and both Next.js apps (ADR-0012, 0013); the live vendor queue over a stream with polling kept (ADR-0021); tags and allergens (ADR-0022); the Android app's sign-in (ADR-0023); tracing (ADR-0016); stock reservation (ADR-0017); the build-once pipeline and two Terraform stacks, validated locally (ADR-0015, 0020).
+- **Built and run:** the cache library (Redis, local, resilient and chaos providers) and the catalog's listing cache on top of it (ADR-0002, 0014, `WI-CAT-003`, In review); the Redis Streams transport with an outbox and relay in ordering, a consumer group per service and event type, and a consumer name so a strategy can be its own consumer (ADR-0001's note of 2026-11-07; `WI-ORD-003`, In review); Cosmos repositories on the vNext emulator; JWT middleware, ownership checks and a mock issuer with PKCE and a refresh grant (ADR-0006); client-credentials service callers (ADR-0018, phase 1); browser sessions in `packages/web-session` (ADR-0019); the GraphQL BFF and both Next.js apps (ADR-0012, 0013); the live vendor queue over a stream with polling kept (ADR-0021); tags and allergens (ADR-0022); the Android app's sign-in (ADR-0023); tracing (ADR-0016); stock reservation (ADR-0017); the build-once pipeline and two Terraform stacks, validated locally (ADR-0015, 0020); chaos scenarios in the C# services, the BFF and the web apps, each run on the whole local stack (ADR-0024, `WI-CHAOS-001` to `003`).
 - **Written, never run against the real thing:** the Terraform stacks (never applied to Azure), the second pipeline for UAT and production, and the DEV credential type of ADR-0018.
 - **Not built:** the Event Grid transport, API Management, Entra External ID, Stripe, Key Vault wiring, a cache Redis wired into the deployed environment, and anything deployed.
 

@@ -14,7 +14,7 @@ money = re.compile(r'\$(\d[\d,]*(?:\.\d+)?)')
 NOTE = (' Cost is a **relative cost**: the screen\'s figure divided by a base of 2.00, to two decimals, a size compared with other sessions and not money '
         '(register 175). The dollar figures and the wall-clock times of the first version of this record were removed on 2026-11-11.')
 
-for path in sorted(glob.glob('docs/evidence/ai-usage-*.md')):
+for path in sorted(glob.glob('docs/evidence/ai-usage/ai-usage-*.md')):
     text = open(path, encoding='utf-8', newline='').read()
     nl = '\r\n' if '\r\n' in text else '\n'
     out = []

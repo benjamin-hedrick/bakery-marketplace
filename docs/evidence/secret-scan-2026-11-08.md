@@ -1,6 +1,6 @@
 # Secret scan and sanitization search (2026-11-08)
 
-> **Status:** Snapshot · 2026-11-08, branch `feature/docs-front-door` at `062977e`. Step 1 of the pre-publish pass (register item 93, `docs/governance/pre-publish-gaps.md`). **Current result:** no leak found in the git history; no key, certificate, state or environment file is tracked; local paths were found in five records and removed; the author name and e-mail address on every commit were reviewed and accepted by the lead.
+> **Status:** Snapshot · 2026-11-08, branch `feature/docs-front-door` at `062977e`. Step 1 of the pre-publish pass (register item 93, `docs/history/pre-publish-review-2026-11.md`). **Current result:** no leak found in the git history; no key, certificate, state or environment file is tracked; local paths were found in five records and removed; the author name and e-mail address on every commit were reviewed and accepted by the lead.
 
 ## What was run
 
