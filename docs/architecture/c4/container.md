@@ -1,6 +1,6 @@
 # Container Diagram
 
-> **Status:** Current · rewritten 2026-10-30 from the code, `docker-compose.yml`, `first-slice-contract.md` and `docs/evidence/slice-1/findings.md`; updated 2026-11-08 (the notification service, the vendor queue display, the catalog's listing cache, preferences and tags, and the consumers of the order events are now drawn as built). The first diagram is what runs today, on a developer machine. The second is the target shape from the ADRs, none of it deployed.
+> **Status:** Current · rewritten 2026-10-30 from the code, `docker-compose.yml`, `first-slice-contract.md` and `docs/evidence/slice-1/findings.md`; corrected 2026-11-16 (the customer app's login and tokens are on its server since ADR-0019; the Cosmos containers); updated 2026-11-08 (the notification service, the vendor queue display, the catalog's listing cache, preferences and tags, and the consumers of the order events are now drawn as built). The first diagram is what runs today, on a developer machine. The second is the target shape from the ADRs, none of it deployed.
 
 The bounded-context-to-service mapping is decided in ADR-0009 (13 contexts onto 4 services, with the modular-monolith rule). The request through these containers, step by step, is in [the request path](../request-path.md).
 
@@ -19,8 +19,8 @@ flowchart LR
 
     subgraph WEB["apps/web-customer — Next.js Pages Router, :3000"]
         direction TB
-        SSR["Server: renders public listing pages (SSR)<br/>forwards /api/graphql to the BFF"]
-        CSR["Browser code: login (PKCE), cart in sessionStorage,<br/>checkout and order pages (client-rendered),<br/>access token held in memory only"]
+        SSR["Server: renders public listing pages (SSR),<br/>does the login (PKCE) and keeps the session's tokens<br/>encrypted in Redis (ADR-0019); forwards /api/graphql<br/>to the BFF with the session's bearer token"]
+        CSR["Browser code: cart in sessionStorage,<br/>checkout and order pages (client-rendered);<br/>holds only an HttpOnly session cookie, no token"]
     end
 
     subgraph APP["apps/mobile-customer — Expo (React Native), Android only, local only (WI-MOB-001)"]
@@ -43,7 +43,7 @@ flowchart LR
     OIDC["Mock OIDC issuer :5100<br/>PKCE login for users,<br/>client-credentials for services,<br/>signs JWTs, serves JWKS"]
 
     subgraph STORES["docker-compose.yml infrastructure"]
-        COSMOS[("Cosmos DB vNext emulator :8081<br/>containers: catalog (/vendorId),<br/>orders (/customerId)")]
+        COSMOS[("Cosmos DB vNext emulator :8081<br/>containers: catalog (/vendorId),<br/>preferences, orders and payment-methods<br/>(/customerId), vendor-orders (/vendorId)")]
         REDISEV[("Redis Streams :6379<br/>domain events")]
         REDISCACHE[("Redis cache :6380<br/>profile with-redis;<br/>used when Cache__Backend=redis,<br/>otherwise an in-process cache")]
         REDISSESS[("Redis sessions :6381<br/>profile with-redis;<br/>web login sessions, noeviction")]
@@ -62,8 +62,8 @@ flowchart LR
     MOB -->|"GraphQL, Authorization: Bearer"| BFF
     USER --> SSR
     USER --> CSR
-    CSR -->|"login redirect, then token exchange"| OIDC
-    CSR -->|"GraphQL via same-origin /api/graphql<br/>Authorization: Bearer"| SSR
+    CSR -->|"login redirect to the issuer and back<br/>(the server exchanges the code)"| OIDC
+    CSR -->|"GraphQL via same-origin /api/graphql<br/>with the session cookie"| SSR
     SSR -->|"public queries (no token), SSR"| BFF
     SSR -->|"API route"| BFF
     VENDOR(["Vendor<br/>(browser)"]) --> QD
