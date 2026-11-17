@@ -1,6 +1,6 @@
 # ADR-0021: Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept)
 
-**Status:** Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age shortened. It amends ADR-0012 (the queue display is no longer polling only) and builds on ADR-0003, ADR-0006, ADR-0008 and ADR-0013. How the stream is authenticated depends on the renewal design of ADR-0019, which was accepted the same day; see decision 5.
+**Status:** Accepted (2026-11-02)
 
 ## Context
 
@@ -69,3 +69,9 @@ A new work item (`WI-QUE-003`), in this order, each step tested before the next:
 ## Note, 2026-11-02: built, and two corrections to what the consequences section promised
 
 The decisions above were built as `WI-QUE-003` and run on the real local stack (`docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`). Two things in this ADR turned out differently from how they read. **The delay shown on the screen** ("the delay is shown on the screen in a demo", Consequences, Observability) is measured as now on the screen minus the time ordering stamped on the event, so it is meaningful only when the services and the screen share a clock; with the services in containers on Docker Desktop the container clock ran about a second behind the host's and the figure read about a second too high. The two figures that start from one clock (the request to the card on the screen: p50 94 ms, p95 131 ms; the answer to the card: p50 31 ms, p95 56 ms in that run) are the ones to quote. **Decision 6's limits** were extended after the first-pass security review and the lead's review: besides five streams per vendor and the heartbeat there are limits on the other side of every hop (a body of at most 64 KB and a required `Content-Length` at the BFF, a stream counted when it is established and not when the request arrives, five streams per login and 500 per process at the web app, a write timeout of 10 seconds on ordering's stream, and the web app's check that an open stream's session is still live, which backs off and ends the stream after three failures in a row). Decision 4 (API Management and streaming in the cloud) remains unchecked; register item 131 tracks it.
+
+## Note, 2026-11-16: the status line as it was
+
+The status line was shortened to the form `docs/method/status-and-supersession.md` allows (register item 188). Until then it read, word for word:
+
+> Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age shortened. It amends ADR-0012 (the queue display is no longer polling only) and builds on ADR-0003, ADR-0006, ADR-0008 and ADR-0013. How the stream is authenticated depends on the renewal design of ADR-0019, which was accepted the same day; see decision 5.
