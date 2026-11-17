@@ -316,6 +316,11 @@ export type PlaceOrderErrorCode =
   | 'LISTING_UNAVAILABLE'
   | 'PAYMENT_DECLINED'
   | 'PICKUP_WINDOW_UNAVAILABLE'
+  /**
+   * Ordering could not reach something it needs (the catalog, the payment processor or its store) and placed nothing; any stock it had taken was given
+   * back. Try again in a moment with the SAME idempotency key: unlike the other codes, this attempt is not spent (register 165).
+   */
+  | 'TEMPORARILY_UNAVAILABLE'
   | 'VALIDATION_FAILED';
 
 /** There is deliberately no price, total, customer or status here: ordering-service decides all of them. */

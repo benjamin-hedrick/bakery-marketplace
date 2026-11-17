@@ -11,6 +11,7 @@ import {
   fingerprint,
   needsAcknowledgement,
   randomUrlSafe,
+  rejectionSpendsKey,
   selectedPaymentMethodId,
   toPlaceOrderInput,
   type Part,
@@ -156,8 +157,8 @@ export function CheckoutForm() {
         } else if (placeOrder.__typename === 'PlaceOrderRejected') {
           // A rejection is final: nothing was placed, and the attempt's reservation (if it got that far) has been given back. Ordering will
           // not re-reserve for the same order id, which is derived from the key, so a retry needs a new key. (An unexpected error is different:
-          // an order may exist, so onError keeps the key and the retry returns it.)
-          attempt.current = null;
+          // an order may exist, so onError keeps the key and the retry returns it. TEMPORARILY_UNAVAILABLE keeps it too: register 165.)
+          if (rejectionSpendsKey(placeOrder.code)) attempt.current = null;
           setProblem({ kind: 'rejected', ...placeOrder });
           if (placeOrder.code === 'PICKUP_WINDOW_UNAVAILABLE') {
             setSelected('');

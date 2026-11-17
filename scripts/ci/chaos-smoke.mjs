@@ -41,6 +41,7 @@ const mustHaveInjected = {
   'broker-outage': [['events:outage']],
   'slow-cache': [['cache:failure', 'cache:latency']],
   'stale-cache': [['cache:deleteFailure']],
+  'catalog-outage': [['catalog:unavailable']],
   'bff-door': [
     ['bff:reject', 'bff:malformed', 'bff:reset'],
     ['bffCatalog:unavailable', 'bffOrdering:serverError'],

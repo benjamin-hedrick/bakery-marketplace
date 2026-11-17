@@ -132,6 +132,15 @@ export function fingerprint(
   ]);
 }
 
+/**
+ * Whether a rejected checkout spends its idempotency key. A rejection is final for its key: ordering will not place that order, so a retry
+ * needs a new key. The exception is TEMPORARILY_UNAVAILABLE (register 165): ordering could not reach something it needs and placed nothing,
+ * and the same key placed again is the safe retry (an order made just before the failure comes back instead of a second one).
+ */
+export function rejectionSpendsKey(code: string): boolean {
+  return code !== 'TEMPORARILY_UNAVAILABLE';
+}
+
 // ---- reading a stored cart ------------------------------------------------------------------------------------------------
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);

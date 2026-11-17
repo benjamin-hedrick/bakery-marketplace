@@ -1,0 +1,9 @@
+{
+  "name": "catalog-outage",
+  "seed": 20261117,
+  "layers": {
+    "catalog": {
+      "unavailableRate": 1
+    }
+  }
+}

@@ -86,6 +86,8 @@ Parallelism: a listing detail page may fetch `listing` and `pickupWindows` concu
 
 **A rejected attempt spends its key (found by the real-stack journey, `S1-07b`, 2026-10-28).** Because the order id comes from the key, and the catalog does not re-reserve stock for an order id it has released, a retry under the key of an attempt that ended in a typed rejection (`PlaceOrderRejected`: a declined payment, no stock, a taken window) is refused with `conflict`. The client therefore uses a **new key after any rejection**, and keeps the **same key only after an unexpected failure or a timeout**, where an order may exist and the retry returns it. A change to the order always gets a new key.
 
+**Added 2026-11-17 (register 165): `TEMPORARILY_UNAVAILABLE`.** When ordering cannot reach the catalog, the payment processor or its store it gives back any stock it took and answers `503 downstream_unavailable`. That was the table's "Downstream timeout/5xx" row (a top-level `INTERNAL` with a reference); it is now `PlaceOrderRejected{TEMPORARILY_UNAVAILABLE}` with the BFF's fixed text ("We could not place your order right now. Nothing has been charged, and your order is still here. Please try again in a moment."). It is the one rejection that does **not** spend its key: both clients keep the cart and send the same key again (`rejectionSpendsKey` in `packages/customer-core`), which is safe because a released reservation is revived for the same lines (register 179). Any other 5xx, and a 503 without that code, is still `INTERNAL`.
+
 ## 7. Seed data contract (reuse `WI-DEV-004`; no second seed source)
 
 Deterministic IDs so tests, SSR smoke and Playwright can assert exact values. Extends `DEV-004`'s 2 vendors / 5–10 listings; the slice needs only the subset below.

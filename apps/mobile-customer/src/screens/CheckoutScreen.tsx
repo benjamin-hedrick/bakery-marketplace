@@ -6,6 +6,7 @@ import {
   lineConflictText,
   needsAcknowledgement,
   NO_PAYMENT_METHODS_TEXT,
+  rejectionSpendsKey,
   selectedPaymentMethodId,
   time,
   toPlaceOrderInput,
@@ -111,7 +112,8 @@ export function CheckoutScreen(props: { onPlaced: (orderId: string) => void; onB
         props.onPlaced(result.order.id);
         return;
       }
-      attempt.current = null; // the rejected attempt is spent: a retry is a new attempt
+      // A rejected attempt is spent (a retry is a new attempt), except TEMPORARILY_UNAVAILABLE: the same key again is the safe retry (register 165).
+      if (rejectionSpendsKey(result.code)) attempt.current = null;
       setProblem({ text: result.message, code: result.code }); // the cart is kept
     } catch (e) {
       if (!(e instanceof ApiError && e.code === 'UNAUTHENTICATED'))

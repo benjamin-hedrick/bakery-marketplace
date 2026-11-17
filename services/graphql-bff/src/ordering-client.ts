@@ -104,9 +104,10 @@ export type OrderActionResult =
 
 export interface OrderingClient {
   /**
-   * Places an order for the caller. The expected 4xx answers (422, 409, 402, and 401/403) come back as `kind: 'error'` for the caller to map; a
-   * success (201, or 200 for a repeat of the same checkout) is `kind: 'order'`. Anything else (5xx, a body that is not JSON, a timeout) throws
-   * a {@link DownstreamError}.
+   * Places an order for the caller. The expected 4xx answers (422, 409, 402, and 401/403) and ordering's own "try again" (503 with the code
+   * `downstream_unavailable`, register 165) come back as `kind: 'error'` for the caller to map; a success (201, or 200 for a repeat of the same
+   * checkout) is `kind: 'order'`. Anything else (another 5xx, a 503 without that code, a body that is not JSON, a timeout) throws a
+   * {@link DownstreamError}.
    */
   placeOrder(
     body: CheckoutBody,
@@ -217,6 +218,13 @@ export function createOrderingClient(
         if (typeof error?.code !== 'string')
           throw new DownstreamError('ordering returned an error body without a code', res.status);
         return { kind: 'error', status: res.status, error };
+      }
+      if (res.status === 503) {
+        // Ordering could not reach the catalog, the payment processor or its store, gave back any stock it had taken, and says so with this code
+        // (register 165). A 503 without it (a proxy, a container restarting) is not that answer and stays a failure.
+        const error = await parse<OrderingError>(res).catch(() => null);
+        if (error?.code === 'downstream_unavailable') return { kind: 'error', status: 503, error };
+        throw new DownstreamError('ordering checkout returned 503 without its unavailable code', 503);
       }
       throw await failure(res, 'ordering checkout');
     },
