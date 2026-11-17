@@ -22,7 +22,7 @@ Register 169 (1): every adapter of the repository's pattern has a chaos layer ex
 - **Tests:** 21 in `chaos-store.test.ts` (the store contract through the decorator with no faults, each fault, the seed's determinism, signals, `where` by subject, no secret in the journal); the shared-list checks of both libraries. The whole-stack run: [`docs/evidence/WI-CHAOS-004/README.md`](../../evidence/WI-CHAOS-004/README.md).
 
 **Changes from the plan**
-- Found by the run: during the outage a logged-in customer is asked to log in, and the login then says it is not available (register 195, the lead's decision).
+- Found by the run: during the outage a logged-in customer was asked to log in, and the login then said it was not available (register 195). Fixed 2026-11-17 with the lead's approval: a page that needs a login now says the login cannot be checked just now, with Try again; the spec requires it, and the second run passed.
 
 **Dependencies**
 - Blocked by: `CHAOS-003`. Uses registers 192 and 194.

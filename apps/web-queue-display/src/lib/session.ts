@@ -13,10 +13,13 @@ export interface SessionUser {
   sessionExpiresAt: number;
 }
 
-export type SessionState = { status: 'unknown' } | { status: 'anonymous' } | { status: 'user'; user: SessionUser };
+/** `unavailable`: the server cannot check the login just now (its session store cannot be reached, register 195); not the same as nobody. */
+export type SessionState =
+  { status: 'unknown' } | { status: 'anonymous' } | { status: 'unavailable' } | { status: 'user'; user: SessionUser };
 
 const UNKNOWN: SessionState = { status: 'unknown' };
 const ANONYMOUS: SessionState = { status: 'anonymous' };
+const UNAVAILABLE: SessionState = { status: 'unavailable' };
 
 let state: SessionState = UNKNOWN;
 let started = false;
@@ -27,13 +30,17 @@ function set(next: SessionState) {
   listeners.forEach((listener) => listener());
 }
 
-/** Asks the server who is logged in. A failed answer is "nobody": the page then offers the login, and the services still decide. */
+/**
+ * Asks the server who is logged in. A 503 means the server cannot check just now (register 195): the page says so and offers to try again, rather
+ * than offering a login that would also fail. Any other failed answer is "nobody": the page then offers the login, and the services still decide.
+ */
 export async function refreshSession(): Promise<void> {
   try {
     const response = await fetch('/api/auth/me', {
       headers: { accept: 'application/json' },
       credentials: 'same-origin',
     });
+    if (response.status === 503) return set(UNAVAILABLE);
     const body = response.ok ? ((await response.json()) as { authenticated?: boolean; user?: SessionUser }) : undefined;
     set(body?.authenticated && body.user ? { status: 'user', user: body.user } : ANONYMOUS);
   } catch {

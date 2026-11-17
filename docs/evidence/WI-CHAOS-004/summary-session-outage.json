@@ -17,9 +17,9 @@
   "specMetrics": {
     "session-outage": {
       "scenario": "session-outage",
-      "pageDuringOutage": "login-required",
+      "pageDuringOutage": "login-unavailable",
       "sessionFromBeforeTheOutageKept": true,
-      "secondsFromOutageEndToLoggedIn": 0.233
+      "secondsFromOutageEndToLoggedIn": 0.27
     }
   },
   "knownGapsObserved": [],
