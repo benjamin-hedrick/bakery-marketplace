@@ -1,5 +1,7 @@
 # Bakery/Coffee Marketplace — a reference project
 
+[![Build status of main](https://dev.azure.com/benjaminhedrick/benjaminhedrick/_apis/build/status%2Fbenjamin-hedrick.bakery-marketplace?branchName=main)](https://dev.azure.com/benjaminhedrick/benjaminhedrick/_build/latest?definitionId=1&branchName=main)
+
 A pickup-based marketplace that connects customers with local bakeries, coffee shops and home bakers. I built it to practise and experiment with architecture, product and delivery work, and with building software alongside an AI coding assistant.
 
 - **What it is:** a customer website and an Android app, a live order queue for the bakery, and C# services behind a GraphQL BFF, with dietary safety (allergens carried from the listing to the bakery's order card) as a first-class rule.
