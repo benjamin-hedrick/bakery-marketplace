@@ -1042,3 +1042,8 @@ The root solution builds with no warning; the tools solution (the library tests)
 Type: Gap · Source: the public-presentation review, 2026-11-16 · Hat: Manager/Lead
 Status: Open
 The README links the demo film (`docs/operations/demo/demo-film.mp4`) through its poster; GitHub plays a video inline in a README only when the file is uploaded through GitHub's editor (a `user-attachments` address), which needs the lead's GitHub session. A build badge needs the Azure DevOps project's badge address and the project's visibility settings (register 93 lists the Azure DevOps settings), neither of which is in the repository. Reconciled when the lead uploads the film and gives the badge address (or decides against either), and the README is updated.
+
+**191. A session-package test failed once in the full test report and its name was not kept**
+Type: Defect (intermittent test or test tooling) · Source: `node scripts/ci/test-report.mjs --write` on 2026-11-16, commit `ed95444` (`docs/evidence/test-and-coverage-2026-11-16.md`) · Hat: Engineering
+Status: Open
+In the full run (Redis and the Cosmos emulator up, every .NET suite just before it) `packages/web-session` reported 190 tests, 189 passed, 1 failed. Nothing on that branch touches the package. The suite then passed in eight reruns against Redis (three plain, five with the report's coverage flags), so the failure looks load-dependent. The report keeps only the counts of a `node --test` suite, not the runner's output, so which test failed is not known. Reconciled when the report saves the runner's output of a failing suite under `artifacts/` (test tooling, adds nothing to the product), and the test is found and made robust or the failure is shown not to recur in repeated full runs.
