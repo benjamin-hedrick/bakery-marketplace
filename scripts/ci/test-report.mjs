@@ -51,6 +51,30 @@ function dotnetProjects() {
   return found;
 }
 
+/** The names of the tests a TRX file records as failed (or errored, timed out, aborted), at most `limit`. */
+function failedInTrx(file, limit = 20) {
+  if (!existsSync(file)) return [];
+  const names = [];
+  for (const tag of readFileSync(file, 'utf8').matchAll(/<UnitTestResult\b[^>]*>/g)) {
+    const outcome = (tag[0].match(/\boutcome="([^"]*)"/) ?? [])[1];
+    const name = (tag[0].match(/\btestName="([^"]*)"/) ?? [])[1];
+    if (name && outcome && !['Passed', 'NotExecuted', 'Inconclusive'].includes(outcome)) names.push(name);
+  }
+  return names.slice(0, limit);
+}
+
+/** The names of the failed tests in `node --test` spec output: the lines after its "failing tests" heading that start with a cross. */
+function failedInSpec(text, limit = 20) {
+  const at = text.indexOf('failing tests:');
+  if (at < 0) return [];
+  const names = new Set();
+  for (const line of text.slice(at).split(/\r?\n/)) {
+    const m = line.match(/^\s*✖ (.+?)(?: \([\d.]+m?s\))?$/);
+    if (m && !m[1].startsWith('failing tests')) names.add(m[1]);
+  }
+  return [...names].slice(0, limit);
+}
+
 function readTrx(file) {
   const text = readFileSync(file, 'utf8');
   const m = text.match(/<Counters\b[^>]*>/);
@@ -118,7 +142,16 @@ function runDotnet() {
     };
     walk(out);
     for (const f of cov) mergeCobertura(f, merged);
-    rows.push({ name: p.name, kind: '.NET', counts, exit: r.status, covered: cov.length > 0 });
+    const failedTests = counts && counts.failed > 0 ? failedInTrx(trx) : [];
+    rows.push({
+      name: p.name,
+      kind: '.NET',
+      counts,
+      exit: r.status,
+      covered: cov.length > 0,
+      failedTests,
+      output: path.relative(root, trx).split(path.sep).join('/'),
+    });
     if (!counts)
       log(
         `  no result file (exit ${r.status}); the tail of the output:\n${(r.stdout + r.stderr).split('\n').slice(-8).join('\n')}`,
@@ -197,12 +230,17 @@ function runJs() {
     const text = (r.stdout ?? '') + (r.stderr ?? '');
     const n = (k) => Number((text.match(new RegExp(`^ℹ ${k} (\\d+)`, 'm')) ?? [])[1] ?? 0);
     const counts = { total: n('tests'), passed: n('pass'), failed: n('fail'), skipped: n('skipped') + n('todo') };
+    // The runner's whole output is kept, so a failure can be read afterwards (register item 191: a failure once went unnamed).
+    const output = path.join(work, 'js', `${s.name.replace(/\W+/g, '-')}.log`);
+    writeFileSync(output, text);
     rows.push({
       name: s.name,
       kind: 'node --test',
       counts: counts.total ? counts : null,
       exit: r.status,
       covered: existsSync(lcov),
+      failedTests: counts.failed > 0 ? failedInSpec(text) : [],
+      output: path.relative(root, output).split(path.sep).join('/'),
     });
     if (existsSync(lcov)) {
       const files = parseLcov(readFileSync(lcov, 'utf8'), s.dir);
@@ -279,6 +317,13 @@ lines.push(
   `| **Run in this report** | | **${sum(ran, 'total')}** | **${sum(ran, 'passed')}** | **${sum(ran, 'failed')}** | **${sum(ran, 'skipped')}** |`,
 );
 
+// Which tests failed, by name, and where the run's own output is (under artifacts/, not committed).
+const failures = [];
+for (const r of ran.filter((r) => (r.counts?.failed ?? 0) > 0 || (r.exit && !r.counts))) {
+  const names = r.failedTests?.length ? r.failedTests.map((t) => `\`${t}\``).join(', ') : 'not named in the output';
+  failures.push(`- **${r.name}:** ${names}. Output: \`${r.output ?? 'none'}\`.`);
+}
+
 const cov = [];
 cov.push('| Product code | Lines | Covered | Line coverage |', '|---|---:|---:|---:|');
 for (const c of dn.coverage) cov.push(`| ${c.name} (.NET) | ${c.valid} | ${c.hit} | ${pct(c.hit, c.valid)} |`);
@@ -296,6 +341,7 @@ const body = [
   '',
   'Passed, failed and skipped come from the runs (TRX files for .NET, the `node --test` summary for JavaScript). Playwright suites are listed with `--list`, and Maestro flows are counted; neither was run here: their run results are in the evidence records (`docs/evidence/`).',
   '',
+  ...(failures.length ? ['## Failed tests', '', ...failures, ''] : []),
   '## Line coverage of the product code',
   '',
   ...cov,
