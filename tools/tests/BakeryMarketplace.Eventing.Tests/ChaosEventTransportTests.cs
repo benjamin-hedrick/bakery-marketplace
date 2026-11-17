@@ -1,4 +1,5 @@
 using BakeryMarketplace.Chaos;
+using Microsoft.Extensions.Time.Testing;
 
 namespace BakeryMarketplace.Eventing.Tests;
 
@@ -74,14 +75,21 @@ public sealed class ChaosEventTransportTests
     [Fact]
     public async Task Latency_DelaysThePublish()
     {
-        var (chaos, runtime) = Build(("latencyMs", 150));
-        await Collect(chaos);
+        // A manual clock, not the wall clock (register 198).
+        var time = new FakeTimeProvider();
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("test", 1, "events", ("latencyMs", 150)), time);
+        var inner = new InMemoryEventTransport();
+        var chaos = new ChaosEventTransport(inner, inner, runtime);
+        var received = await Collect(chaos);
 
-        var started = DateTime.UtcNow;
-        await chaos.PublishAsync(Make("slow"));
-
+        var publish = chaos.PublishAsync(Make("slow"));
         Assert.Equal(1, runtime.Journal.Count("events", "latency"));
-        Assert.True(DateTime.UtcNow - started >= TimeSpan.FromMilliseconds(120));
+        time.Advance(TimeSpan.FromMilliseconds(149));
+        Assert.False(publish.IsCompleted);
+        time.Advance(TimeSpan.FromMilliseconds(1));
+        await publish;
+
+        Assert.Single(received);
     }
 
     [Fact]

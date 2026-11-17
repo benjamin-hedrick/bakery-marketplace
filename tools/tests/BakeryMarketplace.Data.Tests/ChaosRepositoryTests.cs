@@ -2,6 +2,7 @@ using System.Net;
 using BakeryMarketplace.Chaos;
 using BakeryMarketplace.Data;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Time.Testing;
 
 namespace BakeryMarketplace.Data.Tests;
 
@@ -83,6 +84,12 @@ public sealed class ChaosRepositoryBehaviourTests
         return (new ChaosRepository<VersionedEntity>(new FakeRepository<VersionedEntity>(e => e.Id), runtime), runtime);
     }
 
+    private static (ChaosRepository<VersionedEntity> Repo, ChaosRuntime Runtime) Build(TimeProvider time, params (string Setting, double Value)[] settings)
+    {
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("repository-test", 1, "repository", settings), time);
+        return (new ChaosRepository<VersionedEntity>(new FakeRepository<VersionedEntity>(e => e.Id), runtime), runtime);
+    }
+
     private static VersionedEntity Entity(string id) => new() { Id = id, PartitionKey = "p", Name = "n" };
 
     [Fact]
@@ -155,17 +162,22 @@ public sealed class ChaosRepositoryBehaviourTests
     [Fact]
     public async Task LatencyAndAnOutageWindowAreInjected_AndTheOutageEnds()
     {
-        var (slow, slowRuntime) = Build(1, ("latencyMs", 150));
-        var started = DateTime.UtcNow;
-        await slow.GetAsync("a", "p");
+        // A manual clock, not the wall clock or sleeps (register 198).
+        var slowTime = new FakeTimeProvider();
+        var (slow, slowRuntime) = Build(slowTime, ("latencyMs", 150));
+        var get = slow.GetAsync("a", "p");
         Assert.Equal(1, slowRuntime.Journal.Count("repository", "latency"));
-        Assert.True(DateTime.UtcNow - started >= TimeSpan.FromMilliseconds(120));
+        slowTime.Advance(TimeSpan.FromMilliseconds(149));
+        Assert.False(get.IsCompleted);
+        slowTime.Advance(TimeSpan.FromMilliseconds(1));
+        await get;
 
-        var (down, downRuntime) = Build(1, ("outageWindowSeconds", 0.2));
+        var downTime = new FakeTimeProvider();
+        var (down, downRuntime) = Build(downTime, ("outageWindowSeconds", 0.2));
         await Assert.ThrowsAsync<StoreUnavailableException>(() => down.GetAsync("a", "p"));
         Assert.Equal(1, downRuntime.Journal.Count("repository", "outage"));
-        await Task.Delay(300);
-        Assert.Null(await down.GetAsync("a", "p")); // recovered
+        downTime.Advance(TimeSpan.FromMilliseconds(200));
+        Assert.Null(await down.GetAsync("a", "p")); // recovered when the window closes
     }
 
     [Fact]

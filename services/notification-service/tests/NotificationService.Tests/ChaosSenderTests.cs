@@ -1,4 +1,5 @@
 using BakeryMarketplace.Chaos;
+using Microsoft.Extensions.Time.Testing;
 using NotificationService.Chaos;
 using NotificationService.Sending;
 
@@ -98,13 +99,20 @@ public sealed class ChaosSenderTests
     [Fact]
     public async Task LatencyDelaysTheSend()
     {
-        var (sender, inner, runtime) = Build(1, ("latencyMs", 150));
-        var started = DateTime.UtcNow;
+        // A manual clock, not the wall clock (register 198).
+        var time = new FakeTimeProvider();
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("notification-test", 1, "notification", ("latencyMs", 150)), time);
+        var inner = new RecordingNotificationSender();
+        var sender = new ChaosNotificationSender(inner, runtime.Layer("notification"));
 
-        await sender.SendAsync(Message());
-
+        var send = sender.SendAsync(Message());
         Assert.Equal(1, runtime.Journal.Count("notification", "latency"));
-        Assert.True(DateTime.UtcNow - started >= TimeSpan.FromMilliseconds(120));
+        time.Advance(TimeSpan.FromMilliseconds(149));
+        Assert.False(send.IsCompleted);
+        Assert.Empty(inner.Sent);
+        time.Advance(TimeSpan.FromMilliseconds(1));
+        await send;
+
         Assert.Single(inner.Sent);
     }
 }

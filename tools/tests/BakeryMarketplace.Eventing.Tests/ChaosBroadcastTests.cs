@@ -1,4 +1,5 @@
 using BakeryMarketplace.Chaos;
+using Microsoft.Extensions.Time.Testing;
 
 namespace BakeryMarketplace.Eventing.Tests;
 
@@ -21,9 +22,12 @@ public sealed class ChaosBroadcastContractTests : BroadcastContractTests
 public sealed class ChaosBroadcastTests
 {
     private static (ChaosBroadcastPublisher Publisher, ChaosBroadcastSubscriber Subscriber, ChaosRuntime Runtime, List<string> Received) Build(
-        params (string Setting, double Value)[] settings)
+        params (string Setting, double Value)[] settings) => Build(null, settings);
+
+    private static (ChaosBroadcastPublisher Publisher, ChaosBroadcastSubscriber Subscriber, ChaosRuntime Runtime, List<string> Received) Build(
+        TimeProvider? time, params (string Setting, double Value)[] settings)
     {
-        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("broadcast-test", 1, "broadcast", settings));
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("broadcast-test", 1, "broadcast", settings), time);
         var backend = new InMemoryBroadcast();
         return (new ChaosBroadcastPublisher(backend, runtime), new ChaosBroadcastSubscriber(backend, runtime), runtime, []);
     }
@@ -96,18 +100,27 @@ public sealed class ChaosBroadcastTests
     }
 
     [Fact]
-    public async Task Latency_DelaysThePublish()
+    public async Task Latency_DelaysThePublish_AndTheDelivery()
     {
-        var (publisher, subscriber, runtime, received) = Build(("latencyMs", 150));
+        // A manual clock, not the wall clock: a wall-clock version failed once in the CPU-limited Linux container (register 198).
+        var time = new FakeTimeProvider();
+        var (publisher, subscriber, runtime, received) = Build(time, ("latencyMs", 150));
         await Listen(subscriber, received);
 
-        var started = DateTime.UtcNow;
-        await publisher.PublishAsync("vendor:1", "slow");
-        var publishTook = DateTime.UtcNow - started;
+        var publish = publisher.PublishAsync("vendor:1", "slow");
+        Assert.Equal(1, runtime.Journal.Count("broadcast", "latency"));
+        time.Advance(TimeSpan.FromMilliseconds(149));
+        Assert.False(publish.IsCompleted);
+        time.Advance(TimeSpan.FromMilliseconds(1));
+        await publish;
+
+        // The subscriber side waits too, on the same clock.
+        await Eventually(() => runtime.Journal.Count("broadcast", "latency") == 2);
+        time.Advance(TimeSpan.FromMilliseconds(149));
+        Assert.Empty(received);
+        time.Advance(TimeSpan.FromMilliseconds(1));
         await Eventually(() => received.Count == 1);
 
-        Assert.True(runtime.Journal.Count("broadcast", "latency") >= 1);
-        Assert.True(publishTook >= TimeSpan.FromMilliseconds(120));
         Assert.Equal(new[] { "slow" }, received);
     }
 }
