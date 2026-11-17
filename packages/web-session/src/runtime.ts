@@ -53,7 +53,13 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
     const store =
       config.redisUrl === MEMORY_STORE
         ? createMemoryStore(sealer)
-        : createRedisStore(sealer, config.redisUrl, env['SESSION_REDIS_PREFIX'] || defaultStorePrefix(config.clientId));
+        : createRedisStore(
+            sealer,
+            config.redisUrl,
+            env['SESSION_REDIS_PREFIX'] || defaultStorePrefix(config.clientId),
+            Date.now,
+            log,
+          );
     const service = createSessionService({ config, store, log });
     const limits = createWebRateLimits(limitSettings.settings);
     const gate = webChaosGateFromEnv(env); // undefined unless CHAOS_ENABLED (ADR-0024)
