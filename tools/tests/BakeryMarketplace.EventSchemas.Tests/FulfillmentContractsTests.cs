@@ -12,8 +12,8 @@ public class FulfillmentContractsTests
     [Fact]
     public void FulfillmentType_ContainsPickupAndDelivery()
     {
-        Assert.True(Enum.IsDefined(typeof(FulfillmentType), FulfillmentType.Pickup));
-        Assert.True(Enum.IsDefined(typeof(FulfillmentType), FulfillmentType.Delivery));
+        Assert.True(Enum.IsDefined(FulfillmentType.Pickup));
+        Assert.True(Enum.IsDefined(FulfillmentType.Delivery));
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class FulfillmentContractsTests
             "Cancelled"
         };
 
-        var actualNames = Enum.GetNames(typeof(OrderStatus));
+        var actualNames = Enum.GetNames<OrderStatus>();
         Assert.Equal(expectedNames, actualNames);
     }
 

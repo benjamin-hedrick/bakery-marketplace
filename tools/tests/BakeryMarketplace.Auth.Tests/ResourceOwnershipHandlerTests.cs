@@ -77,7 +77,7 @@ public class ResourceOwnershipHandlerTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
     }
 
-    private class TrackingOwnershipChecker : IResourceOwnershipChecker
+    private sealed class TrackingOwnershipChecker : IResourceOwnershipChecker
     {
         public bool WasCalled { get; private set; }
 

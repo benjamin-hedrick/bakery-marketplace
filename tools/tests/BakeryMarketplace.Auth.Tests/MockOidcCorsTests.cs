@@ -16,8 +16,8 @@ public class MockOidcCorsTests
 {
     private const string WebOrigin = "http://localhost:3000";
 
-    private static TestServer CreateServer(params string[] allowedOrigins) =>
-        new(new WebHostBuilder()
+    private static TestHost CreateServer(params string[] allowedOrigins) =>
+        TestHost.Start(web => web
             .ConfigureServices(services => services.AddRouting())
             .Configure(app =>
             {

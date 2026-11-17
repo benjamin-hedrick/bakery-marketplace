@@ -18,8 +18,8 @@ public class ClientCredentialsIssuerTests
     private static readonly string OrderingSecret = TestSecrets.Random();
     private static readonly MockClient Ordering = new("ordering-service", OrderingSecret, [ServiceRoles.StockReserve]);
 
-    private static TestServer CreateServer(params MockClient[] clients) =>
-        new(new WebHostBuilder()
+    private static TestHost CreateServer(params MockClient[] clients) =>
+        TestHost.Start(web => web
             .ConfigureServices(services => services.AddRouting())
             .Configure(app =>
             {

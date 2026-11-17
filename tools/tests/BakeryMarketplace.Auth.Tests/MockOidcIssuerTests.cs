@@ -14,9 +14,9 @@ namespace BakeryMarketplace.Auth.Tests;
 [Collection("SequentialAuth")]
 public class MockOidcIssuerTests
 {
-    private TestServer CreateServer()
+    private TestHost CreateServer()
     {
-        var builder = new WebHostBuilder()
+        Action<IWebHostBuilder> builder = web => web
             .ConfigureServices(services =>
             {
                 services.AddRouting();
@@ -30,7 +30,7 @@ public class MockOidcIssuerTests
                 });
             });
 
-        return new TestServer(builder);
+        return TestHost.Start(builder);
     }
 
     [Fact]
@@ -114,8 +114,7 @@ public class MockOidcIssuerTests
 
         // 1. Setup PKCE
         var codeVerifier = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
-        using var sha256 = SHA256.Create();
-        var codeChallenge = Base64UrlEncoder.Encode(sha256.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier)));
+        var codeChallenge = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
 
         // 2. Submit form to /authorize/submit
         var authContent = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -163,8 +162,7 @@ public class MockOidcIssuerTests
         using var client = server.CreateClient();
 
         var codeVerifier = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
-        using var sha256 = SHA256.Create();
-        var codeChallenge = Base64UrlEncoder.Encode(sha256.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier)));
+        var codeChallenge = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
 
         var authContent = new FormUrlEncodedContent(new Dictionary<string, string>
         {

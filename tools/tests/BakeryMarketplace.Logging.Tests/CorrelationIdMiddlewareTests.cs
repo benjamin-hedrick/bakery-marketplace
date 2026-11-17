@@ -7,7 +7,7 @@ namespace BakeryMarketplace.Logging.Tests;
 
 public class CorrelationIdMiddlewareTests
 {
-    private class TestLogger<T> : ILogger<T>
+    private sealed class TestLogger<T> : ILogger<T>
     {
         public List<object?> ScopeStates { get; } = new();
 
@@ -21,7 +21,7 @@ public class CorrelationIdMiddlewareTests
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
 
-        private class DummyDisposable : IDisposable
+        private sealed class DummyDisposable : IDisposable
         {
             public void Dispose() { }
         }
