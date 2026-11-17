@@ -231,13 +231,28 @@ public sealed class ChaosGateAndJournalTests
     [Fact]
     public void TheOutageWindowOpensAndClosesOnTheScenarioClock()
     {
-        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("n", 1, "events", ("outageFromSeconds", 0.15), ("outageWindowSeconds", 0.25)));
+        // A manual clock, not sleeps: a wall-clock version failed once in the CPU-limited Linux container (register 197).
+        var time = new ManualTime(new DateTimeOffset(2026, 11, 17, 0, 0, 0, TimeSpan.Zero));
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("n", 1, "events", ("outageFromSeconds", 0.15), ("outageWindowSeconds", 0.25)), time);
         var layer = runtime.Layer("events");
         Assert.False(layer.InOutage); // before it opens
-        Thread.Sleep(220);
+        time.Advance(TimeSpan.FromMilliseconds(149));
+        Assert.False(layer.InOutage);
+        time.Advance(TimeSpan.FromMilliseconds(1));
+        Assert.True(layer.InOutage); // opens at 0.15 s
+        time.Advance(TimeSpan.FromMilliseconds(249));
         Assert.True(layer.InOutage);
-        Thread.Sleep(350);
-        Assert.False(layer.InOutage); // recovered
+        time.Advance(TimeSpan.FromMilliseconds(1));
+        Assert.False(layer.InOutage); // recovered at 0.40 s
+    }
+
+    private sealed class ManualTime(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset _now = now;
+
+        public override DateTimeOffset GetUtcNow() => _now;
+
+        public void Advance(TimeSpan by) => _now += by;
     }
 
     [Fact]
