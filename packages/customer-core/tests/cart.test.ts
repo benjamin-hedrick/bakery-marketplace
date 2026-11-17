@@ -10,6 +10,7 @@ import {
   MAX_LINES,
   MAX_QUANTITY,
   parseCart,
+  rejectionSpendsKey,
   removeLine,
   setQuantity,
   toPlaceOrderInput,
@@ -205,6 +206,12 @@ describe('what is sent to checkout', () => {
     const a = must(addLine(EMPTY_CART, 'v', sourdough())).cart;
     const repriced = must(addLine(EMPTY_CART, 'v', sourdough({ unitPriceCents: 999 }))).cart;
     assert.equal(fingerprint(a, null, 'pm-ok'), fingerprint(repriced, null, 'pm-ok'));
+  });
+
+  test('a rejection spends its key, except TEMPORARILY_UNAVAILABLE, which keeps it for the retry (register 165)', () => {
+    for (const code of ['INSUFFICIENT_STOCK', 'PAYMENT_DECLINED', 'CONFLICT', 'VALIDATION_FAILED'])
+      assert.equal(rejectionSpendsKey(code), true, code);
+    assert.equal(rejectionSpendsKey('TEMPORARILY_UNAVAILABLE'), false);
   });
 });
 

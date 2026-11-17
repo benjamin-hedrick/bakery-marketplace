@@ -226,6 +226,13 @@ const REJECTIONS: Record<string, { code: string; message: string }> = {
   },
   conflict: { code: 'CONFLICT', message: 'The stock changed while placing the order. Please try again.' },
   payment_declined: { code: 'PAYMENT_DECLINED', message: 'The payment was declined.' },
+  // Ordering sends it with 503 (ordering-client.ts lets a 503 through only with this code): the catalog, the payment processor or ordering's store
+  // could not be reached, and nothing was placed (register 165).
+  downstream_unavailable: {
+    code: 'TEMPORARILY_UNAVAILABLE',
+    message:
+      'We could not place your order right now. Nothing has been charged, and your order is still here. Please try again in a moment.',
+  },
 };
 const MAX_FIELD_PROBLEMS = 20;
 

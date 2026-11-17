@@ -28,6 +28,6 @@ Still to write, when each step first runs: create the dev environment, tear it d
 | Cosmos throttling | ADR-0004 | Something to throttle: not exercised on the emulator |
 | Cold start | the 9 s cold first call in `docs/evidence/runbook-event-broker-2026-10-30.md` and `baseline-2026-10-30.md` | A deployed environment |
 | Identity issuer down | `patterns.md` section 14 ("behaviour with the issuer down is not examined") | A run with the issuer stopped |
-| Catalog unavailable during checkout | `patterns.md` section 14 (`503 downstream_unavailable`) | A run with the catalog stopped |
+| Catalog unavailable during checkout | `patterns.md` section 14 (`503 downstream_unavailable`, shown as `TEMPORARILY_UNAVAILABLE`; the `catalog-outage` chaos scenario, register 165) | A run with the catalog process stopped |
 
 Disaster recovery is `BDR-003` and on-call is `OPS-004`; neither is started.

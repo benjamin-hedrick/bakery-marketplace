@@ -213,6 +213,7 @@ describe('placeOrder: expected failures are typed payloads with fixed client-saf
     [409, 'pickup_window_unavailable', 'PICKUP_WINDOW_UNAVAILABLE'],
     [409, 'conflict', 'CONFLICT'],
     [402, 'payment_declined', 'PAYMENT_DECLINED'],
+    [503, 'downstream_unavailable', 'TEMPORARILY_UNAVAILABLE'],
   ];
   for (const [status, code, expected] of cases) {
     test(`${status} ${code} is ${expected}`, async () => {
@@ -285,9 +286,11 @@ describe("placeOrder: authentication and failures that are not the customer's to
     assert.equal((await place()).body.errors[0].extensions.code, 'FORBIDDEN');
   });
 
-  test('a service outage (503), a server error (500) and an unknown error code are INTERNAL with a reference and no detail', async () => {
+  test('a 503 that is not ordering\'s "try again", a server error (500) and an unknown error code are INTERNAL with a reference and no detail', async () => {
     for (const r of [
-      { status: 503, body: { code: 'downstream_unavailable', message: 'secret detail' } },
+      { status: 503, body: { code: 'something_else', message: 'secret detail' } },
+      { status: 503, body: '<html>secret detail: Service Unavailable</html>' },
+      { status: 500, body: { code: 'downstream_unavailable', message: 'secret detail' } },
       { status: 500, body: { code: 'boom', message: 'secret detail at http://cosmos.internal' } },
       { status: 409, body: { code: 'a_code_nobody_mapped', message: 'secret detail' } },
       { status: 418, body: { code: 'teapot', message: 'secret detail' } },

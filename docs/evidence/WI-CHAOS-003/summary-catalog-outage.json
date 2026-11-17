@@ -1,0 +1,25 @@
+{
+  "scenario": "catalog-outage",
+  "faultsInjectedByTheServices": {
+    "catalog:unavailable": 3
+  },
+  "notifications": {
+    "notificationsSent": 0,
+    "eventsSentMoreThanOnce": 0,
+    "confirmedOrders": 0,
+    "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
+    "secondsWaitedForNotificationsToSettle": 0,
+    "repeatsAbsorbedByTheEventIdKey": 0,
+    "eventsMovedToTheDeadLetterStream": 0
+  },
+  "specMetrics": {
+    "catalog-outage": {
+      "scenario": "catalog-outage",
+      "attempts": 2,
+      "sameKeyOnRetry": true,
+      "ordersMade": 0
+    }
+  },
+  "knownGapsObserved": [],
+  "problems": []
+}
