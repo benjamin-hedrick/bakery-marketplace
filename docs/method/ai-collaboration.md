@@ -147,7 +147,8 @@ Each Claude Code session's cost, model time and size were copied by me from the 
 | 2026-11-12 | Dependabot alerts fixed, 15 Android flows run, register items closed on my decisions | 0.48 | 3 min | 29 |
 | 2026-11-16 | the public-presentation review: a fresh clone, the Next.js fix, the front door rewritten, generated BFF types, the checkout split, warnings cleared, the local-development page verified | 15.29 | 40 min | 1,581 |
 | 2026-11-16 (evening) | the pipeline fix, the session store under outage (login and routes, a chaos layer and scenario), the web network contract, a client time limit, the test report corrected | 10.99 | 32 min | 1,762 |
-| **Total** |  | **176.32** | **14 h 57 min** | **68,103** |
+| 2026-11-17 | the pipeline's traceability check, the chaos latency tests on a manual clock | 1.18 | 6 min | 119 |
+| **Total** |  | **177.50** | **15 h 3 min** | **68,222** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew the specifications, decision records, tests and evidence records it holds now ([`STATUS.md`](../product/backlog/STATUS.md) has where each specification stands); not every item was built in a recorded session, so the table is not a cost per item. Nothing here compares with doing the work by hand.
 
