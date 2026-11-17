@@ -34,10 +34,10 @@ public class MockOidcMiddlewareIntegrationTests : IAsyncLifetime
 {
     // The mock issuer runs on its own TestServer; the protected API runs on a second TestServer
     // pointed at the first one's base URL for Authority/JWKS resolution.
-    private TestServer _issuerServer = null!;
+    private TestHost _issuerServer = null!;
     private HttpClient _issuerClient = null!;
 
-    private TestServer _apiServer = null!;
+    private TestHost _apiServer = null!;
     private HttpClient _apiClient = null!;
 
     private const string Audience = "bakery-marketplace";
@@ -45,7 +45,7 @@ public class MockOidcMiddlewareIntegrationTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         // --- Issuer server ---
-        var issuerBuilder = new WebHostBuilder()
+        Action<IWebHostBuilder> issuerBuilder = web => web
             .ConfigureServices(services => services.AddRouting())
             .Configure(app =>
             {
@@ -53,7 +53,7 @@ public class MockOidcMiddlewareIntegrationTests : IAsyncLifetime
                 app.UseEndpoints(endpoints => endpoints.MapMockOidcIssuer(Audience));
             });
 
-        _issuerServer = new TestServer(issuerBuilder);
+        _issuerServer = TestHost.Start(issuerBuilder);
         _issuerClient = _issuerServer.CreateClient();
 
         // The mock issuer's base URL is the Authority for the middleware.
@@ -74,7 +74,7 @@ public class MockOidcMiddlewareIntegrationTests : IAsyncLifetime
             })
             .Build();
 
-        var apiBuilder = new WebHostBuilder()
+        Action<IWebHostBuilder> apiBuilder = web => web
             .ConfigureServices(services =>
             {
                 // Use requireHttpsMetadata: false because the TestServer issuer is on HTTP.
@@ -122,7 +122,7 @@ public class MockOidcMiddlewareIntegrationTests : IAsyncLifetime
                 });
             });
 
-        _apiServer = new TestServer(apiBuilder);
+        _apiServer = TestHost.Start(apiBuilder);
         _apiClient = _apiServer.CreateClient();
 
         await Task.CompletedTask;
@@ -144,8 +144,7 @@ public class MockOidcMiddlewareIntegrationTests : IAsyncLifetime
     private async Task<string> GetTokenViaPkce(string userId)
     {
         var codeVerifier = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
-        using var sha256 = SHA256.Create();
-        var codeChallenge = Base64UrlEncoder.Encode(sha256.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier)));
+        var codeChallenge = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
 
         var authContent = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -229,8 +228,7 @@ public class MockOidcMiddlewareIntegrationTests : IAsyncLifetime
     public async Task PkceRoundTrip_MismatchedCodeVerifier_IsRejectedByIssuer()
     {
         var codeVerifier = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
-        using var sha256 = SHA256.Create();
-        var codeChallenge = Base64UrlEncoder.Encode(sha256.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier)));
+        var codeChallenge = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
 
         var authContent = new FormUrlEncodedContent(new Dictionary<string, string>
         {

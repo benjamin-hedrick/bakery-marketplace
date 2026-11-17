@@ -30,9 +30,9 @@ public class ServiceAuthIntegrationTests : IAsyncLifetime
     private static readonly string CatalogSecret = TestSecrets.Random();
     private static readonly string StrangerSecret = TestSecrets.Random();
 
-    private TestServer _issuerServer = null!;
+    private TestHost _issuerServer = null!;
     private HttpClient _issuer = null!;
-    private TestServer _apiServer = null!;
+    private TestHost _apiServer = null!;
     private HttpClient _api = null!;
 
     public Task InitializeAsync()
@@ -44,7 +44,7 @@ public class ServiceAuthIntegrationTests : IAsyncLifetime
             new("catalog-audience", CatalogSecret, [ServiceRoles.StockReserve], Audience: CatalogAudience),
             new("stranger", StrangerSecret, [ServiceRoles.StockReserve], Audience: "api://not-accepted"),
         ];
-        _issuerServer = new TestServer(new WebHostBuilder()
+        _issuerServer = TestHost.Start(web => web
             .ConfigureServices(services => services.AddRouting())
             .Configure(app =>
             {
@@ -62,7 +62,7 @@ public class ServiceAuthIntegrationTests : IAsyncLifetime
             ["Auth:Audiences:0"] = CatalogAudience, // a service API may accept its own audience as well
         }).Build();
 
-        _apiServer = new TestServer(new WebHostBuilder()
+        _apiServer = TestHost.Start(web => web
             .ConfigureServices(services =>
             {
                 services.AddBakeryAuth(config, requireHttpsMetadata: false);
@@ -195,7 +195,7 @@ public class ServiceAuthIntegrationTests : IAsyncLifetime
     public async Task NoTokenAndABrokenTokenAreUnauthorized()
     {
         var good = await ServiceToken("ordering-service", OrderingSecret);
-        var tampered = good[..^4] + (good.EndsWith("AAAA") ? "BBBB" : "AAAA");
+        var tampered = good[..^4] + (good.EndsWith("AAAA", StringComparison.Ordinal) ? "BBBB" : "AAAA");
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await Call(HttpMethod.Post, "/stock/reservations", null)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await Call(HttpMethod.Post, "/stock/reservations", tampered)).StatusCode);

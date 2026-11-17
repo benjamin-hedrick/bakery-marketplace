@@ -1035,7 +1035,8 @@ The status lines of ADR-0019, 0021, 0022 and 0023 carry who approved what and wh
 
 **189. The library test projects build with analyzer and deprecation warnings**
 Type: Tech debt · Source: the public-presentation review, 2026-11-16 (`dotnet build tools/BakeryMarketplace.slnx`) · Hat: Engineering
-Status: Open
+Status: Resolved 2026-11-16 (approved by the lead the same day)
+Resolution: the auth tests start their in-memory servers through a small `TestHost` helper (`tools/tests/BakeryMarketplace.Auth.Tests/TestHost.cs`: the generic host with `UseTestServer`, disposed as a whole) instead of `new TestServer(new WebHostBuilder())`; the analyzer findings are fixed (`SHA256.HashData`, sealed test types, an ordinal `EndsWith`, the generic `Enum` overloads, `GC.SuppressFinalize` in the cache contract base). `dotnet build tools/BakeryMarketplace.slnx --no-incremental`: 0 warnings; every library test passes on Windows and in `linux-check.mjs`; no test asserts anything different.
 The root solution builds with no warning; the tools solution (the library tests) has 35 on 2026-11-16: `ASPDEPR004` and `ASPDEPR008` (the auth tests host the middleware with the deprecated `WebHostBuilder`: `MockOidcMiddlewareIntegrationTests`, `ServiceAuthIntegrationTests`, the `MockOidc*` tests, `RefreshTokenGrantTests`, `CorrelationIdMiddlewareTests`), and `CA2263`, `CA1850` and `CA1852` in the tests (`FulfillmentContractsTests` among them). A reviewer who builds that solution sees them first. Reconciled when the tests host the middleware with `WebApplication` and the analyzer findings are fixed. The auth tests are auth code's tests, so the change is the lead's to approve.
 
 **190. Two front-page items need the lead's accounts: an inline film player and a pipeline badge**

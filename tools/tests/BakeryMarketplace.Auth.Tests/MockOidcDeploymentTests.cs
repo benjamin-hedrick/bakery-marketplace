@@ -73,8 +73,8 @@ public class MockOidcDeploymentTests
 
     // ---- the issuer honours the list --------------------------------------------------------------------------------------------
 
-    private static TestServer CreateServer(IReadOnlyCollection<string>? allowedRoles) =>
-        new(new WebHostBuilder()
+    private static TestHost CreateServer(IReadOnlyCollection<string>? allowedRoles) =>
+        TestHost.Start(web => web
             .ConfigureServices(services => services.AddRouting())
             .Configure(app =>
             {

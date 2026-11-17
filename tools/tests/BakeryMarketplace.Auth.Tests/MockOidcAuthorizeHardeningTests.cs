@@ -17,8 +17,8 @@ public partial class MockOidcAuthorizeHardeningTests
 {
     private const string Registered = "http://localhost:3000/auth/callback";
 
-    private static TestServer CreateServer(IReadOnlyCollection<string>? redirectUris) =>
-        new(new WebHostBuilder()
+    private static TestHost CreateServer(IReadOnlyCollection<string>? redirectUris) =>
+        TestHost.Start(web => web
             .ConfigureServices(services => services.AddRouting())
             .Configure(app =>
             {

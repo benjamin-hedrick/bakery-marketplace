@@ -23,8 +23,8 @@ public class RefreshTokenGrantTests
         public override DateTimeOffset GetUtcNow() => Now;
     }
 
-    private static TestServer CreateServer(TimeSpan? lifetime = null, TimeProvider? time = null) =>
-        new(new WebHostBuilder()
+    private static TestHost CreateServer(TimeSpan? lifetime = null, TimeProvider? time = null) =>
+        TestHost.Start(web => web
             .ConfigureServices(services => services.AddRouting())
             .Configure(app =>
             {

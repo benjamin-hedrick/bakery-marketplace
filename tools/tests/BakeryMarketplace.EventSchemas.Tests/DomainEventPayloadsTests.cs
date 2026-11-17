@@ -171,6 +171,6 @@ public class DomainEventPayloadsTests
     {
         Assert.Equal(
             new[] { "CustomerRequested", "VendorDeclined", "VendorCancelled" },
-            Enum.GetNames(typeof(OrderCancelReason)));
+            Enum.GetNames<OrderCancelReason>());
     }
 }

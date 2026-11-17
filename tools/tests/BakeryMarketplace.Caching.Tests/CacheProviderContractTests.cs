@@ -23,7 +23,7 @@ public abstract class CacheProviderContractTests : IDisposable
     /// </summary>
     protected abstract ICacheProvider CreateProvider();
 
-    public virtual void Dispose() { }
+    public virtual void Dispose() => GC.SuppressFinalize(this);
 
     [Fact]
     public async Task SetThenGet_ReturnsStoredValue()

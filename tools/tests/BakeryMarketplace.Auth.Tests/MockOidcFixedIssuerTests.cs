@@ -19,8 +19,8 @@ public class MockOidcFixedIssuerTests
     private const string Issuer = "https://login.example.test";
     private static readonly string OrderingSecret = TestSecrets.Random();
 
-    private static TestServer CreateServer(string? issuer) =>
-        new(new WebHostBuilder()
+    private static TestHost CreateServer(string? issuer) =>
+        TestHost.Start(web => web
             .ConfigureServices(services => services.AddRouting())
             .Configure(app =>
             {
