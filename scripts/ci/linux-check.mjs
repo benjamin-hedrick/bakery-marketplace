@@ -29,7 +29,8 @@ const minRedisCommands = 50; // same threshold as the pipeline's redis-touch ass
 const cpus = '2';
 const hang = '--blame-hang-timeout 3m';
 
-const filter = String.raw`grep -E "error|Build succeeded|Passed!|Failed!|^  Failed |Skipped!|WHITESPACE|IDE[0-9]+|CHARSET|FINALNEWLINE|inactivity time|Test Run Aborted"`;
+// A failed test keeps its message and the test's own stack lines (register 198: a failure once showed only its name).
+const filter = String.raw`grep -E -A1 "error|Build succeeded|Passed!|Failed!|^  Failed |Skipped!|WHITESPACE|IDE[0-9]+|CHARSET|FINALNEWLINE|inactivity time|Test Run Aborted|Error Message:|Assert\.|Expected:|Actual:|at BakeryMarketplace\..*Tests\." | grep -v "^--$"`;
 const steps = {
   build: 'dotnet build BakeryMarketplace.slnx --configuration Release',
   format:
