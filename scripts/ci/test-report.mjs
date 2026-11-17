@@ -194,12 +194,21 @@ function parseLcov(text, dir) {
     else if (line.startsWith('LH:') && file) file.hit = Number(line.slice(3));
     else if (line === 'end_of_record' && file) (files.push(file), (file = null));
   }
+  // Only the suite's own files: a linked package (packages/web-session, packages/chaos) is reported under its real path and is measured by its own suite,
+  // so counting it again under the app or service that loads it would add its lines twice to the total.
+  const own = path.resolve(root, dir) + path.sep;
   return files
     .filter(
-      (f) => !/[\\/](tests?|node_modules)[\\/]/.test(f.file) && !/\.test\.|\.config\./.test(f.file) && f.found > 0,
+      (f) =>
+        path.resolve(cwdOf(dir), f.file).startsWith(own) &&
+        !/[\\/](tests?|node_modules)[\\/]/.test(f.file) &&
+        !/\.test\.|\.config\./.test(f.file) &&
+        f.found > 0,
     )
     .map((f) => ({ ...f, dir }));
 }
+
+const cwdOf = (dir) => path.join(root, dir);
 
 function runJs() {
   const rows = [];
@@ -347,7 +356,7 @@ const body = [
   '',
   ...cov,
   '',
-  "What the figures cover: line coverage only (not branch coverage), from the unit and service tests above. The .NET reports of every test project are merged by file and line, and test projects are excluded. TypeScript is measured by Node's built-in coverage over the files the tests load, so a source file that no unit test imports is not in the figure. Not in it: the code the browser suites and the Maestro flows exercise (the web apps' screens and the Android screens), which is verified by those suites, not by this measurement.",
+  "What the figures cover: line coverage only (not branch coverage), from the unit and service tests above. The .NET reports of every test project are merged by file and line, and test projects are excluded. TypeScript is measured by Node's built-in coverage over the files the tests load, so a source file that no unit test imports is not in the figure; each suite counts only the files in its own folder, so a linked package (the session or chaos package loaded by an app or the BFF) is counted once, by its own suite (since 2026-11-17; earlier records counted such a package again under each suite that loaded it, which raised their totals). Not in it: the code the browser suites and the Maestro flows exercise (the web apps' screens and the Android screens), which is verified by those suites, not by this measurement.",
 ].join('\n');
 
 console.log('\n' + body + '\n');
