@@ -53,7 +53,10 @@ public sealed class RedisFailureReportingTests : IDisposable
         });
 
         await Db.StreamAddAsync($"events:{type}", [new NameValueEntry("envelope", "{ this is not an envelope")]);
-        await Eventually(() => Db.StreamLength($"events:{type}:dead-letter") == 1);
+        // The transport adds to the dead-letter stream, then acknowledges, then logs: wait for all three, not only the first.
+        await Eventually(() => Db.StreamLength($"events:{type}:dead-letter") == 1
+            && Db.StreamPending($"events:{type}", $"cg:{type}").PendingMessageCount == 0
+            && _log.Entries.Any(e => e.Level == LogLevel.Error && e.Message.Contains("cannot be read")));
 
         var dead = Db.StreamRange($"events:{type}:dead-letter").Single();
         Assert.Equal("{ this is not an envelope", dead.Values.First(v => v.Name == "envelope").Value);
@@ -102,7 +105,9 @@ public sealed class RedisFailureReportingTests : IDisposable
         await Transport(attempts: 2).SubscribeAsync<string>(type, (_, _) => throw new InvalidOperationException("boom"));
 
         await Transport().PublishAsync(new DomainEventEnvelope<string>(Guid.NewGuid(), type, 1, DateTimeOffset.UtcNow, "Test", "agg", 1, "p"));
-        await Eventually(() => Db.StreamLength($"events:{type}:dead-letter") == 1);
+        // The dead-letter entry is written before the dead-letter log line: wait for both.
+        await Eventually(() => Db.StreamLength($"events:{type}:dead-letter") == 1
+            && _log.Entries.Any(e => e.Level == LogLevel.Error && e.Message.Contains("dead-letter")));
 
         Assert.Contains(_log.Entries, e => e.Level == LogLevel.Warning && e.Message.Contains("handler failed") && e.Exception is InvalidOperationException);
         Assert.Contains(_log.Entries, e => e.Level == LogLevel.Error && e.Message.Contains("dead-letter"));
