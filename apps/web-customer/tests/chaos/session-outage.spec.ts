@@ -4,8 +4,9 @@ import { onlyUnder, recordMetrics, secondsUntil } from './support';
 // Chaos scenario session-outage (chaos/scenarios/session-outage.json, WI-CHAOS-004): the web server's session store (layer `session`) fails every call
 // between two signals. A login that would return to /chaos/session-outage/on switches the outage on, one that would return to /chaos/session-outage/off
 // switches it off: rules in the scenario file, matched on the store's own calls; the app has nothing for them. What must hold: during the outage a login
-// lands on the error page saying login is not available, and a page opened by someone already logged in shows the login or says it could not load (never
-// blank or stuck); afterwards a session made before the outage is still there and a new login works. Needs the whole local stack:
+// lands on the error page saying login is not available, and a page opened by someone already logged in says the login cannot be checked just now with
+// Try again, not "please log in" (register 195), never blank or stuck; afterwards Try again brings back the session made before the outage, and a new
+// login works. Needs the whole local stack:
 // node scripts/ci/chaos-smoke.mjs session-outage
 onlyUnder('session-outage');
 test.describe.configure({ mode: 'serial' });
@@ -42,30 +43,23 @@ test('during a session-store outage nothing is blank or stuck; afterwards the ol
   await expect(visitor).toHaveURL(/\/auth\/error\?code=unavailable$/);
   await expect(visitor.getByText('Login is not available just now. Please try again in a moment.')).toBeVisible();
 
-  // Alice opens her order history again: the page asks her to log in or says it could not load, within the limit.
+  // Alice opens her order history again: the page says the login cannot be checked just now and offers Try again; it does not ask her to log in
+  // (register 195), and it is not blank or stuck.
   await page.goto('/orders');
-  const during = await Promise.race([
-    page
-      .getByTestId('login-required')
-      .waitFor({ timeout: 20_000 })
-      .then(() => 'login-required' as const),
-    page
-      .getByTestId('history-failed')
-      .waitFor({ timeout: 20_000 })
-      .then(() => 'could-not-load' as const),
-  ]).catch(() => 'stuck' as const);
-  expect(
-    during,
-    'the page was neither asking for a login nor saying it could not load (blank page or endless spinner)',
-  ).not.toBe('stuck');
+  const unavailable = page.getByTestId('login-unavailable');
+  await expect(unavailable, 'the page did not say the login cannot be checked just now').toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(unavailable).toContainText('Login is not available just now');
+  await expect(page.getByTestId('login-required')).toHaveCount(0);
 
   // The outage ends; the signalling login is judged after the signal, so it already goes to the issuer.
   const off = await signal(request, 'off');
   expect(off.status()).toBe(302);
   expect(off.headers()['location']).toMatch(/localhost:5100\/authorize/);
 
-  // Alice's session from before the outage was not lost: her history loads without a new login.
-  await page.goto('/orders');
+  // Alice presses Try again: her session from before the outage was not lost, and her history loads without a new login.
+  await unavailable.getByRole('button', { name: 'Try again' }).click();
   await expect(page.getByTestId('user-name')).toBeVisible();
   await expect(page.getByTestId('history-order').or(page.getByTestId('history-empty')).first()).toBeVisible();
 
@@ -81,7 +75,7 @@ test('during a session-store outage nothing is blank or stuck; afterwards the ol
   expect(secondsToLogin, 'a login after the outage never succeeded').not.toBeNull();
 
   recordMetrics('session-outage', {
-    pageDuringOutage: during,
+    pageDuringOutage: 'login-unavailable',
     sessionFromBeforeTheOutageKept: true,
     secondsFromOutageEndToLoggedIn: secondsToLogin,
   });
