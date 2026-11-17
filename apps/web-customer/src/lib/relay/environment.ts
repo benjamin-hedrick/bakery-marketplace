@@ -46,37 +46,60 @@ function makeFetch(
         failed,
       });
     };
-    let res: Response;
+    const timeout = startTimeout();
     try {
-      res = await fetch(url, {
-        method: 'POST',
-        ...(browser ? { credentials: 'same-origin' as const } : {}),
-        headers: { 'content-type': 'application/json', ...headers, ...traceHeaders },
-        body: JSON.stringify({ query: params.text, variables }),
-      });
-    } catch (e) {
-      done(undefined, true);
-      throw e;
-    }
-    if (browser && res.headers.get('x-session-ended') === '1') markLoggedOut(); // the server ended the session (renewal refused): the page offers the login
-    if (!res.ok) {
-      done(res.status, true);
-      throw new Error(`GraphQL request failed: ${res.status}`);
-    }
-    const json = await res.json();
-    done(res.status, !!json.errors?.length);
-    if (json.errors?.length) {
-      if (
-        browser &&
-        json.errors.some((e: { extensions?: { code?: string } }) => e.extensions?.code === 'UNAUTHENTICATED')
-      ) {
-        markLoggedOut(); // the login was missing, expired or refused: the page offers it again
-        throw new UnauthenticatedError();
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method: 'POST',
+          ...(browser ? { credentials: 'same-origin' as const } : {}),
+          headers: { 'content-type': 'application/json', ...headers, ...traceHeaders },
+          body: JSON.stringify({ query: params.text, variables }),
+          signal: timeout.signal,
+        });
+      } catch (e) {
+        done(undefined, true);
+        throw e;
       }
-      throw new GraphQLRequestError(json.errors);
+      if (browser && res.headers.get('x-session-ended') === '1') markLoggedOut(); // the server ended the session (renewal refused): the page offers the login
+      if (!res.ok) {
+        done(res.status, true);
+        throw new Error(`GraphQL request failed: ${res.status}`);
+      }
+      const json = await res.json();
+      done(res.status, !!json.errors?.length);
+      if (json.errors?.length) {
+        if (
+          browser &&
+          json.errors.some((e: { extensions?: { code?: string } }) => e.extensions?.code === 'UNAUTHENTICATED')
+        ) {
+          markLoggedOut(); // the login was missing, expired or refused: the page offers it again
+          throw new UnauthenticatedError();
+        }
+        throw new GraphQLRequestError(json.errors);
+      }
+      return json;
+    } finally {
+      timeout.clear();
     }
-    return json;
   };
+}
+
+/**
+ * How long a GraphQL call may go without an answer (register 196). Past it the call fails as a reset connection does, and the page shows its failure
+ * notice with Try again instead of loading for ever. Longer than the web route's own wait for the BFF (UPSTREAM_TIMEOUT_MS, 30 s), so a slow BFF still
+ * comes back as the route's answer. The Android app's client has its own (BFF_TIMEOUT_MS); the queue display uses the same value as this.
+ */
+export const GRAPHQL_TIMEOUT_MS = 35_000;
+
+/** An abort signal that fires after GRAPHQL_TIMEOUT_MS with a TimeoutError, and a way to cancel it once the answer has been read. */
+function startTimeout(): { signal: AbortSignal; clear: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(new DOMException(`No answer within ${GRAPHQL_TIMEOUT_MS / 1000} s`, 'TimeoutError')),
+    GRAPHQL_TIMEOUT_MS,
+  );
+  return { signal: controller.signal, clear: () => clearTimeout(timer) };
 }
 
 /**

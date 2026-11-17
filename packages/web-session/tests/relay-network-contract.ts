@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { after, describe, test } from 'node:test';
+import { after, describe, mock, test } from 'node:test';
 import { ChaosRuntime, parseScenario } from '@bakery/chaos';
 import { webChaosGate } from '../src/chaos-door.ts';
 import { GraphQLRequestError, UnauthenticatedError } from '../src/errors.ts';
@@ -46,7 +46,8 @@ const describeError = (e: unknown): string =>
         ? 'SyntaxError (the answer is not JSON)' // the parser's message quotes the body, which differs between two HTML pages
         : `${(e as Error).name}: ${(e as Error).message}`;
 
-export function runRelayNetworkContract(app: string, network: NetworkFunction): void {
+/** `timeoutMs`: how long the app's function lets a call go without an answer before it fails (register 196). */
+export function runRelayNetworkContract(app: string, network: NetworkFunction, timeoutMs: number): void {
   describe(`${app}: an injected fault at the web door looks to the page's network function like the real fault`, () => {
     const servers: http.Server[] = [];
     after(() => {
@@ -190,12 +191,48 @@ export function runRelayNetworkContract(app: string, network: NetworkFunction): 
       assert.deepEqual(injected, failed('TypeError: fetch failed'));
     });
 
-    test('no answer: the injected hang is a real web server that never answers, and the page is left waiting (register 196)', async () => {
+    test('no answer: the injected hang is a real web server that never answers (both still waiting, well inside the time limit)', async () => {
       const real = await outcome(await listen(() => undefined));
       const injected = await outcome(await webServer(await healthyBff(), { layer: '{ "hangRate": 1 }' }));
 
       assert.deepEqual(injected, real);
       assert.deepEqual(injected, { settled: 'nothing yet' });
+    });
+
+    test('no answer within the time limit: the call fails as a reset does, so the page shows Try again (register 196)', async () => {
+      // A fetch that never answers and gives up only when its signal fires, with the clock of setTimeout under the test's control.
+      const realFetch = globalThis.fetch;
+      globalThis.fetch = ((_input: string | URL | Request, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal!.reason));
+        })) as typeof fetch;
+      mock.timers.enable({ apis: ['setTimeout'] });
+      try {
+        let result: Outcome = { settled: 'nothing yet' };
+        const call = Promise.resolve()
+          .then(() => network(OPERATION as never, {} as never))
+          .then(
+            () => (result = { settled: 'answered' }),
+            (e: unknown) =>
+              (result = {
+                settled: 'failed',
+                error: describeError(e),
+                endsTheLogin: e instanceof UnauthenticatedError,
+              }),
+          );
+        await new Promise((r) => setImmediate(r)); // let the call start and its timer be set
+        mock.timers.tick(timeoutMs - 1);
+        await new Promise((r) => setImmediate(r));
+        assert.deepEqual(result, { settled: 'nothing yet' }, 'it gave up before the time limit');
+        mock.timers.tick(1);
+        await call;
+        assert.equal(result.settled, 'failed');
+        assert.match((result as { error: string }).error, /^TimeoutError: /);
+        assert.equal((result as { endsTheLogin: boolean }).endsTheLogin, false);
+      } finally {
+        mock.timers.reset();
+        globalThis.fetch = realFetch;
+      }
     });
 
     test('only the BFF saying UNAUTHENTICATED ends the login; a fault never does, and with no fault the answer arrives', async () => {
