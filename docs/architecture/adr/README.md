@@ -45,10 +45,10 @@ For the order in which the decisions were made and changed, see [the decision ti
 | [0016](0016-opentelemetry-tracing.md) | OpenTelemetry with W3C `traceparent` as the only propagated correlation mechanism | Accepted (2026-10-26) |
 | [0017](0017-stock-and-availability-ownership.md) | The catalog owns the stock counter; reserve at place, release on cancel | Accepted (2026-10-28) |
 | [0018](0018-service-to-service-authentication.md) | OAuth2 client credentials for service callers; DEV credential type pending | Accepted (2026-10-31) |
-| [0019](0019-browser-sessions.md) | A server-side session behind an HttpOnly cookie: renewal on the server, tokens out of the page, one implementation for both web apps | Accepted (2026-11-02) |
+| [0019](0019-browser-sessions.md) | A server-side session behind an HttpOnly cookie: renewal on the server, tokens out of the page, one implementation for both web apps | Accepted (2026-11-02), amended 2026-11-06 |
 | [0020](0020-deployment-pipeline-and-environments.md) | Build once, promote by digest, configure at deploy time; two stacks; gated infrastructure and application stages; a second, never-run UAT/Prod pipeline | Accepted (2026-10-31), noted 2026-11-08 |
 | [0021](0021-live-updates-to-the-vendor-queue.md) | Push as a nudge over a stream (GraphQL subscription over SSE, Redis Pub/Sub fan-out) layered on polling, which stays | Accepted (2026-11-02) |
-| [0022](0022-tags.md) | Tags: a catalog-owned registry of kinds and tags (allergen, diet, occasion, season, theme), assigned to listings and options; visibility and windows enforced by the catalog | Accepted |
+| [0022](0022-tags.md) | Tags: a catalog-owned registry of kinds and tags (allergen, diet, occasion, season, theme), assigned to listings and options; visibility and windows enforced by the catalog | Accepted (2026-11-04), amended 2026-11-04 |
 | [0023](0023-native-app-sign-in.md) | Native app sign-in: Authorization Code with PKCE in the system browser, a private-use redirect scheme, the refresh token in the Android Keystore; the BFF and services are unchanged | Accepted (2026-11-04) |
 | [0024](0024-chaos-scenarios.md) | Chaos scenarios: seeded, configured fault injection in a wrapper at existing interfaces (C# services and the BFF), a journal of what was injected, allowed only in local and dev | Accepted (2026-11-11) |
 

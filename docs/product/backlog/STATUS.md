@@ -201,11 +201,11 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [0016](../../architecture/adr/0016-opentelemetry-tracing.md) | OpenTelemetry Tracing and W3C Trace Context as the Correlation Mechanism | Accepted | Accepted (2026-10-26) — amends `tech-stack.md` (Observability row) and changes the ID source for `WI-TOOL-0... |
 | [0017](../../architecture/adr/0017-stock-and-availability-ownership.md) | Stock and Availability Ownership | Accepted | Accepted (2026-10-28, human lead). Refines ADR-0009 (service mapping) for the stock counter. |
 | [0018](../../architecture/adr/0018-service-to-service-authentication.md) | Service-to-Service Authentication (OAuth2 Client Credentials) | Accepted | Accepted (2026-10-31) |
-| [0019](../../architecture/adr/0019-browser-sessions.md) | Browser Sessions: a Server-Side Session Behind an HttpOnly Cookie | Accepted | Accepted (2026-11-02) by the lead, who also approved changing the mock issuer and the auth flow, and decide... |
+| [0019](../../architecture/adr/0019-browser-sessions.md) | Browser Sessions: a Server-Side Session Behind an HttpOnly Cookie | Accepted | Accepted (2026-11-02), amended 2026-11-06 |
 | [0020](../../architecture/adr/0020-deployment-pipeline-and-environments.md) | Deployment pipeline, environments and configuration | Accepted | Accepted (2026-10-31) |
-| [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Accepted | Accepted (2026-11-02) by the lead, with the decisions below taken as recommended and the maximum stream age... |
-| [0022](../../architecture/adr/0022-tags.md) | Tags (a catalog-owned registry of kinds and tags, assigned to listings and options) | Accepted | Accepted (2026-11-04, approved by the lead; drafted the same day as Proposed). Drafted from the lead's deci... |
-| [0023](../../architecture/adr/0023-native-app-sign-in.md) | Native App Sign-In: Authorization Code with PKCE in the System Browser, Tokens on the Device | Accepted | Accepted (2026-11-04) by the lead, who chose option A over a dev-only shortcut and accepted the text. It ch... |
+| [0021](../../architecture/adr/0021-live-updates-to-the-vendor-queue.md) | Live Updates to the Vendor Queue (push as a nudge over a stream, polling kept) | Accepted | Accepted (2026-11-02) |
+| [0022](../../architecture/adr/0022-tags.md) | Tags (a catalog-owned registry of kinds and tags, assigned to listings and options) | Accepted | Accepted (2026-11-04), amended 2026-11-04 |
+| [0023](../../architecture/adr/0023-native-app-sign-in.md) | Native App Sign-In: Authorization Code with PKCE in the System Browser, Tokens on the Device | Accepted | Accepted (2026-11-04) |
 | [0024](../../architecture/adr/0024-chaos-scenarios.md) | Chaos Scenarios: Seeded, Configured Fault Injection at the Interface Layer | Accepted | Accepted (2026-11-11), after the seven scenarios ran on the whole local stack (see the note at the end). Pr... |
 
 Accepted: 23 · Superseded: 1
@@ -231,7 +231,7 @@ Accepted: 23 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 15 |
-| Resolved | 90 |
+| Resolved | 91 |
 | Accepted | 8 |
 | Tracking | 14 |
-| Open | 64 |
+| Open | 63 |

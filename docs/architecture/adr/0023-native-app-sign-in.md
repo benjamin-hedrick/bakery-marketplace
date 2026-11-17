@@ -1,6 +1,6 @@
 # ADR-0023: Native App Sign-In: Authorization Code with PKCE in the System Browser, Tokens on the Device
 
-**Status:** Accepted (2026-11-04) by the lead, who chose option A over a dev-only shortcut and accepted the text. It changes the mock issuer's redirect rule and adds a token store on a device (auth logic). It extends ADR-0006 (token validation stays in every service) and ADR-0019 (browser sessions; the refresh grant is reused). It does not change either decision text.
+**Status:** Accepted (2026-11-04)
 
 ## Context
 
@@ -42,3 +42,9 @@ Built and run locally on 2026-11-04 (`WI-MOB-001`, evidence in `docs/evidence/WI
 - **No revocation on request (sign-out, lost device):** recorded as register 145. Reuse of a rotated refresh token does revoke the login at the mock issuer.
 
 **Note 2026-11-06 (register 152, amends the as-built text of decision 4 and 5, not the decision):** the refresh token is also deleted, and the app returns to the login screen, when the BFF rejects an access token the issuer has just issued (the retry after a renewal answers UNAUTHENTICATED again). Reason: a user stuck on error screens is worse than a login prompt, and a fresh sign-in gets a fresh token. An unreachable issuer still keeps the token. Built in `src/api.ts`; tested in `apps/mobile-customer/tests/api.test.ts`.
+
+## Note, 2026-11-16: the status line as it was
+
+The status line was shortened to the form `docs/method/status-and-supersession.md` allows (register item 188). Until then it read, word for word:
+
+> Accepted (2026-11-04) by the lead, who chose option A over a dev-only shortcut and accepted the text. It changes the mock issuer's redirect rule and adds a token store on a device (auth logic). It extends ADR-0006 (token validation stays in every service) and ADR-0019 (browser sessions; the refresh grant is reused). It does not change either decision text.

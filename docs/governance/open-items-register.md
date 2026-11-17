@@ -1032,7 +1032,8 @@ Status: Open
 
 **188. Four ADR status lines are long sentences**
 Type: Documentation drift · Source: the pre-publish review (2026-11-08); moved here 2026-11-16 · Hat: Architect
-Status: Open
+Status: Resolved 2026-11-16
+Resolution: ADR-0019, 0021, 0022 and 0023 now carry `Accepted (date)` or `Accepted (date), amended date` on the status line; the removed wording is kept word for word in a dated note at the bottom of each ("the status line as it was"); the decision text is unchanged; the ADR index rows of 0019 and 0022 say the same.
 The status lines of ADR-0019, 0021, 0022 and 0023 carry who approved what and what each amends; the rule in `docs/method/status-and-supersession.md` is a short status line with the detail in a dated note. Reconciled when each is shortened and the removed text is kept as a dated note at the bottom of the record (the decision text is not touched).
 
 **189. The library test projects build with analyzer and deprecation warnings**

@@ -1,6 +1,6 @@
 # ADR-0019: Browser Sessions: a Server-Side Session Behind an HttpOnly Cookie
 
-**Status:** Accepted (2026-11-02) by the lead, who also approved changing the mock issuer and the auth flow, and decided the open points below. It amends ADR-0006 (token storage: "header-only, no cookies" no longer applies between the browser and its web app) and ADR-0012 (the Next.js server now holds tokens), and resolves register items 24 and 116, enables 26, and removes the duplication in 115. This is the decision the backlog reserved the number 0019 and the item `N-01` for.
+**Status:** Accepted (2026-11-02), amended 2026-11-06
 
 ## Context
 
@@ -66,3 +66,9 @@ Constraints: every service still validates the bearer token itself (ADR-0006, AD
 ## Amendment 2026-11-06 (register item 118)
 
 Decision 3 is refined: sessions live in their own Redis instance, `redis-sessions`, configured `noeviction`, and not in the evicting cache Redis, because the eviction policy is per instance. A full store now refuses new logins instead of silently ending existing sessions. Locally it is the `redis-sessions` service in the `with-redis` profile (port 6381, `REDIS_SESSIONS_PORT`); in the dev Terraform it is the `redis-sessions` container app (TCP port 6381). The cache Redis (ADR-0002) is unchanged. Approved by the lead 2026-11-06. Alerting on a full store is still not built.
+
+## Note, 2026-11-16: the status line as it was
+
+The status line was shortened to the form `docs/method/status-and-supersession.md` allows (register item 188). Until then it read, word for word:
+
+> Accepted (2026-11-02) by the lead, who also approved changing the mock issuer and the auth flow, and decided the open points below. It amends ADR-0006 (token storage: "header-only, no cookies" no longer applies between the browser and its web app) and ADR-0012 (the Next.js server now holds tokens), and resolves register items 24 and 116, enables 26, and removes the duplication in 115. This is the decision the backlog reserved the number 0019 and the item `N-01` for.
