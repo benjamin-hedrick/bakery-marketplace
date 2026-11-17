@@ -44,7 +44,7 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
         if (_layer.Latency is { } delay)
         {
             _layer.Record("latency", key);
-            await Task.Delay(delay, ct);
+            await Task.Delay(delay, _layer.Time, ct);
         }
 
         if (_layer.InOutage)

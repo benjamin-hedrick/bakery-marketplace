@@ -29,7 +29,7 @@ public sealed class ChaosCacheProvider : ICacheProvider
         if (_layer.Latency is { } delay)
         {
             _layer.Record("latency", $"{operation}:{key}");
-            await Task.Delay(delay, ct);
+            await Task.Delay(delay, _layer.Time, ct);
         }
 
         if (_layer.InOutage)

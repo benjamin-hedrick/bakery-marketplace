@@ -97,6 +97,9 @@ public readonly struct ChaosLayer(ChaosRuntime runtime, string name)
     /// <summary>The delay every operation of the layer takes, if the scenario sets one.</summary>
     public TimeSpan? Latency => Setting("latencyMs") is > 0 and var ms ? TimeSpan.FromMilliseconds(ms) : null;
 
+    /// <summary>The runtime's clock: the latency waits and the outage window both run on it.</summary>
+    internal TimeProvider Time => runtime.Time;
+
     /// <summary>True while the scenario's outage window is open: from <c>outageFromSeconds</c> after the start, for <c>outageWindowSeconds</c>.</summary>
     public bool InOutage
     {
@@ -123,7 +126,7 @@ public readonly struct ChaosLayer(ChaosRuntime runtime, string name)
         if (Latency is { } delay)
         {
             Record("latency", opKey);
-            await Task.Delay(delay, ct);
+            await Task.Delay(delay, runtime.Time, ct);
         }
 
         if (InOutage)

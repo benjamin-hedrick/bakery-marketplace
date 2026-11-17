@@ -56,7 +56,7 @@ public sealed class ChaosBroadcastSubscriber : IBroadcastSubscriber
             if (_layer.Latency is { } delay)
             {
                 _layer.Record("latency", $"deliver:{key}");
-                await Task.Delay(delay, token);
+                await Task.Delay(delay, _layer.Time, token);
             }
 
             await handler(message, token);
