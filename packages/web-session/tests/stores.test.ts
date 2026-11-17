@@ -68,7 +68,13 @@ async function closedPort(): Promise<number> {
 
 // Needs no Redis: the real adapter is pointed at a port where none listens (register 192).
 test('a Redis store that cannot be reached says so with SessionStoreUnavailableError, not a generic error', async () => {
-  const store = createRedisStore(newSealer(), `redis://127.0.0.1:${await closedPort()}`, 'unreachable');
+  const logged: string[] = [];
+  const printed: string[] = [];
+  const consoleError = console.error;
+  console.error = (...args: unknown[]) => void printed.push(args.map(String).join(' '));
+  const store = createRedisStore(newSealer(), `redis://127.0.0.1:${await closedPort()}`, 'unreachable', Date.now, (e) =>
+    logged.push(e),
+  );
   const pending = { state: 's', verifier: 'v', returnTo: '/', createdAt: Date.now() };
   try {
     await Promise.all([
@@ -79,5 +85,14 @@ test('a Redis store that cannot be reached says so with SessionStoreUnavailableE
     ]);
   } finally {
     await store.close();
+    console.error = consoleError;
   }
+  // Several reconnects failed; the log has one line, by code, and the client printed nothing of its own (register 194).
+  assert.deepEqual(logged, [
+    'the session store cannot be reached (ECONNREFUSED); retrying (further failures are not logged for 30 seconds)',
+  ]);
+  assert.deepEqual(
+    printed.filter((line) => line.includes('ioredis')),
+    [],
+  );
 });

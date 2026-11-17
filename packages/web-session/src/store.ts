@@ -143,8 +143,25 @@ export function createRedisStore(
   redisUrl: string,
   prefix = 'web-session',
   now: () => number = Date.now,
+  log: (event: string) => void = () => {},
 ): SessionStore {
   const redis = new Redis(redisUrl, { lazyConnect: false, maxRetriesPerRequest: 2, enableOfflineQueue: true });
+  // Without a listener the client prints every failed reconnect as an unhandled error (register 194). Report the first failure and then at most
+  // one in 30 seconds, by its code only (the URL may carry a password), and say once when the store is back.
+  let lastReported: number | undefined;
+  redis.on('error', (e: NodeJS.ErrnoException) => {
+    const at = now();
+    if (lastReported !== undefined && at - lastReported < 30_000) return;
+    lastReported = at;
+    log(
+      `the session store cannot be reached (${e.code ?? e.name}); retrying (further failures are not logged for 30 seconds)`,
+    );
+  });
+  redis.on('ready', () => {
+    if (lastReported === undefined) return;
+    lastReported = undefined;
+    log('the session store can be reached again');
+  });
   const key = (kind: string, id: string) => `${prefix}:${kind}:${id}`;
   const secondsLeft = (record: SessionRecord) => Math.max(1, Math.ceil((record.absoluteExpiresAt - now()) / 1000));
   // Every call to the server goes through here: a failure to reach it becomes SessionStoreUnavailableError; an error reply from the server, or a

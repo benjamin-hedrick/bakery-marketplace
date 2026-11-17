@@ -12,6 +12,7 @@ export {
   createGraphqlStreamHandler,
   LOGIN_ERROR_PATH,
   SESSION_ENDED_HEADER,
+  STORE_UNAVAILABLE_MESSAGE,
 } from './handlers.ts';
 export type { ApiRequest, ApiResponse } from './handlers.ts';
 export {

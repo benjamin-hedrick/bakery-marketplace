@@ -29,6 +29,8 @@ export interface ApiRequest extends ProxyRequest {
 export interface ApiResponse extends ProxyResponse {
   setHeader(name: string, value: string | string[]): unknown;
   end(): unknown;
+  /** True once the status line has gone out (Node's own flag); a failure after that cannot change the answer. */
+  readonly headersSent?: boolean;
 }
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
@@ -59,6 +61,32 @@ function refuseRateLimited(res: ApiResponse, retryAfterSeconds: number): void {
 /** A response header the GraphQL proxy sets when it has just ended the caller's session, so the page can show the login again. */
 export const SESSION_ENDED_HEADER = 'x-session-ended';
 
+/** What a JSON route answers, with 503, when the session store cannot be reached (register 194). The same sentence as the login's `unavailable` code. */
+export const STORE_UNAVAILABLE_MESSAGE = 'Login is not available just now. Please try again in a moment.';
+
+/**
+ * A session store that cannot be reached is a condition to try again later, not a bug: a JSON route answers it with 503 and a fixed sentence, and
+ * logs it (register 194). Anything else, or a failure after the answer has started, is left to fail as before. The login and callback routes are
+ * browser navigations and send the browser to the error page instead.
+ */
+function whenStoreUnreachable<R extends ApiResponse>(
+  handler: (req: ApiRequest, res: R) => Promise<void>,
+  log: (event: string) => void,
+): (req: ApiRequest, res: R) => Promise<void> {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (e) {
+      if (!(e instanceof SessionStoreUnavailableError) || res.headersSent) throw e;
+      log('request refused: the session store cannot be reached');
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Retry-After', '5');
+      res.status(503);
+      res.json({ error: STORE_UNAVAILABLE_MESSAGE });
+    }
+  };
+}
+
 /** Where a failed login is sent: the app shows the fixed sentence for the code. */
 export const LOGIN_ERROR_PATH = '/auth/error';
 
@@ -71,7 +99,7 @@ export interface AuthHandlerDeps {
 }
 
 export function createAuthHandlers({ config, service, log = () => {}, limits }: AuthHandlerDeps) {
-  return {
+  const handlers = {
     /** GET /api/auth/login?returnTo=/path: sends the browser to the issuer. */
     async login(req: ApiRequest, res: ApiResponse): Promise<void> {
       if (req.method !== 'GET') return methodNotAllowed(res, 'GET');
@@ -156,6 +184,11 @@ export function createAuthHandlers({ config, service, log = () => {}, limits }: 
       res.json(resolved ? { authenticated: true, user: service.view(resolved.record) } : { authenticated: false });
     },
   };
+  return {
+    ...handlers,
+    logout: whenStoreUnreachable(handlers.logout, log),
+    me: whenStoreUnreachable(handlers.me, log),
+  };
 }
 
 export interface GraphqlHandlerDeps {
@@ -187,7 +220,7 @@ export function createGraphqlHandler({
   limits,
   gate,
 }: GraphqlHandlerDeps) {
-  return async function graphql(req: ApiRequest, res: ApiResponse): Promise<void> {
+  return whenStoreUnreachable(async function graphql(req: ApiRequest, res: ApiResponse): Promise<void> {
     if (gate && (await gate(req, res))) return;
     // The address ceiling comes first, before the session store is asked about a cookie, so a flood of junk cookies cannot reach it without limit.
     const address = limits ? addressOf(req, limits) : '';
@@ -229,7 +262,7 @@ export function createGraphqlHandler({
 
     res.setHeader('Cache-Control', 'no-store');
     await proxyGraphql(req, res, target(), extraForwardedHeaders(extraHeaders?.()), fetchImpl, bearer, address);
-  };
+  }, log);
 }
 
 export interface GraphqlStreamHandlerDeps extends GraphqlHandlerDeps {
@@ -265,7 +298,10 @@ export function createGraphqlStreamHandler({
 }: GraphqlStreamHandlerDeps) {
   let open = 0;
   const perSession = new Map<string, number>();
-  return async function graphqlStream(req: ApiRequest, res: ApiResponse & StreamResponse): Promise<void> {
+  return whenStoreUnreachable(async function graphqlStream(
+    req: ApiRequest,
+    res: ApiResponse & StreamResponse,
+  ): Promise<void> {
     if (gate && (await gate(req, res))) return;
     res.setHeader('Cache-Control', 'no-store');
     if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
@@ -352,5 +388,5 @@ export function createGraphqlStreamHandler({
       if (left <= 0) perSession.delete(resolved.id);
       else perSession.set(resolved.id, left);
     }
-  };
+  }, log);
 }

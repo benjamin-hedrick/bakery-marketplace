@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { createAuthHandlers, createGraphqlHandler, type ApiRequest, type ApiResponse } from '../src/handlers.ts';
+import {
+  createAuthHandlers,
+  createGraphqlHandler,
+  STORE_UNAVAILABLE_MESSAGE,
+  type ApiRequest,
+  type ApiResponse,
+} from '../src/handlers.ts';
 import { apiRoutes } from '../src/runtime.ts';
 import { buildAuthorizeUrl, exchangeCode, refreshTokens, TokenError } from '../src/oidc.ts';
 import { createSessionService } from '../src/service.ts';
@@ -404,7 +410,21 @@ describe('a session store that cannot be reached (register 192)', () => {
     const logged: string[] = [];
     const issuer = fakeIssuer(() => tokenResponse());
     const service = createSessionService({ config, store, fetch: issuer.fetchImpl, clock: new ManualClock() });
-    return { auth: createAuthHandlers({ config, service, log: (e) => logged.push(e) }), logged, issuer };
+    const log = (e: string) => logged.push(e);
+    const graphql = createGraphqlHandler({
+      config,
+      service,
+      target: () => 'http://bff.internal:4100/graphql',
+      fetchImpl: (async () => assert.fail('the BFF must not be called')) as unknown as typeof fetch,
+      log,
+    });
+    return {
+      auth: createAuthHandlers({ config, service, log }),
+      graphql,
+      logged,
+      issuer,
+      cookie: `${config.sessionCookieName}=s1`,
+    };
   }
   const unreachable = () => new SessionStoreUnavailableError(new Error('connect ECONNREFUSED 127.0.0.1:6381'));
 
@@ -440,6 +460,30 @@ describe('a session store that cannot be reached (register 192)', () => {
     const s = setup(() => new Error('a bug'));
 
     await assert.rejects(s.auth.login(req('GET'), res().api), /a bug/);
+  });
+
+  test('who-am-I, logout and the GraphQL route answer 503 with a fixed sentence instead of failing with a 500 (register 194)', async () => {
+    const s = setup(unreachable);
+    const calls: [string, (out: ReturnType<typeof res>) => Promise<void>][] = [
+      ['me', (out) => s.auth.me(req('GET', { cookie: s.cookie }), out.api)],
+      ['logout', (out) => s.auth.logout(req('POST', post(s.cookie)), out.api)],
+      ['graphql', (out) => s.graphql(req('POST', post(s.cookie), { body: '{"query":"{ ok }"}' }), out.api)],
+    ];
+    for (const [name, call] of calls) {
+      const out = res();
+      await call(out);
+      assert.equal(out.out.statusCode, 503, name);
+      assert.deepEqual(out.out.body, { error: STORE_UNAVAILABLE_MESSAGE }, name);
+      assert.equal(out.out.headers['cache-control'], 'no-store', name);
+    }
+    assert.equal(s.logged.filter((e) => e.includes('session store cannot be reached')).length, 3);
+  });
+
+  test('any other store failure on those routes still fails as before', async () => {
+    const s = setup(() => new Error('a bug'));
+
+    await assert.rejects(s.auth.me(req('GET', { cookie: s.cookie }), res().api), /a bug/);
+    await assert.rejects(s.graphql(req('POST', post(s.cookie), { body: '{"query":"{ ok }"}' }), res().api), /a bug/);
   });
 });
 
