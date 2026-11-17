@@ -30,7 +30,7 @@ export { createSessionService, LoginError } from './service.ts';
 export type { BearerResult, ResolvedSession, SessionService } from './service.ts';
 export { LOGIN_MESSAGES, loginMessage } from './messages.ts';
 export type { LoginErrorCode } from './messages.ts';
-export { createMemoryStore, createRedisStore, newMemoryBacking } from './store.ts';
+export { createMemoryStore, createRedisStore, newMemoryBacking, SessionStoreUnavailableError } from './store.ts';
 export type { SessionStore } from './store.ts';
 export { safeReturnTo } from './return-to.ts';
 export type { PendingLogin, SessionRecord, SessionView } from './types.ts';

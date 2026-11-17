@@ -32,7 +32,7 @@ The server-side browser session shared by the web apps (ADR-0019, `WI-AUTH-007`)
 | `SESSION_IDLE_MINUTES`, `SESSION_ABSOLUTE_HOURS` | Defaults 720 (12 hours) and 168 (7 days). |
 | `GRAPHQL_URL`, `GRAPHQL_EXTRA_FORWARDED_HEADERS` | As before: the BFF address, read on every request, and test-only headers to forward. |
 
-A missing or malformed setting stops the routes with a 503 and logs the **name** of the setting, never a value.
+A missing or malformed setting stops the routes with a 503 and logs the **name** of the setting, never a value. A sessions Redis that cannot be reached is a condition to try again later, not a bug: the Redis store raises `SessionStoreUnavailableError` (an error reply from the server stays an ordinary error), and the login and callback routes send the browser to the error page with the code `unavailable` ("Login is not available just now"), as they do for a rate limit, and log it. The other routes do not map it yet.
 
 ## Using it from an app
 
