@@ -45,6 +45,8 @@ const mustHaveInjected = {
     ['bff:reject', 'bff:malformed', 'bff:reset'],
     ['bffCatalog:unavailable', 'bffOrdering:serverError'],
   ],
+  // The web server's journal (WI-CHAOS-004): the signal switched the layer on, and the session store failed while it was.
+  'session-outage': [['signal:enable'], ['session:failure']],
 };
 // Behaviour known not to hold yet: reported in the summary, and the run still passes while it is the only problem.
 const knownGaps = {};
@@ -105,7 +107,7 @@ function summarize() {
       const k = `${m[1]}:${m[2].split(':')[0]}`;
       counts[k] = (counts[k] ?? 0) + 1;
     }
-    // The BFF's journal lines are JSON ({"msg":"chaos injected","layer":...,"fault":...}); the web servers log none (their faults show in X-Chaos-Injected).
+    // The journal lines of the BFF and the web servers are JSON ({"msg":"chaos injected","layer":...,"fault":...}); the web door's faults also show in X-Chaos-Injected.
     for (const m of text.matchAll(/"msg":"chaos injected","layer":"([^"]+)","fault":"([^"]+)"/g)) {
       const k = `${m[1]}:${m[2].split(':')[0]}`;
       counts[k] = (counts[k] ?? 0) + 1;

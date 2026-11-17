@@ -11,6 +11,7 @@
 | [`runs-2026-11-09.md`](runs-2026-11-09.md) | The runs of 2026-11-09: all the Maestro flows in one run, both real-stack smokes, the browser suites, the test report, the gates and a clean secret scan of the full history |
 | [`WI-CHAOS-003/README.md`](WI-CHAOS-003/README.md) | The chaos scenarios run on the whole local stack (2026-11-11), one summary each: no order lost or duplicated, the vendor queue and notifications converge, the defects the runs found and fixed (registers 182, 183, 171) |
 | [`WI-CHAOS-003/flows-07-11-2026-11-11.md`](WI-CHAOS-003/flows-07-11-2026-11-11.md) | Android flows 07 and 11 on the emulator under the BFF chaos scenarios: both passed; the journal shows the signal that switches the scenario and the aimed faults |
+| [`WI-CHAOS-004/README.md`](WI-CHAOS-004/README.md) | The session store under the `session-outage` scenario (2026-11-16): a login during the outage says login is not available, nothing blank or stuck, the session from before the outage kept, login back at once; one finding (register 195) |
 | [`latency-2026-11-09.md`](latency-2026-11-09.md) | The latency script after the listing cache: reads, warm checkout and the first checkout |
 | [`WI-CAT-003/after-2026-11-07.md`](WI-CAT-003/after-2026-11-07.md), with [`baseline`](WI-CAT-003/baseline-2026-11-07.md) | The catalog's listing cache before and after: the BFF listings query and the server-rendered home page, checkout unchanged; in-process provider, small seeded catalog |
 | [`WI-SEC-005/client-address-load-2026-11-07.md`](WI-SEC-005/client-address-load-2026-11-07.md) | A control and a fix under load: with one shared rate-limit counter most orders were refused, with per-client counting none |
@@ -57,6 +58,7 @@ The folder `ai-usage/` holds one record per Claude Code session (for example [th
 | [`WI-SEC-004/`](WI-SEC-004/dependency-audit-2026-11-07.md) | The dependency audit and the SBOMs |
 | [`WI-CAT-003/`](WI-CAT-003/after-2026-11-07.md) | The listing cache's latency |
 | [`WI-CHAOS-003/`](WI-CHAOS-003/README.md) | The chaos scenarios on the whole stack (above) |
+| [`WI-CHAOS-004/`](WI-CHAOS-004/README.md) | The session-store outage on the whole stack (above) |
 | [`sonar/triage-2026-11-06.md`](sonar/triage-2026-11-06.md) | Static analysis and what was done with each rule |
 
 The status of each work item and the evidence pointer on its banner are in [`../product/backlog/STATUS.md`](../product/backlog/STATUS.md).
