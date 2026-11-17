@@ -13,6 +13,8 @@ public sealed class CosmosRepositoryTests : RepositoryContractTests<TestEntity>,
 {
     private CosmosClient? _client;
     private Container? _container;
+    // Its own database per test, as the other emulator tests have, so a run that overlaps another (or a left-over database) cannot meet it (register 178).
+    private readonly string _database = "repository-" + Guid.NewGuid().ToString("N")[..8];
 
     public async Task InitializeAsync()
     {
@@ -28,7 +30,7 @@ public sealed class CosmosRepositoryTests : RepositoryContractTests<TestEntity>,
         };
 
         _client = new CosmosClient(EmulatorFactAttribute.ConnectionString, options);
-        var dbResponse = await _client.CreateDatabaseIfNotExistsAsync("TestDatabase");
+        var dbResponse = await _client.CreateDatabaseIfNotExistsAsync(_database);
         var containerResponse = await dbResponse.Database.CreateContainerIfNotExistsAsync(
             new ContainerProperties("TestContainer", "/PartitionKey"));
         _container = containerResponse.Container;
@@ -39,7 +41,7 @@ public sealed class CosmosRepositoryTests : RepositoryContractTests<TestEntity>,
         if (_client == null) return;
         try
         {
-            await _client.GetDatabase("TestDatabase").DeleteAsync();
+            await _client.GetDatabase(_database).DeleteAsync();
         }
         catch { /* best effort cleanup */ }
         _client.Dispose();
