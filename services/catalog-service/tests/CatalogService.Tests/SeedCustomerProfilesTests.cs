@@ -32,7 +32,7 @@ public sealed class SeedCustomerProfilesTests
     {
         var result = await NewSeeder().SeedAsync();
 
-        Assert.Equal(4, result.ProfilesCreated);
+        Assert.Equal(SeedData.CustomerProfiles().Count, result.ProfilesCreated); // counted from the seed (register 178)
         foreach (var expected in SeedData.CustomerProfiles())
         {
             var stored = await _profiles.GetAsync(expected.CustomerId, expected.CustomerId);
@@ -54,7 +54,7 @@ public sealed class SeedCustomerProfilesTests
         var again = await NewSeeder().SeedAsync();
 
         Assert.Equal(0, again.ProfilesCreated);
-        Assert.Equal(4, again.ProfilesUnchanged);
+        Assert.Equal(SeedData.CustomerProfiles().Count, again.ProfilesUnchanged);
         var kept = await _profiles.GetAsync(SeedData.TreeNutAllergyCustomerId, SeedData.TreeNutAllergyCustomerId);
         Assert.Equal(["peanut"], kept!.Allergies); // a developer's local edit survives, as for listings
     }

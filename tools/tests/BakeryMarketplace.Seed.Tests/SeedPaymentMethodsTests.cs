@@ -91,7 +91,7 @@ public sealed class SeedPaymentMethodsTests
 
         var alice = await store.ListAsync(PaymentSeedData.AliceId);
 
-        Assert.Equal(["pm-alice-ok", "pm-alice-refused"], alice.Select(m => m.Id));
+        Assert.Equal(For(PaymentSeedData.AliceId).Select(m => m.Id), alice.Select(m => m.Id)); // the seed's order, whatever methods Alice has (register 178)
         Assert.Empty(await store.ListAsync(PaymentSeedData.NoMethodsCustomerId));
         Assert.DoesNotContain("pm_seed", System.Text.Json.JsonSerializer.Serialize(alice));
     }
