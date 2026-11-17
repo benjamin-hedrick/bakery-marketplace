@@ -66,6 +66,7 @@ if (withTests) {
     },
     { name: 'mobile app: unit tests (session and API logic, WI-MOB-003)', ...npm('apps/mobile-customer', 'test') },
     { name: 'queue display: unit tests', ...npm('apps/web-queue-display', 'test:unit') },
+    { name: 'web: unit tests (the Relay network function, WI-CHAOS-005)', ...npm('apps/web-customer', 'test:unit') },
     {
       name: 'session package: tests (the Redis store tests run only with REDIS_CONNECTION_STRING)',
       ...npm('packages/web-session', 'test'),
