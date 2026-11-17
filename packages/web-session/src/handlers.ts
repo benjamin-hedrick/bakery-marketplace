@@ -13,6 +13,7 @@ import {
 } from './graphql-proxy.ts';
 import { clientAddress, RATE_LIMITED_MESSAGE, type WebRateLimits } from './rate-limit.ts';
 import { LoginError, type SessionService } from './service.ts';
+import { SessionStoreUnavailableError } from './store.ts';
 
 // Request handlers for the web app's API routes (Next.js Pages Router shape, written against the few members they use so the package does not
 // depend on Next). Each app mounts them at /api/auth/login, /api/auth/callback, /api/auth/logout, /api/auth/me and /api/graphql (ADR-0019).
@@ -81,8 +82,16 @@ export function createAuthHandlers({ config, service, log = () => {}, limits }: 
         res.setHeader('Cache-Control', 'no-store');
         return redirect(res, `${LOGIN_ERROR_PATH}?code=rate_limited`);
       }
-      const start = await service.startLogin(first(req.query?.returnTo));
       res.setHeader('Cache-Control', 'no-store');
+      let start;
+      try {
+        start = await service.startLogin(first(req.query?.returnTo));
+      } catch (e) {
+        // The store cannot be reached: a condition to try again later, shown on the error page like a rate limit (register 192).
+        if (!(e instanceof SessionStoreUnavailableError)) throw e;
+        log('login refused: the session store cannot be reached');
+        return redirect(res, `${LOGIN_ERROR_PATH}?code=unavailable`);
+      }
       res.setHeader('Set-Cookie', start.setCookies);
       redirect(res, start.location);
     },
@@ -104,8 +113,10 @@ export function createAuthHandlers({ config, service, log = () => {}, limits }: 
         res.setHeader('Set-Cookie', done.setCookies);
         redirect(res, done.returnTo);
       } catch (e) {
-        const code = e instanceof LoginError ? e.code : 'exchange_failed';
-        if (!(e instanceof LoginError)) log('login callback failed unexpectedly');
+        const unavailable = e instanceof SessionStoreUnavailableError;
+        const code = e instanceof LoginError ? e.code : unavailable ? 'unavailable' : 'exchange_failed';
+        if (unavailable) log('login callback refused: the session store cannot be reached');
+        else if (!(e instanceof LoginError)) log('login callback failed unexpectedly');
         redirect(res, `${LOGIN_ERROR_PATH}?code=${code}`);
       }
     },

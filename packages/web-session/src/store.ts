@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Redis } from 'ioredis';
+import { Redis, ReplyError } from 'ioredis';
 import type { Sealer } from './crypto.ts';
 import type { PendingLogin, SessionRecord } from './types.ts';
 
@@ -22,6 +22,17 @@ export interface SessionStore {
   /** A short exclusive lock on a session (for renewal); null when someone else holds it. Call the returned function to release. */
   acquireLock(id: string, ttlMs: number): Promise<(() => Promise<void>) | null>;
   close(): Promise<void>;
+}
+
+/**
+ * The store could not be reached (refused, timed out, or the connection was lost). A condition to try again later, not a bug: the login routes
+ * answer it with the `unavailable` code instead of failing with a 500 (register 192). An answer the server gave (a Redis error reply) is not this.
+ */
+export class SessionStoreUnavailableError extends Error {
+  constructor(cause: unknown) {
+    super('The session store cannot be reached', { cause });
+    this.name = 'SessionStoreUnavailableError';
+  }
 }
 
 const sessionAad = (id: string) => `session:${id}`;
@@ -136,58 +147,73 @@ export function createRedisStore(
   const redis = new Redis(redisUrl, { lazyConnect: false, maxRetriesPerRequest: 2, enableOfflineQueue: true });
   const key = (kind: string, id: string) => `${prefix}:${kind}:${id}`;
   const secondsLeft = (record: SessionRecord) => Math.max(1, Math.ceil((record.absoluteExpiresAt - now()) / 1000));
+  // Every call to the server goes through here: a failure to reach it becomes SessionStoreUnavailableError; an error reply from the server, or a
+  // record that cannot be opened (which happens after the call), stays what it is.
+  const reach = async <T>(call: () => Promise<T>): Promise<T> => {
+    try {
+      return await call();
+    } catch (e) {
+      throw e instanceof ReplyError ? e : new SessionStoreUnavailableError(e);
+    }
+  };
 
   return {
     async create(id, record) {
       const subject = key('subject', record.subject);
-      await redis
-        .multi()
-        .set(key('sess', id), sealer.seal(JSON.stringify(record), sessionAad(id)), 'EX', secondsLeft(record))
-        .sadd(subject, id)
-        .expire(subject, secondsLeft(record) + 3600)
-        .exec();
+      await reach(() =>
+        redis
+          .multi()
+          .set(key('sess', id), sealer.seal(JSON.stringify(record), sessionAad(id)), 'EX', secondsLeft(record))
+          .sadd(subject, id)
+          .expire(subject, secondsLeft(record) + 3600)
+          .exec(),
+      );
     },
     async get(id) {
-      const sealed = await redis.get(key('sess', id));
+      const sealed = await reach(() => redis.get(key('sess', id)));
       return sealed === null ? null : parse<SessionRecord>(sealer.open(sealed, sessionAad(id)));
     },
     async save(id, record) {
       // XX: only if it still exists, so a session that was ended meanwhile is not brought back by a late renewal.
-      await redis.set(
-        key('sess', id),
-        sealer.seal(JSON.stringify(record), sessionAad(id)),
-        'EX',
-        secondsLeft(record),
-        'XX',
+      await reach(() =>
+        redis.set(
+          key('sess', id),
+          sealer.seal(JSON.stringify(record), sessionAad(id)),
+          'EX',
+          secondsLeft(record),
+          'XX',
+        ),
       );
     },
     async delete(id) {
       const record = await this.get(id);
       const multi = redis.multi().del(key('sess', id));
       if (record) multi.srem(key('subject', record.subject), id);
-      await multi.exec();
+      await reach(() => multi.exec());
     },
     async deleteBySubject(subject) {
       const setKey = key('subject', subject);
-      const ids = await redis.smembers(setKey);
+      const ids = await reach(() => redis.smembers(setKey));
       let count = 0;
-      for (const id of ids) count += await redis.del(key('sess', id));
-      await redis.del(setKey);
+      for (const id of ids) count += await reach(() => redis.del(key('sess', id)));
+      await reach(() => redis.del(setKey));
       return count;
     },
     async putPending(id, pending, ttlSeconds) {
-      await redis.set(key('pend', id), sealer.seal(JSON.stringify(pending), pendingAad(id)), 'EX', ttlSeconds);
+      await reach(() =>
+        redis.set(key('pend', id), sealer.seal(JSON.stringify(pending), pendingAad(id)), 'EX', ttlSeconds),
+      );
     },
     async takePending(id) {
-      const sealed = await redis.getdel(key('pend', id));
+      const sealed = await reach(() => redis.getdel(key('pend', id)));
       return sealed === null ? null : parse<PendingLogin>(sealer.open(sealed, pendingAad(id)));
     },
     async acquireLock(id, ttlMs) {
       const token = randomUUID();
-      const ok = await redis.set(key('lock', id), token, 'PX', ttlMs, 'NX');
+      const ok = await reach(() => redis.set(key('lock', id), token, 'PX', ttlMs, 'NX'));
       if (ok !== 'OK') return null;
       return async () => {
-        await redis.eval(RELEASE_LOCK, 1, key('lock', id), token);
+        await reach(() => redis.eval(RELEASE_LOCK, 1, key('lock', id), token));
       };
     },
     async close() {

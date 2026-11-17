@@ -4,7 +4,8 @@ import { createAuthHandlers, createGraphqlHandler, type ApiRequest, type ApiResp
 import { apiRoutes } from '../src/runtime.ts';
 import { buildAuthorizeUrl, exchangeCode, refreshTokens, TokenError } from '../src/oidc.ts';
 import { createSessionService } from '../src/service.ts';
-import { createMemoryStore } from '../src/store.ts';
+import { loginMessage } from '../src/messages.ts';
+import { createMemoryStore, SessionStoreUnavailableError, type SessionStore } from '../src/store.ts';
 import { ManualClock, errorResponse, fakeIssuer, fakeJwt, newSealer, testConfig, tokenResponse } from './helpers.ts';
 
 const ORIGIN = 'http://localhost:3100';
@@ -379,6 +380,66 @@ describe('the GraphQL handler', () => {
 
     assert.equal(out.out.statusCode, 503);
     assert.equal(r.bff.length, 0);
+  });
+});
+
+describe('a session store that cannot be reached (register 192)', () => {
+  /** A store whose every call fails the way `failure` says; the login routes must tell a store that cannot be reached from a bug. */
+  function setup(failure: () => Error) {
+    const down = async () => {
+      throw failure();
+    };
+    const store: SessionStore = {
+      create: down,
+      get: down,
+      save: down,
+      delete: down,
+      deleteBySubject: down,
+      putPending: down,
+      takePending: down,
+      acquireLock: down,
+      close: async () => {},
+    };
+    const config = testConfig();
+    const logged: string[] = [];
+    const issuer = fakeIssuer(() => tokenResponse());
+    const service = createSessionService({ config, store, fetch: issuer.fetchImpl, clock: new ManualClock() });
+    return { auth: createAuthHandlers({ config, service, log: (e) => logged.push(e) }), logged, issuer };
+  }
+  const unreachable = () => new SessionStoreUnavailableError(new Error('connect ECONNREFUSED 127.0.0.1:6381'));
+
+  test('the login sends the browser to the error page with the unavailable code instead of failing with a 500', async () => {
+    const s = setup(unreachable);
+    const out = res();
+
+    await s.auth.login(req('GET', {}, { query: { returnTo: '/' } }), out.api);
+
+    assert.equal(out.out.statusCode, 302);
+    assert.equal(out.out.headers['location'], '/auth/error?code=unavailable');
+    assert.equal(out.out.headers['cache-control'], 'no-store');
+    assert.equal(out.out.headers['set-cookie'], undefined); // no login cookie for a login that did not start
+    assert.ok(s.logged.some((e) => e.includes('session store cannot be reached')));
+    assert.ok(loginMessage('unavailable').includes('try again'));
+  });
+
+  test('the callback does the same, and the code is not exchanged', async () => {
+    const s = setup(unreachable);
+    const out = res();
+
+    await s.auth.callback(
+      req('GET', { cookie: `${testConfig().loginCookieName}=p1` }, { url: '/api/auth/callback?code=c&state=s' }),
+      out.api,
+    );
+
+    assert.equal(out.out.statusCode, 302);
+    assert.equal(out.out.headers['location'], '/auth/error?code=unavailable');
+    assert.equal(s.issuer.calls.length, 0);
+  });
+
+  test('any other store failure is not taken for an unreachable store: the login still fails', async () => {
+    const s = setup(() => new Error('a bug'));
+
+    await assert.rejects(s.auth.login(req('GET'), res().api), /a bug/);
   });
 });
 
