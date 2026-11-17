@@ -210,6 +210,9 @@ jobs:
       - script: npm run typecheck
         workingDirectory: apps/web-customer
         displayName: Typecheck (runs relay-compiler first)
+      - script: npm run test:unit
+        workingDirectory: apps/web-customer
+        displayName: Unit tests (the Relay network function against the shared equivalence contract, Node test runner; WI-CHAOS-005)
       - script: npm run format:check && npm run typecheck && npm test
         workingDirectory: packages/customer-core
         displayName: Shared customer package - format, typecheck and unit tests (Node test runner)

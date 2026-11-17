@@ -8,7 +8,7 @@
 //   --write       also write docs/evidence/test-and-coverage-<date>.md (the dated, commit-stamped record)
 //
 // What it runs: every .NET test project (tools/tests/*, services/*/tests/*) with coverlet's collector and a TRX log; the JavaScript suites that use
-// `node --test` (graphql-bff, chaos, customer-core, web-session, mobile-customer, web-queue-display unit) with Node's built-in coverage. It only LISTS the Playwright suites
+// `node --test` (graphql-bff, chaos, customer-core, web-session, mobile-customer, web-queue-display unit, web-customer unit) with Node's built-in coverage. It only LISTS the Playwright suites
 // (counts, not run: they need a built app and servers, see repeat-suite.mjs and skeleton-smoke.mjs) and counts the Maestro flows.
 //
 // Coverage is LINE coverage. For .NET the reports of all projects are merged by file and line, so a library covered from two test projects counts once and
@@ -182,6 +182,7 @@ const JS = [
     ],
   },
   { name: 'web-queue-display (unit)', dir: 'apps/web-queue-display', glob: 'tests/unit/**/*.test.ts', pre: [] },
+  { name: 'web-customer (unit)', dir: 'apps/web-customer', glob: 'tests/unit/**/*.test.ts', pre: [] },
 ];
 
 function parseLcov(text, dir) {

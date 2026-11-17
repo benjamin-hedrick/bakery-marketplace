@@ -1,8 +1,8 @@
 import { Environment, Network, RecordSource, Store } from 'relay-runtime';
 import type { FetchFunction } from 'relay-runtime';
 import { GraphQLRequestError, UnauthenticatedError } from '@bakery/web-session/errors';
-import { markLoggedOut } from '../session';
-import { exportClientSpan } from './otlp';
+import { markLoggedOut } from '../session.ts';
+import { exportClientSpan } from './otlp.ts';
 
 // Relay has no public name for its serialized record map, so derive it from the constructor.
 export type RelayRecords = NonNullable<ConstructorParameters<typeof RecordSource>[0]>;
@@ -105,6 +105,13 @@ export function createRenderEnvironment(records: RelayRecords = {}): Environment
   });
 }
 
+/**
+ * The browser's network function: it sends the session cookie to this app's own origin (the page holds no token, ADR-0019), and only an UNAUTHENTICATED
+ * answer or the x-session-ended header ends the login in the page. Exported for the equivalence tests (WI-CHAOS-005), which run it against real faults
+ * and injected ones.
+ */
+export const browserFetch: FetchFunction = makeFetch(BROWSER_GRAPHQL_URL, {}, undefined, true);
+
 let browserEnvironment: Environment | undefined;
 
 /** One environment per browser session (ADR-0014 layer 2). Never reachable from server code paths. */
@@ -112,7 +119,7 @@ export function getBrowserEnvironment(): Environment {
   if (typeof window === 'undefined') throw new Error('getBrowserEnvironment() called on the server');
   browserEnvironment ??= new Environment({
     // The browser holds no token: the cookie goes to our own origin and the server adds the bearer header (ADR-0019).
-    network: Network.create(makeFetch(BROWSER_GRAPHQL_URL, {}, undefined, true)),
+    network: Network.create(browserFetch),
     store: new Store(new RecordSource()),
   });
   return browserEnvironment;

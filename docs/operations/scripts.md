@@ -48,6 +48,7 @@ Ports: 3000 customer web, 3100 queue display, 4000 mock BFF (browser suites), 41
 | Shared customer package | `cd packages/customer-core && npm ci && npm test` |
 | Session package | `cd packages/web-session && npm ci && npm test` (13 Redis store tests run only with `REDIS_CONNECTION_STRING`) |
 | Queue display unit tests | `cd apps/web-queue-display && npm ci && npm run test:unit` |
+| Customer app unit tests | `cd apps/web-customer && npm ci && npm run test:unit` (the Relay network function against the equivalence contract shared with the queue display, WI-CHAOS-005) |
 | Pipeline scripts | `node --test "scripts/ci/tests/*.test.mjs"` (the destroy guard and the pipeline files) |
 
 ### Browser and device tests

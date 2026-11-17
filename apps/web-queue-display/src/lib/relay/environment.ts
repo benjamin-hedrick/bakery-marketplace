@@ -1,7 +1,7 @@
 import { Environment, Network, RecordSource, Store } from 'relay-runtime';
 import type { FetchFunction } from 'relay-runtime';
 import { GraphQLRequestError, UnauthenticatedError } from '@bakery/web-session/errors';
-import { markLoggedOut } from '../session';
+import { markLoggedOut } from '../session.ts';
 
 // The display is client-rendered only (ADR-0012: no server rendering where there is nothing public to render), so there is one Relay environment,
 // in the browser, and the server never fetches or holds anything. It talks to the GraphQL BFF through this app's own origin (ADR-0013).
@@ -10,7 +10,8 @@ const BROWSER_GRAPHQL_URL = '/api/graphql';
 
 export { GraphQLRequestError, UnauthenticatedError } from '@bakery/web-session/errors';
 
-const fetchGraphQL: FetchFunction = async (params, variables) => {
+/** The browser's network function. Exported for the equivalence tests (WI-CHAOS-005), which run it against real faults and injected ones. */
+export const fetchGraphQL: FetchFunction = async (params, variables) => {
   // The login is the HttpOnly cookie, which the browser sends to our own origin by itself; this server attaches the bearer token (ADR-0019).
   const res = await fetch(BROWSER_GRAPHQL_URL, {
     method: 'POST',
