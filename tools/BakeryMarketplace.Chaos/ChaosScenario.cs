@@ -62,6 +62,11 @@ public sealed class ChaosScenario
         {
             "rejectRate", "rejectStatus", "malformedRate", "resetRate", "hangRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
         },
+        // The web servers' session store (packages/web-session): a fault is the store that cannot be reached.
+        ["session"] = new HashSet<string>
+        {
+            "failureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",
+        },
         ["bffCatalog"] = new HashSet<string>
         {
             "failFirstAttempts", "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds",

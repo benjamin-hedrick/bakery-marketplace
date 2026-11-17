@@ -1,0 +1,26 @@
+{
+  "name": "session-outage",
+  "seed": 20261116,
+  "layers": {
+    "session": {
+      "failureRate": 1
+    }
+  },
+  "off": ["session"],
+  "signals": [
+    {
+      "when": { "client": "session", "operation": "putPending", "payload": { "returnTo": "/chaos/session-outage/on" } },
+      "do": "enable",
+      "layer": "session"
+    },
+    {
+      "when": {
+        "client": "session",
+        "operation": "putPending",
+        "payload": { "returnTo": "/chaos/session-outage/off" }
+      },
+      "do": "disable",
+      "layer": "session"
+    }
+  ]
+}

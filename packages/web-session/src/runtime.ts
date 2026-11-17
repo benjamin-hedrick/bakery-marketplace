@@ -6,7 +6,9 @@ import { createSessionService, type SessionService } from './service.ts';
 import { createMemoryStore, createRedisStore, type SessionStore } from './store.ts';
 import type { ApiRequest, ApiResponse } from './handlers.ts';
 import type { StreamResponse } from './graphql-proxy.ts';
-import { webChaosGateFromEnv } from './chaos-door.ts';
+import { chaosFromEnv } from '@bakery/chaos';
+import { webChaosGate } from './chaos-door.ts';
+import { chaosSessionStore } from './chaos-store.ts';
 
 export interface SessionRuntime {
   config: SessionConfig;
@@ -50,7 +52,16 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
     const sealer = createSealer(config.currentKey, config.previousKey);
     if (config.redisUrl === MEMORY_STORE)
       log('sessions are kept in this process only (SESSION_ALLOW_MEMORY_STORE=1): for tests and demos');
-    const store =
+    // Chaos scenarios (ADR-0024): undefined unless CHAOS_ENABLED, and then only locally or in dev (it throws otherwise). One runtime for the process,
+    // shared by the GraphQL routes' gate (layer `web`) and the session store (layer `session`); its journal goes to the log, as the BFF's does.
+    const chaos = chaosFromEnv(env as NodeJS.ProcessEnv, {
+      log: (entry) => console.warn(JSON.stringify({ level: 'warn', ...entry })),
+    });
+    if (chaos)
+      log(
+        `CHAOS SCENARIO '${chaos.scenario.name}' IS ON (seed ${chaos.scenario.seed}, layers ${Object.keys(chaos.scenario.layers).join(', ')}). Faults are injected on purpose.`,
+      );
+    const store = chaosSessionStore(
       config.redisUrl === MEMORY_STORE
         ? createMemoryStore(sealer)
         : createRedisStore(
@@ -59,10 +70,12 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
             env['SESSION_REDIS_PREFIX'] || defaultStorePrefix(config.clientId),
             Date.now,
             log,
-          );
+          ),
+      chaos,
+    );
     const service = createSessionService({ config, store, log });
     const limits = createWebRateLimits(limitSettings.settings);
-    const gate = webChaosGateFromEnv(env); // undefined unless CHAOS_ENABLED (ADR-0024)
+    const gate = webChaosGate(chaos);
     result = {
       ok: true,
       runtime: {

@@ -11,6 +11,7 @@
     "notification": ["failureRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
     "bff": ["rejectRate", "rejectStatus", "malformedRate", "resetRate", "hangRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
     "web": ["rejectRate", "rejectStatus", "malformedRate", "resetRate", "hangRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
+    "session": ["failureRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
     "bffCatalog": ["failFirstAttempts", "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"],
     "bffOrdering": ["failFirstAttempts", "unavailableRate", "serverErrorRate", "malformedRate", "lostResponseRate", "latencyMs", "outageFromSeconds", "outageWindowSeconds"]
   },

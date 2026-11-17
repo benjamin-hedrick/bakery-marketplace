@@ -1,0 +1,27 @@
+{
+  "scenario": "session-outage",
+  "faultsInjectedByTheServices": {
+    "signal:enable": 1,
+    "session:failure": 3,
+    "signal:disable": 1
+  },
+  "notifications": {
+    "notificationsSent": 0,
+    "eventsSentMoreThanOnce": 0,
+    "confirmedOrders": 0,
+    "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
+    "secondsWaitedForNotificationsToSettle": 0,
+    "repeatsAbsorbedByTheEventIdKey": 0,
+    "eventsMovedToTheDeadLetterStream": 0
+  },
+  "specMetrics": {
+    "session-outage": {
+      "scenario": "session-outage",
+      "pageDuringOutage": "login-required",
+      "sessionFromBeforeTheOutageKept": true,
+      "secondsFromOutageEndToLoggedIn": 0.233
+    }
+  },
+  "knownGapsObserved": [],
+  "problems": []
+}
