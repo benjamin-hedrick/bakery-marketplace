@@ -35,6 +35,7 @@ const NPM_PROJECTS = [
   { name: 'mobile-customer', dir: 'apps/mobile-customer', sbom: true },
   { name: 'graphql-bff', dir: 'services/graphql-bff', sbom: true },
   { name: 'customer-core', dir: 'packages/customer-core', sbom: false }, // a library: its dependencies appear in the apps that use it
+  { name: 'chaos', dir: 'packages/chaos', sbom: false }, // a library, as above; it has its own lockfile, which Dependabot scans
   { name: 'web-session', dir: 'packages/web-session', sbom: false },
 ];
 const DOTNET_SERVICES = [
