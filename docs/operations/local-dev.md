@@ -2,7 +2,7 @@
 
 To show the slice to someone, use the one-command demo: [Demo](demo.md). Every script and command (start, stop, demo, test, gates) is indexed in [Scripts and commands](scripts.md).
 
-> **Status:** Current · re-read against the code 2026-11-08 (the fresh-clone check is still to repeat); "Run slice 1" verified 2026-10-30 by following it step by step in a fresh clone on Windows 11 (Docker Desktop). The rest was verified on 2026-10-26 to 2026-10-28 and is marked below. Nothing here is deployed. By default the application services are not containers, so you run them on the host against the ports below (the `apps` compose profile runs them as containers: `docker compose --profile apps up -d --build`, checked by `node scripts/ci/skeleton-smoke.mjs --containers`). **Not re-verified in a fresh clone since 2026-10-30**, although the page was edited several times after it (the sessions Redis, the seed's payment methods, the demo); the one-command demo (`node scripts/dev/demo.mjs`) is the path that is run regularly. A fresh-clone re-run is on the gaps list (`docs/history/pre-publish-review-2026-11.md`, item 9).
+> **Status:** Current · "Run slice 1" verified 2026-11-16 by following it step by step in a fresh clone on Windows 11 (Docker Desktop), which found and fixed two gaps in step 7 (see "What this was run against"); first verified the same way 2026-10-30. The rest was verified on 2026-10-26 to 2026-10-28 and is marked below. Nothing here is deployed. By default the application services are not containers, so you run them on the host against the ports below (the `apps` compose profile runs them as containers: `docker compose --profile apps up -d --build`, checked by `node scripts/ci/skeleton-smoke.mjs --containers`). The one-command demo (`node scripts/dev/demo.mjs`) is the path that is run regularly; this page is the same stack started piece by piece.
 
 ## Run slice 1
 
@@ -16,11 +16,11 @@ Run from the repository root. Steps 4 to 7 each keep a process running, so use a
 # 1. Create the local secrets (git-ignored .env; prints no values)
 node scripts/dev/init-env.mjs
 
-# 2. Infrastructure: Redis Streams, the Cosmos emulator, the mock identity issuer
-docker compose up -d --build
-node scripts/dev/check-env.mjs --wait 180        # exit 0 when all three are up
+# 2. Infrastructure: Redis Streams, the Cosmos emulator, the mock identity issuer, and (profile with-redis) the sessions Redis the web login needs and the cache Redis
+docker compose --profile with-redis up -d --build
+node scripts/dev/check-env.mjs --with-redis --wait 180        # exit 0 when all of them are up
 
-# 3. Seed 7 listings, mark both vendors verified, and save the allergen profiles of the seeded customers (see "Seeded customers" below)
+# 3. Seed the listings, mark both vendors verified, and save the allergen profiles and payment methods of the seeded customers (see "Seeded customers" below)
 export COSMOS_KEY="$(node -e "console.log(require('fs').readFileSync('scripts/lib/local-stack.mjs','utf8').match(/EMULATOR_KEY =\s*'([^']+)'/)[1])")"   # the emulator's published fixed key
 export COSMOS_CS="AccountEndpoint=http://localhost:8081/;AccountKey=${COSMOS_KEY}"
 Cosmos__ConnectionString="$COSMOS_CS" dotnet run --project tools/BakeryMarketplace.Seed
@@ -43,7 +43,8 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 Data__B
 (cd services/graphql-bff && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)
 
 # 7. Customer web app on :3000 (everything is read at run time, on every request). The login runs on its server (ADR-0019): it needs the sessions Redis
-#    (`docker compose --profile with-redis up -d`, sessions Redis on port 6381) and the encryption key that init-env.mjs wrote to .env as SESSION_ENCRYPTION_KEY.
+#    (started in step 2, port 6381) and the encryption key that init-env.mjs wrote to .env as SESSION_ENCRYPTION_KEY, read here.
+export SESSION_ENCRYPTION_KEY="$(grep '^SESSION_ENCRYPTION_KEY=' .env | cut -d= -f2-)"
 (cd packages/web-session && npm ci)    # after packages/chaos (step 6), which it links
 (cd apps/web-customer && npm ci)
 (cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run build)    # also compiles the Relay artifacts, which are git-ignored
@@ -73,11 +74,15 @@ curl -s -X POST localhost:4100/graphql -H 'content-type: application/json' \
 
 The identities are rows in `BakeryMarketplace.Auth`'s `MockUsers` (identity only, no logic); the deployed dev issuer, which lists customers only, lists all five. A catalog test (`SeedCustomerProfilesTests`) keeps the two lists in step and checks that each profile produces its case under the catalog's real conflict rules.
 
-**Run the journeys against this stack:** `cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run test:skeleton` (62 tests on 2026-11-07; they sign in as the mock users and place real orders). A declined payment is a seeded payment method whose token fails ordering's rule (`WI-ORD-010`), so no test hook is needed.
+**Run the journeys against this stack:** `cd apps/web-customer && GRAPHQL_URL=http://localhost:4100/graphql npm run test:skeleton` (they sign in as the mock users and place real orders; the latest count is in the [test record](../evidence/README.md)). A declined payment is a seeded payment method whose token fails ordering's rule (`WI-ORD-010`), so no test hook is needed.
 
-**Stop and reset:** stop the four processes, then `docker compose down`. Data is not persisted. Seeding twice changes nothing, so stock used by an earlier run stays used (for example the Almond Croissant sells out in the journeys); `docker compose down` and `up` again resets it.
+**Stop and reset:** stop the four processes, then `docker compose --profile with-redis down`. Data is not persisted. Seeding twice changes nothing, so stock used by an earlier run stays used (for example the Almond Croissant sells out in the journeys); `docker compose down` and `up` again resets it.
 
-### What this was run against (2026-10-30)
+### What this was run against
+
+**2026-11-16** (register item 187): a fresh clone of `feature/public-review` at `c59ec8e`, steps 1 to 7 as then written, Docker images and package caches warm. Steps 1 to 6 and the web build passed as written: the seed created 8 listings, 2 verified vendors and 4 profiles; catalog, ordering and the BFF answered their health checks within seconds; the GraphQL query returned three listings. Step 7 did not: the web app's login answered **503** because `SESSION_ENCRYPTION_KEY` was never read from `.env`, and with the key but without the sessions Redis (which no step started) it answered **500**. With both given (the sessions Redis up, the key read from `.env`) the login answered **302** to the issuer's `/authorize`. The page now does both, in steps 2 and 7. Not repeated after the fix in a second fresh clone; not done by hand in a browser.
+
+**2026-10-30:**
 
 | Step | Result |
 |---|---|
