@@ -1043,7 +1043,7 @@ The root solution builds with no warning; the tools solution (the library tests)
 
 **190. Two front-page items need the lead's accounts: an inline film player and a pipeline badge**
 Type: Gap · Source: the public-presentation review, 2026-11-16 · Hat: Manager/Lead
-Status: Open
+Status: Open · the film half done 2026-11-16 (the lead uploaded the film as a GitHub attachment; the README shows it inline and still links the file in the repository); the badge half waits for the Azure DevOps badge markdown or the lead's decision against a badge
 The README links the demo film (`docs/operations/demo/demo-film.mp4`) through its poster; GitHub plays a video inline in a README only when the file is uploaded through GitHub's editor (a `user-attachments` address), which needs the lead's GitHub session. A build badge needs the Azure DevOps project's badge address and the project's visibility settings (register 93 lists the Azure DevOps settings), neither of which is in the repository. Reconciled when the lead uploads the film and gives the badge address (or decides against either), and the README is updated.
 
 **191. A session-package test failed once in the full test report and its name was not kept**

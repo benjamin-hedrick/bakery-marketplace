@@ -6,9 +6,9 @@ A pickup-based marketplace that connects customers with local bakeries, coffee s
 - **What to look at:** the [architecture decisions](docs/architecture/adr/README.md), the [testing](docs/testing.md) (including faults injected on purpose across the whole stack), and the [AI collaboration record](docs/method/ai-collaboration.md): how the work was controlled, what went wrong and what caught it.
 - **Its limits:** it runs on a developer machine; nothing is deployed, the payment is a stub, and the Terraform for Azure is written and validated but has never been applied.
 
-[![The demo film: a web customer, a phone customer and the bakery's live queue](docs/operations/demo/demo-film-poster.png)](docs/operations/demo/demo-film.mp4)
+https://github.com/user-attachments/assets/3b9bf265-8c7d-4db8-b5cb-cfb05929a66b
 
-**[Watch the film](docs/operations/demo/demo-film.mp4)** (under two minutes): a web customer with a tree-nut allergy, a phone customer with dairy and tree-nut allergies and the bakery's live order queue, with other customers ordering at the same time. A local demo, test payments. [How it was made](docs/operations/demo-film.md).
+**The demo film** (under two minutes): a web customer with a tree-nut allergy, a phone customer with dairy and tree-nut allergies and the bakery's live order queue, with other customers ordering at the same time. A local demo, test payments. [The file in the repository](docs/operations/demo/demo-film.mp4) · [how it was made](docs/operations/demo-film.md).
 
 **Built with:** C# on .NET 10 (ASP.NET Core) · a Node and TypeScript GraphQL BFF · Next.js (Pages Router), React and Relay · Expo and React Native (Android) · Cosmos DB (the emulator) · Redis Streams · OpenTelemetry · xUnit, Node's test runner, Playwright and Maestro · Terraform · Azure Pipelines · Docker Compose.
 
