@@ -31,12 +31,34 @@ public static class CachingServiceExtensions
             throw new ArgumentException("Redis connection string cannot be null or empty.", nameof(connectionString));
 
         services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(_ =>
-            StackExchange.Redis.ConnectionMultiplexer.Connect(connectionString));
+            StackExchange.Redis.ConnectionMultiplexer.Connect(CacheConnectionOptions(connectionString)));
 
         services.AddSingleton<RedisCacheProvider>();
         services.AddSingleton<ICacheProvider>(sp => sp.GetRequiredService<RedisCacheProvider>());
 
         return services;
+    }
+
+    /// <summary>The time a cache call may wait for Redis when the connection string does not say (register 205).</summary>
+    public const int CacheTimeoutMilliseconds = 1000;
+
+    /// <summary>
+    /// The options of a cache connection (register 205). A cache is worth less than a wait, so: a command fails at once while the connection is
+    /// down instead of queueing until a timeout (<c>BacklogPolicy.FailFast</c>; the default queued every read for about 5 s at the start of an
+    /// outage, long enough for ordering's call to the catalog to time out); connect, sync and async timeouts of
+    /// <see cref="CacheTimeoutMilliseconds"/> unless the connection string sets them; and the service starts without Redis (<c>abortConnect=false</c>)
+    /// unless the connection string says otherwise. The circuit breaker and the local fallback do the rest (ADR-0002).
+    /// </summary>
+    public static StackExchange.Redis.ConfigurationOptions CacheConnectionOptions(string connectionString)
+    {
+        var options = StackExchange.Redis.ConfigurationOptions.Parse(connectionString);
+        bool Says(string name) => connectionString.Contains(name + "=", StringComparison.OrdinalIgnoreCase);
+        if (!Says("connectTimeout")) options.ConnectTimeout = CacheTimeoutMilliseconds;
+        if (!Says("syncTimeout")) options.SyncTimeout = CacheTimeoutMilliseconds;
+        if (!Says("asyncTimeout")) options.AsyncTimeout = CacheTimeoutMilliseconds;
+        if (!Says("abortConnect")) options.AbortOnConnectFail = false;
+        options.BacklogPolicy = StackExchange.Redis.BacklogPolicy.FailFast;
+        return options;
     }
 
     /// <summary>
@@ -49,8 +71,8 @@ public static class CachingServiceExtensions
         TimeSpan? durationOfBreak = null)
     {
         services.AddLocalCacheProvider();
-        services.AddSingleton<ICircuitBreakerPolicy>(_ =>
-            new PollyCircuitBreakerPolicy(exceptionsBeforeBreaking, durationOfBreak));
+        services.AddSingleton<ICircuitBreakerPolicy>(sp =>
+            new PollyCircuitBreakerPolicy(exceptionsBeforeBreaking, durationOfBreak, sp.GetService<ILogger<PollyCircuitBreakerPolicy>>()));
         services.AddSingleton<ResilientCacheProvider>(sp =>
             new ResilientCacheProvider(
                 sp.GetRequiredService<ICacheProvider>(),  // the primary (must be registered by caller)

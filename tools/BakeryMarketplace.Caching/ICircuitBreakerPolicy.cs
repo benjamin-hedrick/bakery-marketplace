@@ -20,4 +20,10 @@ public interface ICircuitBreakerPolicy
 
     /// <summary>True when the breaker is open (primary is considered unavailable).</summary>
     bool IsOpen { get; }
+
+    /// <summary>
+    /// Whether <paramref name="exception"/> is this breaker refusing a call (open, or half-open with its trial call already out) rather than a failure of the
+    /// primary itself. <see cref="ResilientCacheProvider"/> counts refusals instead of logging each one (register 205); the breaker logs its own state changes.
+    /// </summary>
+    bool IsRefusal(Exception exception) => false;
 }

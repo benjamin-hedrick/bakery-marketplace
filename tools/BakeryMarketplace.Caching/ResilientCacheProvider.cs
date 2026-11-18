@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Logging;
 
 namespace BakeryMarketplace.Caching;
@@ -11,14 +12,26 @@ namespace BakeryMarketplace.Caching;
 /// - Primary failure/timeout → trip circuit breaker → route to fallback → emit ILogger warning
 /// - Breaker probes primary periodically; closes on successful probe
 ///
+/// Every fallback is counted (<c>cache_fallback</c>, meter <see cref="MeterName"/>, tagged with the operation and the reason). A failure of the primary
+/// itself is also logged as a warning; a call the open breaker refuses is only counted, because the breaker logs its own opening and closing
+/// (register 205: logging each refused call gave one warning with a stack trace per cache call for as long as the primary was down).
+///
 /// This decorator is vendor-agnostic. It doesn't care what backs the primary provider.
 /// </summary>
-public sealed partial class ResilientCacheProvider : ICacheProvider
+public sealed partial class ResilientCacheProvider : ICacheProvider, IDisposable
 {
+    /// <summary>The name of the fallback meter, for a service's telemetry registration.</summary>
+    public const string MeterName = "BakeryMarketplace.Caching";
+
     private readonly ICacheProvider _primary;
     private readonly ICacheProvider _fallback;
     private readonly ICircuitBreakerPolicy _breaker;
     private readonly ILogger<ResilientCacheProvider> _logger;
+    private readonly Meter _meter = new(MeterName);
+    private readonly Counter<long> _fallbacks;
+
+    /// <summary>This instance's meter (one per provider, so a test reads only its own).</summary>
+    public Meter Meter => _meter;
 
     public ResilientCacheProvider(
         ICacheProvider primary,
@@ -30,7 +43,11 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         _fallback = fallback ?? throw new ArgumentNullException(nameof(fallback));
         _breaker = breaker ?? throw new ArgumentNullException(nameof(breaker));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _fallbacks = _meter.CreateCounter<long>(
+            "cache_fallback", description: "Cache calls served by the fallback, by operation and reason (primary_failure or breaker_open)");
     }
+
+    public void Dispose() => _meter.Dispose();
 
     public async Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken ct = default)
     {
@@ -41,7 +58,7 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogFallback(nameof(GetAsync), key, ex);
+            OnFallback(nameof(GetAsync), key, ex);
             return await _fallback.GetAsync<T>(key, ct);
         }
     }
@@ -55,7 +72,7 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogFallback(nameof(GetManyAsync), $"{keys.Count} keys", ex);
+            OnFallback(nameof(GetManyAsync), $"{keys.Count} keys", ex);
             return await _fallback.GetManyAsync<T>(keys, ct);
         }
     }
@@ -69,7 +86,7 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogFallback(nameof(SetAsync), key, ex);
+            OnFallback(nameof(SetAsync), key, ex);
             await _fallback.SetAsync(key, value, ttl, ct);
         }
     }
@@ -83,7 +100,7 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogFallback(nameof(SetIfAbsentAsync), key, ex);
+            OnFallback(nameof(SetIfAbsentAsync), key, ex);
             return await _fallback.SetIfAbsentAsync(key, value, ttl, ct); // atomic in this process only; the claim holds for this instance
         }
     }
@@ -97,7 +114,7 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogFallback(nameof(DeleteAsync), key, ex);
+            OnFallback(nameof(DeleteAsync), key, ex);
         }
 
         // Always the fallback too, not only when the primary failed: the fallback may hold a copy filled while the breaker was open, and a delete that reached
@@ -114,14 +131,16 @@ public sealed partial class ResilientCacheProvider : ICacheProvider
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogFallback(nameof(ExistsAsync), key, ex);
+            OnFallback(nameof(ExistsAsync), key, ex);
             return await _fallback.ExistsAsync(key, ct);
         }
     }
 
-    private void LogFallback(string operation, string key, Exception ex)
+    private void OnFallback(string operation, string key, Exception ex)
     {
-        LogCachePrimaryFailure(_logger, ex, operation, key, _breaker.IsOpen);
+        var refused = _breaker.IsRefusal(ex);
+        _fallbacks.Add(1, new KeyValuePair<string, object?>("operation", operation), new KeyValuePair<string, object?>("reason", refused ? "breaker_open" : "primary_failure"));
+        if (!refused) LogCachePrimaryFailure(_logger, ex, operation, key, _breaker.IsOpen);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Cache primary failure on {Operation} for key '{Key}'. Falling back to local cache. BreakerOpen={BreakerOpen}")]

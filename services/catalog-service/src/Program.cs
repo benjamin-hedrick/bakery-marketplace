@@ -16,7 +16,7 @@ using StackExchange.Redis;
 var builder = WebApplication.CreateBuilder(args);
 
 // Tracing (ADR-0016, WI-PORT-005): exports over OTLP only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
-builder.Services.AddBakeryTelemetry(builder.Configuration, "catalog-service", ListingEventPublisher.MeterName);
+builder.Services.AddBakeryTelemetry(builder.Configuration, "catalog-service", ListingEventPublisher.MeterName, ResilientCacheProvider.MeterName);
 
 // Auth (ADR-0006): JWT bearer + role policies from the shared library; Authority/Audience come from config, so the
 // local mock issuer and Entra External ID are a config swap. Plain-HTTP metadata is allowed only in Development.

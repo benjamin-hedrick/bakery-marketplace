@@ -10,7 +10,7 @@ using StackExchange.Redis;
 var builder = WebApplication.CreateBuilder(args);
 
 // Traces (ADR-0016): exported only when OTEL_EXPORTER_OTLP_ENDPOINT is set; includes the batch consumer spans of the event transport.
-builder.Services.AddBakeryTelemetry(builder.Configuration, "notification-service");
+builder.Services.AddBakeryTelemetry(builder.Configuration, "notification-service", ResilientCacheProvider.MeterName);
 
 // Events (ADR-0003). As in ordering, the backend must be chosen explicitly: "redis" (Redis Streams) or "inmemory". The consumer group is
 // named for this service, so it receives every order event independently of the vendor queue (register item 29). Events:MaxStreamLength
@@ -26,7 +26,8 @@ if (string.Equals(builder.Configuration["Cache:Backend"], "redis", StringCompari
     // The cache chaos layer goes under the resilient provider: Resilient(Chaos(Redis)) (ADR-0024).
     builder.Services.AddSingleton<ICacheProvider>(sp => new ResilientCacheProvider(
         sp.WrapCachePrimary(new RedisCacheProvider(cacheRedis)), sp.GetRequiredService<LocalCacheProvider>(),
-        new PollyCircuitBreakerPolicy(3, TimeSpan.FromSeconds(30)), sp.GetRequiredService<ILogger<ResilientCacheProvider>>()));
+        new PollyCircuitBreakerPolicy(3, TimeSpan.FromSeconds(30), sp.GetRequiredService<ILogger<PollyCircuitBreakerPolicy>>()),
+        sp.GetRequiredService<ILogger<ResilientCacheProvider>>()));
 }
 else
 {
