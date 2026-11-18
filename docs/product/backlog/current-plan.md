@@ -21,7 +21,7 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 ## In flight
 
-- **`feature/hardening-followups`**: the Android flows' own seed listings (register 200), registers 202, 66, 74, 203 and 166, then the hardening items below. (`feature/register-hardening`, the test-design review, merged 2026-11-17.)
+- **`feature/hardening-followups`**: the Android flows' own seed listings (register 200), registers 202, 66, 74, 203, 166, 204, 205 and 206 (step 1), then the hardening items below. (`feature/register-hardening`, the test-design review, merged 2026-11-17.)
 
 ## Next
 
@@ -29,7 +29,7 @@ In this order, the lead deciding:
 
 1. **The vendor's listing and stock screens:** the largest product gap; decide, then write a spec. Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens come after.
 2. **The deployed dev environment** (`WI-DEP-001`): run the bootstrap on Azure and approve the Entra and IAM work (ADR-0018 phase 2, `WI-AUTH-006`); costs start there. A manual, approved teardown with a runbook follows.
-3. **Hardening:** what the dependency outage runs found (registers 204, 205 and 206; 166 and 203 were done 2026-11-18), a latency budget (register 100), the dependency decisions of register 162, the cache invalidation gap (register 184), and the soak and cache measurements (register 186).
+3. **Hardening:** the slow failure while Cosmos is down (register 206 step 2, the lead's choice; 166, 203, 204 and 205 were done 2026-11-18), a latency budget (register 100), the dependency decisions of register 162, the cache invalidation gap (register 184), and the soak and cache measurements (register 186).
 
 **Waiting on the lead:** the reviews of the In review items (`STATUS.md`, filter by In review) and the open decisions in the [register](../../governance/open-items-register.md) (filter by `Status: Open`). Security, authorization and IAM changes need approval before they are made (`CLAUDE.md`).
 
