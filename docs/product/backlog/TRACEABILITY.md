@@ -55,7 +55,7 @@ Of 56 work items marked Done: 30 are named by a test file, 19 by an evidence rec
 | [MGMT-007](WI-MGMT-007.md) | Draft the stakeholder communications plan | Done | *none* | *none* |
 | [MGMT-008](WI-MGMT-008.md) | Draft the branching/release strategy | Done | *none* | *none* |
 | [MOB-001](WI-MOB-001.md) | Customer mobile app (Android, Expo) with Maestro flows | In review | *none* | `README.md`, `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` and 1 more |
-| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | `identity.test.ts`, `flow-control.test.mjs`, `SeedCustomerProfilesTests.cs` | `README.md`, `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` and 1 more |
+| [MOB-002](WI-MOB-002.md) | Android app: allergens in the cart and at checkout (show them, warn, acknowledge, tell the bakery), and who is signed in | In review | `identity.test.ts`, `flow-control.test.mjs`, `SeedCustomerProfilesTests.cs` | `README.md`, `maestro-flows-2026-11-04.md`, `maestro-flows-2026-11-04.md` and 2 more |
 | [MOB-003](WI-MOB-003.md) | Android app: tests for the session logic and flows for a refused or expired session and for failed requests | In review | `api.test.ts`, `register.mjs`, `session.test.ts` and 1 more | `README.md`, `maestro-flows-2026-11-05.md`, `unit-tests-2026-11-05.md` |
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |

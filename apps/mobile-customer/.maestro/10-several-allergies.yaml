@@ -1,7 +1,7 @@
-# WI-MOB-002: Max, a seeded customer with several saved entries: allergies to dairy and tree nuts, and an avoid for gluten. The croissant with extra almonds gives serious
+# WI-MOB-002: Max, a seeded customer with several saved entries: allergies to dairy and tree nuts, and an avoid for gluten. The Walnut Danish with extra walnuts gives serious
 # warnings (dairy; tree nuts for the item and for the option) and a note (gluten). "Tell the bakery" lists both allergies, ticked; Max unticks dairy, and the order
 # carries only the tree-nut allergy: what is told to the bakery is the customer's choice.
-# Stock: this flow buys one of the Almond Croissant's 4 units; every flow of a run shares one stack, so only this flow and 05 may buy the croissant.
+# The Walnut Danish is a seeded listing only this flow uses (made to order, so it never runs out; register 200). It is last in the list, so the flow scrolls to it.
 appId: com.bakerymarketplace.mobile
 name: With several allergies the customer chooses which are told to the bakery
 ---
@@ -13,10 +13,13 @@ name: With several allergies the customer chooses which are told to the bakery
       USER_NAME: Max
       USER_ROW: 4
 - assertVisible: Signed in as Max.*
+- scrollUntilVisible:
+    element:
+      id: listing-Walnut Danish
 - tapOn:
-    id: listing-Almond Croissant
+    id: listing-Walnut Danish
 - tapOn:
-    id: option-Extra almonds.*
+    id: option-Extra walnuts.*
 - tapOn:
     id: add-to-order
 - tapOn:
@@ -25,10 +28,10 @@ name: With several allergies the customer chooses which are told to the bakery
     id: conflict-0
 - assertVisible:
     id: conflict-3
-- assertVisible: '.*Allergy warning.*Almond Croissant contains milk.*which you listed as an allergy.*'
-- assertVisible: '.*Allergy warning.*Almond Croissant contains tree nuts.*which you listed as an allergy.*'
-- assertVisible: '.*Allergy warning.*Extra almonds contains tree nuts.*'
-- assertVisible: '.*You avoid this.*Almond Croissant contains gluten.*which you avoid.*'
+- assertVisible: '.*Allergy warning.*Walnut Danish contains milk.*which you listed as an allergy.*'
+- assertVisible: '.*Allergy warning.*Walnut Danish contains tree nuts.*which you listed as an allergy.*'
+- assertVisible: '.*Allergy warning.*Extra walnuts contains tree nuts.*'
+- assertVisible: '.*You avoid this.*Walnut Danish contains gluten.*which you avoid.*'
 - assertVisible:
     id: ack-needed
 # Both allergies are offered, ticked.
