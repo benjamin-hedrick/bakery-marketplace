@@ -67,4 +67,29 @@ public sealed class ReservationRetentionTests : IAsyncLifetime
         Assert.Null(json["ttl"]);
         Assert.Null(JObject.Parse(Newtonsoft.Json.JsonConvert.SerializeObject(new VendorStatusDocument { Id = "v" }))["ttl"]);
     }
+
+    [Fact]
+    public async Task EveryListingIsWrittenWithItsKindAndARecordOfAnotherKindIsNeverReadAsAListing()
+    {
+        var listingId = await ListingWithStockAsync();
+        await _reservation.ReserveAsync("order-1", Vendor, [(listingId, 2)]);
+        var reservation = (await _reservations.GetAsync(StockReservationDocument.IdFor("order-1"), Vendor))!;
+        // What the shared container hands back when the listing repository meets the reservation record. Even with a status a listing could
+        // have, the kind keeps it out (register 66: before, only the status filter did).
+        var asListing = Newtonsoft.Json.JsonConvert.DeserializeObject<ListingDocument>(Newtonsoft.Json.JsonConvert.SerializeObject(reservation))!;
+        asListing.Status = ListingStatuses.Published;
+        await _listings.SaveAsync(asListing, Vendor);
+
+        var listingJson = JObject.Parse(Newtonsoft.Json.JsonConvert.SerializeObject((await _listings.GetAsync(listingId, Vendor))!));
+        var (browse, _) = await _service.BrowseAsync(10, null);
+        var (own, _) = await _service.ListOwnAsync(Vendor, null, 10, null);
+        var reserveIt = await _reservation.ReserveAsync("order-2", Vendor, [(reservation.Id, 1)]);
+
+        Assert.Equal(ListingDocument.Kind, listingJson["docType"]!.Value<string>());
+        Assert.Equal([listingId], browse.Select(l => l.Id));
+        Assert.Equal([listingId], own.Select(l => l.Id));
+        Assert.Null(await _service.GetOwnAsync(reservation.Id, Vendor));
+        Assert.Null(await _service.GetPublicAsync(reservation.Id));
+        Assert.Equal(StockRejections.ListingNotFound, Assert.Single(reserveIt.Rejections!).Reason);
+    }
 }

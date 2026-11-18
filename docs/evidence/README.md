@@ -28,6 +28,7 @@
 | [`quality-report-2026-10-30.md`](quality-report-2026-10-30.md) | The mock-backed browser suite repeated ten times by script: no failures |
 | [`fresh-clone-2026-10-30.md`](fresh-clone-2026-10-30.md) | The README one-command path from a clean clone: every browser journey passed, stack torn down |
 | [`runbook-event-broker-2026-10-30.md`](runbook-event-broker-2026-10-30.md) | The Redis outage during checkout, run on the local stack: orders confirmed, events published after recovery |
+| [`catalog-record-kinds-2026-11-18.md`](catalog-record-kinds-2026-11-18.md) | The catalog container on a fresh local stack: default time to live -1, listings stored with their kind, a short `ttl` expiring |
 | [`latency-2026-10-30.md`](latency-2026-10-30.md) | Scripted latency of reads and checkout on the real stack, cold and warm; no budget to compare with |
 | [`status-check-experiment-2026-10-30.md`](status-check-experiment-2026-10-30.md) | A status changed on purpose: what the documentation checks catch and what they miss |
 | [`secret-scan-2026-11-08.md`](secret-scan-2026-11-08.md) | The pre-publish scan of the full history: no leaks; a search for local paths and personal data, and what was removed |

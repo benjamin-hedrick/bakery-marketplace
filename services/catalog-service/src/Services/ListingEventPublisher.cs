@@ -77,7 +77,7 @@ public sealed partial class ListingEventPublisher(
         for (var attempt = 0; attempt < MaxStoreAttempts; attempt++)
         {
             var doc = await listings.GetAsync(listingId, vendorId, ct);
-            if (doc is null) return false;
+            if (!ListingDocument.IsListing(doc)) return false;
             if (doc.ParkedAt is null) return true;
             doc.ParkedAt = null;
             doc.SetOutbox(doc.Outbox.Select(e => e.WithAttempts(0)).ToList());
@@ -90,7 +90,7 @@ public sealed partial class ListingEventPublisher(
     public async Task<IReadOnlyList<ListingDocument>> FindParkedAsync(int take, CancellationToken ct = default)
     {
         var found = new List<ListingDocument>();
-        await foreach (var doc in listings.QueryAcrossPartitionsAsync(q => q.Where(d => d.ParkedAt > 0).Take(take), ct)) found.Add(doc);
+        await foreach (var doc in listings.QueryAcrossPartitionsAsync(q => q.Where(d => d.DocType == ListingDocument.Kind && d.ParkedAt > 0).Take(take), ct)) found.Add(doc);
         return found;
     }
 
@@ -198,7 +198,7 @@ public sealed partial class ListingOutboxRelay(
     {
         var cutoff = time.GetUtcNow().AddSeconds(-Options.GraceSeconds).ToUnixTimeMilliseconds();
         var pending = new List<ListingDocument>();
-        await foreach (var doc in listings.QueryAcrossPartitionsAsync(q => q.Where(d => d.PendingSince <= cutoff).Take(Options.BatchSize), ct)) pending.Add(doc);
+        await foreach (var doc in listings.QueryAcrossPartitionsAsync(q => q.Where(d => d.DocType == ListingDocument.Kind && d.PendingSince <= cutoff).Take(Options.BatchSize), ct)) pending.Add(doc);
 
         var published = 0;
         foreach (var doc in pending) published += (await publisher.PublishPendingAsync(doc, ct)).Published;

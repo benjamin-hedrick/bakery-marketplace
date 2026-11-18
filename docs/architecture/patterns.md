@@ -51,7 +51,7 @@ Checkout derives the order id from `(customerId, idempotency key)` and stores a 
 
 ## 5. Reserve and release with a final released state
 
-The catalog owns the stock counter (ADR-0017). A reservation is one atomic batch per vendor, keyed by the order id; repeating it is idempotent, a different request under the same order id is refused, and a **released reservation is final**, so a late duplicate cannot hold stock for a dead order. Ordering releases on a declined payment, a failed save, and a vendor decline or cancel. Reservation records are never cleaned up (register 66).
+The catalog owns the stock counter (ADR-0017). A reservation is one atomic batch per vendor, keyed by the order id; repeating it is idempotent, a different request under the same order id is refused, and a **released reservation is final**, so a late duplicate cannot hold stock for a dead order. Ordering releases on a declined payment, a failed save, and a vendor decline or cancel. A released reservation expires after 30 days (`ttl`), and listings and reservation records each carry a `docType` that every listing query checks (register 66).
 
 ## 6. Optimistic concurrency
 

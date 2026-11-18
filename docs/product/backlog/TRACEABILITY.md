@@ -2,7 +2,7 @@
 
 > **Status:** Generated · do not edit; `node scripts/docs/traceability.mjs` regenerates it and `--check` verifies it. Files are matched by naming the work item id as a whole word, so a missing entry means the link is not written down, not that nothing tests it, and a work item that is a document has no test by nature. Tests are the files under `tests/` and `test/` folders; evidence is `docs/evidence/`.
 
-Of 56 work items marked Done: 30 are named by a test file, 19 by an evidence record, 17 by neither.
+Of 56 work items marked Done: 30 are named by a test file, 20 by an evidence record, 17 by neither.
 
 | Item | Title | Status | Test files naming it | Evidence records naming it |
 |---|---|---|---|---|
@@ -22,7 +22,7 @@ Of 56 work items marked Done: 30 are named by a test file, 19 by an evidence rec
 | [CAT-001](WI-CAT-001.md) | Listing CRUD + modifier/allergy-flag model | Done | `ListingApiTests.cs` | `README.md`, `findings.md` |
 | [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | In review | `ListingCacheConfigTests.cs`, `ListingCacheRedisTests.cs`, `ListingCacheTests.cs` | `README.md`, `after-2026-11-07.md`, `baseline-2026-11-07.md` and 2 more |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | Done | `ListingStockTests.cs`, `ConcurrencyContractTests.cs` | *none* |
-| [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | Done | `StockReservationTests.cs`, `BatchContractTests.cs` | *none* |
+| [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | Done | `StockReservationTests.cs`, `BatchContractTests.cs` | `catalog-record-kinds-2026-11-18.md` |
 | [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | In review | `ChaosHostTests.cs` | `ai-usage-2026-11-09-c.md` |
 | [CHAOS-002](WI-CHAOS-002.md) | Chaos scenarios, phase 2: the repository, broadcast, payment, catalog-gateway and notification-sender layers | In review | `ChaosSenderTests.cs`, `ChaosHostTests.cs`, `ChaosRepositoryTests.cs` and 1 more | `ai-usage-2026-11-09-c.md` |
 | [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | In review | `chaos-outcomes.test.ts` | `README.md`, `README.md`, `flows-07-11-2026-11-11.md` and 3 more |
