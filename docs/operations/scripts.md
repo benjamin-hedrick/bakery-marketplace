@@ -20,7 +20,7 @@ Run everything from the repository root unless a row says otherwise. Nothing her
 
 | Command | What it does | Needs | Stops |
 |---|---|---|---|
-| `node scripts/dev/init-env.mjs` | Creates the local secrets in the git-ignored `.env` (service client secret, session key); `--rotate` replaces them. Prints no values. | Node | (one-shot) |
+| `node scripts/dev/init-env.mjs` | Creates the local secrets in the git-ignored `.env` (service client secret, session key, the mock issuer's signing key, which keeps tokens valid across an issuer restart: register 204); `--rotate` replaces them. Prints no values. | Node | (one-shot) |
 | `docker compose up -d --build` | Redis Streams (`redis-events`), the Cosmos vNext emulator, the mock OIDC issuer. `--profile with-redis` adds the cache Redis (sessions); `--profile apps` adds the catalog, ordering, BFF and web containers (needs `ORDERING_CLIENT_SECRET` from `init-env`, `COMPOSE_PARALLEL_LIMIT=1`). | Docker | `docker compose down` (resets all state) |
 | `node scripts/dev/check-env.mjs [--with-redis] [--wait 90]` | Exit 0 when the infrastructure answers, 1 otherwise; `--wait` retries. | Docker up | (one-shot) |
 | `node scripts/dev/mobile-stack.mjs [--keep]` | Compose, seed, catalog, ordering and the BFF, `adb reverse` for 5100 and 4100; no web app, no emulator, no app. | Docker, .NET, Node | Enter, Ctrl+C or the file `artifacts/mobile/STOP`; tears down unless `--keep` |
