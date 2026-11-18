@@ -262,7 +262,7 @@ export Cosmos__ConnectionString="AccountEndpoint=http://localhost:8081/;AccountK
 dotnet run --project tools/BakeryMarketplace.Seed
 ```
 
-Writes 7 listings (6 Published, 1 Draft negative case) for `vendor-shop-001` and `vendor-indep-001` through `IRepository<T>`, and publishes `VendorVerified` (fixed event id, sequence 1) for both vendors. Ids and prices follow `first-slice-contract.md` §7. Re-running creates nothing and leaves existing listings untouched (including local edits). Refuses non-loopback Cosmos endpoints. `catalog-service` applies the vendor events from the stream whether it starts before or after the seed. It also writes the customers' saved allergen profiles and payment methods (see "Seeded customers" and "Seeded payment methods" above).
+Writes 10 listings (9 Published, 1 Draft negative case; three of the Published ones are each used by one Android flow only, see `tools/BakeryMarketplace.Seed/SeedData.cs`) for `vendor-shop-001` and `vendor-indep-001` through `IRepository<T>`, and publishes `VendorVerified` (fixed event id, sequence 1) for both vendors. Ids and prices follow `first-slice-contract.md` §7. Re-running creates nothing and leaves existing listings untouched (including local edits). Refuses non-loopback Cosmos endpoints. `catalog-service` applies the vendor events from the stream whether it starts before or after the seed. It also writes the customers' saved allergen profiles and payment methods (see "Seeded customers" and "Seeded payment methods" above).
 
 ## Known gaps in this environment
 

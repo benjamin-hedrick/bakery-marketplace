@@ -79,6 +79,17 @@ public static class SeedData
             "Blueberry muffin made with oat flour.",
             Gluten,
             Mod("mod-walnuts", "Add walnuts", 50, "tree-nut")),
+        // Used only by Android flow 05 (Nora's tree-nut allergy, on the item and on its option), and the Danish below only by flow 10 (Max's several entries), so
+        // neither flow shares stock with another (register 200). Made to order, so they never run out. Their ids sort after the sourdough, so they come last in
+        // browse and the listings the other flows open keep their places.
+        Listing("listing-walnut-banana-bread-001", ShopVendorId, "Walnut Banana Bread", "cake", 500,
+            "Banana bread with toasted walnuts.",
+            ["gluten", "egg", "tree-nut"],
+            Mod("mod-extra-walnuts-bread", "Extra walnuts", 75, "tree-nut")),
+        Listing("listing-walnut-danish-001", ShopVendorId, "Walnut Danish", "pastry", 475,
+            "Butter pastry with walnut and maple filling.",
+            GlutenDairyTreeNut,
+            Mod("mod-extra-walnuts-danish", "Extra walnuts", 75, "tree-nut")),
         // Negative case: must never appear in browse (publish gate / Published filter).
         Listing("listing-draft-001", ShopVendorId, "Draft Seasonal Tart", "pastry", 300,
             "Unfinished listing used to prove the publish gate.",

@@ -6,8 +6,7 @@ name: With no allergy profile the order is not checked, and the app says so
 - launchApp:
     clearState: true
 - runFlow: subflows/login.yaml
-# An item with flagged allergens: what it contains is shown even without a profile. (The sourdough, not the croissant: every flow of a run shares one stack and
-# the croissant has only 4 units, which flows 05 and 10 use.)
+# An item with flagged allergens: what it contains is shown even without a profile.
 - tapOn:
     id: listing-Country Sourdough
 - tapOn:

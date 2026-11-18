@@ -35,7 +35,7 @@ last result is recorded in `docs/evidence/WI-MOB-001/`; Maestro's own output goe
 The demo (`node ../../scripts/dev/mobile-demo.mjs`) boots the emulator with its window, starts the backend **without** the test hook, builds a non-test
 build, installs and opens it, and waits. All scripts: `docs/operations/scripts.md`.
 
-Every flow of a run shares one stack, so **stock is a budget**: the Almond Croissant has 4 units (it is the "low stock" item the rest of the repository relies on), and only flows 05 and 10, which need a tree-nut item, may buy it; the others use the made-to-order items (Oat Milk Latte, Lemon Loaf), the sourdough (12) or the cookies (24). A flow that sells out an item another flow needs fails with that item shown as "Sold out". Keep the machine awake during a run (a Windows standby of 29 minutes once appeared as a 29-minute flow).
+Every flow of a run shares one stack, so **stock is a budget**. No flow buys the Almond Croissant (4 units, the "low stock" item the rest of the repository relies on): the tree-nut flows each have a seeded listing of their own, made to order (05 the Walnut Banana Bread, 10 the Walnut Danish), as flow 07 has the Cardamom Honey Latte; the others use the made-to-order items (Oat Milk Latte, Lemon Loaf), the sourdough (12) or the cookies (24). A flow that needs something no other flow may touch gets a new named seed listing (`docs/testing.md`, rule 6). A flow that sells out an item another flow needs fails with that item shown as "Sold out". Keep the machine awake during a run (a Windows standby of 29 minutes once appeared as a 29-minute flow).
 
 ## Run it by hand
 
