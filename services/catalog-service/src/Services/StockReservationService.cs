@@ -106,7 +106,7 @@ public sealed class StockReservationService
             foreach (var (listingId, quantity) in wanted)
             {
                 var doc = await _listings.GetAsync(listingId, vendorId, ct);
-                if (doc is null) rejections.Add(new LineRejection(listingId, StockRejections.ListingNotFound));
+                if (!ListingDocument.IsListing(doc)) rejections.Add(new LineRejection(listingId, StockRejections.ListingNotFound));
                 else if (doc.Status != ListingStatuses.Published) rejections.Add(new LineRejection(listingId, StockRejections.NotAvailable));
                 else if (quantity > StockPolicy.MaxQuantity || (doc.MaxPerOrder is { } max && quantity > max))
                     rejections.Add(new LineRejection(listingId, StockRejections.ExceedsMaxPerOrder));
@@ -181,7 +181,7 @@ public sealed class StockReservationService
             {
                 // Only stock that was actually taken comes back, and only into a listing that is still limited-stock.
                 var doc = await _listings.GetAsync(line.ListingId, vendorId, ct);
-                if (doc?.AvailableQuantity is not { } current) continue;
+                if (!ListingDocument.IsListing(doc) || doc.AvailableQuantity is not { } current) continue;
                 var statusBefore = StockPolicy.StatusOf(doc);
                 doc.AvailableQuantity = (int)Math.Min((long)current + line.Quantity, StockPolicy.MaxQuantity);
                 statusChanged |= StockPolicy.StatusOf(doc) != statusBefore;

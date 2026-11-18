@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using BakeryMarketplace.Data;
 using Newtonsoft.Json;
 
@@ -42,12 +43,20 @@ public sealed class ListingDocument : IETagged
 
     [JsonProperty("status")] public string Status { get; set; } = ListingStatuses.Draft;
 
+    /// <summary>The <see cref="DocType"/> of every listing.</summary>
+    public const string Kind = "listing";
+
     /// <summary>
-    /// Never set on a listing (and not written). It exists to be read: the <c>catalog</c> container also holds stock reservation records, which
-    /// carry a <c>docType</c>, and the store hands any document back as whatever type it was asked for. A record with a <c>docType</c> is not a listing,
-    /// whatever its other properties look like (a missing <c>status</c> reads as the default, <c>Draft</c>).
+    /// What kind of record this is; always <see cref="Kind"/> on a listing, and written (register 66). The <c>catalog</c> container also holds stock
+    /// reservation records (<c>docType</c> <c>stockReservation</c>), and the store hands any document back as whatever type it was asked for, so every
+    /// listing query filters on it and every point read checks it (<see cref="IsListing"/>): a record of another kind is never a listing, whatever its
+    /// other properties look like. A stored document written before the field existed has none: queries skip it (a point read takes it as a listing), so
+    /// local data written before 2026-11-18 needs a re-seed.
     /// </summary>
-    [JsonProperty("docType", NullValueHandling = NullValueHandling.Ignore)] public string? DocType { get; set; }
+    [JsonProperty("docType")] public string DocType { get; set; } = Kind;
+
+    /// <summary>True for a listing read back from the store; false for another kind of record read through the listing repository.</summary>
+    public static bool IsListing([NotNullWhen(true)] ListingDocument? doc) => doc is not null && doc.DocType == Kind;
     [JsonProperty("createdAt")] public DateTimeOffset CreatedAt { get; set; }
     [JsonProperty("updatedAt")] public DateTimeOffset UpdatedAt { get; set; }
 

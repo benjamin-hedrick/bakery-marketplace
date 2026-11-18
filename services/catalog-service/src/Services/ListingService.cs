@@ -108,7 +108,7 @@ public sealed class ListingService
     private async Task<IReadOnlyList<ListingDocument>> LoadPublishedAsync(string vendorId, CancellationToken ct)
     {
         var published = new List<ListingDocument>();
-        await foreach (var l in _listings.QueryAsync(vendorId, q => q.Where(x => x.Status == ListingStatuses.Published), ct))
+        await foreach (var l in _listings.QueryAsync(vendorId, q => q.Where(x => x.DocType == ListingDocument.Kind && x.Status == ListingStatuses.Published), ct))
             published.Add(l);
         return published;
     }
@@ -119,12 +119,12 @@ public sealed class ListingService
 
     /// <summary>
     /// The caller's own listing, or null. Looks only in the caller's partition. The partition also holds the vendor's stock reservation
-    /// records, so a document that is not a listing (it has a docType, or no valid status) is treated as missing.
+    /// records, so a document that is not a listing (another docType, or no valid status) is treated as missing.
     /// </summary>
     public async Task<ListingDocument?> GetOwnAsync(string id, string vendorId, CancellationToken ct = default)
     {
         var doc = await _listings.GetAsync(id, vendorId, ct);
-        return doc is not null && doc.DocType is null && ListingStatuses.IsValid(doc.Status) ? doc : null;
+        return ListingDocument.IsListing(doc) && ListingStatuses.IsValid(doc.Status) ? doc : null;
     }
 
     /// <summary>
@@ -136,7 +136,7 @@ public sealed class ListingService
     {
         var all = new List<ListingDocument>();
         await foreach (var l in _listings.QueryAsync(
-                           vendorId, q => q.Where(x => x.Status == ListingStatuses.Draft || x.Status == ListingStatuses.Published), ct))
+                           vendorId, q => q.Where(x => x.DocType == ListingDocument.Kind && (x.Status == ListingStatuses.Draft || x.Status == ListingStatuses.Published)), ct))
         {
             if (status is null || l.Status == status) all.Add(l);
         }

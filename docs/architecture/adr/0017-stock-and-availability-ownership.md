@@ -41,3 +41,7 @@ Vendors list items either with a limited quantity or as made to order. A limited
 ## Amendment note (2026-10-30: caller built)
 
 The status line used to say the caller in `ordering-service` was not built. It is: checkout reserves stock through the catalog's reserve endpoint and releases it when payment is declined, the save fails, or the vendor declines or cancels (`WI-ORD-001`, `WI-ORD-007`). Fields, vendor set and adjust, the public status (`WI-CAT-005`) and atomic reserve and release (`WI-CAT-006`) are built. Verified locally on the real stack on 2026-10-28; not deployed. Reservation records are never cleaned up (register item 66).
+
+## Amendment note (2026-11-18: reservation records, register 66)
+
+The note above says reservation records are never cleaned up. Since 2026-11-01 a released reservation carries a 30-day `ttl` (the `catalog` container has a default time to live of -1, so only documents with their own `ttl` expire; nothing is applied on Azure). Since 2026-11-18 every listing carries `docType` `listing`, as reservations carry `stockReservation`, and every listing query and point read checks it, so a reservation record in the shared partition is never read as a listing. The decision above is unchanged.
