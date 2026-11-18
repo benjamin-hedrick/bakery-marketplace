@@ -44,9 +44,15 @@ var redirectUris = builder.Configuration.GetSection("MockOidc:RedirectUris").Get
 var issuer = builder.Configuration["MockOidc:Issuer"];
 // MockOidc__RefreshTokenMinutes sets how long a refresh token lives (each use renews it); the default is 8 hours (ADR-0019).
 var refreshMinutes = builder.Configuration.GetValue<int?>("MockOidc:RefreshTokenMinutes");
+// MockOidc__SigningKey (base64 PKCS#8, generated into .env by scripts/dev/init-env.mjs) keeps one signing key across restarts, so services that hold
+// the key still accept tokens signed after a restart (register 204). Unset: a new key each start, as before. A value that is set but unusable stops the host.
+var signingKeyValue = builder.Configuration["MockOidc:SigningKey"];
+var signingKey = string.IsNullOrWhiteSpace(signingKeyValue) ? null : MockOidcIssuer.SigningKeyFromPkcs8Base64(signingKeyValue);
+if (signingKey is null) LoggerMessages.LogSigningKeyPerProcess(app.Logger);
+else LoggerMessages.LogSigningKeyConfigured(app.Logger);
 app.MapMockOidcIssuer(
     builder.Configuration["Auth:Audience"] ?? "bakery-marketplace", clients, redirectUris, string.IsNullOrWhiteSpace(issuer) ? null : issuer, allowedRoles,
-    refreshMinutes is > 0 ? TimeSpan.FromMinutes(refreshMinutes.Value) : null);
+    refreshMinutes is > 0 ? TimeSpan.FromMinutes(refreshMinutes.Value) : null, signingKey: signingKey);
 
 app.Run();
 
@@ -60,4 +66,10 @@ internal static partial class LoggerMessages
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Mock client registered: {Client}")]
     internal static partial void LogMockClientRegistered(ILogger logger, MockClient client);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Mock issuer signs with the configured key (MockOidc:SigningKey); it is the same after a restart.")]
+    internal static partial void LogSigningKeyConfigured(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Mock issuer signs with a key made for this process (MockOidc:SigningKey is not set): after a restart, services that hold the old key refuse new tokens for up to a few minutes. Run scripts/dev/init-env.mjs to create one.")]
+    internal static partial void LogSigningKeyPerProcess(ILogger logger);
 }

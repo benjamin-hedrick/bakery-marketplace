@@ -17,8 +17,39 @@ namespace BakeryMarketplace.Auth;
 /// </summary>
 public static class MockOidcIssuer
 {
-    private static readonly RSA RsaKey = RSA.Create(2048);
-    private static readonly RsaSecurityKey SecurityKey = new RsaSecurityKey(RsaKey) { KeyId = "mock-key-1" };
+    /// <summary>The key id the mock issuer signs with, whichever key it uses.</summary>
+    public const string SigningKeyId = "mock-key-1";
+
+    // The key used when the host gives none: made once per process, so every issuer in one process (the tests) signs alike. A restarted process
+    // makes a new key under the same id, which a service that holds the old one refuses until it reads the keys again, at most every few minutes
+    // (register 204). The runnable host therefore passes a stable development key (MockOidc__SigningKey, generated into .env by
+    // scripts/dev/init-env.mjs).
+    private static readonly RsaSecurityKey DefaultSigningKey = new(RSA.Create(2048)) { KeyId = SigningKeyId };
+
+    /// <summary>
+    /// A signing key from a base64 PKCS#8 RSA private key (the form <c>scripts/dev/init-env.mjs</c> writes), for <see cref="MapMockOidcIssuer"/>.
+    /// Refuses anything that is not an RSA key of at least 2048 bits. The message never contains the value.
+    /// </summary>
+    public static RsaSecurityKey SigningKeyFromPkcs8Base64(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        var rsa = RSA.Create();
+        try
+        {
+            rsa.ImportPkcs8PrivateKey(Convert.FromBase64String(value.Trim()), out _);
+        }
+        catch (Exception e) when (e is FormatException or CryptographicException)
+        {
+            rsa.Dispose();
+            throw new ArgumentException("The mock issuer's signing key is not a base64 PKCS#8 RSA private key.", nameof(value));
+        }
+        if (rsa.KeySize < 2048)
+        {
+            rsa.Dispose();
+            throw new ArgumentException("The mock issuer's signing key must be an RSA key of at least 2048 bits.", nameof(value));
+        }
+        return new RsaSecurityKey(rsa) { KeyId = SigningKeyId };
+    }
 
     // In-memory store for authorization codes
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, AuthCodeData> AuthCodes = new();
@@ -123,6 +154,10 @@ public static class MockOidcIssuer
     /// <c>offline_access</c> scope. Defaults to <see cref="DefaultRefreshTokenLifetime"/>.
     /// </param>
     /// <param name="timeProvider">The clock for refresh token expiry; tests pass a fake one.</param>
+    /// <param name="signingKey">
+    /// The key tokens are signed with and the JWKS publishes (<see cref="SigningKeyFromPkcs8Base64"/>). Null uses a key made once per process. A host
+    /// that is restarted while services hold its key passes a stable one, so tokens it signs after the restart are still accepted (register 204).
+    /// </param>
     public static IEndpointRouteBuilder MapMockOidcIssuer(
         this IEndpointRouteBuilder endpoints,
         string audience = "bakery-marketplace",
@@ -131,8 +166,11 @@ public static class MockOidcIssuer
         string? issuer = null,
         IReadOnlyCollection<string>? allowedRoles = null,
         TimeSpan? refreshTokenLifetime = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        RsaSecurityKey? signingKey = null)
     {
+        var key = signingKey ?? DefaultSigningKey;
+        if (key.Rsa is null) throw new ArgumentException("The signing key must carry its RSA key.", nameof(signingKey));
         var refreshLifetime = refreshTokenLifetime ?? DefaultRefreshTokenLifetime;
         if (refreshLifetime <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(refreshTokenLifetime), "A refresh token must live for a positive time.");
         var clock = timeProvider ?? TimeProvider.System;
@@ -168,7 +206,7 @@ public static class MockOidcIssuer
 
         endpoints.MapGet("/.well-known/jwks.json", () =>
         {
-            var parameters = RsaKey.ExportParameters(false);
+            var parameters = key.Rsa.ExportParameters(false);
             return Results.Ok(new
             {
                 keys = new[]
@@ -177,7 +215,7 @@ public static class MockOidcIssuer
                     {
                         kty = "RSA",
                         use = "sig",
-                        kid = SecurityKey.KeyId,
+                        kid = key.KeyId,
                         alg = "RS256",
                         n = Base64UrlEncoder.Encode(parameters.Modulus),
                         e = Base64UrlEncoder.Encode(parameters.Exponent)
@@ -319,16 +357,16 @@ public static class MockOidcIssuer
                     RefreshTokens[refreshToken] = new RefreshTokenData(
                         user.Id, Guid.NewGuid().ToString("N"), authCodeData.ClientId, authCodeData.Scope, clock.GetUtcNow().Add(refreshLifetime));
                 }
-                var tokenResponse = GenerateTokens(user, IssuerFor(baseUrl), audience, refreshToken, authCodeData.Scope);
+                var tokenResponse = GenerateTokens(key, user, IssuerFor(baseUrl), audience, refreshToken, authCodeData.Scope);
                 return Results.Json(tokenResponse);
             }
             else if (grantType == "refresh_token")
             {
-                return RefreshTokenGrant(form, IssuerFor(baseUrl), audience, UserAllowed, clock, refreshLifetime);
+                return RefreshTokenGrant(key, form, IssuerFor(baseUrl), audience, UserAllowed, clock, refreshLifetime);
             }
             else if (grantType == "client_credentials")
             {
-                return ClientCredentialsGrant(request, form, registeredClients, IssuerFor(baseUrl), audience);
+                return ClientCredentialsGrant(key, request, form, registeredClients, IssuerFor(baseUrl), audience);
             }
 
             return Results.BadRequest(new { error = "unsupported_grant_type" });
@@ -343,7 +381,7 @@ public static class MockOidcIssuer
         Results.Json(new { error = "invalid_grant", error_description = description }, statusCode: StatusCodes.Status400BadRequest);
 
     private static IResult RefreshTokenGrant(
-        IFormCollection form, string issuer, string audience, Func<MockUser, bool> userAllowed, TimeProvider clock, TimeSpan lifetime)
+        RsaSecurityKey key, IFormCollection form, string issuer, string audience, Func<MockUser, bool> userAllowed, TimeProvider clock, TimeSpan lifetime)
     {
         var presented = form["refresh_token"].ToString();
         var clientId = form["client_id"].ToString();
@@ -391,14 +429,14 @@ public static class MockOidcIssuer
             data.Used = true;
             var next = NewRefreshToken();
             RefreshTokens[next] = new RefreshTokenData(data.UserId, data.FamilyId, data.ClientId, data.Scope, clock.GetUtcNow().Add(lifetime));
-            return Results.Json(GenerateTokens(user, issuer, audience, next, data.Scope));
+            return Results.Json(GenerateTokens(key, user, issuer, audience, next, data.Scope));
         }
     }
 
     // ---- client credentials (ADR-0018) ------------------------------------------------------------------------------------
 
     private static IResult ClientCredentialsGrant(
-        HttpRequest request, IFormCollection form, IReadOnlyDictionary<string, MockClient> registered, string issuer, string defaultAudience)
+        RsaSecurityKey key, HttpRequest request, IFormCollection form, IReadOnlyDictionary<string, MockClient> registered, string issuer, string defaultAudience)
     {
         var (clientId, secret, viaHeader) = ReadClientCredentials(request, form);
         registered.TryGetValue(clientId ?? "", out var client);
@@ -432,7 +470,7 @@ public static class MockOidcIssuer
             audience: allowedAudience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(1),
-            signingCredentials: new SigningCredentials(SecurityKey, SecurityAlgorithms.RsaSha256));
+            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.RsaSha256));
 
         // No id_token and no user claims: this is an app-only token.
         return Results.Ok(new
@@ -494,7 +532,7 @@ public static class MockOidcIssuer
         return Results.Json(new { error = "invalid_client" }, statusCode: StatusCodes.Status400BadRequest);
     }
 
-    private static Dictionary<string, object> GenerateTokens(MockUser user, string issuer, string audience, string? refreshToken = null, string? scope = null)
+    private static Dictionary<string, object> GenerateTokens(RsaSecurityKey key, MockUser user, string issuer, string audience, string? refreshToken = null, string? scope = null)
     {
         var claims = new List<Claim>
         {
@@ -510,7 +548,6 @@ public static class MockOidcIssuer
             claims.Add(new Claim("vendorType", user.VendorType));
         }
 
-        var key = SecurityKey;
         var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
 
         var token = new JwtSecurityToken(

@@ -53,6 +53,9 @@ services:
       # `node scripts/dev/init-env.mjs`; with no secret the client is simply not registered. The role is not a secret.
       MockOidc__Clients__ordering-service__Secret: ${ORDERING_CLIENT_SECRET:-}
       MockOidc__Clients__ordering-service__Roles__0: Stock.Reserve
+      # The signing key, the same across restarts so services that hold it keep accepting new tokens (register 204). From the git-ignored .env
+      # (scripts/dev/init-env.mjs); with no key the issuer makes one per start and logs a warning.
+      MockOidc__SigningKey: ${MOCK_OIDC_SIGNING_KEY:-}
       # The issuer string is the address the browser uses. Containers reach this host by its service name, so without a fixed issuer the
       # same issuer would appear under two names (the apps profile validates tokens against http://localhost:5100).
       MockOidc__Issuer: http://localhost:${MOCK_OIDC_PORT:-5100}

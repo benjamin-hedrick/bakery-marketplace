@@ -194,7 +194,7 @@ The Next.js server exports a client span for its call to the BFF (also given `OT
 A service that calls another service (ordering to catalog's stock endpoints) uses the OAuth2 client credentials grant against the mock issuer. The mock issuer registers a client only when it has a secret, and it never has one in source:
 
 ```
-node scripts/dev/init-env.mjs        # creates ORDERING_CLIENT_SECRET in the git-ignored .env (kept if it already exists; --rotate replaces it)
+node scripts/dev/init-env.mjs        # creates ORDERING_CLIENT_SECRET and MOCK_OIDC_SIGNING_KEY in the git-ignored .env (kept if they exist; --rotate replaces them)
 docker compose up -d --build mock-oidc
 ```
 
