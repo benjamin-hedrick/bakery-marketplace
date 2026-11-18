@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
@@ -20,9 +21,39 @@ public sealed partial class ListingEventPublisher(
     IRepository<ListingDocument> listings,
     IOptions<OutboxOptions> options,
     TimeProvider time,
-    ILogger<ListingEventPublisher> logger)
+    ILogger<ListingEventPublisher> logger) : IDisposable
 {
     private const int MaxStoreAttempts = 5;
+
+    /// <summary>The name of the outbox's meter, for the telemetry registration (register 203).</summary>
+    public const string MeterName = "CatalogService.Outbox";
+
+    /// <summary>
+    /// The outbox's metrics (register 203, as ordering's of register 74): failed publish attempts, by event type and by whether the failure counts
+    /// toward parking (a transport failure does not), and listings parked. A parked listing waits for an operator
+    /// (<c>docs/operations/runbooks/parked-listing-outbox.md</c>), so <c>listing_outbox_parked</c> above zero is what an alert would watch. Owned
+    /// by the publisher (one per process) so a test reads only its own.
+    /// </summary>
+    public Meter Meter => _metrics.Meter;
+
+    private readonly Metrics _metrics = new();
+
+    private sealed class Metrics
+    {
+        public Meter Meter { get; } = new(MeterName);
+        public Counter<long> PublishFailed { get; }
+        public Counter<long> Parked { get; }
+
+        public Metrics()
+        {
+            PublishFailed = Meter.CreateCounter<long>(
+                "listing_outbox_publish_failed", description: "Failed attempts to publish a listing event, by event type and kind (transport or other)");
+            Parked = Meter.CreateCounter<long>(
+                "listing_outbox_parked", description: "Listings whose outbox was parked after repeated failures; each waits for an operator");
+        }
+    }
+
+    public void Dispose() => _metrics.Meter.Dispose();
 
     /// <summary>Adds the event to the document. Call it after the version is incremented and before the document is saved.</summary>
     public void Raise(ListingDocument doc, string eventType)
@@ -67,6 +98,12 @@ public sealed partial class ListingEventPublisher(
             ct);
 
         if (outcome.PublishedIds.Count > 0) await RemoveAsync(stored, outcome.PublishedIds, ct);
+        if (outcome.Failed is { } failed)
+        {
+            _metrics.PublishFailed.Add(1,
+                new KeyValuePair<string, object?>("event_type", failed.EventType),
+                new KeyValuePair<string, object?>("kind", outcome.CountsTowardParking ? "other" : "transport"));
+        }
         var parked = outcome is { CountsTowardParking: true, Failed: { } failedEntry } && await RecordFailureAsync(stored, failedEntry, ct);
         return new OutboxPublishResult(outcome.PublishedIds.Count, outcome.Failed is not null, parked);
     }
@@ -132,6 +169,7 @@ public sealed partial class ListingEventPublisher(
                 {
                     if (current.ParkedAt is not null && !wasParked)
                     {
+                        _metrics.Parked.Add(1, new KeyValuePair<string, object?>("event_type", failed.EventType));
                         LogListingEventParked(logger, stored.Id, failed.EventType, failed.SequenceNumber, options.Value.MaxPublishAttempts);
                     }
                     return current.ParkedAt is not null;
