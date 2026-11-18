@@ -36,6 +36,11 @@ const conflictsOf = (edges: Edge[], id: string) => shape(edges.find((e) => e.nod
 
 test.describe.configure({ mode: 'serial' });
 
+// Alice's profile is cleared after each test, pass or fail, so a failure does not leave it set for later files (register 178).
+test.afterEach(async ({ request }) => {
+  await gql(request, await userToken('user-customer-1'), SAVE, { input: { allergies: [], avoid: [] } });
+});
+
 test('the seeded catalog shows the customer’s conflicts, in the public order, and hiding removes only item-level ones', async ({
   request,
 }) => {
@@ -62,8 +67,6 @@ test('the seeded catalog shows the customer’s conflicts, in the public order, 
   expect(ids).toContain(MUFFIN); // kept, and still marked
   expect(conflictsOf(shown, MUFFIN)).toEqual(['tree-nut:ALLERGY:OPTION:[mod-walnuts]']);
   expect(ids).toContain(SOURDOUGH);
-
-  await gql(request, token, SAVE, { input: { allergies: [], avoid: [] } });
 });
 
 test('one listing with its conflicts, and a cart check that counts only the options chosen', async ({ request }) => {
@@ -93,8 +96,6 @@ test('one listing with its conflicts, and a cart check that counts only the opti
   expect(shape(cart[2].conflicts)).toEqual([]);
   expect(shape(cart[3].conflicts)).toEqual(['sesame:ALLERGY:OPTION:[mod-seeds]']);
   expect(cart[5].unknownOptionIds).toEqual(['mod-ghost']);
-
-  await gql(request, token, SAVE, { input: { allergies: [], avoid: [] } });
 });
 
 test('a vendor’s token is refused the personalized views, no token gets nothing, and the public list still works without one', async ({

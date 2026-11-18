@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { logIn, MOCK, stubIssuer } from './helpers';
+import { FIXTURE_A, fixtureWithTags, logIn, MOCK, stubIssuer } from './helpers';
 
 // WI-TAG-003: the home page narrowed by tags. Against the mock BFF (fixture A: the sourdough is vegan and a local favourite, the croissant is vegetarian and
 // autumn, the latte has none). The filter is in the address (?tag=a&tag=b), rendered on the server, anonymous; the chips are links.
@@ -30,25 +30,25 @@ test('choosing a tag narrows the list and puts the tag in the address, and choos
   page,
 }) => {
   await page.goto('/');
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
 
   await filter(page, 'Vegan').click();
 
   await expect(page).toHaveURL(/\/\?tag=vegan$/);
-  await expect(page.getByTestId('listing')).toHaveCount(1);
-  await expect(names(page)).toHaveText([/Country Sourdough/]);
+  await expect(page.getByTestId('listing')).toHaveCount(fixtureWithTags('vegan').length);
+  await expect(names(page)).toHaveText(fixtureWithTags('vegan').map((l) => new RegExp(l.name)));
   await expect(filter(page, 'Vegan')).toHaveAttribute('aria-current', 'true');
   await expect(filter(page, 'Vegan')).toContainText('selected');
 
   await filter(page, 'Vegan').click();
   await expect(page).toHaveURL(/localhost:3000\/$/);
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
 });
 
 test('two tags narrow to the listings that carry both', async ({ page }) => {
   await page.goto('/?tag=vegan&tag=local-favourite');
 
-  await expect(names(page)).toHaveText([/Country Sourdough/]);
+  await expect(names(page)).toHaveText(fixtureWithTags('vegan', 'local-favourite').map((l) => new RegExp(l.name)));
   await expect(filter(page, 'Vegan')).toHaveAttribute('aria-current', 'true');
   await expect(filter(page, 'Local favourite')).toHaveAttribute('aria-current', 'true');
   await expect(filter(page, 'Autumn')).not.toHaveAttribute('aria-current', 'true');
@@ -60,7 +60,7 @@ test('a filter with no result says so and offers to clear it', async ({ page }) 
   await expect(page.getByTestId('listing')).toHaveCount(0);
   await expect(page.getByTestId('no-match')).toContainText('No listings match these tags.');
   await page.getByTestId('no-match').getByRole('link', { name: 'Clear filters' }).click();
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
 });
 
 test('the filtered page is rendered on the server', async ({ request }) => {
@@ -77,7 +77,7 @@ test('an address that names a tag the catalog refuses (unknown, an allergen) goe
   for (const bad of ['bogus', 'dairy', 'staff-pick']) {
     await page.goto(`/?tag=${bad}`);
     await expect(page).toHaveURL(/localhost:3000\/$/);
-    await expect(page.getByTestId('listing')).toHaveCount(3);
+    await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
   }
 });
 
@@ -86,7 +86,7 @@ test('an odd address is tidied: repeats and case are ignored, and things that ar
 }) => {
   await page.goto('/?tag=VEGAN&tag=vegan&tag=%3Cscript%3E');
 
-  await expect(names(page)).toHaveText([/Country Sourdough/]);
+  await expect(names(page)).toHaveText(fixtureWithTags('vegan').map((l) => new RegExp(l.name)));
   await expect(filter(page, 'Vegan')).toHaveAttribute('aria-current', 'true');
 });
 
@@ -99,7 +99,7 @@ test('a customer’s own conflicts still lie over a filtered list', async ({ pag
   await page.goto('/?tag=vegan');
   await logIn(page);
 
-  await expect(page.getByTestId('listing')).toHaveCount(1);
+  await expect(page.getByTestId('listing')).toHaveCount(fixtureWithTags('vegan').length);
   await expect(page.getByTestId('conflict')).toContainText('Seed crust contains sesame');
 });
 

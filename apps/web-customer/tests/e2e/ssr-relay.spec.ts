@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { ConsoleMessage } from '@playwright/test';
+import { FIXTURE_A } from './helpers';
 
 const MOCK_CONTROL = 'http://localhost:4000/__control';
 const setRevision = (revision: number) => fetch(MOCK_CONTROL, { method: 'POST', body: JSON.stringify({ revision }) });
@@ -15,7 +16,7 @@ test('listing content is in the server HTML before any JavaScript runs', async (
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto('/');
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
   await expect(page.getByText('Country Sourdough')).toBeVisible();
   await expect(page.getByTestId('price').first()).toHaveText('$8.00');
   await context.close();
@@ -34,7 +35,7 @@ test('hydration produces no console warnings or errors and no browser-side Graph
   });
 
   await page.goto('/');
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
   // Give hydration and any stray effects time to surface before asserting.
   await page.waitForLoadState('networkidle');
 
@@ -55,7 +56,7 @@ test('client navigation to a detail page and back works without a full reload', 
   await expect(page.getByText('Extra almond (+$0.75)')).toBeVisible();
 
   await page.getByRole('link', { name: '← All listings' }).click();
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
 
   const marker = await page.evaluate(() => (window as unknown as { __marker?: string }).__marker);
   expect(marker, 'a full page reload would have cleared the marker').toBe('same-document');

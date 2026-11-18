@@ -1,5 +1,20 @@
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { fixtures } from '../../mock-bff/fixtures.mjs';
+
+/**
+ * Fixture A, the mock BFF's default listings. Tests count from it rather than writing the counts down, so a listing added to the mock does
+ * not break tests about something else (register 178).
+ */
+export const FIXTURE_A = fixtures.A;
+/** The fixture A listings that carry every one of these tags. */
+export const fixtureWithTags = (...tags: string[]) =>
+  FIXTURE_A.filter((l) => tags.every((tag) => l.tags.some((t) => t.id === tag)));
+/** The fixture A listings that list one of these allergens on the item itself (what the hide switch hides). */
+export const fixtureWithItemAllergen = (...allergens: string[]) =>
+  FIXTURE_A.filter((l) => l.allergenFlags.some((a) => allergens.includes(a)));
+/** The page's "n items hidden." line for a count. */
+export const hiddenLine = (n: number) => new RegExp(`^${n} items? hidden\\.$`);
 
 // Shared by the browser tests that need a logged-in customer. The login runs for real (ADR-0019): the page sends the browser to
 // /api/auth/login, the app's server talks to the fake issuer (packages/web-session/test-support/fake-issuer.mjs) and sets the session cookie.

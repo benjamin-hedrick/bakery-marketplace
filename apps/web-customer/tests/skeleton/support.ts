@@ -57,3 +57,18 @@ export async function adjustStock(request: APIRequestContext, vendorToken: strin
   });
   return (await res.json()) as { stock: { availableQuantity: number } };
 }
+
+/**
+ * Adds to one of the seeded bakery's listings the units a test is about to take. The stack is shared by every spec of a run (and by later runs
+ * of a kept stack), so a test that places an order brings its own units first and the seed's stock is never used up (register 178).
+ */
+export async function bringStock(request: APIRequestContext, listing: string, units: number) {
+  await adjustStock(request, await userToken('vendor-shop-001'), listing, units);
+}
+
+/** Sets a listing's stock to an exact amount and returns what it was, so the test can put it back when it is done. */
+export async function setStock(request: APIRequestContext, vendorToken: string, listing: string, amount: number) {
+  const was = await quantity(request, vendorToken, listing);
+  if (was !== amount) await adjustStock(request, vendorToken, listing, amount - was);
+  return was;
+}

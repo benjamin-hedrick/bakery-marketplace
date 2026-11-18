@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { logIn, MOCK, stubIssuer } from './helpers';
+import { FIXTURE_A, fixtureWithItemAllergen, hiddenLine, logIn, MOCK, stubIssuer } from './helpers';
 
 // WI-CUST-006: the customer's own conflicts laid over the public pages after login. Against the mock BFF (fixture A): the almond croissant carries
 // gluten, dairy and tree nuts on the item and tree nuts in "Extra almond"; the sourdough carries gluten and has sesame only in "Seed crust"; the
@@ -27,7 +27,7 @@ test.beforeEach(async ({ page }) => {
 test('a logged-out customer sees today’s page and the browser makes no personalized request', async ({ page }) => {
   await control({ preferences: { allergies: ['tree-nut'], avoid: [] } });
   await page.goto('/');
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
   await page.waitForTimeout(500);
 
   await expect(page.getByTestId('conflict')).toHaveCount(0);
@@ -40,7 +40,7 @@ test('a customer with an empty profile sees no change and no personalized list i
   await logIn(page);
   await page.waitForTimeout(500);
 
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
   await expect(page.getByTestId('conflict')).toHaveCount(0);
   await expect(page.getByTestId('personal-panel')).toHaveCount(0);
   expect(await personalizedReads()).toBe(0);
@@ -107,20 +107,21 @@ test('the hide switch is off by default, hides only items that list the allergen
   await logIn(page);
   const hide = page.getByRole('checkbox', { name: /Hide items/ });
   await expect(hide).not.toBeChecked();
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
   const readsBefore = await personalizedReads();
 
   await hide.check();
 
   // The croissant lists tree nuts on the item and goes; the sourdough has sesame only in an option and stays, with its mark.
-  await expect(page.getByTestId('listing')).toHaveCount(2);
+  const hidden = fixtureWithItemAllergen('tree-nut', 'sesame').length; // the croissant, in fixture A
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length - hidden);
   await expect(row(page, 'Almond Croissant')).toHaveCount(0);
   await expect(row(page, 'Country Sourdough').getByTestId('conflict')).toHaveCount(1);
-  await expect(page.getByTestId('hidden-count')).toHaveText('1 item hidden.');
+  await expect(page.getByTestId('hidden-count')).toHaveText(hiddenLine(hidden));
   expect(await personalizedReads()).toBe(readsBefore); // no new request: switching is done on the page
 
   await hide.uncheck();
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
   await expect(page.getByTestId('hidden-count')).toHaveText('');
 });
 
@@ -142,7 +143,7 @@ test('the “hidden” message takes no room and shows no colour until something
 
   // With something to say it is a message again.
   await hide.check();
-  await expect(count).toHaveText('1 item hidden.');
+  await expect(count).toHaveText(hiddenLine(fixtureWithItemAllergen('tree-nut').length));
   expect((await count.boundingBox())?.height ?? 0).toBeGreaterThan(10);
   await expect(count).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 });
@@ -202,7 +203,7 @@ test('a failing personalized request leaves the public page as it was', async ({
   await logIn(page);
   await page.waitForTimeout(500);
 
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
   await expect(page.getByTestId('conflict')).toHaveCount(0);
 });
 

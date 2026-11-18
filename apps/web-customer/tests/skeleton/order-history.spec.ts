@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { userToken } from './support';
+import { bringStock, userToken } from './support';
 
 // WI-CUST-007 on the real stack: the customer's order list through Next.js, the GraphQL BFF, ordering-service and Cosmos. An order placed in the
 // browser is the first row of the list, the list pages, and a vendor's token is refused. (The mock issuer has one customer, so another
@@ -27,7 +27,11 @@ async function placePlainOrder(page: Page) {
   return (await page.getByTestId('order-reference').innerText()).trim();
 }
 
-test('an order placed in the browser is the newest row of the history, and the history pages', async ({ page }) => {
+test('an order placed in the browser is the newest row of the history, and the history pages', async ({
+  page,
+  request,
+}) => {
+  await bringStock(request, 'listing-sourdough-001', 1); // the one this test takes
   const reference = await placePlainOrder(page);
   const orderUrl = page.url();
 

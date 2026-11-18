@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { globalId, userToken } from './support';
+import { bringStock, globalId, userToken } from './support';
 
 // WI-QUE-005 on the real stack: an order the customer places with allergens shows them on the vendor's live queue card, with the registry's
 // labels, and one placed without allergens shows nothing extra. The vendor logs in through the real issuer on the queue display (port 3100).
@@ -43,7 +43,9 @@ async function place(allergens?: string[]) {
 
 test('the vendor’s live queue shows an order’s allergens with the registry’s labels, and an order without them shows nothing extra', async ({
   browser,
+  request,
 }) => {
+  await bringStock(request, 'listing-sourdough-001', 2); // the two orders take one each
   const context = await browser.newContext({ baseURL: QUEUE });
   const page = await context.newPage();
   await page.goto('/');

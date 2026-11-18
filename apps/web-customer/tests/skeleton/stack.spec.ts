@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import type { APIRequestContext } from '@playwright/test';
-import { globalId, quantity, userToken } from './support';
+import { bringStock, globalId, quantity, userToken } from './support';
 
 // S1-07a: the real stack is wired end to end for ordering (compose + seed + catalog + ordering + BFF + the mock issuer), proven without a
 // browser. The browser journey on top of it is S1-07b. Needs the whole local stack; see README.
@@ -81,6 +81,7 @@ test('ordering reaches the catalog with its own credential: a plain order is pla
 }) => {
   const customer = await userToken('user-customer-1');
   const vendor = await userToken('vendor-shop-001');
+  await bringStock(request, SOURDOUGH, 1); // the one this test takes
   const before = await quantity(request, vendor, SOURDOUGH);
 
   const placed = await gql(request, PLACE, { input: plain() }, customer);
@@ -128,10 +129,13 @@ test('the payment methods of a customer are listed without a token, and another 
   const nia = await userToken('user-customer-nomethods');
 
   const list = await gql(request, '{ paymentMethods { id description } }', {}, alice);
-  expect(list.data!.paymentMethods).toEqual([
-    { id: 'pm-alice-ok', description: 'Test card (accepted)' },
-    { id: 'pm-alice-refused', description: 'Test card (refused)' },
-  ]);
+  // Alice's two seeded methods by id, not her whole list, so a new seeded method does not break this test (register 178).
+  expect(list.data!.paymentMethods).toEqual(
+    expect.arrayContaining([
+      { id: 'pm-alice-ok', description: 'Test card (accepted)' },
+      { id: 'pm-alice-refused', description: 'Test card (refused)' },
+    ]),
+  );
   expect(JSON.stringify(list)).not.toMatch(/pm_seed|invalid token/);
   expect((await gql(request, '{ paymentMethods { id } }', {}, nia)).data!.paymentMethods).toEqual([]);
 

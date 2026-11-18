@@ -69,19 +69,32 @@ test('the browser shows the chips on the server-rendered browse page', async ({ 
 
 // WI-TAG-003: the home page narrowed by a tag, through the real catalog and BFF.
 
-const FILTERED = `query($tags: [ID!]) { listings(first: 50, tags: $tags) { edges { node { id name } } } }`;
+const FILTERED = `query($tags: [ID!]) { listings(first: 50, tags: $tags) { edges { node { id name tags { id } } } } }`;
 
 test('the BFF narrows the seeded listings by a tag, by two tags, and an unusable tag is refused the same way for any reason', async ({
   request,
 }) => {
   const ask = async (tags: string[]) =>
     (await request.post(`${BFF}/graphql`, { data: { query: FILTERED, variables: { tags } } })).json();
-  const namesOf = (body: { data: { listings: { edges: { node: { name: string } }[] } } }) =>
-    body.data.listings.edges.map((e) => e.node.name);
+  type Filtered = { data: { listings: { edges: { node: { name: string; tags: { id: string }[] } }[] } } };
+  // Every listing in the answer carries every tag asked for, and the seeded listings named here are in or out: the answer is not compared
+  // with a whole list, so a new seeded listing with these tags does not break the test (register 178).
+  const narrowed = async (tags: string[]) => {
+    const nodes = ((await ask(tags)) as Filtered).data.listings.edges.map((e) => e.node);
+    for (const node of nodes)
+      expect(
+        node.tags.map((t) => t.id),
+        node.name,
+      ).toEqual(expect.arrayContaining(tags));
+    return nodes.map((n) => n.name);
+  };
 
-  expect(await namesOf(await ask(['vegan']))).toEqual(['Country Sourdough']);
-  expect(await namesOf(await ask(['vegan', 'local-favourite']))).toEqual(['Country Sourdough']);
-  expect(await namesOf(await ask(['vegan', 'birthday']))).toEqual([]); // no listing carries both
+  expect(await narrowed(['vegan'])).toContain('Country Sourdough');
+  expect(await narrowed(['vegan'])).not.toContain('Almond Croissant'); // vegetarian only
+  expect(await narrowed(['vegan', 'local-favourite'])).toContain('Country Sourdough');
+  const both = await narrowed(['vegan', 'birthday']); // two tags: only listings that carry both
+  expect(both).not.toContain('Country Sourdough'); // vegan, not birthday
+  expect(both).not.toContain('Brown Butter Cookies'); // birthday, not vegan
 
   const hidden = await ask(['test-hidden']);
   const unknown = await ask(['no-such-tag']);
@@ -96,8 +109,12 @@ test('the browser filters the server-rendered home page by a tag, and a refused 
   page,
 }) => {
   await page.goto('/?tag=vegan');
-  await expect(page.getByTestId('listing')).toHaveCount(1);
-  await expect(page.getByTestId('listing')).toContainText('Country Sourdough');
+  await expect(page.getByTestId('listing').filter({ hasText: 'Country Sourdough' })).toHaveCount(1);
+  await expect(page.getByTestId('listing').filter({ hasText: 'Almond Croissant' })).toHaveCount(0);
+  // every listing shown carries the chip (not a count of the seed's vegan listings)
+  await expect(
+    page.getByTestId('listing').filter({ hasNot: page.getByTestId('tag').filter({ hasText: 'Vegan' }) }),
+  ).toHaveCount(0);
 
   await page.goto('/?tag=test-hidden');
   await expect(page).toHaveURL(/localhost:\d+\/$/);
