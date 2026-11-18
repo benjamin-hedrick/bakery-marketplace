@@ -140,13 +140,19 @@ export function buildApp(log) {
   });
   log('gradle assembleDebug (the first build takes about ten minutes, later ones about one)');
   const gradle = isWin ? '.\\gradlew.bat' : './gradlew';
-  r = sh(gradle, ['app:assembleDebug', '-PreactNativeArchitectures=x86_64', '--console=plain'], {
-    cwd: path.join(appDir, 'android'),
-    env: buildEnv,
-    shell: isWin,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    maxBuffer: 1 << 28,
-  });
+  const gradleOpts = { cwd: path.join(appDir, 'android'), env: buildEnv, shell: isWin };
+  try {
+    r = sh(gradle, ['app:assembleDebug', '-PreactNativeArchitectures=x86_64', '--console=plain'], {
+      ...gradleOpts,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 1 << 28,
+    });
+  } finally {
+    // Nothing after the build uses Gradle. A daemon left running keeps the calling shell's output open after the run has
+    // finished (register 201, about 75 minutes lost on 2026-11-17), so it is stopped here whether or not the build passed.
+    const stop = sh(gradle, ['--stop'], { ...gradleOpts, stdio: ['ignore', 'pipe', 'pipe'] });
+    log(stop.status === 0 ? 'gradle daemon stopped' : `gradle --stop exited ${stop.status}`);
+  }
   writeFileSync(path.join(out, 'gradle.log'), `${r.stdout ?? ''}\n${r.stderr ?? ''}`);
   if (r.status !== 0) throw new Error('the Gradle build failed (artifacts/mobile/gradle.log)');
 }
