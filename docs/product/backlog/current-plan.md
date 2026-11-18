@@ -21,8 +21,7 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 ## In flight
 
-- **`feature/register-hardening`** (pushed, for review): the test-design review and its fixes (register 178, working rule 6 in [`docs/testing.md`](../../testing.md)), the dependency audit's dated exception (register 199), `WI-CHAOS-005` Done.
-- **`feature/hardening-followups`** (stacked on it): the Android flows' own seed listings (register 200), then the hardening items below.
+- **`feature/hardening-followups`**: the Android flows' own seed listings (register 200), then the hardening items below. (`feature/register-hardening`, the test-design review, merged 2026-11-17.)
 
 ## Next
 
