@@ -125,8 +125,10 @@ public readonly struct ChaosLayer(ChaosRuntime runtime, string name)
         var opKey = $"{operation}:{key}";
         if (Latency is { } delay)
         {
+            // The timer before the journal entry, so a test that sees the entry cannot advance its manual clock before the timer exists (register 207).
+            var wait = Task.Delay(delay, runtime.Time, ct);
             Record("latency", opKey);
-            await Task.Delay(delay, runtime.Time, ct);
+            await wait;
         }
 
         if (InOutage)
