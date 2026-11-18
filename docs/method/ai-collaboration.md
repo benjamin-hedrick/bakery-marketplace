@@ -151,7 +151,8 @@ Each Claude Code session's cost, model time and size were copied by me from the 
 | 2026-11-17 (afternoon) | the Dependabot triage, the checkout's typed "try again" with a chaos scenario, the test-design review | 3.92 | 13 min | 211 |
 | 2026-11-17 (evening) | the test-design fixes in the browser tests and the rule for them, the picomatch alert and a dated exception in the audit | 3.16 | 11 min | 399 |
 | 2026-11-17 (late) | the Android flows' own seed listings (register 200), the current plan corrected; time lost to a hung shell (register 201) | 1.85 | 6 min | 179 |
-| **Total** |  | **186.43** | **15 h 33 min** | **69,011** |
+| 2026-11-18 | the pre-push gates, the wall-clock tests on a manual clock (register 202), the parked order outbox's counters and runbook (register 74), the listing kind (register 66) | 5.60 | 19 min | 665 |
+| **Total** |  | **192.03** | **15 h 52 min** | **69,676** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew the specifications, decision records, tests and evidence records it holds now ([`STATUS.md`](../product/backlog/STATUS.md) has where each specification stands); not every item was built in a recorded session, so the table is not a cost per item. Nothing here compares with doing the work by hand.
 
