@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { globalId, userToken } from './support';
+import { bringStock, globalId, userToken } from './support';
 
 // WI-ORD-009 on the real stack: an order placed with allergens, read back by its customer and by the vendor who has it, through the GraphQL BFF,
 // ordering-service, the order events and the vendor read model. A refused allergen, another vendor, and the tokens that must not read it.
@@ -52,8 +52,11 @@ async function vendorAllergens(token: string, id: string): Promise<string[] | nu
   return last;
 }
 
-test('an order placed with allergens shows them to its customer and to the vendor who has it, and not to anyone else', async () => {
+test('an order placed with allergens shows them to its customer and to the vendor who has it, and not to anyone else', async ({
+  request,
+}) => {
   const customer = await userToken('user-customer-1');
+  await bringStock(request, SOURDOUGH, 1); // the one this test takes
   const vendor = await userToken('vendor-shop-001');
 
   const placed = await gql(customer, PLACE, { input: input(['tree-nut', 'sesame', 'tree-nut']) });
@@ -75,8 +78,9 @@ test('an order placed with allergens shows them to its customer and to the vendo
   expect(anonymous.errors?.[0]?.extensions?.code).toBe('UNAUTHENTICATED');
 });
 
-test('an order with no allergens has an empty list', async () => {
+test('an order with no allergens has an empty list', async ({ request }) => {
   const customer = await userToken('user-customer-1');
+  await bringStock(request, SOURDOUGH, 1); // the one this test takes
 
   const placed = await gql(customer, PLACE, { input: input() });
 

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page, Request } from '@playwright/test';
-import { logIn, MOCK, stubIssuer } from './helpers';
+import { FIXTURE_A, fixtureWithTags, hiddenLine, logIn, MOCK, stubIssuer } from './helpers';
 
 // WI-TAG-004: the diets a customer prefers. A diet is the bakery's claim, so the page shows what the bakery has marked, quietly and in words, and never says an item is
 // suitable or not. Against the mock BFF (fixture A): the sourdough is vegan and its seed option is too, but "Sliced" carries no diet tag, so choosing it removes the claim;
@@ -84,7 +84,7 @@ test('a customer who prefers a diet sees the bakery’s claim, or that the baker
   await expect(
     page.getByTestId('diet-note').filter({ hasText: /\b(is not vegan|isn’t vegan|suitable|safe)\b/i }),
   ).toHaveCount(0);
-  await expect(page.getByTestId('listing')).toHaveCount(3); // a preference hides nothing by itself
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length); // a preference hides nothing by itself
 });
 
 test('the switch that shows only what the bakery has marked is off by default, hides nothing else, counts, and is instant', async ({
@@ -95,16 +95,18 @@ test('the switch that shows only what the bakery has marked is off by default, h
   await logIn(page);
   const only = page.getByRole('checkbox', { name: /Show only items the bakery has marked for my diets/ });
   await expect(only).not.toBeChecked();
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
 
   await only.check();
 
-  await expect(page.getByTestId('listing')).toHaveCount(1);
+  await expect(page.getByTestId('listing')).toHaveCount(fixtureWithTags('vegan').length);
   await expect(row(page, 'Country Sourdough')).toBeVisible();
-  await expect(page.getByTestId('hidden-count')).toHaveText('2 items hidden.');
+  await expect(page.getByTestId('hidden-count')).toHaveText(
+    hiddenLine(FIXTURE_A.length - fixtureWithTags('vegan').length),
+  );
 
   await only.uncheck();
-  await expect(page.getByTestId('listing')).toHaveCount(3);
+  await expect(page.getByTestId('listing')).toHaveCount(FIXTURE_A.length);
 });
 
 test('a customer with no preferred diet sees no diet notes and no such switch', async ({ page }) => {

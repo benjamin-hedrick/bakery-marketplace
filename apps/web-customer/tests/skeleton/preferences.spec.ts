@@ -27,6 +27,11 @@ const SAVE = `mutation($input: SavePreferencesInput!) { savePreferences(input: $
   ... on SavePreferencesSuccess { preferences { allergies avoid } }
   ... on SavePreferencesRejected { message fields { field message } } } }`;
 
+// Alice's profile is cleared after each test, pass or fail, so a failure does not leave it set for later files (register 178).
+test.afterEach(async ({ request }) => {
+  await gql(request, await userToken('user-customer-1'), SAVE, { input: { allergies: [], avoid: [] } });
+});
+
 test('a customer saves an allergen profile, reads it back, replaces it and clears it, on the real services', async ({
   request,
 }) => {
@@ -66,7 +71,6 @@ test('an id that is not on offer, and an allergen in both lists, are refused by 
   expect(both.data.savePreferences.__typename).toBe('SavePreferencesRejected');
   expect(both.data.savePreferences.fields.map((f: { field: string }) => f.field)).toContain('avoid');
   expect((await gql(request, token, READ)).data.preferences.allergies).toEqual(['sesame']);
-  await gql(request, token, SAVE, { input: { allergies: [], avoid: [] } });
 });
 
 test('a vendor’s token is refused the profile, and no token gets nothing', async ({ request }) => {

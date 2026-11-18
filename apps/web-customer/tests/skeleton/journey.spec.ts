@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { adjustStock, quantity, userToken } from './support';
+import { bringStock, quantity, setStock, userToken } from './support';
 
 // S1-07b: the slice-1 customer journey in a browser, against everything real: Next.js, the GraphQL BFF, ordering-service, catalog-service,
 // Cosmos, Redis and the mock OIDC issuer's own login page. Browse, customize, log in, order, and see the confirmation, with both
@@ -50,6 +50,7 @@ test('a plain order: browse, choose, log in, order, and it is confirmed by itsel
   browser,
 }) => {
   const vendor = await userToken('vendor-shop-001');
+  await bringStock(request, SOURDOUGH, 2); // the two this test takes
   const before = await quantity(request, vendor, SOURDOUGH);
 
   await openListing(page, 'Country Sourdough');
@@ -99,7 +100,9 @@ test('a plain order: browse, choose, log in, order, and it is confirmed by itsel
 
 test('an order with an option and a pickup time waits for the bakery, with the option and the time shown', async ({
   page,
+  request,
 }) => {
+  await bringStock(request, SOURDOUGH, 1); // the one this test takes
   await addToOrder(page, 'Country Sourdough', { option: 'Add seeds (+$1.00) — contains sesame' });
   await toCheckout(page);
 
@@ -127,13 +130,16 @@ test('a payment method with an invalid token is declined, keeps the order and ta
   request,
 }) => {
   const vendor = await userToken('vendor-shop-001');
+  await bringStock(request, SOURDOUGH, 1); // the one this test takes
   const before = await quantity(request, vendor, SOURDOUGH);
   await addToOrder(page, 'Country Sourdough');
   await toCheckout(page);
 
-  // Alice's seeded methods (tools/BakeryMarketplace.Seed, PaymentSeedData): the accepted one is first; the other has a token the checkout's rule refuses.
+  // Alice's seeded methods (tools/BakeryMarketplace.Seed, PaymentSeedData), named rather than listed, so a new method does not break this test:
+  // one is accepted, the other has a token the checkout's rule refuses.
   const method = page.getByLabel('Payment method');
-  await expect(method.locator('option')).toHaveText(['Test card (accepted)', 'Test card (refused)']);
+  await expect(method.locator('option', { hasText: 'Test card (accepted)' })).toHaveCount(1);
+  await expect(method.locator('option', { hasText: 'Test card (refused)' })).toHaveCount(1);
   await method.selectOption({ label: 'Test card (refused)' });
   await placeButton(page).click();
   await expect(page.getByTestId('checkout-rejection')).toContainText('The payment was declined.');
@@ -152,42 +158,51 @@ test('asking for more than is in stock says how many are left, and taking that m
   request,
 }) => {
   const vendor = await userToken('vendor-shop-001');
-  const before = await quantity(request, vendor, CROISSANT); // the seed has 4
-  await openListing(page, 'Almond Croissant');
-  await expect(page.getByTestId('stock')).toHaveText('Low stock');
-  await page.getByLabel('Quantity').selectOption(String(before + 1)); // one more than there are
-  await page.getByRole('button', { name: 'Add to order' }).click();
-  await expect(page.getByTestId('add-notice')).toContainText('Added to your order');
-  await toCheckout(page);
+  // The test sets the amount it needs, whatever earlier specs left, and puts back what it found (register 178).
+  const before = 3; // low: at or under the default threshold of 5
+  const found = await setStock(request, vendor, CROISSANT, before);
+  try {
+    await openListing(page, 'Almond Croissant');
+    await expect(page.getByTestId('stock')).toHaveText('Low stock');
+    await page.getByLabel('Quantity').selectOption(String(before + 1)); // one more than there are
+    await page.getByRole('button', { name: 'Add to order' }).click();
+    await expect(page.getByTestId('add-notice')).toContainText('Added to your order');
+    await toCheckout(page);
 
-  await placeButton(page).click();
+    await placeButton(page).click();
 
-  await expect(page.getByTestId('checkout-rejection')).toHaveAttribute('data-code', 'INSUFFICIENT_STOCK');
-  await expect(page.getByTestId('shortfall')).toContainText(`Almond Croissant: only ${before} available`);
-  expect(await quantity(request, vendor, CROISSANT)).toBe(before); // nothing was taken by the refused order
+    await expect(page.getByTestId('checkout-rejection')).toHaveAttribute('data-code', 'INSUFFICIENT_STOCK');
+    await expect(page.getByTestId('shortfall')).toContainText(`Almond Croissant: only ${before} available`);
+    expect(await quantity(request, vendor, CROISSANT)).toBe(before); // nothing was taken by the refused order
 
-  await page.getByRole('button', { name: `Change to ${before}` }).click();
-  await expect(page.getByLabel('Quantity of Almond Croissant')).toHaveValue(String(before));
-  await placeButton(page).click();
+    await page.getByRole('button', { name: `Change to ${before}` }).click();
+    await expect(page.getByLabel('Quantity of Almond Croissant')).toHaveValue(String(before));
+    await placeButton(page).click();
 
-  await expect(page.getByTestId('order-status')).toHaveText('Order confirmed');
-  await expect(page.getByTestId('order-item')).toContainText(`${before} × Almond Croissant`);
-  expect(await quantity(request, vendor, CROISSANT)).toBe(0);
+    await expect(page.getByTestId('order-status')).toHaveText('Order confirmed');
+    await expect(page.getByTestId('order-item')).toContainText(`${before} × Almond Croissant`);
+    expect(await quantity(request, vendor, CROISSANT)).toBe(0);
 
-  await page.goto('/'); // and the shelf now says so
-  await expect(page.getByTestId('listing').filter({ hasText: 'Almond Croissant' }).getByTestId('stock')).toHaveText(
-    'Sold out',
-  );
+    await page.goto('/'); // and the shelf now says so
+    await expect(page.getByTestId('listing').filter({ hasText: 'Almond Croissant' }).getByTestId('stock')).toHaveText(
+      'Sold out',
+    );
+  } finally {
+    await setStock(request, vendor, CROISSANT, found);
+  }
 });
 
 test('a sold-out item cannot be ordered', async ({ page, request }) => {
   const vendor = await userToken('vendor-shop-001');
-  const left = await quantity(request, vendor, CROISSANT);
-  if (left > 0) await adjustStock(request, vendor, CROISSANT, -left); // the bakery has sold the last one
-  await openListing(page, 'Almond Croissant');
-  await expect(page.getByTestId('stock')).toHaveText('Sold out');
-  await expect(page.getByTestId('not-orderable')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Add to order' })).toHaveCount(0);
+  const found = await setStock(request, vendor, CROISSANT, 0); // the bakery has sold the last one
+  try {
+    await openListing(page, 'Almond Croissant');
+    await expect(page.getByTestId('stock')).toHaveText('Sold out');
+    await expect(page.getByTestId('not-orderable')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add to order' })).toHaveCount(0);
+  } finally {
+    await setStock(request, vendor, CROISSANT, found);
+  }
 });
 
 test('the journey produces no console warnings or errors', async ({ page }) => {

@@ -5,6 +5,7 @@ import type { ConsoleMessage } from '@playwright/test';
 // WI-DEV-004 seed (docs/architecture/first-slice-contract.md section 7). Needs the whole local stack; see README.
 
 const BFF = process.env.BFF_URL ?? 'http://localhost:4100';
+// Seeded published listings this smoke names. Each must be shown; the page may show more, so a new seeded listing does not break it (register 178).
 const SEEDED_PUBLISHED = [
   'Almond Croissant',
   'Blueberry Oat Muffin',
@@ -22,7 +23,6 @@ test('seeded listings are server-rendered from the real catalog, and the draft i
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto('/');
-  await expect(page.getByTestId('listing')).toHaveCount(SEEDED_PUBLISHED.length);
   for (const name of SEEDED_PUBLISHED) await expect(page.getByText(name, { exact: true })).toBeVisible();
   await expect(page.getByText('Draft Seasonal Tart')).toHaveCount(0);
   await expect(page.getByTestId('listing').filter({ hasText: 'Country Sourdough' }).getByTestId('price')).toHaveText(
@@ -43,7 +43,7 @@ test('hydration is clean and first paint makes no browser-side GraphQL request',
   });
 
   await page.goto('/');
-  await expect(page.getByTestId('listing')).toHaveCount(SEEDED_PUBLISHED.length);
+  await expect(page.getByTestId('listing').filter({ hasText: SEEDED_PUBLISHED[0] })).toBeVisible();
   await page.waitForLoadState('networkidle');
 
   expect(problems, problems.join('\n')).toEqual([]);

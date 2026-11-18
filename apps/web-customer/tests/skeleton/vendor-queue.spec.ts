@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { globalId, userToken } from './support';
+import { bringStock, globalId, userToken } from './support';
 
 // N-03 and N-04 on the real stack: a customer's order travels through the outbox, the Redis event stream, ordering's own subscriber, the vendor read
 // model in Cosmos, the BFF and the vendor's session on the queue display, and appears on the vendor's screen. Needs the whole local stack and the
@@ -19,6 +19,7 @@ test('an order the customer places shows up on the vendor queue screen, carried 
   browser,
 }) => {
   const customer = await userToken('user-customer-1');
+  await bringStock(request, SOURDOUGH, 2); // the two this order takes
   // An option means the order waits for the vendor to decide (WI-ORD-008), so it is a "new" order on the screen.
   const res = await request.post(`${BFF}/graphql`, {
     headers: { authorization: `Bearer ${customer}` },
