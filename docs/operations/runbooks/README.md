@@ -25,10 +25,11 @@ Still to write, when each step first runs: create the dev environment, tear it d
 
 | Scenario | Basis | Waiting for |
 |---|---|---|
-| Cache fallback | ADR-0002, `patterns.md` section 1 | The catalog now uses the cache (`WI-CAT-003`); a written procedure for a cache outage is still to do |
+| Cache fallback | ADR-0002, `patterns.md` sections 1 and 14; the outage run of 2026-11-18 (`docs/evidence/dependency-outages-2026-11-18.md`) | The behaviour is recorded; the procedure is to write, and the stall and the warning per call (register 205) may change what it says |
 | Cosmos throttling | ADR-0004 | Something to throttle: not exercised on the emulator |
 | Cold start | the 9 s cold first call in `docs/evidence/runbook-event-broker-2026-10-30.md` and `baseline-2026-10-30.md` | A deployed environment |
-| Identity issuer down | `patterns.md` section 14 ("behaviour with the issuer down is not examined") | A run with the issuer stopped |
+| Identity issuer down | `patterns.md` section 14; the outage run of 2026-11-18 (`docs/evidence/dependency-outages-2026-11-18.md`) | The local behaviour is recorded (register 204 for the restart); the real issuer is Entra ID, so the procedure waits for the deployed environment |
+| Cosmos unavailable | `patterns.md` section 14; the outage run of 2026-11-18 | The emulator's behaviour is recorded (register 206); a real account, its failover and throttling are not |
 | Catalog unavailable during checkout | `patterns.md` section 14 (`503 downstream_unavailable`, shown as `TEMPORARILY_UNAVAILABLE`; the `catalog-outage` chaos scenario, register 165) | A run with the catalog process stopped |
 
 Disaster recovery is `BDR-003` and on-call is `OPS-004`; neither is started.
