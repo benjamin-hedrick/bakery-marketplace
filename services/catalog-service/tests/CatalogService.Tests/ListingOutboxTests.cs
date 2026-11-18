@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
@@ -24,11 +25,13 @@ public sealed class ListingOutboxTests
     private sealed class FlakyEvents : IEventPublisher
     {
         public bool Fail { get; set; }
+        public bool FailAsTransport { get; set; }
         public string? FailOnlyType { get; set; }
         public List<(Guid EventId, string EventType, long Sequence)> Published { get; } = [];
 
         public Task PublishAsync<T>(DomainEventEnvelope<T> envelope, CancellationToken ct = default)
         {
+            if (FailAsTransport) throw new EventTransportException("scripted broker outage");
             if (Fail || FailOnlyType == envelope.EventType) throw new InvalidOperationException("scripted broker failure");
             Published.Add((envelope.EventId, envelope.EventType, envelope.SequenceNumber));
             return Task.CompletedTask;
@@ -227,6 +230,44 @@ public sealed class ListingOutboxTests
         Assert.Equal((0, 0), await rig.Relay.SweepOnceAsync(default));
         Assert.Empty(rig.Events.Published);
         Assert.Equal(created.Id, Assert.Single(await rig.Publisher.FindParkedAsync(10)).Id);
+    }
+
+    [Fact]
+    public async Task TheMeterCountsEachFailedAttemptByKindAndTheParkingOnce()
+    {
+        var rig = await Rig.CreateAsync();
+        var failures = new List<(long Value, string? Kind, string? EventType)>();
+        long parked = 0;
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, l) =>
+        {
+            if (ReferenceEquals(instrument.Meter, rig.Publisher.Meter)) l.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<long>((instrument, value, tags, _) =>
+        {
+            string? kind = null, eventType = null;
+            foreach (var tag in tags)
+            {
+                if (tag.Key == "kind") kind = tag.Value as string;
+                if (tag.Key == "event_type") eventType = tag.Value as string;
+            }
+            if (instrument.Name == "listing_outbox_publish_failed") failures.Add((value, kind, eventType));
+            if (instrument.Name == "listing_outbox_parked") parked += value;
+        });
+        listener.Start();
+
+        rig.Events.FailAsTransport = true;
+        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!; // the inline attempt: a broker outage
+        rig.Events.FailAsTransport = false;
+        rig.Events.Fail = true;
+        rig.Time.Now = rig.Time.Now.AddSeconds(30);
+        for (var i = 0; i < rig.Options.MaxPublishAttempts + 2; i++) await rig.Relay.SweepOnceAsync(default); // the last two find it parked
+
+        Assert.NotNull((await rig.StoredAsync(created.Id)).ParkedAt);
+        Assert.Equal(1, failures.Where(f => f.Kind == "transport").Sum(f => f.Value));
+        Assert.Equal(rig.Options.MaxPublishAttempts, failures.Where(f => f.Kind == "other").Sum(f => f.Value));
+        Assert.All(failures, f => Assert.Equal(ListingEventTypes.Published, f.EventType));
+        Assert.Equal(1, parked);
     }
 
     [Fact]

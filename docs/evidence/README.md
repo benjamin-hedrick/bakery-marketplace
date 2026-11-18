@@ -29,6 +29,7 @@
 | [`fresh-clone-2026-10-30.md`](fresh-clone-2026-10-30.md) | The README one-command path from a clean clone: every browser journey passed, stack torn down |
 | [`runbook-event-broker-2026-10-30.md`](runbook-event-broker-2026-10-30.md) | The Redis outage during checkout, run on the local stack: orders confirmed, events published after recovery |
 | [`runbook-parked-order-outbox-2026-11-18.md`](runbook-parked-order-outbox-2026-11-18.md) | An unreadable order event parked on the local stack, found, unparked without a fix (parked again), then fixed and unparked |
+| [`runbook-parked-listing-outbox-2026-11-18.md`](runbook-parked-listing-outbox-2026-11-18.md) | The same for a listing event in the catalog (register 203) |
 | [`catalog-record-kinds-2026-11-18.md`](catalog-record-kinds-2026-11-18.md) | The catalog container on a fresh local stack: default time to live -1, listings stored with their kind, a short `ttl` expiring |
 | [`latency-2026-10-30.md`](latency-2026-10-30.md) | Scripted latency of reads and checkout on the real stack, cold and warm; no budget to compare with |
 | [`status-check-experiment-2026-10-30.md`](status-check-experiment-2026-10-30.md) | A status changed on purpose: what the documentation checks catch and what they miss |
