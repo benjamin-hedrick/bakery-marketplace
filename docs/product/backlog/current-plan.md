@@ -21,7 +21,8 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 ## In flight
 
-- **`feature/public-review`:** a review of the public repository for presentation, completeness and competence: the Next.js security update, the front-door documents, generated resolver types in the BFF, and the code findings of the review.
+- **`feature/register-hardening`** (pushed, for review): the test-design review and its fixes (register 178, working rule 6 in [`docs/testing.md`](../../testing.md)), the dependency audit's dated exception (register 199), `WI-CHAOS-005` Done.
+- **`feature/hardening-followups`** (stacked on it): the Android flows' own seed listings (register 200), then the hardening items below.
 
 ## Next
 
@@ -29,7 +30,7 @@ In this order, the lead deciding:
 
 1. **The vendor's listing and stock screens:** the largest product gap; decide, then write a spec. Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens come after.
 2. **The deployed dev environment** (`WI-DEP-001`): run the bootstrap on Azure and approve the Entra and IAM work (ADR-0018 phase 2, `WI-AUTH-006`); costs start there. A manual, approved teardown with a runbook follows.
-3. **Hardening:** the failures not yet run against a real dependency (register 165, 166), the outbox and stock follow-ups (register 66, 74), a latency budget (register 100), the dependency decisions of register 162, the cache invalidation gap (register 184) and the test-design review (register 178).
+3. **Hardening:** the failures not yet run against a real dependency (register 166), the outbox and stock follow-ups (register 66, 74), a latency budget (register 100), the dependency decisions of register 162, the cache invalidation gap (register 184), and the soak and cache measurements (register 186).
 
 **Waiting on the lead:** the reviews of the In review items (`STATUS.md`, filter by In review) and the open decisions in the [register](../../governance/open-items-register.md) (filter by `Status: Open`). Security, authorization and IAM changes need approval before they are made (`CLAUDE.md`).
 
