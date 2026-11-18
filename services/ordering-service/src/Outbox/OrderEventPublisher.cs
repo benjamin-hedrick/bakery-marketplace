@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
@@ -15,8 +16,38 @@ namespace OrderingService.Outbox;
 /// </summary>
 public sealed partial class OrderEventPublisher(
     IEventPublisher events, OrderStore orders, OutboxSignal signal, IOptions<OutboxOptions> options, TimeProvider time, ILogger<OrderEventPublisher> logger)
+    : IDisposable
 {
     private const int MaxCleanupAttempts = 5;
+
+    /// <summary>The name of the outbox's meter, for the telemetry registration (register 74).</summary>
+    public const string MeterName = "OrderingService.Outbox";
+
+    /// <summary>
+    /// The outbox's metrics (register 74): failed publish attempts, by event type and by whether the failure counts toward parking (a transport
+    /// failure does not), and orders parked. A parked order waits for an operator (<c>docs/operations/runbooks/parked-order-outbox.md</c>), so
+    /// <c>order_outbox_parked</c> above zero is what an alert would watch. Owned by the publisher (one per process) so a test reads only its own.
+    /// </summary>
+    public Meter Meter => _metrics.Meter;
+
+    private readonly Metrics _metrics = new();
+
+    private sealed class Metrics
+    {
+        public Meter Meter { get; } = new(MeterName);
+        public Counter<long> PublishFailed { get; }
+        public Counter<long> Parked { get; }
+
+        public Metrics()
+        {
+            PublishFailed = Meter.CreateCounter<long>(
+                "order_outbox_publish_failed", description: "Failed attempts to publish an order event, by event type and kind (transport or other)");
+            Parked = Meter.CreateCounter<long>(
+                "order_outbox_parked", description: "Orders whose outbox was parked after repeated failures; each waits for an operator");
+        }
+    }
+
+    public void Dispose() => _metrics.Meter.Dispose();
 
     private static readonly Dictionary<string, Func<OutboxEntryDocument, string, IEventPublisher, CancellationToken, Task>> Senders = new()
     {
@@ -65,6 +96,12 @@ public sealed partial class OrderEventPublisher(
             ct);
 
         if (outcome.PublishedIds.Count > 0) await RemoveAsync(stored, outcome.PublishedIds, ct);
+        if (outcome.Failed is { } failed)
+        {
+            _metrics.PublishFailed.Add(1,
+                new KeyValuePair<string, object?>("event_type", failed.EventType),
+                new KeyValuePair<string, object?>("kind", outcome.CountsTowardParking ? "other" : "transport"));
+        }
         var parked = outcome is { CountsTowardParking: true, Failed: { } failedEntry } && await RecordFailureAsync(stored, failedEntry, ct);
         return new OutboxPublishResult(outcome.PublishedIds.Count, outcome.Failed is not null, parked);
     }
@@ -87,6 +124,7 @@ public sealed partial class OrderEventPublisher(
                     var parked = saved.Document.ParkedAt is not null;
                     if (parked && !wasParked)
                     {
+                        _metrics.Parked.Add(1, new KeyValuePair<string, object?>("event_type", entry.EventType));
                         LogOrderEventParked(logger, stored.Order.Id, entry.EventType, entry.SequenceNumber, options.Value.MaxPublishAttempts);
                     }
                     return parked;

@@ -1,12 +1,13 @@
 # Runbooks
 
-> **Status:** Current · 2026-10-30. A runbook says what to do when something fails. These are for the local stack until something is deployed. Each is written from behaviour that was run, says what was only read in the code, and ends with when it was last tested. Copy [`template.md`](template.md) for a new one. Alerts that would trigger them are not built (`docs/operations/monitoring-alerting.md`).
+> **Status:** Current · 2026-11-18 (the parked order outbox added). A runbook says what to do when something fails. These are for the local stack until something is deployed. Each is written from behaviour that was run, says what was only read in the code, and ends with when it was last tested. Copy [`template.md`](template.md) for a new one. Alerts that would trigger them are not built (`docs/operations/monitoring-alerting.md`).
 
 ## Written
 
 | Runbook | Scenario | Last tested |
 |---|---|---|
 | [`event-broker-unavailable-during-checkout.md`](event-broker-unavailable-during-checkout.md) | Redis Streams is down while customers check out | 2026-10-30, local stack |
+| [`parked-order-outbox.md`](parked-order-outbox.md) | An order event cannot be published (not a broker outage) and the order's outbox is parked | 2026-11-18, local stack |
 
 ## Procedures (Draft: written, not run)
 
@@ -23,7 +24,7 @@ Still to write, when each step first runs: create the dev environment, tear it d
 
 | Scenario | Basis | Waiting for |
 |---|---|---|
-| A stuck outbox entry | register item 74 | A reproduction (an unpublishable event) |
+| A parked listing outbox (catalog) | register item 203 | The catalog parks a listing's outbox the same way, with no metric yet |
 | Cache fallback | ADR-0002, `patterns.md` section 1 | The catalog now uses the cache (`WI-CAT-003`); a written procedure for a cache outage is still to do |
 | Cosmos throttling | ADR-0004 | Something to throttle: not exercised on the emulator |
 | Cold start | the 9 s cold first call in `docs/evidence/runbook-event-broker-2026-10-30.md` and `baseline-2026-10-30.md` | A deployed environment |

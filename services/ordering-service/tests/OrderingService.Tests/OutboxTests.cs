@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
@@ -310,6 +311,44 @@ public class OutboxTests
         Assert.NotNull(parked.Document.ParkedAt);
         Assert.Null(parked.Document.PendingSince); // out of the relay's query
         Assert.Single(parked.Document.Outbox); // the entry is kept, not dropped
+    }
+
+    [Fact]
+    public async Task TheMeterCountsEachFailedAttemptByKindAndTheParkingOnce()
+    {
+        var (store, events, publisher) = NewPublisher();
+        var failures = new List<(long Value, string? Kind, string? EventType)>();
+        long parked = 0;
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, l) =>
+        {
+            if (ReferenceEquals(instrument.Meter, publisher.Meter)) l.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<long>((instrument, value, tags, _) =>
+        {
+            string? kind = null, eventType = null;
+            foreach (var tag in tags)
+            {
+                if (tag.Key == "kind") kind = tag.Value as string;
+                if (tag.Key == "event_type") eventType = tag.Value as string;
+            }
+            if (instrument.Name == "order_outbox_publish_failed") failures.Add((value, kind, eventType));
+            if (instrument.Name == "order_outbox_parked") parked += value;
+        });
+        listener.Start();
+        await store.TryCreateAsync(PlacedWithEvent(), "key-1", "fp-1");
+        var limit = new OutboxOptions().MaxPublishAttempts;
+
+        events.FailAsTransport = true;
+        await publisher.PublishPendingAsync((await store.GetAsync("order-1", "customer-1"))!);
+        events.FailAsTransport = false;
+        events.Fail = true;
+        for (var i = 0; i < limit + 2; i++) await publisher.PublishPendingAsync((await store.GetAsync("order-1", "customer-1"))!); // the last two find it parked
+
+        Assert.Equal(1, failures.Where(f => f.Kind == "transport").Sum(f => f.Value));
+        Assert.Equal(limit, failures.Where(f => f.Kind == "other").Sum(f => f.Value));
+        Assert.All(failures, f => Assert.Equal(OrderEventTypes.Placed, f.EventType));
+        Assert.Equal(1, parked);
     }
 
     [Fact]

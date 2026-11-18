@@ -17,7 +17,7 @@ using StackExchange.Redis;
 var builder = WebApplication.CreateBuilder(args);
 
 // Tracing (ADR-0016): exports over OTLP only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
-builder.Services.AddBakeryTelemetry(builder.Configuration, "ordering-service", VendorOrderStreamHub.MeterName);
+builder.Services.AddBakeryTelemetry(builder.Configuration, "ordering-service", VendorOrderStreamHub.MeterName, OrderEventPublisher.MeterName);
 
 // Auth (ADR-0006): customers call this service with their own token; Authority and Audience come from config.
 builder.Services.AddBakeryAuth(builder.Configuration, requireHttpsMetadata: !LocalDevelopment.AllowsPlainHttp(builder.Environment, builder.Configuration));
