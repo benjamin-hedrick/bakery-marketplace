@@ -43,8 +43,10 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
 
         if (_layer.Latency is { } delay)
         {
+            // The timer before the journal entry, so a test that sees the entry cannot advance its manual clock before the timer exists (register 207).
+            var wait = Task.Delay(delay, _layer.Time, ct);
             _layer.Record("latency", key);
-            await Task.Delay(delay, _layer.Time, ct);
+            await wait;
         }
 
         if (_layer.InOutage)
