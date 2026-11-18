@@ -1,4 +1,4 @@
-> **Status:** In review · evidence: `packages/web-session/tests/relay-network-contract.ts`, `apps/web-customer/tests/unit/relay-network.test.ts`, `apps/web-queue-display/tests/unit/relay-network.test.ts`
+> **Status:** Done · evidence: `packages/web-session/tests/relay-network-contract.ts`, `apps/web-customer/tests/unit/relay-network.test.ts`, `apps/web-queue-display/tests/unit/relay-network.test.ts`
 
 ```
 WI ID:               CHAOS-005
@@ -7,7 +7,7 @@ Type:                 Test/Mock/Chaos
 Epic:                 EPIC-QUALITY-EVIDENCE
 Shared with epic(s):  EPIC-SHARED-TOOLING
 Hat/Owner:            Platform Engineering
-Status:               In review
+Status:               Done
 Size:                 S
 ```
 
