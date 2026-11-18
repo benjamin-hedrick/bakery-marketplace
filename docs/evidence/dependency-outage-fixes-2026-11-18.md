@@ -1,6 +1,6 @@
 # Dependency outage fixes, run again (2026-11-18)
 
-> **Status:** Snapshot · 2026-11-18, `feature/hardening-followups` after `e9da26b` with the changes for registers 204, 205 and 206 (step 1) uncommitted at the time of the run; local stack, nothing deployed. **Current result:** the three outage runs of [`dependency-outages-2026-11-18.md`](dependency-outages-2026-11-18.md) were repeated against the fixes. **Issuer restarted (204):** fresh tokens were accepted by every service within 3 s of a restart, twice, and a browser sign-in right after a restart placed an order. **Cache Redis down (205):** no stall (slowest read in the first seconds 59 ms, was 5.2 s), no checkout refused, and the outage logged 6 warnings and 7 breaker lines (was 8,164 warnings). **Cosmos down (206 step 1):** the catalog's failed reads answer 503 (were 500); every failure still takes about 13 s, and a probe showed that no Cosmos client setting shortens it (step 2, for the lead).
+> **Status:** Snapshot · 2026-11-18, `feature/hardening-followups` after `e9da26b` with the changes for registers 204, 205 and 206 (step 1) uncommitted at the time of the run; local stack, nothing deployed. **Current result:** the three outage runs of [`dependency-outages-2026-11-18.md`](dependency-outages-2026-11-18.md) were repeated against the fixes. **Issuer restarted (204):** fresh tokens were accepted by every service within 3 s of a restart, twice, and a browser sign-in right after a restart placed an order. **Cache Redis down (205):** no stall (slowest read in the first seconds 59 ms, was 5.2 s), no checkout refused, and the outage logged 6 warnings and 7 breaker lines (was 8,164 warnings). **Cosmos down (206 step 1):** the catalog's failed reads answer 503 (were 500); every failure still took about 13 s, and a probe showed that no Cosmos client setting shortens it. **Cosmos down again with a 3 s read limit (206 step 2, the lead chose reads only):** failed reads and refused checkouts answered in about 3.0 s (were 13 s), recovery was immediate.
 
 ## Environment
 
@@ -52,6 +52,20 @@ A throwaway console program with the repository's client settings (`Microsoft.Az
 | `RequestTimeout` 1 s | 37.7 s | 37.7 s | 324.4 s |
 
 So `RequestTimeout` does not bound a refused connection (the SDK retries it on its own schedule), and the time a failure takes is long and not stable: 13 s inside the services under load, about 38 s from a single client, once over 5 minutes. No client option tried shortens it. What would: a time limit on each call in the repository adapter (a cancellation after a configured time, turned into `StoreUnavailableException`). For a read that is safe. For a write, the call may still be applied after the limit, so its outcome is unknown; `StoreUnavailableException` already says that, and checkout's idempotency key makes its retry safe, but a stock reservation or a vendor's edit would need checking. That choice is the lead's (register 206).
+
+### Step 2: a 3 s limit on reads (run later the same day)
+
+The lead chose reads only. `CosmosRepository` bounds each point read and each query page by `Cosmos:ReadTimeoutSeconds` (3 by default, `CosmosClientFactory.ReadTimeout`) and reports a read that has not answered as `StoreUnavailableException` ("The store did not answer a read within 3 s", status 408). The wait itself is bounded, not only the SDK's call: a first version that only passed a cancellation token to the SDK did not work, because the SDK ignored the token while it initialized (all four of its tests ran into their 60 s guard). Writes and batches have no limit. A fresh stack, the same load, Cosmos stopped at 19:10:00 and started at 19:11:00:
+
+| t (s) | Phase | Observed |
+|---|---|---|
+| 0 to 30 | before | no failure (the first order after the start took 2.4 s) |
+| 31 to 35 | down | one checkout failed in 43 ms with a generic `INTERNAL`: the emulator, while shutting down, answered its write with a Cosmos 500 ("Error occurred while creating a new object: db error"), which is not a failure to reach the store and is not mapped |
+| 36 to 90 | down | every checkout refused `TEMPORARILY_UNAVAILABLE` in 3.0 s (was 13 s); once the listing cache had expired, every catalog read answered 503 in 3.0 s; the BFF's listings query reported the catalog's 503 as a generic `INTERNAL` after 3.0 s (the BFF maps no typed error for a failed listing read; the web page shows its "could not load" state either way) |
+| 90 to 95 | after the start | the requests already waiting failed at their 3 s limit; new ones succeeded |
+| 100 to 180 | after | no failure, nothing over 100 ms |
+
+The catalog logged 44 `answered 503` warnings and 48 read-limit failures (including the outbox relay's sweeps), ordering 24 (its relay's sweeps among them); both relays carried on after the restart.
 
 ## Teardown
 

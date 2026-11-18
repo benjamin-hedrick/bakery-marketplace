@@ -40,9 +40,11 @@ if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringCompari
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("payment-methods", "/customerId")); // saved payment methods (WI-ORD-010)
     }
 
-    builder.Services.AddSingleton<IRepository<OrderDocument>>(new CosmosRepository<OrderDocument>(cosmos, database, "orders"));
-    builder.Services.AddSingleton<IRepository<VendorOrderDocument>>(new CosmosRepository<VendorOrderDocument>(cosmos, database, "vendor-orders"));
-    builder.Services.AddSingleton<IRepository<PaymentMethodDocument>>(new CosmosRepository<PaymentMethodDocument>(cosmos, database, "payment-methods"));
+    // Reads give up after Cosmos:ReadTimeoutSeconds (3 by default) and report the store unavailable; writes have no limit (register 206).
+    var readTimeout = CosmosClientFactory.ReadTimeout(builder.Configuration.GetValue<double?>("Cosmos:ReadTimeoutSeconds"));
+    builder.Services.AddSingleton<IRepository<OrderDocument>>(new CosmosRepository<OrderDocument>(cosmos, database, "orders", readTimeout));
+    builder.Services.AddSingleton<IRepository<VendorOrderDocument>>(new CosmosRepository<VendorOrderDocument>(cosmos, database, "vendor-orders", readTimeout));
+    builder.Services.AddSingleton<IRepository<PaymentMethodDocument>>(new CosmosRepository<PaymentMethodDocument>(cosmos, database, "payment-methods", readTimeout));
 }
 else
 {

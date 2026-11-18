@@ -45,12 +45,14 @@ if (string.Equals(builder.Configuration["Data:Backend"], "cosmos", StringCompari
         await db.CreateContainerIfNotExistsAsync(new ContainerProperties("preferences", "/customerId"));
     }
 
-    builder.Services.AddSingleton<IRepository<ListingDocument>>(new CosmosRepository<ListingDocument>(cosmos, database, "catalog"));
-    builder.Services.AddSingleton<IRepository<VendorStatusDocument>>(new CosmosRepository<VendorStatusDocument>(cosmos, database, "catalog"));
+    // Reads give up after Cosmos:ReadTimeoutSeconds (3 by default) and report the store unavailable; writes and batches have no limit (register 206).
+    var readTimeout = CosmosClientFactory.ReadTimeout(builder.Configuration.GetValue<double?>("Cosmos:ReadTimeoutSeconds"));
+    builder.Services.AddSingleton<IRepository<ListingDocument>>(new CosmosRepository<ListingDocument>(cosmos, database, "catalog", readTimeout));
+    builder.Services.AddSingleton<IRepository<VendorStatusDocument>>(new CosmosRepository<VendorStatusDocument>(cosmos, database, "catalog", readTimeout));
     // Stock reservations (ADR-0017): same container and partition as the listings they change, so one transactional batch covers both.
-    builder.Services.AddSingleton<IRepository<StockReservationDocument>>(new CosmosRepository<StockReservationDocument>(cosmos, database, "catalog"));
+    builder.Services.AddSingleton<IRepository<StockReservationDocument>>(new CosmosRepository<StockReservationDocument>(cosmos, database, "catalog", readTimeout));
     builder.Services.AddSingleton<IBatchFactory>(new CosmosBatchFactory(cosmos, database, "catalog"));
-    builder.Services.AddSingleton<IRepository<PreferenceProfileDocument>>(new CosmosRepository<PreferenceProfileDocument>(cosmos, database, "preferences"));
+    builder.Services.AddSingleton<IRepository<PreferenceProfileDocument>>(new CosmosRepository<PreferenceProfileDocument>(cosmos, database, "preferences", readTimeout));
 }
 else
 {
