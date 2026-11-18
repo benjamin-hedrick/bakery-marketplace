@@ -4,6 +4,7 @@ using BakeryMarketplace.EventSchemas;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using NotificationService.Contacts;
 using NotificationService.Processing;
 using NotificationService.Sending;
@@ -141,18 +142,22 @@ public sealed class OrderEventNotifierTests
     [Fact]
     public async Task AnEventWhoseClaimIsHeldBySomeoneWhoDidNotSendIsRetriedLater_AndSentOnceTheLeaseHasExpired()
     {
-        var cache = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
+        var time = new FakeTimeProvider();
+        var cache = new LocalCacheProvider(ManualClockCache.Create(time));
         var ledger = new SentLedger(cache, claimLease: TimeSpan.FromMilliseconds(300));
         var notifier = new OrderEventNotifier(_directory, new TemplateMessageComposer(), _sender, ledger, _log);
         var e = Confirmed("o1", "c1");
         Assert.True(await ledger.TryClaimAsync(e.EventId, default)); // a consumer that took the event and died before sending
 
         var first = await Handle(notifier, e);
+        time.Advance(TimeSpan.FromMilliseconds(299));
+        var stillHeld = await Handle(notifier, e);
 
         Assert.Equal([e.EventId], first); // not dropped: it is handed back for another delivery
+        Assert.Equal([e.EventId], stillHeld); // the lease has not run out yet
         Assert.Empty(_sender.Sent);
 
-        await Task.Delay(600);
+        time.Advance(TimeSpan.FromMilliseconds(1));
         var second = await Handle(notifier, e);
 
         Assert.Empty(second);

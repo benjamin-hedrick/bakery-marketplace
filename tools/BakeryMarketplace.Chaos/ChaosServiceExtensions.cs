@@ -74,8 +74,11 @@ public static class ChaosServiceExtensions
         var plan = new ChaosPlan(scenario);
 
         services.AddSingleton(plan);
+        // The runtime runs on the host's clock when the host registers one (the services register TimeProvider.System; a test host its own
+        // manual clock, so an outage window ends when the test moves the clock: register 202), and on the system clock otherwise.
         services.AddSingleton(sp => new ChaosRuntime(
-            scenario, environment.EnvironmentName, deployment, sp.GetRequiredService<ILoggerFactory>().CreateLogger("BakeryMarketplace.Chaos")));
+            scenario, environment.EnvironmentName, deployment, sp.GetRequiredService<ILoggerFactory>().CreateLogger("BakeryMarketplace.Chaos"),
+            sp.GetService<TimeProvider>()));
         services.AddTransient<IStartupFilter, ChaosStartupFilter>();
 
         if (plan.Wants(ChaosEventTransport.LayerName)) DecorateEvents(services, plan);
