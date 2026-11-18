@@ -11,9 +11,9 @@
 //      written to <out>/sbom/. The .NET tool is installed into <out>/tools at a pinned version.
 //   4. A summary, <out>/summary.md, and the raw audit output in <out>/raw/.
 //
-// Policy (proposed, to be confirmed; docs/evidence/WI-SEC-004/): exit 1 when a PRODUCTION dependency has a high or critical advisory, or a
-// NuGet package has any known vulnerability; moderate and low advisories in development tooling are reported, not failed. Exit 2 when an
-// audit could not run (no network, no registry answer): an audit that did not run is not a pass.
+// Policy (proposed, to be confirmed; docs/evidence/WI-SEC-004/): exit 1 when a PRODUCTION npm dependency has a high or critical advisory
+// (unless every advisory behind it is in ACCEPTED below and its date has not passed: then it is reported as accepted), or a NuGet package
+// has any known vulnerability; moderate and low advisories in development tooling are reported, not failed. Exit 2 when an audit could not run (no network, no registry answer): an audit that did not run is not a pass.
 // Needs network access to the npm registry and nuget.org, `npm ci` already run in each project, and the .NET SDK.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -28,6 +28,29 @@ const out = path.resolve(root, outIdx >= 0 ? args[outIdx + 1] : 'artifacts/depen
 // Pinned so a new release of either generator cannot change the output unnoticed. Update deliberately.
 const CYCLONEDX_NPM = '@cyclonedx/cyclonedx-npm@6.0.1';
 const CYCLONEDX_DOTNET = '6.3.1';
+
+// Advisories accepted for a time, each with its register entry and the last day it is accepted: until then a production finding that comes
+// only from these advisories is reported as accepted and does not fail the audit; after it, the audit fails on it again. Add one only on the
+// lead's decision, with the reason in the register.
+const ACCEPTED = [
+  // picomatch <= 4.0.7, no patched version; reached in the mobile app only through Expo's bundler and CLI (the lead, 2026-11-17).
+  { id: 'GHSA-fc5q-39xc-vjpf', register: 199, until: '2027-01-17' },
+];
+const today = new Date().toISOString().slice(0, 10);
+const ghsaOf = (url) => /GHSA-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}/i.exec(url ?? '')?.[0] ?? '';
+const acceptedNow = (url) => ACCEPTED.find((a) => a.id === ghsaOf(url) && today <= a.until);
+const acceptedSeen = new Set();
+
+/** True when every advisory behind a package, followed through the packages it is vulnerable via, is accepted today. */
+function onlyAccepted(vulnerabilities, pkg, seen = new Set()) {
+  if (seen.has(pkg)) return true;
+  seen.add(pkg);
+  const v = vulnerabilities[pkg];
+  if (!v) return false;
+  return v.via.every((x) =>
+    typeof x === 'object' ? Boolean(acceptedNow(x.url)) : onlyAccepted(vulnerabilities, x, seen),
+  );
+}
 
 const NPM_PROJECTS = [
   { name: 'web-customer', dir: 'apps/web-customer', sbom: true },
@@ -95,10 +118,17 @@ for (const p of NPM_PROJECTS) {
   const a = all.metadata.vulnerabilities;
   const b = prod.metadata.vulnerabilities;
   rows.push({ kind: 'npm', name: p.name, all: a, prod: b });
-  if (b.high + b.critical > 0) failed = true;
+  const shipped = prod.vulnerabilities ?? {};
+  const blocking = Object.entries(shipped).filter(
+    ([pkg, v]) => ['high', 'critical'].includes(v.severity) && !onlyAccepted(shipped, pkg),
+  );
+  if (blocking.length > 0) failed = true;
   for (const [pkg, v] of Object.entries(all.vulnerabilities ?? {})) {
     const advisories = v.via.filter((x) => typeof x === 'object');
+    const accepted = onlyAccepted(all.vulnerabilities, pkg);
+    for (const x of advisories) if (acceptedNow(x.url)) acceptedSeen.add(acceptedNow(x.url));
     findings.push({
+      accepted,
       project: p.name,
       pkg,
       severity: v.severity,
@@ -256,11 +286,22 @@ const lines = [
         '|---|---|---|---|---|---|',
         ...findings.map(
           (f) =>
-            `| ${f.project} | ${f.pkg}${f.direct ? ' (direct)' : ''} | ${f.severity} | ${f.production ? 'yes' : 'no (dev tooling)'} | ${f.fix} | ${f.title}${f.url ? ` ${f.url}` : ''} |`,
+            `| ${f.project} | ${f.pkg}${f.direct ? ' (direct)' : ''} | ${f.severity} | ${f.production ? 'yes' : 'no (dev tooling)'} | ${f.fix}${f.accepted ? ' (accepted for now, below)' : ''} | ${f.title}${f.url ? ` ${f.url}` : ''} |`,
         ),
         '',
       ]
     : ['No npm advisories.', '']),
+  ...(acceptedSeen.size
+    ? [
+        '### Accepted for a time (they do not fail the audit until the date passes)',
+        '',
+        ...[...acceptedSeen].map((a) => `- ${a.id}: accepted until ${a.until}, register ${a.register}`),
+        '',
+      ]
+    : []),
+  ...ACCEPTED.filter((a) => today > a.until).map(
+    (a) => `Expired acceptance: ${a.id} (register ${a.register}) ended ${a.until}; it fails the audit again.\n`,
+  ),
   '## NuGet',
   '',
   nuget.vulnerable.length
@@ -282,7 +323,7 @@ const lines = [
     ? ['| SBOM | Components |', '|---|---|', ...sboms.map((s) => `| \`${s.file}\` | ${s.components} |`)].join('\n')
     : 'Skipped (--no-sbom).',
   '',
-  `Result: ${couldNotRun ? 'AN AUDIT OR SBOM STEP DID NOT RUN (exit 2)' : failed ? 'FAIL: a production npm dependency has a high or critical advisory, or a NuGet package is vulnerable (exit 1)' : 'pass under the proposed policy (no high or critical advisory in production npm dependencies, no vulnerable NuGet package)'}`,
+  `Result: ${couldNotRun ? 'AN AUDIT OR SBOM STEP DID NOT RUN (exit 2)' : failed ? 'FAIL: a production npm dependency has a high or critical advisory, or a NuGet package is vulnerable (exit 1)' : `pass under the proposed policy (no high or critical advisory in production npm dependencies, no vulnerable NuGet package)${acceptedSeen.size ? ', with the accepted advisories listed above' : ''}`}`,
   '',
 ];
 fs.writeFileSync(path.join(out, 'summary.md'), lines.join('\n'));
