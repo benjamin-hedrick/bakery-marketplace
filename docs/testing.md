@@ -28,6 +28,7 @@ Working rules, each with the reason it exists ([test strategy, principles](proce
 3. **Real dependencies where the claim is about them,** and a skipped test is never counted as a pass: results are reported as passed, failed, skipped and not run.
 4. **Repeat to believe a fix.** One green run does not show a flake is gone.
 5. **Every wait in a test has a time limit,** so broken code fails a test instead of hanging it.
+6. **A test does not fail because data or another test was added** (register 178). Tests name seed data points by id and never enumerate the seed or a mock fixture; a test that needs a count takes it from the seed (`SeedData`) or the fixture (`FIXTURE_A`); a test that changes shared data brings what it takes or puts back what it found (`bringStock`, `setStock`, cleanup in `afterEach`); a test that needs something unique adds a new named seed data point.
 
 How to write and review a test: [Playwright guide](process/playwright-guide.md), [test-review checklist](process/test-review-checklist.md), [verification policy](process/verification-policy.md) (which checks each kind of change carries).
 
