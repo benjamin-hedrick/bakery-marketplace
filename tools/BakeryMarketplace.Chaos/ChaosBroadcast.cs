@@ -55,8 +55,11 @@ public sealed class ChaosBroadcastSubscriber : IBroadcastSubscriber
                 return;
             if (_layer.Latency is { } delay)
             {
+                // The timer first, the journal entry after: an entry then means the wait is already on the clock, so a test that sees the entry
+                // and advances its manual clock cannot advance it before the timer exists (register 207).
+                var wait = Task.Delay(delay, _layer.Time, token);
                 _layer.Record("latency", $"deliver:{key}");
-                await Task.Delay(delay, _layer.Time, token);
+                await wait;
             }
 
             await handler(message, token);
