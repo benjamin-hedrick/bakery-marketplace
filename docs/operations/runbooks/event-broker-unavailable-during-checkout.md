@@ -43,7 +43,7 @@ None that a customer sees beyond the slower checkout: the order is stored, confi
 
 ## Escalate when
 
-- The warnings continue after Redis is confirmed healthy for more than a few minutes (the 60-second idle ceiling plus margin). One entry that can never be published (an unknown event type, a payload that no longer deserializes) blocks that order's later events and is retried on every sweep: register item 74. Not tested here.
+- The warnings continue after Redis is confirmed healthy for more than a few minutes (the 60-second idle ceiling plus margin). One entry that can never be published (an unknown event type, a payload that no longer deserializes) blocks that order's later events; it is not a broker failure, so after 5 attempts the order's outbox is parked: follow [`parked-order-outbox.md`](parked-order-outbox.md) (register item 74). Not tested here.
 - More than one `ordering-service` instance runs: the relay is not leased across instances (register item 72).
 - Redis does not come back: that is an infrastructure incident, not this runbook.
 

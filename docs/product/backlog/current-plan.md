@@ -29,7 +29,7 @@ In this order, the lead deciding:
 
 1. **The vendor's listing and stock screens:** the largest product gap; decide, then write a spec. Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens come after.
 2. **The deployed dev environment** (`WI-DEP-001`): run the bootstrap on Azure and approve the Entra and IAM work (ADR-0018 phase 2, `WI-AUTH-006`); costs start there. A manual, approved teardown with a runbook follows.
-3. **Hardening:** the failures not yet run against a real dependency (register 166), the outbox follow-up (register 74), a latency budget (register 100), the dependency decisions of register 162, the cache invalidation gap (register 184), and the soak and cache measurements (register 186).
+3. **Hardening:** the failures not yet run against a real dependency (register 166), the catalog listing outbox's metric and runbook (register 203), a latency budget (register 100), the dependency decisions of register 162, the cache invalidation gap (register 184), and the soak and cache measurements (register 186).
 
 **Waiting on the lead:** the reviews of the In review items (`STATUS.md`, filter by In review) and the open decisions in the [register](../../governance/open-items-register.md) (filter by `Status: Open`). Security, authorization and IAM changes need approval before they are made (`CLAUDE.md`).
 

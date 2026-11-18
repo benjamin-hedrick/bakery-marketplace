@@ -2,7 +2,7 @@
 
 > **Status:** Generated · do not edit; `node scripts/docs/traceability.mjs` regenerates it and `--check` verifies it. Files are matched by naming the work item id as a whole word, so a missing entry means the link is not written down, not that nothing tests it, and a work item that is a document has no test by nature. Tests are the files under `tests/` and `test/` folders; evidence is `docs/evidence/`.
 
-Of 56 work items marked Done: 30 are named by a test file, 20 by an evidence record, 17 by neither.
+Of 56 work items marked Done: 30 are named by a test file, 21 by an evidence record, 17 by neither.
 
 | Item | Title | Status | Test files naming it | Evidence records naming it |
 |---|---|---|---|---|
@@ -67,7 +67,7 @@ Of 56 work items marked Done: 30 are named by a test file, 20 by an evidence rec
 | [ORD-002](WI-ORD-002.md) | Order aggregate + lifecycle states | Done | `OrderLifecycleTests.cs` | *none* |
 | [ORD-003](WI-ORD-003.md) | PickupFulfillment strategy implementation | In review | `vendor-actions.spec.ts`, `vendor-live.spec.ts`, `vendor-actions.test.ts` and 7 more | `ai-usage-2026-11-07-b.md`, `ai-usage-2026-11-07.md`, `baseline-2026-10-30.md` |
 | [ORD-004](WI-ORD-004.md) | FulfillmentStrategy interface (ACL boundary) | Done | `FulfillmentContractsTests.cs` | *none* |
-| [ORD-005](WI-ORD-005.md) | Publish Order domain events via event backbone | Done | `OrderEventTests.cs`, `OutboxHostTests.cs`, `OutboxTests.cs` | *none* |
+| [ORD-005](WI-ORD-005.md) | Publish Order domain events via event backbone | Done | `OrderEventTests.cs`, `OutboxHostTests.cs`, `OutboxTests.cs` | `runbook-parked-order-outbox-2026-11-18.md` |
 | [ORD-006](WI-ORD-006.md) | Order persistence via Repository<T> | Done | `CosmosOrderStoreTests.cs`, `OrderPersistenceTests.cs` | *none* |
 | [ORD-007](WI-ORD-007.md) | Order action endpoints (confirm, decline, start, ready, complete, cancel) | Done | `OrderActionApiTests.cs`, `OrderActionTests.cs` | *none* |
 | [ORD-008](WI-ORD-008.md) | Automatic confirmation of simple orders | Done | `journey.spec.ts`, `stack.spec.ts`, `vendor-queue.spec.ts` and 2 more | *none* |
