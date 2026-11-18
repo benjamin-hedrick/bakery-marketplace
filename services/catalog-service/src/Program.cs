@@ -119,6 +119,7 @@ builder.Services.AddBakeryChaos(builder.Configuration, builder.Environment);
 var app = builder.Build();
 
 app.UseCorrelationId();
+app.UseStoreUnavailableResponse(); // an unreachable store answers 503 with Retry-After, not an unhandled 500 (register 206)
 app.UseAuthentication();
 app.UseAuthorization();
 
