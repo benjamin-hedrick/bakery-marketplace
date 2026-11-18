@@ -77,12 +77,19 @@ public sealed class ChaosHostTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Empty(received); // the broker was down: nothing was delivered yet
 
-        await Task.Delay(1700); // the outage ends; the outbox relay's next sweep sends what the inline publish missed
+        // The runtime runs on the host's manual clock (register 202): the outage lasts until the test moves the clock past it.
         var relay = factory.Services.GetServices<IHostedService>().OfType<OutboxRelay>().Single();
+        factory.Time.Now += TimeSpan.FromSeconds(1.49);
+        var (foundDuringOutage, publishedDuringOutage) = await relay.SweepOnceAsync(default);
+        Assert.True(foundDuringOutage >= 1, "the order's event waits in the outbox");
+        Assert.Equal(0, publishedDuringOutage); // the broker is still down
+        Assert.Empty(received);
+
+        factory.Time.Now += TimeSpan.FromSeconds(0.01); // the outage ends; the outbox relay's next sweep sends what the inline publish missed
         var (found, published) = await relay.SweepOnceAsync(default);
 
-        Assert.True(found >= 1);
-        Assert.True(published >= 1);
+        Assert.True(found >= 1, "the relay finds the order's event");
+        Assert.True(published >= 1, "the relay publishes it once the broker is back");
         var placed = Assert.Single(received);
         Assert.Equal("Order", placed.AggregateType);
         Assert.Equal(1800, placed.Payload.TotalCents);

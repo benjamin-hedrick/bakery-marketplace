@@ -1,6 +1,7 @@
 using BakeryMarketplace.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using NotificationService.Contacts;
 
 namespace NotificationService.Tests;
@@ -105,14 +106,16 @@ public sealed class CachedContactDirectoryTests : ContactDirectoryContractTests
     [Fact]
     public async Task AnUnknownCustomerIsRememberedBrieflyAndReadAgainAfterThat()
     {
+        var time = new FakeTimeProvider();
         var inner = new CountingDirectory(SeededContactDirectoryTests.Seed());
-        var directory = Cached(inner, NewCache(), negativeTtl: TimeSpan.FromMilliseconds(500));
+        var directory = Cached(inner, new LocalCacheProvider(ManualClockCache.Create(time)), negativeTtl: TimeSpan.FromMilliseconds(500));
 
         await directory.GetContactsAsync(["ghost"]);
+        time.Advance(TimeSpan.FromMilliseconds(499));
         await directory.GetContactsAsync(["ghost"]);
         Assert.Single(inner.Calls);
 
-        await Task.Delay(900);
+        time.Advance(TimeSpan.FromMilliseconds(1));
         await directory.GetContactsAsync(["ghost"]);
         Assert.Equal(2, inner.Calls.Count);
     }
