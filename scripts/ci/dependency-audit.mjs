@@ -32,10 +32,8 @@ const CYCLONEDX_DOTNET = '6.3.1';
 // Advisories accepted for a time, each with its register entry and the last day it is accepted: until then a production finding that comes
 // only from these advisories is reported as accepted and does not fail the audit; after it, the audit fails on it again. Add one only on the
 // lead's decision, with the reason in the register.
-const ACCEPTED = [
-  // picomatch <= 4.0.7, no patched version; reached in the mobile app only through Expo's bundler and CLI (the lead, 2026-11-17).
-  { id: 'GHSA-fc5q-39xc-vjpf', register: 199, until: '2027-01-17' },
-];
+// Empty since 2026-11-18: the one entry (GHSA-fc5q-39xc-vjpf, picomatch, register 199) was removed when GitHub withdrew the advisory.
+const ACCEPTED = [];
 const today = new Date().toISOString().slice(0, 10);
 const ghsaOf = (url) => /GHSA-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}/i.exec(url ?? '')?.[0] ?? '';
 const acceptedNow = (url) => ACCEPTED.find((a) => a.id === ghsaOf(url) && today <= a.until);
