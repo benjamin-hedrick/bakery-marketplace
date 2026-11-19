@@ -156,3 +156,21 @@ check: PASS
 
 18 steps, 0 failed
 ```
+
+## Re-run after register 210 was resolved
+
+The lead chose option (a) for register 210: the catalog now reports a refused allergen or tag at its position with a sentence that does not repeat it (commit `cf39c87`). The same command was run again at `cf39c87`, from the same kind of starting state (Compose already running, the seed run again by the script, a new listing and key). Step 18 now sends an unknown allergen and an unknown tag and checks that each is reported at its position (`allergenFlags[1]`, `tags[0]`) and that the value is nowhere in the answer.
+
+**Result:** 18 steps, 0 failed; exit code 0. Steps 1 to 17 answered as in the first run. Raw output of the header line and step 18:
+
+```
+vendor listing run, 2026-11-19T02:16:27.925Z; BFF http://localhost:4100/graphql; idempotency key run-067f24cf-5ee6-4d3f-b318-35e8fe1e8d7c
+...
+### 18. An allergen and a tag the catalog does not offer: refused at their positions, the value not repeated (register 210)
+as: vendor-shop-001
+variables: {"input":{"name":"Rye Sourdough (vendor listing run)","category":"Bread","priceCents":900,"modifiers":[{"id":"mod-seeds","name":"Seed crust","priceDeltaCents":100,"allergens":["sesame"]}],"allergenFlags":["gluten","<b>nuts</b>"],"status":"DRAFT","stock":{"mode":"COUNTED","availableQuantity":10,"maxPerOrder":4,"lowStockThreshold":3},"tags":["<b>nuts</b>"]},"key":"run-6713879c-d020-47de-84d4-cdec9a602718"}
+HTTP 200: {"data":{"createListing":{"__typename":"ListingRejected","code":"INVALID","message":"The listing could not be saved as entered.","fields":[{"field":"allergenFlags[1]","message":"Not an allergen the catalog knows. Use one of: dairy, egg, fish, shellfish, tree-nut, peanut, gluten, soy, sesame."},{"field":"tags[0]","message":"Not a tag the catalog offers."}],"currentEditVersion":null}}}
+check: PASS
+
+18 steps, 0 failed
+```
