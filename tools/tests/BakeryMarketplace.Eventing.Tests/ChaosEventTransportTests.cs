@@ -35,6 +35,14 @@ public sealed class ChaosEventTransportTests
 
     private static (ChaosEventTransport Chaos, ChaosRuntime Runtime) Build(params (string Setting, double Value)[] settings) => Build(1, settings);
 
+    /// <summary>A transport whose runtime runs on a manual clock, for the outage window (register 211: no test waits on the wall clock).</summary>
+    private static (ChaosEventTransport Chaos, ChaosRuntime Runtime) Build(TimeProvider time, params (string Setting, double Value)[] settings)
+    {
+        var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("test", 1, "events", settings), time);
+        var inner = new InMemoryEventTransport();
+        return (new ChaosEventTransport(inner, inner, runtime), runtime);
+    }
+
     private static async Task<List<DomainEventEnvelope<string>>> Collect(IEventSubscriber subscriber, string eventType = "ChaosTest")
     {
         var received = new List<DomainEventEnvelope<string>>();
@@ -61,14 +69,18 @@ public sealed class ChaosEventTransportTests
     [Fact]
     public async Task OutageWindow_FailsPublishes_ThenRecovers()
     {
-        var (chaos, runtime) = Build(("outageWindowSeconds", 0.2));
+        // A manual clock, not the wall clock (register 211): the window is 200 ms on the runtime's clock, so each side of its end is checked exactly.
+        var time = new FakeTimeProvider();
+        var (chaos, runtime) = Build(time, ("outageWindowSeconds", 0.2));
         var received = await Collect(chaos);
 
         await Assert.ThrowsAsync<EventTransportException>(() => chaos.PublishAsync(Make("during")));
-        await Task.Delay(300);
+        time.Advance(TimeSpan.FromMilliseconds(199));
+        await Assert.ThrowsAsync<EventTransportException>(() => chaos.PublishAsync(Make("still during")));
+        time.Advance(TimeSpan.FromMilliseconds(1));
         await chaos.PublishAsync(Make("after"));
 
-        Assert.Equal(1, runtime.Journal.Count("events", "outage"));
+        Assert.Equal(2, runtime.Journal.Count("events", "outage"));
         Assert.Equal(new[] { "after" }, received.Select(e => e.Payload));
     }
 
@@ -256,7 +268,8 @@ public sealed class ChaosEventTransportTests
     public async Task OutboxOrderedPublishing_StopsAtTheFirstChaosFailure_AndNothingOvertakesIt()
     {
         // The outbox relay's rule (register 74): a later event of a document must not be sent before an earlier one has been.
-        var (chaos, runtime) = Build(("outageWindowSeconds", 0.25));
+        var time = new FakeTimeProvider(); // the outage window on a manual clock (register 211)
+        var (chaos, runtime) = Build(time, ("outageWindowSeconds", 0.25));
         var received = await Collect(chaos);
         var pending = Enumerable.Range(1, 4).Select(i => Make($"e{i}", i)).ToList();
         var failures = new List<string>();
@@ -270,7 +283,7 @@ public sealed class ChaosEventTransportTests
         Assert.Equal(new[] { "e1" }, failures);
         Assert.Empty(received);
 
-        await Task.Delay(350); // the outage ends; the next sweep sends everything, in order
+        time.Advance(TimeSpan.FromMilliseconds(250)); // the outage ends; the next sweep sends everything, in order
         var retry = await OutboxPublishing.PublishInOrderAsync(
             pending, e => e.EventId.ToString(), (e, ct) => chaos.PublishAsync(e, ct), (_, _) => { }, CancellationToken.None);
 
