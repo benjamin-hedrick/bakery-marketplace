@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 56 |
 | In progress | 5 |
-| In review | 35 |
+| In review | 36 |
 | Built | 1 |
-| Ready | 4 |
+| Ready | 3 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 2 |
@@ -80,7 +80,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | EPIC-CATALOG | In review | built and run locally 2026-11-07 on `feature/listing-cache` (22 new tests; browse about 20 ms to about 3 ms at p50, `docs/evidence/WI-CAT-003/after-2026-11-07.md`); waiting for the lead's review of the stock-path diff (register 158 item 4) |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
-| [CAT-007](WI-CAT-007.md) | Safe listing writes for the vendor's screens: an edit precondition, stock settings without the quantity, an idempotent create, and the BFF operations | EPIC-CATALOG | Ready | decided by the lead 2026-11-18 (the open points below); the screens are `WI-CAT-008` |
+| [CAT-007](WI-CAT-007.md) | Safe listing writes for the vendor's screens: an edit precondition, stock settings without the quantity, an idempotent create, and the BFF operations | EPIC-CATALOG | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-CAT-007/` · waiting for the lead's decision on register 210 and the review |
 | [CAT-008](WI-CAT-008.md) | The vendor's listing and stock screens: list, create, edit, publish and adjust stock in the vendor's web app | EPIC-CATALOG | Ready | decided by the lead 2026-11-18 (see `WI-CAT-007`'s open points); blocked by `WI-CAT-007` (the operations it calls) |
 | [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos`, `tools/tests/BakeryMarketplace.Chaos.Tests`, `services/ordering-service/tests/OrderingService.Tests/ChaosHostTests.cs`, `chaos/` |
 | [CHAOS-002](WI-CHAOS-002.md) | Chaos scenarios, phase 2: the repository, broadcast, payment, catalog-gateway and notification-sender layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos` (repository and broadcast layers), `services/ordering-service/src/Chaos`, `services/notification-service/src/Chaos`, their tests, `chaos/scenarios/checkout-trouble.json` |
@@ -235,7 +235,7 @@ Accepted: 23 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 15 |
-| Resolved | 115 |
+| Resolved | 116 |
 | Accepted | 8 |
-| Tracking | 15 |
+| Tracking | 14 |
 | Open | 57 |
