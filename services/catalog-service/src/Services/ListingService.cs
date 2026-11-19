@@ -151,7 +151,9 @@ public sealed class ListingService
 
     public async Task<ListingResult> CreateAsync(string vendorId, ListingRequest request, CancellationToken ct = default)
     {
-        var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits);
+        var errors = Merge(
+            ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits),
+            ListingValidator.ValidateStockChange(request.Stock, currentlyCounted: null));
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         var status = request.Status ?? ListingStatuses.Draft;
@@ -184,7 +186,11 @@ public sealed class ListingService
     public async Task<ListingResult> UpdateAsync(
         ListingDocument existing, long expectedEditVersion, ListingRequest request, CancellationToken ct = default)
     {
-        var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits);
+        // Whether the listing keeps a count changes only by an edit, which moves the edit version on, so checking the stock settings against the
+        // copy read here holds for every retry below: a later copy with another mode fails the version check first.
+        var errors = Merge(
+            ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits),
+            ListingValidator.ValidateStockChange(request.Stock, currentlyCounted: existing.AvailableQuantity is not null));
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         for (var attempt = 0; attempt < MaxSaveAttempts; attempt++)
@@ -268,6 +274,13 @@ public sealed class ListingService
 
     private static List<string>? NonEmpty(List<string> tags) => tags.Count == 0 ? null : tags;
 
+    private static Dictionary<string, string[]> Merge(Dictionary<string, string[]> into, Dictionary<string, string[]> more)
+    {
+        foreach (var (field, messages) in more)
+            into[field] = into.TryGetValue(field, out var already) ? [.. already, .. messages] : messages;
+        return into;
+    }
+
     private static void Apply(ListingDocument doc, ListingRequest r, DateTimeOffset now)
     {
         doc.Name = r.Name!.Trim();
@@ -292,9 +305,13 @@ public sealed class ListingService
                 PlatformTags = before?.PlatformTags,
             };
         }).ToList();
+        // Stock (WI-CAT-007, checked by ValidateStockChange first): made to order drops the quantity; a quantity is taken on a create or a switch to
+        // counted; a counted listing that stays counted keeps the stored quantity, because only an adjustment may change it (ADR-0017).
         if (r.Stock is { } stock)
         {
-            doc.AvailableQuantity = stock.AvailableQuantity;
+            var counted = stock.Mode == StockModes.Counted || (stock.Mode is null && stock.AvailableQuantity is not null);
+            if (!counted) doc.AvailableQuantity = null;
+            else if (stock.AvailableQuantity is { } starting) doc.AvailableQuantity = starting;
             doc.MaxPerOrder = stock.MaxPerOrder;
             doc.LowStockThreshold = stock.LowStockThreshold;
         }

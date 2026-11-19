@@ -245,7 +245,7 @@ public sealed class StockReservationTests : IDisposable, IAsyncLifetime
             category = "Bread",
             priceCents = 800,
             status = "Published",
-            stock = new { availableQuantity = (int?)null },
+            stock = new { availableQuantity = (int?)null, mode = "madeToOrder" },
         });
 
         var response = await Release("order-12");
