@@ -21,13 +21,13 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 ## In flight
 
-- **`feature/register-184-vendor-screens`**: register 199 closed (the picomatch advisory was withdrawn), the cache invalidation gap (register 184), and the specs of the vendor's listing and stock screens (`WI-CAT-007`, `CAT-008`). `WI-CAT-007` (catalog and BFF) is built and In review (registers 208 and 210 resolved); `WI-CAT-008` (the screens) is next on the same branch. (`feature/hardening-followups`, registers 200, 202 to 207, 66, 74 and 166, merged 2026-11-18.)
+- **`feature/register-184-vendor-screens`**: register 199 closed (the picomatch advisory was withdrawn), the cache invalidation gap (register 184), and the specs of the vendor's listing and stock screens (`WI-CAT-007`, `CAT-008`). `WI-CAT-007` (catalog and BFF) and `WI-CAT-008` (the screens in the vendor's web app) are built and In review on the same branch (registers 208, 210 and 211 resolved). (`feature/hardening-followups`, registers 200, 202 to 207, 66, 74 and 166, merged 2026-11-18.)
 
 ## Next
 
 In this order, the lead deciding:
 
-1. **The vendor's listing and stock screens:** the largest product gap; [`WI-CAT-007`](WI-CAT-007.md) built and In review (catalog and BFF: an edit precondition, stock settings without the quantity, an idempotent create; register 208) then [`WI-CAT-008`](WI-CAT-008.md) (the screens in the vendor's web app), decided 2026-11-18. Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens come after.
+1. **The vendor's listing and stock screens:** the largest product gap; [`WI-CAT-007`](WI-CAT-007.md) built and In review (catalog and BFF: an edit precondition, stock settings without the quantity, an idempotent create; register 208) then [`WI-CAT-008`](WI-CAT-008.md) (the screens in the vendor's web app), decided 2026-11-18; both built and In review, waiting for the lead's review. Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens come after.
 2. **The deployed dev environment** (`WI-DEP-001`): run the bootstrap on Azure and approve the Entra and IAM work (ADR-0018 phase 2, `WI-AUTH-006`); costs start there. A manual, approved teardown with a runbook follows.
 3. **Hardening** (registers 166, 203, 204, 205 and 206 were done 2026-11-18): a latency budget (register 100), the dependency decisions of register 162, the cache invalidation gap (register 184), and the soak and cache measurements (register 186).
 
