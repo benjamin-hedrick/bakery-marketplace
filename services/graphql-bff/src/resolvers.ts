@@ -4,21 +4,30 @@ import type {
   CatalogConflict,
   CatalogDietMatch,
   CatalogListing,
+  CatalogListingBody,
+  CatalogOwnListing,
   CatalogTag,
   CatalogPersonalizedListing,
+  ListingWriteResult,
 } from './catalog-client.ts';
 import { ClientError, DownstreamError, forbidden, unauthenticated } from './errors.ts';
 import { fromGlobalId, serviceIdFor, toGlobalId } from './global-id.ts';
 import type { OrderActionName, OrderingClient, OrderingOrder, OrderingVendorOrder } from './ordering-client.ts';
 import type { TraceContext } from './trace.ts';
 import type {
+  ListingInput,
+  ListingStatus,
+  MutationAdjustListingStockArgs,
   MutationCancelOrderArgs,
+  MutationCreateListingArgs,
   MutationPlaceOrderArgs,
   MutationResolvers,
   MutationSavePreferencesArgs,
+  MutationUpdateListingArgs,
   MutationVendorOrderActionArgs,
   QueryCartCheckArgs,
   QueryResolvers,
+  StockMode,
 } from './__generated__/schema-types.ts';
 
 export interface Context {
@@ -88,6 +97,15 @@ const ORDER_STATUS = {
 const toTags = (tags: CatalogTag[] | undefined) =>
   (tags ?? []).map((t) => ({ id: t.id, kind: t.kind.toUpperCase(), label: t.label }));
 
+const toModifiers = (l: Pick<CatalogListing, 'modifiers' | 'currency'>) =>
+  l.modifiers.map((m) => ({
+    id: m.id,
+    name: m.name,
+    priceDelta: money(m.priceDeltaCents, l.currency),
+    allergens: m.allergens,
+    tags: toTags(m.tags),
+  }));
+
 const toListing = (l: CatalogListing) => ({
   __typename: 'Listing',
   id: toGlobalId('Listing', l.id),
@@ -96,13 +114,7 @@ const toListing = (l: CatalogListing) => ({
   description: l.description,
   category: l.category,
   price: money(l.priceCents, l.currency),
-  modifiers: l.modifiers.map((m) => ({
-    id: m.id,
-    name: m.name,
-    priceDelta: money(m.priceDeltaCents, l.currency),
-    allergens: m.allergens,
-    tags: toTags(m.tags),
-  })),
+  modifiers: toModifiers(l),
   allergenFlags: l.allergenFlags,
   tags: toTags(l.tags),
   // A function, so a bad stock block only fails the query that asks for it.
@@ -425,6 +437,159 @@ const toPersonalized = (p: CatalogPersonalizedListing) => ({
   dietMatches: toDietMatches(p.dietMatches),
 });
 
+// ---- the vendor's own listings (WI-CAT-007) ---------------------------------------------------------------------------------
+// Mapping only (ADR-0013): the catalog decides prices, statuses, stock modes, versions and who owns what. The BFF renames, decodes and encodes global
+// ids, passes If-Match and Idempotency-Key through, and gives each refusal its fixed text; an INVALID keeps the catalog's field names and sentences.
+
+const LISTING_STATUS = { Draft: 'DRAFT', Published: 'PUBLISHED' };
+const LISTING_STATUS_WIRE: Record<ListingStatus, string> = { DRAFT: 'Draft', PUBLISHED: 'Published' };
+const STOCK_MODE_WIRE: Record<StockMode, string> = { MADE_TO_ORDER: 'madeToOrder', COUNTED: 'counted' };
+
+/** The owner's view in its own type, so owner-only fields never share a type (or a fragment) with the public Listing. */
+const toMyListing = (l: CatalogOwnListing) => ({
+  __typename: 'MyListing',
+  id: toGlobalId('Listing', l.id),
+  name: l.name,
+  description: l.description,
+  category: l.category,
+  price: money(l.priceCents, l.currency),
+  status: () => enumValue('listing status', LISTING_STATUS, l.status),
+  modifiers: toModifiers(l),
+  allergenFlags: l.allergenFlags,
+  tags: toTags(l.tags),
+  stock: () => ({
+    status: enumValue('stock status', STOCK_STATUS, l.stock?.status ?? ''),
+    maxPerOrder: l.stock?.maxPerOrder ?? null,
+    availableQuantity: l.stock?.availableQuantity ?? null,
+    lowStockThreshold: l.stock?.lowStockThreshold ?? null,
+  }),
+  editVersion: l.editVersion,
+  createdAt: l.createdAt,
+  updatedAt: l.updatedAt,
+});
+
+/** The input in the catalog's words. A part the client left out is left out, because the catalog reads absent as "keep as it is". */
+const toListingBody = (input: ListingInput): CatalogListingBody => ({
+  name: input.name,
+  description: input.description ?? null,
+  category: input.category,
+  priceCents: input.priceCents,
+  modifiers: input.modifiers.map((m) => ({
+    id: m.id,
+    name: m.name,
+    priceDeltaCents: m.priceDeltaCents,
+    allergens: m.allergens,
+    ...(m.tags ? { tags: m.tags } : {}),
+  })),
+  allergenFlags: input.allergenFlags,
+  ...(input.status ? { status: LISTING_STATUS_WIRE[input.status] } : {}),
+  ...(input.tags ? { tags: input.tags } : {}),
+  ...(input.stock
+    ? {
+        stock: {
+          ...(input.stock.mode ? { mode: STOCK_MODE_WIRE[input.stock.mode] } : {}),
+          availableQuantity: input.stock.availableQuantity ?? null,
+          maxPerOrder: input.stock.maxPerOrder ?? null,
+          lowStockThreshold: input.stock.lowStockThreshold ?? null,
+        },
+      }
+    : {}),
+});
+
+type ListingRejectionCode =
+  'INVALID' | 'NOT_FOUND' | 'VENDOR_NOT_VERIFIED' | 'CHANGED' | 'MADE_TO_ORDER' | 'INSUFFICIENT_STOCK' | 'KEY_REUSED';
+
+const LISTING_MESSAGES: Record<ListingRejectionCode, string> = {
+  INVALID: 'The listing could not be saved as entered.',
+  NOT_FOUND: 'That listing could not be found.',
+  VENDOR_NOT_VERIFIED: 'Only a verified bakery can publish a listing. You can save it as a draft.',
+  CHANGED: 'This listing was changed since you opened it. Reload it and try again.',
+  MADE_TO_ORDER: 'This listing is made to order, so it has no count to adjust.',
+  INSUFFICIENT_STOCK: 'The count cannot go below zero.',
+  KEY_REUSED: 'This form was already used to create a different listing. Start a new listing.',
+};
+
+/** The catalog's refusal codes for listing writes, in the schema's words. A code that is not here is a contract violation: an internal error. */
+const LISTING_REFUSALS: Record<string, ListingRejectionCode> = {
+  validation_failed: 'INVALID',
+  vendor_not_verified: 'VENDOR_NOT_VERIFIED',
+  version_mismatch: 'CHANGED',
+  conflict: 'CHANGED',
+  made_to_order: 'MADE_TO_ORDER',
+  insufficient_stock: 'INSUFFICIENT_STOCK',
+  idempotency_key_reuse: 'KEY_REUSED',
+};
+
+const MAX_LISTING_FIELD_PROBLEMS = 100;
+
+const listingRejected = (
+  code: ListingRejectionCode,
+  fields: { field: string; message: string }[] = [],
+  currentEditVersion: number | null = null,
+) => ({ __typename: 'ListingRejected', code, message: LISTING_MESSAGES[code], fields, currentEditVersion });
+
+/**
+ * One listing write with the caller's token. The catalog decides the role (401, 403), the owner (a 404 for another vendor's listing) and every rule;
+ * the answer is mapped here.
+ */
+async function listingWrite(ctx: Context, call: (authorization: string) => Promise<ListingWriteResult>) {
+  const result = await callWithToken(ctx, call);
+  if (result.kind === 'ok') return { __typename: 'ListingWriteSuccess', listing: toMyListing(result.listing) };
+  if (result.kind === 'not_found') return listingRejected('NOT_FOUND');
+  // The BFF always sends If-Match; the catalog refuses one it cannot use (a version below 1 from the caller) as missing.
+  if (result.code === 'precondition_required') {
+    return listingRejected('INVALID', [
+      {
+        field: 'expectedEditVersion',
+        message: 'That is not an edit version of this listing. Reload it and try again.',
+      },
+    ]);
+  }
+  const code = LISTING_REFUSALS[result.code];
+  if (code === undefined) throw new DownstreamError('unknown listing write error code from catalog');
+  // Decision 4 of WI-CAT-007: the catalog's field names and sentences, unchanged (they are written to be shown to the vendor).
+  const fields =
+    code === 'INVALID'
+      ? Object.entries(result.errors)
+          .flatMap(([field, messages]) => messages.map((message) => ({ field, message })))
+          .slice(0, MAX_LISTING_FIELD_PROBLEMS)
+      : [];
+  return listingRejected(code, fields, code === 'CHANGED' ? result.currentEditVersion : null);
+}
+
+/** A key that cannot travel in an HTTP header (a control or non-ASCII character) is refused here; every other check of the key is the catalog's. */
+const sendableHeaderValue = (value: string) => /^[\x20-\x7e]*$/.test(value);
+
+async function createListing(args: MutationCreateListingArgs, ctx: Context) {
+  if (!ctx.authorization) throw unauthenticated();
+  if (!sendableHeaderValue(args.idempotencyKey)) {
+    return listingRejected('INVALID', [
+      { field: 'idempotencyKey', message: 'The form could not be sent. Reload the page and try again.' },
+    ]);
+  }
+  const body = toListingBody(args.input);
+  return listingWrite(ctx, (authorization) =>
+    ctx.catalog.createListing(body, args.idempotencyKey, authorization, ctx.trace),
+  );
+}
+
+async function updateListing(args: MutationUpdateListingArgs, ctx: Context) {
+  if (!ctx.authorization) throw unauthenticated();
+  const serviceId = serviceIdFor('Listing', args.id);
+  if (serviceId === null) return listingRejected('NOT_FOUND');
+  const body = toListingBody(args.input);
+  return listingWrite(ctx, (authorization) =>
+    ctx.catalog.updateListing(serviceId, body, args.expectedEditVersion, authorization, ctx.trace),
+  );
+}
+
+async function adjustListingStock(args: MutationAdjustListingStockArgs, ctx: Context) {
+  if (!ctx.authorization) throw unauthenticated();
+  const serviceId = serviceIdFor('Listing', args.id);
+  if (serviceId === null) return listingRejected('NOT_FOUND');
+  return listingWrite(ctx, (authorization) => ctx.catalog.adjustStock(serviceId, args.delta, authorization, ctx.trace));
+}
+
 const MAX_CART_LINES = 50;
 const MAX_OPTIONS_PER_LINE = 20;
 
@@ -465,6 +630,23 @@ export const rootValue: RootFields<QueryResolvers & MutationResolvers> = {
   placeOrder,
   savePreferences,
   cartCheck,
+  createListing,
+  updateListing,
+  adjustListingStock,
+  async myListings(args, ctx) {
+    const first = pageSize(args.first);
+    const status = args.status ? LISTING_STATUS_WIRE[args.status] : undefined;
+    const page = await callWithToken(ctx, (authorization) =>
+      ctx.catalog.listOwn({ status, limit: first, after: args.after ?? undefined }, authorization, ctx.trace),
+    );
+    return connection(page.items, page.nextCursor, (l) => l.id, toMyListing);
+  },
+  async myListing(args, ctx) {
+    const serviceId = serviceIdFor('Listing', args.id);
+    if (serviceId === null) return null;
+    const l = await callWithToken(ctx, (authorization) => ctx.catalog.getOwn(serviceId, authorization, ctx.trace));
+    return l ? toMyListing(l) : null;
+  },
   async personalizedListings(args, ctx) {
     const first = pageSize(args.first);
     const page = await callWithToken(ctx, (authorization) =>
