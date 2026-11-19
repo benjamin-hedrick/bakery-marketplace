@@ -21,7 +21,7 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 ## In flight
 
-- **`feature/hardening-followups`**: the Android flows' own seed listings (register 200), registers 202, 66, 74, 203, 166, 204, 205 and 206, then the hardening items below. (`feature/register-hardening`, the test-design review, merged 2026-11-17.)
+- **`feature/register-184-vendor-screens`**: register 199 closed (the picomatch advisory was withdrawn), the cache invalidation gap (register 184), and a draft spec for the vendor's listing and stock screens. (`feature/hardening-followups`, registers 200, 202 to 207, 66, 74 and 166, merged 2026-11-18.)
 
 ## Next
 
