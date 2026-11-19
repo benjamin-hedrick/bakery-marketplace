@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-116 specs.
+117 specs.
 
 | Status | Count |
 |---|---|
@@ -15,7 +15,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In review | 35 |
 | Built | 1 |
 | Ready | 2 |
-| Proposed | 4 |
+| Proposed | 5 |
 | Deferred | 11 |
 | Superseded | 2 |
 
@@ -29,7 +29,7 @@ Superseded and obsolete items are not counted.
 | EPIC-AUTH | 3 of 5 | AUTH-001, AUTH-002, AUTH-005, AUTH-006, AUTH-007 |
 | EPIC-BACKLOG-PLANNING | 0 of 2 | PLAN-001, PLAN-002 |
 | EPIC-CACHING | 4 of 4 | CACHE-001, CACHE-002, CACHE-003, CACHE-004 |
-| EPIC-CATALOG | 3 of 4 | CAT-001, CAT-003, CAT-005, CAT-006 |
+| EPIC-CATALOG | 3 of 5 | CAT-001, CAT-003, CAT-005, CAT-006, CAT-007 |
 | EPIC-CI-CD | 0 of 2 | SEC-004, SEC-005 |
 | EPIC-CLOUD-INFRA | 0 of 1 | DEP-001 |
 | EPIC-DATA-STORE | 2 of 2 | DATA-001, DATA-002 |
@@ -80,6 +80,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CAT-003](WI-CAT-003.md) | Cache-aside for the published listings that browse and detail read | EPIC-CATALOG | In review | built and run locally 2026-11-07 on `feature/listing-cache` (22 new tests; browse about 20 ms to about 3 ms at p50, `docs/evidence/WI-CAT-003/after-2026-11-07.md`); waiting for the lead's review of the stock-path diff (register 158 item 4) |
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
+| [CAT-007](WI-CAT-007.md) | The vendor's listing and stock screens: list, create, edit, publish and adjust stock from the vendor's web app | EPIC-CATALOG | Proposed | decision: the lead, on the open points below (where the screens live, the edit's precondition, the stock settings, the validation messages, the scope of v1) |
 | [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos`, `tools/tests/BakeryMarketplace.Chaos.Tests`, `services/ordering-service/tests/OrderingService.Tests/ChaosHostTests.cs`, `chaos/` |
 | [CHAOS-002](WI-CHAOS-002.md) | Chaos scenarios, phase 2: the repository, broadcast, payment, catalog-gateway and notification-sender layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos` (repository and broadcast layers), `services/ordering-service/src/Chaos`, `services/notification-service/src/Chaos`, their tests, `chaos/scenarios/checkout-trouble.json` |
 | [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `packages/chaos`, `services/graphql-bff/src/chaos.ts`, `services/graphql-bff/test/chaos.test.ts`, `apps/mobile-customer/tests/chaos-outcomes.test.ts`, the lost-response tests in `tools/tests` and the service tests |
@@ -214,11 +215,11 @@ Accepted: 23 · Superseded: 1
 
 ## Open-items register
 
-207 numbered items in `docs/governance/open-items-register.md` (highest number 207).
+208 numbered items in `docs/governance/open-items-register.md` (highest number 208).
 
 | Type | Count |
 |---|---|
-| Gap | 49 |
+| Gap | 50 |
 | Deferred scope | 24 |
 | Decision | 23 |
 | Limitation | 21 |
@@ -233,7 +234,7 @@ Accepted: 23 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 15 |
-| Resolved | 113 |
+| Resolved | 114 |
 | Accepted | 8 |
 | Tracking | 14 |
 | Open | 57 |
