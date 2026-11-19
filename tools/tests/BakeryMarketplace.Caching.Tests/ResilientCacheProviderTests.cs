@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using BakeryMarketplace.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -115,7 +116,107 @@ public sealed class ResilientCacheProviderTests
         Assert.False((await fallback.GetAsync<string>("k")).Found);
     }
 
+    // ── Register 184: a delete the primary did not take ──────────────────────
+
+    [Fact]
+    public async Task AfterAFailedDelete_TheOldPrimaryEntryIsNotServedAgainWhenTheBreakerCloses()
+    {
+        // The flap of register 184: the delete fails, the breaker opens and the fallback serves the new value; when the breaker closes, the primary's old
+        // entry must not come back.
+        var primary = new ToggleCacheProvider();
+        await primary.SetAsync("k", "old");
+        var breaker = new ManualBreaker();
+        using var sut = new ResilientCacheProvider(
+            primary, new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions())), breaker, NullLogger<ResilientCacheProvider>.Instance);
+        var reasons = new List<string?>();
+        using var listener = ListenForReasons(sut, reasons);
+
+        primary.ShouldFail = true;
+        await sut.DeleteAsync("k");
+        breaker.Open = true;
+        await sut.SetAsync("k", "new");
+        Assert.Equal("new", (await sut.GetAsync<string>("k")).Value);
+
+        primary.ShouldFail = false;
+        breaker.Open = false;
+        var afterClose = await sut.GetAsync<string>("k");
+
+        Assert.False(afterClose.Found, $"expected a miss once the delete reached the primary, got '{afterClose.Value}'");
+        Assert.False(primary.Holds("k"));
+        Assert.Empty(sut.PendingDeletes);
+        Assert.Equal(["primary_failure", "breaker_open", "pending_delete", "breaker_open", "pending_delete"], reasons);
+    }
+
+    [Fact]
+    public async Task WhileTheDeleteStillFails_EveryCallForTheKeyUsesTheFallback_AndOtherKeysStillUseThePrimary()
+    {
+        var primary = new ToggleCacheProvider();
+        await primary.SetAsync("k", "old");
+        await primary.SetAsync("other", "o");
+        using var sut = new ResilientCacheProvider(
+            primary, new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions())), new ManualBreaker(), NullLogger<ResilientCacheProvider>.Instance);
+
+        primary.FailDeletes = true;
+        await sut.DeleteAsync("k");
+
+        Assert.Equal(["k"], sut.PendingDeletes);
+        Assert.False((await sut.GetAsync<string>("k")).Found);
+        Assert.False(await sut.ExistsAsync("k"));
+        Assert.Equal(new Dictionary<string, string> { ["other"] = "o" }, await sut.GetManyAsync<string>(["k", "other"]));
+        Assert.True(await sut.SetIfAbsentAsync("k", "fresh"));
+        Assert.Equal("fresh", (await sut.GetAsync<string>("k")).Value); // from the fallback
+        Assert.Equal("old", await primary.ValueOf("k")); // nothing was written over the primary's entry while the delete was pending
+
+        primary.FailDeletes = false;
+        Assert.False((await sut.GetAsync<string>("k")).Found); // the retried delete landed: the primary is used again, and the old entry is gone
+        Assert.Empty(sut.PendingDeletes);
+    }
+
+    [Fact]
+    public async Task ALaterDeleteThatReachesThePrimaryClearsTheMark()
+    {
+        var primary = new ToggleCacheProvider();
+        using var sut = new ResilientCacheProvider(
+            primary, new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions())), new ManualBreaker(), NullLogger<ResilientCacheProvider>.Instance);
+
+        primary.FailDeletes = true;
+        await sut.DeleteAsync("k");
+        primary.FailDeletes = false;
+        await sut.DeleteAsync("k");
+        await primary.SetAsync("k", "from-primary");
+
+        Assert.Empty(sut.PendingDeletes);
+        Assert.Equal("from-primary", (await sut.GetAsync<string>("k")).Value);
+    }
+
+    private static MeterListener ListenForReasons(ResilientCacheProvider sut, List<string?> reasons)
+    {
+        var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, l) =>
+        {
+            if (ReferenceEquals(instrument.Meter, sut.Meter)) l.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<long>((_, _, tags, _) =>
+        {
+            foreach (var tag in tags) if (tag.Key == "reason") reasons.Add(tag.Value as string);
+        });
+        listener.Start();
+        return listener;
+    }
+
     // ── Test doubles ─────────────────────────────────────────────────────────
+
+    /// <summary>A breaker the test opens and closes by hand, so no test waits on a clock.</summary>
+    private sealed class ManualBreaker : ICircuitBreakerPolicy
+    {
+        public bool Open { get; set; }
+        public bool IsOpen => Open;
+        public Task ExecuteAsync(Func<CancellationToken, Task> operation, CancellationToken ct = default) =>
+            Open ? Task.FromException(new BrokenCircuitException("open")) : operation(ct);
+        public Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken ct = default) =>
+            Open ? Task.FromException<TResult>(new BrokenCircuitException("open")) : operation(ct);
+        public bool IsRefusal(Exception exception) => exception is BrokenCircuitException;
+    }
 
     private sealed class AlwaysFailingCacheProvider : ICacheProvider
     {
@@ -136,7 +237,11 @@ public sealed class ResilientCacheProviderTests
     private sealed class ToggleCacheProvider : ICacheProvider
     {
         public bool ShouldFail { get; set; }
+        public bool FailDeletes { get; set; }
         private readonly Dictionary<string, object?> _store = new();
+
+        public bool Holds(string key) => _store.ContainsKey(key);
+        public Task<object?> ValueOf(string key) => Task.FromResult(_store.GetValueOrDefault(key));
 
         public Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken ct = default)
         {
@@ -168,7 +273,7 @@ public sealed class ResilientCacheProviderTests
 
         public Task DeleteAsync(string key, CancellationToken ct = default)
         {
-            if (ShouldFail) throw new InvalidOperationException("Toggled to fail.");
+            if (ShouldFail || FailDeletes) throw new InvalidOperationException("Toggled to fail.");
             _store.Remove(key);
             return Task.CompletedTask;
         }

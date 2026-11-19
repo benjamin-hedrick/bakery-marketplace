@@ -3,10 +3,11 @@ import { globalId, userToken } from '../skeleton/support';
 import { gql, onlyUnder, readQuantity, recordMetrics } from './support';
 
 // Chaos scenario stale-cache (chaos/scenarios/stale-cache.json): every DELETE on the catalog's cache Redis fails and leaves the entry in place, so every
-// invalidation fails (the catalog runs with Cache__Backend=redis for this scenario). ADR-0002 accepts that case and `ListingCache` documents it: "a failed
-// invalidation is logged; the entry then lives until its TTL". What must hold: from the TTL (plus a margin for the load that follows the expiry) after a change,
-// the customer sees the new status. What the spec also records, because it is what happens: when the old status was seen, and whether it came back after the
-// new one was seen (the resilient cache's breaker opens on the failed deletes and serves from the store, then closes and serves the primary's old entry again).
+// invalidation fails (the catalog runs with Cache__Backend=redis for this scenario). Since register 184 the resilient cache marks a key whose delete failed and
+// serves it from its fallback (where the delete always lands) until a delete reaches Redis, so the primary's old entry is never served. What must hold: the
+// customer sees the new status; the old status never comes back after the new one was seen (the flap of register 184, seen before the fix); and nothing old
+// is served more than the TTL (plus a margin) after the change (ADR-0002's bound). That the fault was injected is checked by chaos-smoke.mjs, which requires
+// cache:deleteFailure in the journal; the catalog's start-up invalidations (seeding) fail too, so the vendor's key is marked from the start.
 // Needs the whole local stack: node scripts/ci/chaos-smoke.mjs stale-cache
 onlyUnder('stale-cache');
 test.describe.configure({ mode: 'serial' });
@@ -32,10 +33,6 @@ test('after a status change whose invalidation failed, the customer sees the new
       headers: { authorization: `Bearer ${vendor}`, 'content-type': 'application/json' },
       body: JSON.stringify({ delta }),
     });
-
-  // The catalog's own start-up invalidations (seeding) fail too under this scenario, and three failures in a row open the resilient cache's breaker for 30 s, during
-  // which nothing is stored in Redis. Wait that out, so the entry the change must replace is really in the primary store.
-  await new Promise((r) => setTimeout(r, 35_000));
 
   const have = await readQuantity(vendor, LISTING);
   expect(have, 'the listing has no counted stock to sell out').toBeGreaterThan(0);
@@ -71,11 +68,8 @@ test('after a status change whose invalidation failed, the customer sees the new
     theOldStatusCameBackAfterTheNewOne: flapped,
   });
 
-  expect(
-    stale.length,
-    'the old status was never served after the change: the failed invalidation had no effect, so the pass proves nothing',
-  ).toBeGreaterThan(0);
   expect(firstNew, 'the customer never saw the new status').toBeDefined();
+  expect(flapped, 'the old status came back after the new one was seen (register 184)').toBe(false);
   expect(
     samples.filter((s) => s.at > TTL_SECONDS + MARGIN_SECONDS && !isNew(s)),
     `the old status was still served more than ${TTL_SECONDS + MARGIN_SECONDS} s after the change`,
