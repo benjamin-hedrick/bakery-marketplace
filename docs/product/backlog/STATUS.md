@@ -234,7 +234,7 @@ Accepted: 23 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 15 |
-| Resolved | 114 |
+| Resolved | 115 |
 | Accepted | 8 |
 | Tracking | 14 |
-| Open | 57 |
+| Open | 56 |

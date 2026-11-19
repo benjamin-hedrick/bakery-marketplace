@@ -1,0 +1,29 @@
+{
+  "scenario": "stale-cache",
+  "faultsInjectedByTheServices": {
+    "cache:deleteFailure": 6
+  },
+  "notifications": {
+    "notificationsSent": 0,
+    "eventsSentMoreThanOnce": 0,
+    "confirmedOrders": 0,
+    "confirmedOrdersWithoutAnOrderPlacedNotification": 0,
+    "secondsWaitedForNotificationsToSettle": 0,
+    "repeatsAbsorbedByTheEventIdKey": 0,
+    "eventsMovedToTheDeadLetterStream": 0
+  },
+  "specMetrics": {
+    "stale-cache": {
+      "scenario": "stale-cache",
+      "ttlSeconds": 60,
+      "samples": 176,
+      "staleSamples": 0,
+      "secondsOfFirstNewStatus": 0,
+      "secondsOfFirstStaleSample": null,
+      "secondsOfLastStaleSample": null,
+      "theOldStatusCameBackAfterTheNewOne": false
+    }
+  },
+  "knownGapsObserved": [],
+  "problems": []
+}

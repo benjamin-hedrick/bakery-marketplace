@@ -30,8 +30,9 @@ public sealed class ListingCacheOptions
 /// callers must treat what they get as read only.
 /// </para>
 /// <para>
-/// A cache failure never fails a read and never skips a filter: the load function is the same one a miss uses. A failed invalidation is logged;
-/// the entry then lives until its TTL, which is the staleness limit ADR-0002 accepts.
+/// A cache failure never fails a read and never skips a filter: the load function is the same one a miss uses. Behind <c>ResilientCacheProvider</c>
+/// (how the service wires the cache) a delete the primary did not take marks the key, and the old entry is not served while the mark lasts (register 184);
+/// a provider that throws on the delete is logged here, and its entry then lives until its TTL, which is the staleness limit ADR-0002 accepts.
 /// </para>
 /// <para>
 /// <b>Stampede protection (single flight).</b> When an entry is missing (a cold start, an expiry, or an invalidation), every request that arrives while

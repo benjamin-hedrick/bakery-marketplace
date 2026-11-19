@@ -137,9 +137,10 @@ public sealed class ChaosCacheProviderTests
     }
 
     [Fact]
-    public async Task ADeleteFailureBehindTheResilientProviderStillLeavesTheOldValueServed()
+    public async Task ADeleteFailureBehindTheResilientProviderLeavesTheOldValueInThePrimaryButDoesNotServeIt()
     {
-        // Resilient(Chaos(primary)): the failed primary delete falls back to deleting in the local fallback only, so a reader of the primary sees the old entry.
+        // Resilient(Chaos(primary)): the failed primary delete leaves the old entry in the primary, and the resilient provider marks the key pending a delete,
+        // so reads of it go to the fallback until a delete reaches the primary (register 184; before, a reader got the primary's old entry).
         var runtime = ChaosRuntime.ForTests(ChaosScenario.Of("t", 1, "cache", ("deleteFailureRate", 1)));
         var primary = new LocalCacheProvider(new MemoryCache(new MemoryCacheOptions()));
         await primary.SetAsync("k", "old", TimeSpan.FromMinutes(1));
@@ -151,7 +152,9 @@ public sealed class ChaosCacheProviderTests
 
         await sut.DeleteAsync("k"); // does not throw: the resilient provider absorbs it
 
-        Assert.Equal("old", (await sut.GetAsync<string>("k")).Value);
+        Assert.Equal("old", (await primary.GetAsync<string>("k")).Value); // the fault did its part: the primary still holds the old entry
+        Assert.False((await sut.GetAsync<string>("k")).Found); // and it is not served: the retried delete fails too, so the read went to the fallback
+        Assert.Equal(["k"], sut.PendingDeletes);
     }
 
     private static ChaosRuntime Outage(double seconds) =>
