@@ -30,8 +30,16 @@ public sealed class ListingStockTests : IDisposable
         stock,
     };
 
-    private static object Stock(int? quantity, int? maxPerOrder = null, int? threshold = null) =>
-        new { availableQuantity = quantity, maxPerOrder, lowStockThreshold = threshold };
+    private static object Stock(int? quantity, int? maxPerOrder = null, int? threshold = null, string? mode = null) =>
+        new { availableQuantity = quantity, maxPerOrder, lowStockThreshold = threshold, mode };
+
+    private async Task<ListingDocument> StoredAsync(string id) => (await _factory.Listings.GetAsync(id, _vendor))!;
+
+    private static async Task<string[]> FieldErrorsAsync(HttpResponseMessage response, string field)
+    {
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        return (await JsonOf(response)).GetProperty("errors").GetProperty(field).EnumerateArray().Select(e => e.GetString()!).ToArray();
+    }
 
     private async Task<HttpClient> VerifiedVendorAsync(string? vendorId = null)
     {
@@ -135,21 +143,91 @@ public sealed class ListingStockTests : IDisposable
         Assert.Equal(3, edited.Stock.MaxPerOrder);
     }
 
+    // WI-CAT-007 requirement 3 (register 208): an edit's stock settings never carry the quantity of a counted listing.
+
     [Fact]
-    public async Task AStockBlockReplacesAllStockSettings_AndAMissingQuantityMeansMadeToOrder()
+    public async Task ACountedEditSetsTheLimitAndThreshold_AndKeepsTheQuantity_EvenAfterSales()
+    {
+        var vendor = await VerifiedVendorAsync();
+        var created = await CreateAsync(vendor, Body(Stock(quantity: 7, maxPerOrder: 3, threshold: 2)));
+        await ReadAsync(await Adjust(vendor, created.Id, -2)); // two sold since the form was loaded
+
+        var edited = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: null, maxPerOrder: 4, threshold: 1, mode: "counted"))));
+        Assert.Equal((5, 4, 1), (edited.Stock.AvailableQuantity, edited.Stock.MaxPerOrder, edited.Stock.LowStockThreshold));
+
+        // The block still sets both settings as given: left out, they are cleared. The quantity stays.
+        var cleared = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: null, mode: "counted"))));
+        Assert.Equal((5, (int?)null, (int?)null), (cleared.Stock.AvailableQuantity, cleared.Stock.MaxPerOrder, cleared.Stock.LowStockThreshold));
+    }
+
+    [Fact]
+    public async Task ACountedEditCarryingAQuantityIsRefused_AndNothingChanges()
+    {
+        var vendor = await VerifiedVendorAsync();
+        var created = await CreateAsync(vendor, Body(Stock(quantity: 7, maxPerOrder: 3)));
+        var before = await StoredAsync(created.Id);
+
+        var response = await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 20, maxPerOrder: 9, mode: "counted"), priceCents: 1));
+
+        Assert.Equal(["Change the quantity with an adjustment."], await FieldErrorsAsync(response, "stock.availableQuantity"));
+        var after = await StoredAsync(created.Id);
+        Assert.Equal((7, 3, 800, before.EditVersion), (after.AvailableQuantity, after.MaxPerOrder, after.PriceCents, after.EditVersion));
+    }
+
+    [Fact]
+    public async Task AnEditsStockBlockNeedsAMode()
+    {
+        var vendor = await VerifiedVendorAsync();
+        var created = await CreateAsync(vendor, Body(Stock(quantity: 7)));
+
+        var response = await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 20)));
+
+        Assert.Equal(["Say whether the listing is made to order or counted."], await FieldErrorsAsync(response, "stock.mode"));
+        Assert.Equal(7, (await StoredAsync(created.Id)).AvailableQuantity);
+    }
+
+    [Fact]
+    public async Task SwitchingToMadeToOrderDropsTheQuantity_AndRefusesOne()
     {
         var vendor = await VerifiedVendorAsync();
         var created = await CreateAsync(vendor, Body(Stock(quantity: 7, maxPerOrder: 3, threshold: 2)));
 
-        var replaced = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 20))));
-        Assert.Equal(20, replaced.Stock.AvailableQuantity);
-        Assert.Null(replaced.Stock.MaxPerOrder);
-        Assert.Null(replaced.Stock.LowStockThreshold);
+        var refused = await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 7, mode: "madeToOrder")));
+        Assert.Equal(["A made-to-order listing has no quantity."], await FieldErrorsAsync(refused, "stock.availableQuantity"));
+        Assert.Equal(7, (await StoredAsync(created.Id)).AvailableQuantity);
 
-        var madeToOrder = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: null, maxPerOrder: 5))));
+        var madeToOrder = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: null, maxPerOrder: 5, mode: "madeToOrder"))));
         Assert.Null(madeToOrder.Stock.AvailableQuantity);
         Assert.Equal(StockStatuses.InStock, madeToOrder.Stock.Status);
         Assert.Equal(5, madeToOrder.Stock.MaxPerOrder);
+    }
+
+    [Fact]
+    public async Task SwitchingToCountedNeedsAStartingQuantity()
+    {
+        var vendor = await VerifiedVendorAsync();
+        var created = await CreateAsync(vendor, Body());
+
+        var refused = await vendor.EditListingAsync(created.Id, Body(Stock(quantity: null, maxPerOrder: 2, mode: "counted")));
+        Assert.Equal(["A counted listing needs a starting quantity."], await FieldErrorsAsync(refused, "stock.availableQuantity"));
+        Assert.Null((await StoredAsync(created.Id)).AvailableQuantity);
+
+        var counted = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 12, maxPerOrder: 2, mode: "counted"))));
+        Assert.Equal((12, 2), (counted.Stock.AvailableQuantity, counted.Stock.MaxPerOrder));
+    }
+
+    [Fact]
+    public async Task ACreateTakesTheModeOrInfersItFromTheQuantity()
+    {
+        var vendor = await VerifiedVendorAsync();
+
+        var counted = await CreateAsync(vendor, Body(Stock(quantity: 10, mode: "counted")));
+        var inferred = await CreateAsync(vendor, Body(Stock(quantity: 4)));
+        var madeToOrder = await CreateAsync(vendor, Body(Stock(quantity: null, maxPerOrder: 2, mode: "madeToOrder")));
+
+        Assert.Equal(10, counted.Stock.AvailableQuantity);
+        Assert.Equal(4, inferred.Stock.AvailableQuantity);
+        Assert.Equal(((int?)null, (int?)2), (madeToOrder.Stock.AvailableQuantity, madeToOrder.Stock.MaxPerOrder));
     }
 
     public static IEnumerable<object[]> InvalidStock() =>
@@ -158,6 +236,10 @@ public sealed class ListingStockTests : IDisposable
         ["stock.availableQuantity", new { availableQuantity = StockPolicy.MaxQuantity + 1 }],
         ["stock.maxPerOrder", new { availableQuantity = 5, maxPerOrder = 0 }],
         ["stock.lowStockThreshold", new { availableQuantity = 5, lowStockThreshold = -1 }],
+        ["stock.mode", new { availableQuantity = 5, mode = "unlimited" }],
+        ["stock.mode", new { availableQuantity = 5, mode = "Counted" }],
+        ["stock.availableQuantity", new { availableQuantity = 5, mode = "madeToOrder" }],
+        ["stock.availableQuantity", new { mode = "counted" }],
     ];
 
     [Theory]
@@ -302,7 +384,11 @@ public sealed class ListingStockTests : IDisposable
         async Task<HttpResponseMessage[]> EditInTurn()
         {
             var answers = new List<HttpResponseMessage>();
-            for (var i = 0; i < 10; i++) answers.Add(await vendor.EditListingAsync(created.Id, Body(priceCents: 900 + i)));
+            for (var i = 0; i < 10; i++)
+            {
+                var stock = i % 2 == 0 ? null : Stock(quantity: null, threshold: i, mode: "counted"); // settings without the quantity
+                answers.Add(await vendor.EditListingAsync(created.Id, Body(stock, priceCents: 900 + i)));
+            }
             return answers.ToArray();
         }
 
@@ -312,8 +398,8 @@ public sealed class ListingStockTests : IDisposable
 
         Assert.All(responses, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode)); // an adjustment never makes an edit stale
         var stored = (await _factory.Listings.GetAsync(created.Id, _vendor))!;
-        Assert.Equal(90, stored.AvailableQuantity); // an edit that names no stock block keeps the counter
-        Assert.Equal(909, stored.PriceCents);
+        Assert.Equal(90, stored.AvailableQuantity); // an edit keeps the counter, with or without stock settings
+        Assert.Equal((909, (int?)9), (stored.PriceCents, stored.LowStockThreshold));
         Assert.Equal(11, stored.EditVersion);
     }
 
@@ -360,8 +446,10 @@ public sealed class ListingStockTests : IDisposable
         var created = await CreateAsync(vendor, Body(Stock(quantity: 2)));
         Assert.Empty(events); // created already low: no transition happened
 
-        await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 40)));
-        await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 3)));
+        // Since WI-CAT-007 only a switch to counted sets a quantity by an edit: made to order, then counted with a low start.
+        await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: null, mode: "madeToOrder"))));
+        Assert.Empty(events);
+        await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 3, mode: "counted"))));
 
         Assert.Single(events);
     }
@@ -373,7 +461,7 @@ public sealed class ListingStockTests : IDisposable
         var vendor = await VerifiedVendorAsync();
         var created = await CreateAsync(vendor, Body(Stock(quantity: 8, threshold: 3)));
 
-        await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 8, threshold: 10)));
+        await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: null, threshold: 10, mode: "counted"))));
 
         Assert.Single(events);
     }

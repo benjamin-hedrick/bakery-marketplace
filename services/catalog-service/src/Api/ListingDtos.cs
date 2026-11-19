@@ -20,10 +20,16 @@ public sealed record ListingRequest(
     List<string>? Tags = null);
 
 /// <summary>
-/// Stock settings (ADR-0017). When a listing request has no <c>stock</c> block the stock settings are left as they are (a new listing is
-/// made to order). When the block is present it replaces all three settings: a missing <c>availableQuantity</c> means made to order.
+/// Stock settings (ADR-0017, WI-CAT-007). When a listing request has no <c>stock</c> block the stock settings are left as they are (a new listing is
+/// made to order). When the block is present it sets the most per order and the low-stock threshold as given, and <c>mode</c> says whether the
+/// listing is made to order (<see cref="StockModes.MadeToOrder"/>, no quantity) or counted (<see cref="StockModes.Counted"/>).
+/// <para>
+/// The quantity of a counted listing changes only by <c>POST .../stock/adjust</c>: an edit of a counted listing that stays counted may not carry
+/// <c>availableQuantity</c> and keeps the stored one; a switch to counted needs a starting quantity; a switch to made to order drops it. An edit's
+/// block needs <c>mode</c>. On a create, <c>availableQuantity</c> is the starting quantity and <c>mode</c> may be left out (a quantity means counted).
+/// </para>
 /// </summary>
-public sealed record StockRequest(int? AvailableQuantity, int? MaxPerOrder, int? LowStockThreshold);
+public sealed record StockRequest(int? AvailableQuantity, int? MaxPerOrder, int? LowStockThreshold, string? Mode = null);
 
 /// <summary>A signed change to the quantity of a limited-stock listing, applied atomically.</summary>
 public sealed record StockAdjustRequest(int? Delta);

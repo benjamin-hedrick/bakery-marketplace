@@ -8,6 +8,15 @@ public static class StockStatuses
     public const string SoldOut = "soldOut";
 }
 
+/// <summary>Whether a listing keeps a count (WI-CAT-007): the <c>mode</c> of an edit's stock settings. Stored as the presence of a quantity, not as a field.</summary>
+public static class StockModes
+{
+    public const string MadeToOrder = "madeToOrder";
+    public const string Counted = "counted";
+
+    public static bool IsValid(string? value) => value is MadeToOrder or Counted;
+}
+
 /// <summary>Stock rules for a listing (ADR-0017). Pure functions over the document, so they are easy to test.</summary>
 public static class StockPolicy
 {

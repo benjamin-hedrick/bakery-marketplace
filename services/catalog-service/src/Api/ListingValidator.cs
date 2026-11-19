@@ -85,9 +85,42 @@ public static partial class ListingValidator
         return errors;
     }
 
+    /// <summary>
+    /// The stock settings against the listing they change (WI-CAT-007): <paramref name="currentlyCounted"/> is whether the stored listing keeps a
+    /// count, or null for a create. An edit's block needs a mode; a counted listing that stays counted keeps its quantity, which only an adjustment
+    /// changes; a switch to counted needs a starting quantity; a made-to-order listing has none. A mode that is not valid was reported by
+    /// <see cref="Validate"/> and is not reported again.
+    /// </summary>
+    public static Dictionary<string, string[]> ValidateStockChange(StockRequest? stock, bool? currentlyCounted)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (stock is null || (stock.Mode is not null && !StockModes.IsValid(stock.Mode))) return errors;
+
+        const string quantity = "stock.availableQuantity";
+        if (stock.Mode is null)
+        {
+            if (currentlyCounted is not null) errors["stock.mode"] = ["Say whether the listing is made to order or counted."];
+        }
+        else if (stock.Mode == StockModes.MadeToOrder)
+        {
+            if (stock.AvailableQuantity is not null) errors[quantity] = ["A made-to-order listing has no quantity."];
+        }
+        else if (currentlyCounted == true)
+        {
+            if (stock.AvailableQuantity is not null) errors[quantity] = ["Change the quantity with an adjustment."];
+        }
+        else if (stock.AvailableQuantity is null)
+        {
+            errors[quantity] = ["A counted listing needs a starting quantity."];
+        }
+        return errors;
+    }
+
     private static void ValidateStock(StockRequest? stock, Action<string, string> add)
     {
         if (stock is null) return;
+        if (stock.Mode is not null && !StockModes.IsValid(stock.Mode))
+            add("stock.mode", $"Mode must be '{StockModes.MadeToOrder}' or '{StockModes.Counted}'.");
         if (stock.AvailableQuantity is < 0 or > StockPolicy.MaxQuantity)
             add("stock.availableQuantity", $"Quantity must be between 0 and {StockPolicy.MaxQuantity}, or omitted for made to order.");
         if (stock.MaxPerOrder is < 1 or > StockPolicy.MaxQuantity)
