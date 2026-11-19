@@ -160,27 +160,57 @@ public sealed class TagApiTests : IDisposable
     [InlineData("tree nut")]
     [InlineData("milk")]       // the id is "dairy": the closed list is exact
     [InlineData("vegan")]      // a tag, but not an allergen
-    public async Task An_allergen_that_is_not_in_the_list_is_refused_naming_the_value_and_the_allowed_ids(string flag)
+    public async Task An_allergen_that_is_not_in_the_list_is_refused_at_its_position_naming_the_allowed_ids(string flag)
     {
-        var response = await Vendor().CreateListingAsync(Listing([flag]));
+        var response = await Vendor().CreateListingAsync(Listing(["gluten", flag]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         var body = await JsonOf(response);
         Assert.Equal("validation_failed", body.GetProperty("code").GetString());
-        var message = body.GetProperty("errors").GetProperty("allergenFlags")[0].GetString()!;
-        Assert.Contains($"'{flag}'", message);
+        var message = body.GetProperty("errors").GetProperty("allergenFlags[1]")[0].GetString()!;
+        Assert.StartsWith("Not an allergen the catalog knows.", message);
         Assert.Contains("dairy", message);
         Assert.Contains("tree-nut", message);
+        Assert.DoesNotContain($"'{flag}'", message); // register 210: the sentence never repeats the value
+        Assert.False(body.GetProperty("errors").TryGetProperty("allergenFlags[0]", out _)); // the known one is not reported
     }
 
     [Fact]
-    public async Task An_option_allergen_outside_the_list_is_refused_with_the_option_named()
+    public async Task An_option_allergen_outside_the_list_is_refused_at_the_options_position()
     {
         var response = await Vendor().CreateListingAsync(Listing(optionAllergens: ["almonds"]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         var errors = (await JsonOf(response)).GetProperty("errors");
-        Assert.Contains("'almonds'", errors.GetProperty("modifiers[0].allergens")[0].GetString());
+        var message = errors.GetProperty("modifiers[0].allergens[0]")[0].GetString()!;
+        Assert.StartsWith("Not an allergen the catalog knows.", message);
+        Assert.DoesNotContain("almonds", message);
+    }
+
+    [Theory]
+    [InlineData("<b>nuts</b>")]
+    [InlineData("<img src=x onerror=alert(1)>")]
+    [InlineData("'; drop table--")]
+    public async Task A_hostile_value_is_never_in_the_answer(string hostile)
+    {
+        // Register 210: every refused value of the closed lists, on the listing and on an option, as an allergen and as a tag.
+        var response = await Vendor().CreateListingAsync(new
+        {
+            name = "Loaf",
+            category = "Bread",
+            priceCents = 800,
+            allergenFlags = new[] { hostile },
+            tags = new[] { hostile },
+            modifiers = new[] { new { id = "mod-a", name = "A", priceDeltaCents = 0, allergens = new[] { hostile }, tags = new[] { hostile } } },
+        });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        var raw = await response.Content.ReadAsStringAsync();
+        var errors = (await JsonOf(response)).GetProperty("errors");
+        foreach (var field in new[] { "allergenFlags[0]", "tags[0]", "modifiers[0].allergens[0]", "modifiers[0].tags[0]" })
+            Assert.True(errors.TryGetProperty(field, out _), field);
+        Assert.DoesNotContain(hostile.ToLowerInvariant(), raw.ToLowerInvariant());
+        Assert.DoesNotContain(System.Text.Json.JsonSerializer.Serialize(hostile).Trim('"'), raw); // nor in its escaped form
     }
 
     [Fact]

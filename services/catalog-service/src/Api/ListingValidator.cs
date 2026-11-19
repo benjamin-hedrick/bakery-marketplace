@@ -156,20 +156,26 @@ public static partial class ListingValidator
 
     /// <summary>
     /// Allergens are a closed list: every value, once trimmed and lower-cased as it will be stored, must be an allergen id of the registry. A value
-    /// that is not one is named, with the ids that are allowed, so a vendor can correct it ("nuts" and "tree nuts" would never match "tree-nut").
+    /// that is not one is reported on its own position (<c>allergenFlags[2]</c>), with the ids that are allowed, so a vendor can correct it ("nuts" and
+    /// "tree nuts" would never match "tree-nut"). The sentence never repeats the value (register 210): it is shown to the vendor as written.
     /// Values that already failed the structural check are not reported twice.
     /// </summary>
     private static void ValidateAllergens(string field, List<string>? flags, IReadOnlyList<string> allowed, Action<string, string> add)
     {
         if (flags is null) return;
         var known = new HashSet<string>(allowed, StringComparer.Ordinal);
-        foreach (var value in NormalizeFlags(flags.Where(f => f is not null && f.Trim().Length is > 0 and <= MaxFlagLength)).Where(v => !known.Contains(v)))
-            add(field, $"'{value}' is not a known allergen. Use one of: {string.Join(", ", allowed)}.");
+        for (var i = 0; i < flags.Count; i++)
+        {
+            var value = flags[i]?.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(value) || value.Length > MaxFlagLength) continue; // the structural check reported it
+            if (!known.Contains(value)) add($"{field}[{i}]", $"Not an allergen the catalog knows. Use one of: {string.Join(", ", allowed)}.");
+        }
     }
 
     /// <summary>
     /// Tags a vendor may assign (ADR-0022 decisions 3 to 5): each id must be in the registry, of a kind other than allergen (allergens stay in their own fields),
-    /// assignable by a vendor and not retired, else it is named. Duplicates are removed before counting, and the count may not pass <paramref name="max"/>.
+    /// assignable by a vendor and not retired, else its position is reported (<c>tags[1]</c>) with a sentence that does not repeat the value (register 210).
+    /// Duplicates are removed before counting, and the count may not pass <paramref name="max"/>.
     /// </summary>
     private static void ValidateTags(string field, List<string>? requested, int max, ITagRegistry registry, Action<string, string> add)
     {
@@ -179,9 +185,9 @@ public static partial class ListingValidator
         {
             var value = requested[i]?.Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(value) || value.Length > MaxFlagLength) { add($"{field}[{i}]", "A tag id is required (max 40 characters)."); continue; }
-            if (registry.Find(value) is not { } tag) { add($"{field}[{i}]", $"'{value}' is not a tag the catalog offers."); continue; }
-            if (tag.Kind == TagKind.Allergen) { add($"{field}[{i}]", $"'{value}' is an allergen. Allergens go in their own field, not in tags."); continue; }
-            if (!tag.VendorMayAssign) { add($"{field}[{i}]", $"'{value}' cannot be assigned by a vendor."); continue; }
+            if (registry.Find(value) is not { } tag) { add($"{field}[{i}]", "Not a tag the catalog offers."); continue; }
+            if (tag.Kind == TagKind.Allergen) { add($"{field}[{i}]", "This is an allergen. Allergens go in their own field, not in tags."); continue; }
+            if (!tag.VendorMayAssign) { add($"{field}[{i}]", "This tag cannot be assigned by a vendor."); continue; }
             if (!distinct.Contains(value, StringComparer.Ordinal)) distinct.Add(value);
         }
         if (distinct.Count > max) add(field, $"At most {max} tags.");

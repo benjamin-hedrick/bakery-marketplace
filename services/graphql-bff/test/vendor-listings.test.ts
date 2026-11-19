@@ -380,7 +380,7 @@ describe('Mutation.createListing', () => {
 
 describe('INVALID: the catalog’s field names and sentences, unchanged', () => {
   const longSentence =
-    "'x' is not a known allergen. Use one of: celery, crustacean, dairy, egg, fish, gluten, lupin, mollusc, mustard, peanut, sesame, soy, sulphite, tree-nut, and a little more so it is longer than two hundred characters.";
+    'Not an allergen the catalog knows. Use one of: celery, crustacean, dairy, egg, fish, gluten, lupin, mollusc, mustard, peanut, sesame, soy, sulphite, tree-nut, and a little more so it is longer than two hundred characters.';
 
   test('every field and sentence is passed through as the catalog wrote it, the catalog’s top-level message is not', async () => {
     next = {
@@ -392,7 +392,7 @@ describe('INVALID: the catalog’s field names and sentences, unchanged', () => 
           priceCents: ['Price must be between 0 and 10000000 cents.'],
           'stock.availableQuantity': ['Change the quantity with an adjustment.'],
           'modifiers[0].id': ['Modifier id must be lowercase letters, digits and hyphens (max 64).'],
-          allergenFlags: [longSentence],
+          'allergenFlags[0]': [longSentence],
         },
       },
     };
@@ -405,7 +405,7 @@ describe('INVALID: the catalog’s field names and sentences, unchanged', () => 
         { field: 'priceCents', message: 'Price must be between 0 and 10000000 cents.' },
         { field: 'stock.availableQuantity', message: 'Change the quantity with an adjustment.' },
         { field: 'modifiers[0].id', message: 'Modifier id must be lowercase letters, digits and hyphens (max 64).' },
-        { field: 'allergenFlags', message: longSentence },
+        { field: 'allergenFlags[0]', message: longSentence },
       ],
       currentEditVersion: null,
     });
