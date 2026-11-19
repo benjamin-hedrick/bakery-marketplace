@@ -154,7 +154,8 @@ Each Claude Code session's cost, model time and size were copied by me from the 
 | 2026-11-18 | the pre-push gates, the wall-clock tests on a manual clock (register 202), the parked order outbox's counters and runbook (register 74), the listing kind (register 66) | 5.60 | 19 min | 665 |
 | 2026-11-18 (second) | the listing outbox's counters and runbook (register 203), dependency outages run on the local stack (register 166) and the three fixes they called for (registers 204 to 206), an intermittent chaos test (register 207) | 14.44 | 59 min | 1,996 |
 | 2026-11-18 (third) | the withdrawn picomatch advisory (register 199), a failed cache invalidation no longer serving the old status (register 184), and the vendor's listing and stock screens specified as two Ready items (`WI-CAT-007`, `CAT-008`; register 208) | 3.14 | 13 min | 474 |
-| **Total** |  | **209.61** | **17 h 4 min** | **72,146** |
+| 2026-11-18 (fourth) | the vendor's listing writes made safe in catalog and the BFF (`WI-CAT-007`; registers 208 and 210) and the vendor's listing and stock screens (`WI-CAT-008`), with the customer seeing each change on the real stack; an intermittent chaos test on a manual clock (register 211) | 16.88 | 45 min | 6,719 |
+| **Total** |  | **226.49** | **17 h 49 min** | **78,865** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew the specifications, decision records, tests and evidence records it holds now ([`STATUS.md`](../product/backlog/STATUS.md) has where each specification stands); not every item was built in a recorded session, so the table is not a cost per item. Nothing here compares with doing the work by hand.
 
