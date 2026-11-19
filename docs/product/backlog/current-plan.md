@@ -27,7 +27,7 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 In this order, the lead deciding:
 
-1. **The vendor's listing and stock screens:** the largest product gap; decide, then write a spec. Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens come after.
+1. **The vendor's listing and stock screens:** the largest product gap; drafted as [`WI-CAT-007`](WI-CAT-007.md) (Proposed), the lead decides its open points (and register 208). Vendor onboarding (`VEN-001`, `VEN-002`) and the admin screens come after.
 2. **The deployed dev environment** (`WI-DEP-001`): run the bootstrap on Azure and approve the Entra and IAM work (ADR-0018 phase 2, `WI-AUTH-006`); costs start there. A manual, approved teardown with a runbook follows.
 3. **Hardening** (registers 166, 203, 204, 205 and 206 were done 2026-11-18): a latency budget (register 100), the dependency decisions of register 162, the cache invalidation gap (register 184), and the soak and cache measurements (register 186).
 

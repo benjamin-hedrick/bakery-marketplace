@@ -24,6 +24,7 @@ Scope: Catalog · Primary hat(s): Architect, Engineering/Build · Status: see [S
 - ⚪ CAT-004 (Service Implementation) — Catalog moderation queue hooks (feeds EPIC-ADMIN)
 - ✅ CAT-005 (Service Implementation) — see `WI-CAT-005.md` — listing stock fields (`availableQuantity`, `maxPerOrder`, `lowStockThreshold`), vendor set/increment/decrement, stock status on reads (ADR-0017)
 - ✅ CAT-006 (Service Implementation) — see `WI-CAT-006.md` — atomic stock reserve and release endpoints for ordering (ADR-0017); the caller is `ORD-001`
+- 🟢 CAT-007 (Frontend) — see `WI-CAT-007.md` — the vendor's listing and stock screens (list, create, edit, publish, adjust stock) in the vendor's web app, with BFF operations; draft, open points for the lead (register 208)
 
 ### EPIC-SEARCH — Search & Discovery
 Scope: Search & Discovery · Primary hat(s): Architect, Digital PM · Status: see [STATUS.md](STATUS.md)
