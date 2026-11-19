@@ -92,10 +92,27 @@ public sealed class CosmosCatalogTests : IAsyncLifetime
     private static ListingRequest Request(StockRequest? stock = null) => new("Loaf", null, "bread", 800, null, null, "Published", stock);
 
     [EmulatorFact]
+    public async Task CreatesRacingWithOneKeyMakeOneListing_OnTheRealStore()
+    {
+        // WI-CAT-007 requirement 5: the create-only write on the real SDK decides the race; the losers answer as repeats.
+        var key = ListingWrites.NewKey();
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => _service!.CreateAsync(Vendor, key, Request())));
+
+        Assert.Single(results, r => r.Outcome == ListingOutcome.Created);
+        Assert.Equal(7, results.Count(r => r.Outcome == ListingOutcome.Repeated));
+        var id = ListingService.ListingIdFor(Vendor, key);
+        Assert.All(results, r => Assert.Equal(id, r.Listing!.Id));
+        var stored = await _listings!.QueryAsync(Vendor, q => q.Where(l => l.DocType == ListingDocument.Kind && l.Id == id)).ToListAsync();
+        Assert.Single(stored);
+        Assert.Equal(ListingOutcome.KeyReuse, (await _service!.CreateAsync(Vendor, key, Request(new StockRequest(3, null, null)))).Outcome);
+    }
+
+    [EmulatorFact]
     public async Task AnEventThatCouldNotBePublishedIsStoredWithTheListingAndTheRelayFindsItThroughTheSparseQuery()
     {
         _events.Fail = true;
-        var created = (await _service!.CreateAsync(Vendor, Request())).Listing!;
+        var created = (await _service!.CreateWithNewKeyAsync(Vendor, Request())).Listing!;
         var stored = (await _listings!.GetAsync(created.Id, Vendor))!;
         _events.Fail = false;
         _time.Now = _time.Now.AddMinutes(1);
@@ -115,7 +132,7 @@ public sealed class CosmosCatalogTests : IAsyncLifetime
     public async Task AListingWhoseEventKeepsFailingIsParkedAndFoundByTheParkedQueryThenUnparked()
     {
         _events.Fail = true;
-        var created = (await _service!.CreateAsync(Vendor, Request())).Listing!;
+        var created = (await _service!.CreateWithNewKeyAsync(Vendor, Request())).Listing!;
         _time.Now = _time.Now.AddMinutes(1);
         for (var i = 1; i < new OutboxOptions().MaxPublishAttempts; i++) await _relay!.SweepOnceAsync(default);
 
@@ -137,7 +154,7 @@ public sealed class CosmosCatalogTests : IAsyncLifetime
     [EmulatorFact]
     public async Task AReservationWritesItsLowStockEventInTheSameBatchAndTheWindowQueryFindsOnlyActiveReservationsInRange()
     {
-        var listing = (await _service!.CreateAsync(Vendor, Request(new StockRequest(10, null, 3)))).Listing!;
+        var listing = (await _service!.CreateWithNewKeyAsync(Vendor, Request(new StockRequest(10, null, 3)))).Listing!;
         _events.Fail = true;
 
         var reserved = await _reservation!.ReserveAsync("order-1", Vendor, [(listing.Id, 8)]);
@@ -161,10 +178,10 @@ public sealed class CosmosCatalogTests : IAsyncLifetime
     [EmulatorFact]
     public async Task AVendorsOwnListQueryReturnsTheirListingsAndNeverTheirReservationRecords()
     {
-        var listing = (await _service!.CreateAsync(Vendor, Request(new StockRequest(10, null, 3)))).Listing!;
+        var listing = (await _service!.CreateWithNewKeyAsync(Vendor, Request(new StockRequest(10, null, 3)))).Listing!;
         await _reservation!.ReserveAsync("order-1", Vendor, [(listing.Id, 1)]);
 
-        var (items, _) = await _service.ListOwnAsync(Vendor, null, 10, null);
+        var (items, _) = await _service!.ListOwnAsync(Vendor, null, 10, null);
         var asListing = await _service.GetOwnAsync(StockReservationDocument.IdFor("order-1"), Vendor);
 
         Assert.Equal([listing.Id], items.Select(i => i.Id));

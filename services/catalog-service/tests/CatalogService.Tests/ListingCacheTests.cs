@@ -107,7 +107,7 @@ public sealed class ListingCacheTests
 
         public async Task<ListingDocument> CreateListingAsync(string name = "Sourdough", int? quantity = null, string status = "Published", string vendor = Vendor)
         {
-            var result = await Service.CreateAsync(vendor, Request(name, status, quantity));
+            var result = await Service.CreateWithNewKeyAsync(vendor, Request(name, status, quantity));
             Assert.Equal(ListingOutcome.Created, result.Outcome);
             return result.Listing!;
         }
@@ -518,7 +518,7 @@ public sealed class ListingCacheTests
     public async Task ACustomersViewOfACachedListingNeverCarriesTheQuantityOrTheThreshold()
     {
         var rig = await Rig.CreateAsync();
-        await rig.Service.CreateAsync(Vendor, Rig.Request(quantity: 42, threshold: 7));
+        await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request(quantity: 42, threshold: 7));
         var cached = (await rig.BrowseAsync()).Single();
         Assert.Equal(42, cached.AvailableQuantity); // the cached document does hold them: the test is only meaningful if so
         Assert.Equal(7, cached.LowStockThreshold);

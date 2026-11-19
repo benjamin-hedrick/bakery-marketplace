@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using BakeryMarketplace.EventSchemas;
@@ -7,7 +10,7 @@ using CatalogService.Tags;
 
 namespace CatalogService.Services;
 
-public enum ListingOutcome { Ok, Created, NotFound, Invalid, VendorNotVerified, Conflict, MadeToOrder, InsufficientStock, VersionMismatch }
+public enum ListingOutcome { Ok, Created, Repeated, NotFound, Invalid, VendorNotVerified, Conflict, MadeToOrder, InsufficientStock, VersionMismatch, KeyReuse }
 
 public sealed record ListingResult(ListingOutcome Outcome, ListingDocument? Listing = null, Dictionary<string, string[]>? Errors = null);
 
@@ -149,11 +152,29 @@ public sealed class ListingService
         return (page, ordered.Count > limit ? page[^1].Id : null);
     }
 
-    public async Task<ListingResult> CreateAsync(string vendorId, ListingRequest request, CancellationToken ct = default)
+    /// <summary>
+    /// The listing id a create with <paramref name="idempotencyKey"/> gets (WI-CAT-007 requirement 5, as checkout derives its order id, decision D-6): a
+    /// hash of the vendor and the key, so the key itself is never in an id or a log, and two vendors' keys never meet.
+    /// </summary>
+    public static string ListingIdFor(string vendorId, string idempotencyKey) =>
+        "listing-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{vendorId}\n{idempotencyKey}")))[..32].ToLowerInvariant();
+
+    /// <summary>
+    /// A create (WI-CAT-001, made idempotent by WI-CAT-007): the id comes from the vendor and the key, and the write is create-only, so a repeat or a
+    /// race of the same create makes one listing. A repeat with the same request answers <see cref="ListingOutcome.Repeated"/> with the listing as it
+    /// is now; the same key with another request is <see cref="ListingOutcome.KeyReuse"/>. The key is checked first, and a stored listing answers
+    /// before the request is checked again, so a repeat gets the listing even if a rule (a retired tag) changed in between.
+    /// </summary>
+    public async Task<ListingResult> CreateAsync(string vendorId, string? idempotencyKey, ListingRequest request, CancellationToken ct = default)
     {
-        var errors = Merge(
-            ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits),
-            ListingValidator.ValidateStockChange(request.Stock, currentlyCounted: null));
+        var keyErrors = ListingValidator.ValidateIdempotencyKey(idempotencyKey);
+        if (keyErrors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: Merge(Validate(request, currentlyCounted: null), keyErrors));
+
+        var id = ListingIdFor(vendorId, idempotencyKey!);
+        var fingerprint = Fingerprint(request);
+        if (await GetOwnAsync(id, vendorId, ct) is { } stored) return Repeat(stored, fingerprint);
+
+        var errors = Validate(request, currentlyCounted: null);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         var status = request.Status ?? ListingStatuses.Draft;
@@ -163,19 +184,41 @@ public sealed class ListingService
         var now = _time.GetUtcNow();
         var doc = new ListingDocument
         {
-            Id = $"listing-{Guid.NewGuid():N}",
+            Id = id,
             VendorId = vendorId,
             CreatedAt = now,
             Status = status,
+            RequestFingerprint = fingerprint,
         };
         Apply(doc, request, now);
         if (doc.Status == ListingStatuses.Published) _events.Raise(doc, ListingEventTypes.Published); // stored with the listing (register item 30)
-        doc = await _listings.SaveAsync(doc, vendorId, ct);
+
+        // Create-only (no ETag): when a racing create with the same key won, this one stores nothing and answers as its repeat.
+        var saved = await _listings.SaveIfUnchangedAsync(doc, vendorId, ct);
+        if (saved is null)
+        {
+            return await GetOwnAsync(id, vendorId, ct) is { } winner
+                ? Repeat(winner, fingerprint)
+                : new ListingResult(ListingOutcome.Conflict); // the id is held by something that is not a listing: never expected
+        }
         await InvalidateAsync(vendorId);
 
-        await _events.PublishInlineAsync(doc);
-        return new ListingResult(ListingOutcome.Created, doc);
+        await _events.PublishInlineAsync(saved);
+        return new ListingResult(ListingOutcome.Created, saved);
     }
+
+    private static ListingResult Repeat(ListingDocument stored, string fingerprint) =>
+        stored.RequestFingerprint == fingerprint
+            ? new ListingResult(ListingOutcome.Repeated, stored)
+            : new ListingResult(ListingOutcome.KeyReuse);
+
+    /// <summary>A hash of what the vendor asked to create, so the same key with other content is recognised. Versioned so its shape can change.</summary>
+    private static string Fingerprint(ListingRequest request) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("v1|" + JsonSerializer.Serialize(request)))).ToLowerInvariant();
+
+    private Dictionary<string, string[]> Validate(ListingRequest request, bool? currentlyCounted) => Merge(
+        ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits),
+        ListingValidator.ValidateStockChange(request.Stock, currentlyCounted));
 
     /// <summary>
     /// An edit (WI-CAT-007): applied only while the listing's edit version is still <paramref name="expectedEditVersion"/>, the one the vendor's
@@ -188,9 +231,7 @@ public sealed class ListingService
     {
         // Whether the listing keeps a count changes only by an edit, which moves the edit version on, so checking the stock settings against the
         // copy read here holds for every retry below: a later copy with another mode fails the version check first.
-        var errors = Merge(
-            ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits),
-            ListingValidator.ValidateStockChange(request.Stock, currentlyCounted: existing.AvailableQuantity is not null));
+        var errors = Validate(request, currentlyCounted: existing.AvailableQuantity is not null);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         for (var attempt = 0; attempt < MaxSaveAttempts; attempt++)

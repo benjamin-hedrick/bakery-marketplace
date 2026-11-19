@@ -18,6 +18,9 @@ public static class ListingEndpoints
     /// </summary>
     public const string PublicCacheControl = "no-cache";
 
+    /// <summary>The header a create names its idempotency key in (WI-CAT-007 requirement 5).</summary>
+    public const string IdempotencyKeyHeader = "Idempotency-Key";
+
     public static IEndpointRouteBuilder MapListingEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/catalog/listings");
@@ -71,7 +74,10 @@ public static class ListingEndpoints
             var vendorId = user.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
 
-            var result = await svc.CreateAsync(vendorId, request, ct);
+            // Idempotent (WI-CAT-007): a repeat of the same create answers 200 with the listing as it is now.
+            var key = http.Request.Headers[IdempotencyKeyHeader];
+            var result = await svc.CreateAsync(vendorId, key.Count == 1 ? key[0] : null, request, ct);
+            if (result.Outcome == ListingOutcome.Repeated) return Owner(http, result.Listing!, tags);
             if (result.Outcome != ListingOutcome.Created) return ToError(result);
             http.Response.Headers.ETag = EditVersionHeader.Format(result.Listing!.EditVersion);
             return Results.Created($"/catalog/listings/{result.Listing.Id}", ListingDto.ForOwner(result.Listing, tags));
@@ -156,6 +162,9 @@ public static class ListingEndpoints
         ListingOutcome.VersionMismatch => Results.Json(
             new VersionMismatchError("version_mismatch", "The listing was edited since it was read. Reload it and try again.", r.Listing!.EditVersion),
             statusCode: StatusCodes.Status409Conflict),
+        ListingOutcome.KeyReuse => Results.Json(
+            new ApiError("idempotency_key_reuse", "This Idempotency-Key was already used to create a different listing. Use a new key for a new listing."),
+            statusCode: StatusCodes.Status422UnprocessableEntity),
         ListingOutcome.Conflict => Results.Json(
             new ApiError("conflict", "The listing was changed by another request. Reload it and try again."),
             statusCode: StatusCodes.Status409Conflict),

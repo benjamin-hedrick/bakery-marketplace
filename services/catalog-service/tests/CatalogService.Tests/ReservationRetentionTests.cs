@@ -39,7 +39,7 @@ public sealed class ReservationRetentionTests : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     private async Task<string> ListingWithStockAsync() =>
-        (await _service.CreateAsync(Vendor, new ListingRequest("Loaf", null, "bread", 800, null, null, "Published", new StockRequest(10, null, null)))).Listing!.Id;
+        (await _service.CreateWithNewKeyAsync(Vendor, new ListingRequest("Loaf", null, "bread", 800, null, null, "Published", new StockRequest(10, null, null)))).Listing!.Id;
 
     [Fact]
     public async Task AnActiveReservationHasNoTimeToLiveAndAReleasedOneHasThirtyDays()

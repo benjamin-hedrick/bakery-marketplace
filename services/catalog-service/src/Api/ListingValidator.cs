@@ -85,6 +85,23 @@ public static partial class ListingValidator
         return errors;
     }
 
+    public const int MaxIdempotencyKeyLength = 100;
+
+    /// <summary>
+    /// A create's <c>Idempotency-Key</c> (WI-CAT-007 requirement 5): 1 to <see cref="MaxIdempotencyKeyLength"/> visible ASCII characters. The message never
+    /// repeats the value.
+    /// </summary>
+    public static Dictionary<string, string[]> ValidateIdempotencyKey(string? key)
+    {
+        var valid = key is { Length: > 0 and <= MaxIdempotencyKeyLength } && key.All(c => c is > ' ' and <= '~');
+        return valid
+            ? new Dictionary<string, string[]>()
+            : new Dictionary<string, string[]>
+            {
+                ["idempotencyKey"] = [$"An Idempotency-Key header of 1 to {MaxIdempotencyKeyLength} visible characters (letters, digits, punctuation) is required."],
+            };
+    }
+
     /// <summary>
     /// The stock settings against the listing they change (WI-CAT-007): <paramref name="currentlyCounted"/> is whether the stored listing keeps a
     /// count, or null for a create. An edit's block needs a mode; a counted listing that stays counted keeps its quantity, which only an adjustment

@@ -84,7 +84,7 @@ public sealed class ListingOutboxTests
         var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
 
-        var result = await rig.Service.CreateAsync(Vendor, Rig.Request());
+        var result = await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request());
 
         Assert.Equal(ListingOutcome.Created, result.Outcome);
         var stored = await rig.StoredAsync(result.Listing!.Id);
@@ -100,7 +100,7 @@ public sealed class ListingOutboxTests
     {
         var rig = await Rig.CreateAsync();
 
-        var result = await rig.Service.CreateAsync(Vendor, Rig.Request("Draft"));
+        var result = await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request("Draft"));
 
         Assert.Empty((await rig.StoredAsync(result.Listing!.Id)).Outbox);
         Assert.Empty(rig.Events.Published);
@@ -111,7 +111,7 @@ public sealed class ListingOutboxTests
     {
         var rig = await Rig.CreateAsync();
 
-        var result = await rig.Service.CreateAsync(Vendor, Rig.Request());
+        var result = await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request());
 
         var published = Assert.Single(rig.Events.Published);
         Assert.Equal(ListingEventTypes.Published, published.EventType);
@@ -128,7 +128,7 @@ public sealed class ListingOutboxTests
     {
         var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
-        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!;
+        var created = (await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request())).Listing!;
         var expectedId = Guid.Parse(ListingOutboxEntry.IdFor(created.Id, created.Version, ListingEventTypes.Published));
         rig.Events.Fail = false;
 
@@ -149,7 +149,7 @@ public sealed class ListingOutboxTests
     {
         var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
-        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!;
+        var created = (await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request())).Listing!;
         rig.Events.Fail = false;
         var staleRead = await rig.StoredAsync(created.Id);
 
@@ -165,7 +165,7 @@ public sealed class ListingOutboxTests
     public async Task ALowStockEventFromAnAdjustmentIsStoredInTheSameWriteAsTheNewQuantity()
     {
         var rig = await Rig.CreateAsync();
-        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request("Draft", new StockRequest(10, null, 3)))).Listing!;
+        var created = (await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request("Draft", new StockRequest(10, null, 3)))).Listing!;
         rig.Events.Fail = true;
 
         await rig.Service.AdjustStockAsync(created, -8);
@@ -179,7 +179,7 @@ public sealed class ListingOutboxTests
     public async Task ALowStockEventFromAReservationIsStoredInTheSameBatchAsTheDecrement()
     {
         var rig = await Rig.CreateAsync();
-        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request("Published", new StockRequest(10, null, 3)))).Listing!;
+        var created = (await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request("Published", new StockRequest(10, null, 3)))).Listing!;
         rig.Events.Fail = true;
 
         var result = await rig.Reservation.ReserveAsync("order-1", Vendor, [(created.Id, 8)]);
@@ -200,7 +200,7 @@ public sealed class ListingOutboxTests
     {
         var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
-        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request("Published", new StockRequest(10, null, 3)))).Listing!;
+        var created = (await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request("Published", new StockRequest(10, null, 3)))).Listing!;
         await rig.Service.AdjustStockAsync(await rig.StoredAsync(created.Id), -8); // Published at version 1, LowStockDetected at version 2
         rig.Events.Fail = false;
         rig.Events.FailOnlyType = ListingEventTypes.LowStockDetected;
@@ -217,7 +217,7 @@ public sealed class ListingOutboxTests
     {
         var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
-        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!;
+        var created = (await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request())).Listing!;
         rig.Time.Now = rig.Time.Now.AddSeconds(30);
 
         for (var i = 1; i < rig.Options.MaxPublishAttempts; i++) await rig.Relay.SweepOnceAsync(default); // the inline attempt was the first
@@ -257,7 +257,7 @@ public sealed class ListingOutboxTests
         listener.Start();
 
         rig.Events.FailAsTransport = true;
-        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!; // the inline attempt: a broker outage
+        var created = (await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request())).Listing!; // the inline attempt: a broker outage
         rig.Events.FailAsTransport = false;
         rig.Events.Fail = true;
         rig.Time.Now = rig.Time.Now.AddSeconds(30);
@@ -275,7 +275,7 @@ public sealed class ListingOutboxTests
     {
         var rig = await Rig.CreateAsync();
         rig.Events.Fail = true;
-        var created = (await rig.Service.CreateAsync(Vendor, Rig.Request())).Listing!;
+        var created = (await rig.Service.CreateWithNewKeyAsync(Vendor, Rig.Request())).Listing!;
         rig.Time.Now = rig.Time.Now.AddSeconds(30);
         for (var i = 1; i < rig.Options.MaxPublishAttempts; i++) await rig.Relay.SweepOnceAsync(default);
         Assert.NotNull((await rig.StoredAsync(created.Id)).ParkedAt);
