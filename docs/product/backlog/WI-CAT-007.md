@@ -1,4 +1,6 @@
-> **Status:** Ready · decided by the lead 2026-11-18 (the open points below); the screens are `WI-CAT-008`
+> **Status:** In review · evidence: the Outcome note under this banner; `docs/evidence/WI-CAT-007/` · waiting for the lead's decision on register 210 and the review
+
+> **Outcome note (2026-11-18):** built on `feature/register-184-vendor-screens`, not merged. Catalog: listing documents carry `editVersion` (1 on create, moved on only by an edit; a stored document without it reads as 1), the owner's view and single-listing answers carry it (`ETag`), and `PUT` requires `If-Match` (428 missing or unusable, 409 `version_mismatch` with the current version; the retry after a store conflict re-checks it, so a reservation or adjustment in between lets the edit through and another edit does not). The stock block has `mode`; a counted edit keeps the stored quantity and refuses one ("Change the quantity with an adjustment."), each switch is handled, and an edit's block needs a mode (the lead, 2026-11-18). `POST` requires `Idempotency-Key`: the id is a hash of the vendor and the key, the write is create-only, a repeat answers 200 with the listing as it is now and a reuse 422 `idempotency_key_reuse`; the request's fingerprint is stored and never returned. BFF: `myListings`, `myListing` and a `MyListing` type of its own; `createListing`, `updateListing`, `adjustListingStock` with `ListingRejected` codes; mapping only, the catalog's field sentences passed through. Tests: catalog 393 of 393 with Redis and the Cosmos emulator (new: the precondition, the stock modes, the idempotent create, a race of creates on the emulator), BFF 302 (35 new), node gates 21 of 21. The ten security checks of requirement 12 (the role on create and edit, ownership, the owner-only fields in the catalog and in the schema, the version compare, a missing `If-Match`, the BFF sending it, key reuse, the derived id) were each removed in turn and each was caught by failing tests. The real-stack run through the BFF (`scripts/dev/vendor-listing-run.mjs`, 18 steps, all passed) is in `docs/evidence/WI-CAT-007/real-stack-2026-11-18.md`. **Found while building:** requirement 9's premise does not hold for two kinds of catalog sentence (an unknown allergen, a refused tag), which repeat the vendor's value; the run shows it on the real catalog; register 210, for the lead. Register 209 (a tracing test failed once) was opened in the same work. Not done: the screens (`WI-CAT-008`), any run on Azure or with a real identity provider.
 
 ```
 WI ID:                CAT-007
@@ -7,7 +9,7 @@ Type:                 Service Implementation (catalog) and BFF operations
 Epic:                 EPIC-CATALOG
 Shared with epic(s):  EPIC-QUEUE-DISPLAY (the client is the vendor's web app, `WI-CAT-008`)
 Hat/Owner:            Engineering/Build, Architect (the API contract)
-Status:               Ready
+Status:               In review
 Size:                 M
 Verification class:   V3 (state-changing writes by a role, across the BFF and catalog; the browser half is `WI-CAT-008`). The classes are proposed in `docs/process/verification-policy.md` (register item 130); the vendor items follow them as a trial.
 ```
