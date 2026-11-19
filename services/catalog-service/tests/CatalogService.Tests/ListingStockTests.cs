@@ -47,7 +47,7 @@ public sealed class ListingStockTests : IDisposable
     }
 
     private static async Task<ListingDto> CreateAsync(HttpClient vendor, object body) =>
-        await ReadAsync(await vendor.PostAsJsonAsync("/catalog/listings", body));
+        await ReadAsync(await vendor.CreateListingAsync(body));
 
     private static async Task<JsonElement> JsonOf(HttpResponseMessage response) =>
         JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.Clone();
@@ -112,8 +112,8 @@ public sealed class ListingStockTests : IDisposable
     {
         var vendor = await VerifiedVendorAsync();
 
-        var limited = await JsonOf(await vendor.PostAsJsonAsync("/catalog/listings", Body(Stock(quantity: 12, threshold: 3))));
-        var made = await JsonOf(await vendor.PostAsJsonAsync("/catalog/listings", Body()));
+        var limited = await JsonOf(await vendor.CreateListingAsync(Body(Stock(quantity: 12, threshold: 3))));
+        var made = await JsonOf(await vendor.CreateListingAsync(Body()));
 
         Assert.Equal(12, limited.GetProperty("stock").GetProperty("availableQuantity").GetInt32());
         Assert.Equal(3, limited.GetProperty("stock").GetProperty("lowStockThreshold").GetInt32());
@@ -128,7 +128,7 @@ public sealed class ListingStockTests : IDisposable
         var vendor = await VerifiedVendorAsync();
         var created = await CreateAsync(vendor, Body(Stock(quantity: 7, maxPerOrder: 3)));
 
-        var edited = await ReadAsync(await vendor.PutAsJsonAsync($"/catalog/listings/{created.Id}", Body(priceCents: 950)));
+        var edited = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(priceCents: 950)));
 
         Assert.Equal(950, edited.PriceCents);
         Assert.Equal(7, edited.Stock.AvailableQuantity);
@@ -141,12 +141,12 @@ public sealed class ListingStockTests : IDisposable
         var vendor = await VerifiedVendorAsync();
         var created = await CreateAsync(vendor, Body(Stock(quantity: 7, maxPerOrder: 3, threshold: 2)));
 
-        var replaced = await ReadAsync(await vendor.PutAsJsonAsync($"/catalog/listings/{created.Id}", Body(Stock(quantity: 20))));
+        var replaced = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 20))));
         Assert.Equal(20, replaced.Stock.AvailableQuantity);
         Assert.Null(replaced.Stock.MaxPerOrder);
         Assert.Null(replaced.Stock.LowStockThreshold);
 
-        var madeToOrder = await ReadAsync(await vendor.PutAsJsonAsync($"/catalog/listings/{created.Id}", Body(Stock(quantity: null, maxPerOrder: 5))));
+        var madeToOrder = await ReadAsync(await vendor.EditListingAsync(created.Id, Body(Stock(quantity: null, maxPerOrder: 5))));
         Assert.Null(madeToOrder.Stock.AvailableQuantity);
         Assert.Equal(StockStatuses.InStock, madeToOrder.Stock.Status);
         Assert.Equal(5, madeToOrder.Stock.MaxPerOrder);
@@ -166,7 +166,7 @@ public sealed class ListingStockTests : IDisposable
     {
         var vendor = await VerifiedVendorAsync();
 
-        var response = await vendor.PostAsJsonAsync("/catalog/listings", Body(stock));
+        var response = await vendor.CreateListingAsync(Body(stock));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.True((await JsonOf(response)).GetProperty("errors").TryGetProperty(field, out _), field);
@@ -298,14 +298,23 @@ public sealed class ListingStockTests : IDisposable
         var vendor = await VerifiedVendorAsync();
         var created = await CreateAsync(vendor, Body(Stock(quantity: 100)));
 
-        var adjusts = Enumerable.Range(0, 10).Select(_ => Adjust(vendor, created.Id, -1));
-        var edits = Enumerable.Range(0, 10).Select(i => vendor.PutAsJsonAsync($"/catalog/listings/{created.Id}", Body(priceCents: 900 + i)));
-        var responses = await Task.WhenAll(adjusts.Concat(edits));
+        // One vendor editing (each edit names the version it read, WI-CAT-007) while orders and adjustments change the quantity underneath.
+        async Task<HttpResponseMessage[]> EditInTurn()
+        {
+            var answers = new List<HttpResponseMessage>();
+            for (var i = 0; i < 10; i++) answers.Add(await vendor.EditListingAsync(created.Id, Body(priceCents: 900 + i)));
+            return answers.ToArray();
+        }
 
-        Assert.All(responses, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
+        var adjusts = Task.WhenAll(Enumerable.Range(0, 10).Select(_ => Adjust(vendor, created.Id, -1)));
+        var edits = EditInTurn();
+        var responses = (await adjusts).Concat(await edits).ToList();
+
+        Assert.All(responses, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode)); // an adjustment never makes an edit stale
         var stored = (await _factory.Listings.GetAsync(created.Id, _vendor))!;
         Assert.Equal(90, stored.AvailableQuantity); // an edit that names no stock block keeps the counter
-        Assert.InRange(stored.PriceCents, 900, 909);
+        Assert.Equal(909, stored.PriceCents);
+        Assert.Equal(11, stored.EditVersion);
     }
 
     // ---- LowStockDetected ----------------------------------------------------------------------
@@ -351,8 +360,8 @@ public sealed class ListingStockTests : IDisposable
         var created = await CreateAsync(vendor, Body(Stock(quantity: 2)));
         Assert.Empty(events); // created already low: no transition happened
 
-        await vendor.PutAsJsonAsync($"/catalog/listings/{created.Id}", Body(Stock(quantity: 40)));
-        await vendor.PutAsJsonAsync($"/catalog/listings/{created.Id}", Body(Stock(quantity: 3)));
+        await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 40)));
+        await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 3)));
 
         Assert.Single(events);
     }
@@ -364,7 +373,7 @@ public sealed class ListingStockTests : IDisposable
         var vendor = await VerifiedVendorAsync();
         var created = await CreateAsync(vendor, Body(Stock(quantity: 8, threshold: 3)));
 
-        await vendor.PutAsJsonAsync($"/catalog/listings/{created.Id}", Body(Stock(quantity: 8, threshold: 10)));
+        await vendor.EditListingAsync(created.Id, Body(Stock(quantity: 8, threshold: 10)));
 
         Assert.Single(events);
     }

@@ -35,7 +35,7 @@ public sealed class StockReservationTests : IDisposable, IAsyncLifetime
 
     private async Task<ListingDto> ListingAsync(int? quantity, int? maxPerOrder = null, int? threshold = null, string status = "Published")
     {
-        var response = await _vendorClient.PostAsJsonAsync("/catalog/listings", new
+        var response = await _vendorClient.CreateListingAsync(new
         {
             name = "Country Sourdough",
             category = "Bread",
@@ -239,7 +239,7 @@ public sealed class StockReservationTests : IDisposable, IAsyncLifetime
     {
         var item = await ListingAsync(5);
         await Post(Reserve("order-12", _vendor, (item.Id, 2)));
-        await _vendorClient.PutAsJsonAsync($"/catalog/listings/{item.Id}", new
+        await _vendorClient.EditListingAsync(item.Id, new
         {
             name = "Country Sourdough",
             category = "Bread",

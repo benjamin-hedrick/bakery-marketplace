@@ -94,7 +94,7 @@ public sealed class TagAssignmentApiTests : IDisposable
 
     private static async Task<string> CreateAsync(HttpClient client, object body)
     {
-        var response = await client.PostAsJsonAsync("/catalog/listings", body);
+        var response = await client.CreateListingAsync(body);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return (await JsonOf(response)).GetProperty("id").GetString()!;
     }
@@ -133,7 +133,7 @@ public sealed class TagAssignmentApiTests : IDisposable
     {
         var vendor = await VendorAsync();
 
-        var response = await vendor.PostAsJsonAsync("/catalog/listings", Body(["vegan", tag]));
+        var response = await vendor.CreateListingAsync(Body(["vegan", tag]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         var errors = (await JsonOf(response)).GetProperty("errors");
@@ -146,7 +146,7 @@ public sealed class TagAssignmentApiTests : IDisposable
     {
         var vendor = await VendorAsync();
 
-        var response = await vendor.PostAsJsonAsync("/catalog/listings", Body(["vegan"], ["vegan", "staff-pick"]));
+        var response = await vendor.CreateListingAsync(Body(["vegan"], ["vegan", "staff-pick"]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.True((await JsonOf(response)).GetProperty("errors").TryGetProperty("modifiers[0].tags[1]", out _));
@@ -177,11 +177,11 @@ public sealed class TagAssignmentApiTests : IDisposable
     {
         var vendor = await VendorAsync(Host(o => { o.MaxPerListing = 2; o.MaxPerOption = 1; }));
 
-        var tooManyOnListing = await vendor.PostAsJsonAsync("/catalog/listings", Body(["vegan", "vegetarian", "local"]));
+        var tooManyOnListing = await vendor.CreateListingAsync(Body(["vegan", "vegetarian", "local"]));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, tooManyOnListing.StatusCode);
         Assert.Equal("At most 2 tags.", (await JsonOf(tooManyOnListing)).GetProperty("errors").GetProperty("tags")[0].GetString());
 
-        var tooManyOnOption = await vendor.PostAsJsonAsync("/catalog/listings", Body(["vegan"], ["vegan", "vegetarian"]));
+        var tooManyOnOption = await vendor.CreateListingAsync(Body(["vegan"], ["vegan", "vegetarian"]));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, tooManyOnOption.StatusCode);
         Assert.Equal("At most 1 tags.", (await JsonOf(tooManyOnOption)).GetProperty("errors").GetProperty("modifiers[0].tags")[0].GetString());
 
@@ -196,8 +196,8 @@ public sealed class TagAssignmentApiTests : IDisposable
         var vendor = await VendorAsync(Host(null, $$"""{ "tags": [ {{many}} ] }"""));
         var ids = Enumerable.Range(1, 13).Select(i => $"d{i:00}").ToArray();
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await vendor.PostAsJsonAsync("/catalog/listings", Body(ids))).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await vendor.PostAsJsonAsync("/catalog/listings", Body(ids.Take(12).ToArray()))).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await vendor.CreateListingAsync(Body(ids))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await vendor.CreateListingAsync(Body(ids.Take(12).ToArray()))).StatusCode);
     }
 
     // ---- update semantics -----------------------------------------------------------------------------------
@@ -208,13 +208,13 @@ public sealed class TagAssignmentApiTests : IDisposable
         var vendor = await VendorAsync();
         var id = await CreateAsync(vendor, Body(["vegan"], ["vegan"]));
 
-        var untouched = await vendor.PutAsJsonAsync($"/catalog/listings/{id}", Body(omitTags: true));
+        var untouched = await vendor.EditListingAsync(id, Body(omitTags: true));
         Assert.Equal(HttpStatusCode.OK, untouched.StatusCode);
         var own = await JsonOf(untouched);
         Assert.Equal(["vegan"], Ids(own.GetProperty("tags")));
         Assert.Equal(["vegan"], Ids(own.GetProperty("modifiers")[0].GetProperty("tags"))); // the option's too, as the request named none
 
-        var cleared = await JsonOf(await vendor.PutAsJsonAsync($"/catalog/listings/{id}", Body([], []))); // both lists explicit and empty
+        var cleared = await JsonOf(await vendor.EditListingAsync(id, Body([], []))); // both lists explicit and empty
         Assert.Empty(cleared.GetProperty("tags").EnumerateArray());
         Assert.Empty(cleared.GetProperty("modifiers")[0].GetProperty("tags").EnumerateArray());
     }
@@ -230,7 +230,7 @@ public sealed class TagAssignmentApiTests : IDisposable
         await Repo.SaveAsync(doc, _vendor);
 
         // A vendor tries to set platform tags by name in the body, then updates normally, then clears their own tags.
-        await vendor.PutAsJsonAsync($"/catalog/listings/{id}", new
+        await vendor.EditListingAsync(id, new
         {
             name = "Loaf",
             category = "bread",
@@ -240,7 +240,7 @@ public sealed class TagAssignmentApiTests : IDisposable
             platformTags = new[] { "local" },
             modifiers = new[] { new { id = "mod-seeds", name = "Seed crust", priceDeltaCents = 100, allergens = Array.Empty<string>(), platformTags = new[] { "local" } } },
         });
-        await vendor.PutAsJsonAsync($"/catalog/listings/{id}", Body([], []));
+        await vendor.EditListingAsync(id, Body([], []));
 
         var stored = (await Repo.GetAsync(id, _vendor))!;
         Assert.Equal(["staff-pick", "featured"], stored.PlatformTags);
@@ -329,7 +329,7 @@ public sealed class TagAssignmentApiTests : IDisposable
         other.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _factory.Token("vendor-other", "Vendor"));
 
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/catalog/listings/mine/{id}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await other.PutAsJsonAsync($"/catalog/listings/{id}", Body([]))).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.EditListingAsync(id, Body([]))).StatusCode);
         Assert.Equal(["vegan"], Ids((await OwnAsync(vendor, id)).GetProperty("tags")));
     }
 }

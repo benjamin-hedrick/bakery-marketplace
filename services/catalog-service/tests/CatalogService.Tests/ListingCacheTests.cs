@@ -278,7 +278,7 @@ public sealed class ListingCacheTests
         var created = await rig.CreateListingAsync();
         await rig.BrowseAsync();
 
-        await rig.Service.UpdateAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950));
+        await rig.Service.EditAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950));
 
         Assert.Equal(950, (await rig.BrowseAsync()).Single().PriceCents);
     }
@@ -290,10 +290,10 @@ public sealed class ListingCacheTests
         var created = await rig.CreateListingAsync(status: "Draft");
         Assert.Empty(await rig.BrowseAsync()); // a draft is never served, and the empty answer is now cached
 
-        await rig.Service.UpdateAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(status: "Published"));
+        await rig.Service.EditAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(status: "Published"));
         Assert.Single(await rig.BrowseAsync());
 
-        await rig.Service.UpdateAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(status: "Draft"));
+        await rig.Service.EditAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(status: "Draft"));
         Assert.Empty(await rig.BrowseAsync());
         Assert.Null(await rig.Service.GetPublicAsync(created.Id));
     }
@@ -431,7 +431,7 @@ public sealed class ListingCacheTests
 
         var stale = rig.BrowseAsync(); // reads 800, then is held
         await WaitUntilAsync(() => rig.Listings.Queries == held);
-        await rig.Service.UpdateAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950)); // the write
+        await rig.Service.EditAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950)); // the write
         gate.SetResult();
 
         Assert.Equal(800, (await stale).Single().PriceCents); // the caller that was already waiting gets what the load read
@@ -450,7 +450,7 @@ public sealed class ListingCacheTests
 
         var stale = rig.BrowseAsync();
         await WaitUntilAsync(() => rig.Listings.Queries == held);
-        await rig.Service.UpdateAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950));
+        await rig.Service.EditAsync((await rig.Listings.GetAsync(created.Id, Vendor))!, Rig.Request(priceCents: 950));
         var fresh = await rig.BrowseAsync().WaitAsync(TimeSpan.FromSeconds(5)); // starts its own load; the held one is still held (a join would wait here)
 
         Assert.Equal(950, fresh.Single().PriceCents);
@@ -490,7 +490,7 @@ public sealed class ListingCacheTests
         Assert.Equal([published.Id], page.Select(l => l.Id));
         Assert.NotNull(await rig.Service.GetPublicAsync(published.Id));
         // Writes and the verification change succeed although their invalidation fails.
-        await rig.Service.UpdateAsync((await rig.Listings.GetAsync(published.Id, Vendor))!, Rig.Request(priceCents: 900));
+        await rig.Service.EditAsync((await rig.Listings.GetAsync(published.Id, Vendor))!, Rig.Request(priceCents: 900));
         await rig.Vendors.ApplyAsync(Vendor, verified: false, sequence: 2, DateTimeOffset.UnixEpoch);
         Assert.Empty(await rig.BrowseAsync());
     }

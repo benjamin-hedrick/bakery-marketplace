@@ -146,7 +146,7 @@ public sealed class TagApiTests : IDisposable
     [InlineData("  tree-nut  ")]
     public async Task A_known_allergen_is_accepted_however_it_is_cased_or_padded(string flag)
     {
-        var response = await Vendor().PostAsJsonAsync("/catalog/listings", Listing([flag], [flag]));
+        var response = await Vendor().CreateListingAsync(Listing([flag], [flag]));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await JsonOf(response);
@@ -162,7 +162,7 @@ public sealed class TagApiTests : IDisposable
     [InlineData("vegan")]      // a tag, but not an allergen
     public async Task An_allergen_that_is_not_in_the_list_is_refused_naming_the_value_and_the_allowed_ids(string flag)
     {
-        var response = await Vendor().PostAsJsonAsync("/catalog/listings", Listing([flag]));
+        var response = await Vendor().CreateListingAsync(Listing([flag]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         var body = await JsonOf(response);
@@ -176,7 +176,7 @@ public sealed class TagApiTests : IDisposable
     [Fact]
     public async Task An_option_allergen_outside_the_list_is_refused_with_the_option_named()
     {
-        var response = await Vendor().PostAsJsonAsync("/catalog/listings", Listing(optionAllergens: ["almonds"]));
+        var response = await Vendor().CreateListingAsync(Listing(optionAllergens: ["almonds"]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         var errors = (await JsonOf(response)).GetProperty("errors");
@@ -186,11 +186,11 @@ public sealed class TagApiTests : IDisposable
     [Fact]
     public async Task An_update_is_held_to_the_same_list()
     {
-        var created = await JsonOf(await Vendor().PostAsJsonAsync("/catalog/listings", Listing()));
-        var id = created.GetProperty("id").GetString();
+        var created = await JsonOf(await Vendor().CreateListingAsync(Listing()));
+        var id = created.GetProperty("id").GetString()!;
 
-        var bad = await Vendor().PutAsJsonAsync($"/catalog/listings/{id}", Listing(["nuts"]));
-        var good = await Vendor().PutAsJsonAsync($"/catalog/listings/{id}", Listing(["tree-nut"]));
+        var bad = await Vendor().EditListingAsync(id, Listing(["nuts"]));
+        var good = await Vendor().EditListingAsync(id, Listing(["tree-nut"]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, bad.StatusCode);
         Assert.Equal(HttpStatusCode.OK, good.StatusCode);
@@ -205,8 +205,8 @@ public sealed class TagApiTests : IDisposable
         await _factory.Listings.SaveAsync(old, _vendor);
 
         var read = await _factory.CreateClient().GetAsync("/catalog/listings/listing-old");
-        var update = await Vendor().PutAsJsonAsync("/catalog/listings/listing-old", Listing(["tree nuts"]));
-        var corrected = await Vendor().PutAsJsonAsync("/catalog/listings/listing-old", Listing(["tree-nut"]));
+        var update = await Vendor().EditListingAsync("listing-old", Listing(["tree nuts"]));
+        var corrected = await Vendor().EditListingAsync("listing-old", Listing(["tree-nut"]));
 
         Assert.Equal(HttpStatusCode.OK, read.StatusCode);
         Assert.Equal(["tree nuts", "nuts"], (await JsonOf(read)).GetProperty("allergenFlags").EnumerateArray().Select(e => e.GetString()).ToArray());
@@ -217,7 +217,7 @@ public sealed class TagApiTests : IDisposable
     [Fact]
     public async Task A_value_that_is_also_structurally_bad_is_reported_once()
     {
-        var response = await Vendor().PostAsJsonAsync("/catalog/listings", Listing([new string('x', 41)]));
+        var response = await Vendor().CreateListingAsync(Listing([new string('x', 41)]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         var messages = (await JsonOf(response)).GetProperty("errors").GetProperty("allergenFlags").EnumerateArray().Select(e => e.GetString()!).ToArray();

@@ -35,7 +35,7 @@ public sealed class ListingCacheConfigTests
         await factory.VerifyVendorAsync(vendor, sequence: 1);
         var owner = factory.ClientFor(vendor, "Vendor");
         var anon = factory.CreateClient();
-        var created = await owner.PostAsJsonAsync("/catalog/listings", new { name = "Country Sourdough", category = "Bread", priceCents = 800, status = "Published" });
+        var created = await owner.CreateListingAsync(new { name = "Country Sourdough", category = "Bread", priceCents = 800, status = "Published" });
         Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync());
         var id = JsonDocument.Parse(await created.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString()!;
 

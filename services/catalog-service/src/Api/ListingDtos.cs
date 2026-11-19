@@ -46,12 +46,14 @@ public sealed record ListingDto(
     StockDto Stock,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    IReadOnlyList<ListingTagDto> Tags)
+    IReadOnlyList<ListingTagDto> Tags,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    long? EditVersion = null)
 {
-    /// <summary>The public view: a stock status, never the exact count.</summary>
+    /// <summary>The public view: a stock status, never the exact count, and no edit version.</summary>
     public static ListingDto From(ListingDocument d, TagProjector tags) => Build(d, owner: false, tags);
 
-    /// <summary>The owning vendor's view: also the exact quantity and the low-stock threshold.</summary>
+    /// <summary>The owning vendor's view: also the exact quantity, the low-stock threshold and the edit version an edit must name (WI-CAT-007).</summary>
     public static ListingDto ForOwner(ListingDocument d, TagProjector tags) => Build(d, owner: true, tags);
 
     private static ListingDto Build(ListingDocument d, bool owner, TagProjector tags) => new(
@@ -62,7 +64,8 @@ public sealed record ListingDto(
         new StockDto(StockPolicy.StatusOf(d), d.MaxPerOrder,
             owner ? d.AvailableQuantity : null, owner ? d.LowStockThreshold : null),
         d.CreatedAt, d.UpdatedAt,
-        owner ? tags.Owner(d.Tags) : tags.Public(d.Tags, d.PlatformTags));
+        owner ? tags.Owner(d.Tags) : tags.Public(d.Tags, d.PlatformTags),
+        owner ? d.EditVersion : null);
 }
 
 /// <summary>
@@ -81,3 +84,6 @@ public sealed record ListingPage(IReadOnlyList<ListingDto> Items, string? NextCu
 
 /// <summary>Stable, client-safe error body: a machine-readable code plus optional per-field messages.</summary>
 public sealed record ApiError(string Code, string Message, IReadOnlyDictionary<string, string[]>? Errors = null);
+
+/// <summary>The answer to an edit whose <c>If-Match</c> names an edit version that is no longer current (409 <c>version_mismatch</c>, WI-CAT-007).</summary>
+public sealed record VersionMismatchError(string Code, string Message, long CurrentEditVersion);

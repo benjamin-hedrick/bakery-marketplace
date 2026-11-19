@@ -64,6 +64,13 @@ public sealed class ListingDocument : IETagged
     [JsonProperty("version")] public long Version { get; set; }
 
     /// <summary>
+    /// The edit version (WI-CAT-007, register 208): 1 on create, incremented only by a vendor's edit (<c>PUT</c>), and the value an edit's
+    /// <c>If-Match</c> must name. <see cref="Version"/> cannot serve: every reservation, release and adjustment increments it, so a vendor's open form
+    /// would be stale after every sale. A document stored before the field existed has none and reads as 1 (the initial value is kept).
+    /// </summary>
+    [JsonProperty("editVersion")] public long EditVersion { get; set; } = 1;
+
+    /// <summary>
     /// Units available to sell (ADR-0017). Absent means made to order: always orderable, never reserved. A number means limited
     /// stock, tracked and enforced; it is a running counter, not tied to a day or window.
     /// </summary>

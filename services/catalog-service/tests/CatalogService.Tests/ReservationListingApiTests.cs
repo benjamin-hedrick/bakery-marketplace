@@ -132,7 +132,7 @@ public sealed class ReservationListingApiTests : IDisposable
     {
         var vendor = $"vendor-{Guid.NewGuid():N}";
         await _factory.VerifyVendorAsync(vendor);
-        var created = await _factory.ClientFor(vendor, "Vendor").PostAsJsonAsync("/catalog/listings", new
+        var created = await _factory.ClientFor(vendor, "Vendor").CreateListingAsync(new
         {
             name = "Loaf",
             category = "Bread",
