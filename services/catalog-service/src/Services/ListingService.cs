@@ -7,7 +7,7 @@ using CatalogService.Tags;
 
 namespace CatalogService.Services;
 
-public enum ListingOutcome { Ok, Created, NotFound, Invalid, VendorNotVerified, Conflict, MadeToOrder, InsufficientStock }
+public enum ListingOutcome { Ok, Created, NotFound, Invalid, VendorNotVerified, Conflict, MadeToOrder, InsufficientStock, VersionMismatch }
 
 public sealed record ListingResult(ListingOutcome Outcome, ListingDocument? Listing = null, Dictionary<string, string[]>? Errors = null);
 
@@ -175,14 +175,22 @@ public sealed class ListingService
         return new ListingResult(ListingOutcome.Created, doc);
     }
 
+    /// <summary>
+    /// An edit (WI-CAT-007): applied only while the listing's edit version is still <paramref name="expectedEditVersion"/>, the one the vendor's
+    /// form was read at; otherwise <see cref="ListingOutcome.VersionMismatch"/> with the stored listing, and nothing written. The check runs again
+    /// on the fresh copy after a store conflict, so a reservation or an adjustment in between (they change only the quantity and never the edit
+    /// version) lets the edit through, and another edit does not.
+    /// </summary>
     public async Task<ListingResult> UpdateAsync(
-        ListingDocument existing, ListingRequest request, CancellationToken ct = default)
+        ListingDocument existing, long expectedEditVersion, ListingRequest request, CancellationToken ct = default)
     {
         var errors = ListingValidator.Validate(request, statusRequired: false, _tags.VendorAllergenIds, _tags, _tagLimits);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 
         for (var attempt = 0; attempt < MaxSaveAttempts; attempt++)
         {
+            if (existing.EditVersion != expectedEditVersion) return new ListingResult(ListingOutcome.VersionMismatch, existing);
+
             var wasPublished = existing.Status == ListingStatuses.Published;
             var wasLowOrOut = StockPolicy.IsLowOrOut(existing);
             var newStatus = request.Status ?? existing.Status;
@@ -195,6 +203,7 @@ public sealed class ListingService
 
             existing.Status = newStatus;
             Apply(existing, request, _time.GetUtcNow());
+            existing.EditVersion++;
             if (!wasPublished && existing.Status == ListingStatuses.Published) _events.Raise(existing, ListingEventTypes.Published);
             if (!wasLowOrOut && StockPolicy.IsLowOrOut(existing)) _events.Raise(existing, ListingEventTypes.LowStockDetected);
             var saved = await _listings.SaveIfUnchangedAsync(existing, existing.VendorId, ct);
@@ -206,7 +215,8 @@ public sealed class ListingService
             }
 
             // Someone (an order, an adjustment, another edit) changed the listing after it was read. The edit is a replacement of
-            // the fields it names, so applying it again to the fresh copy is correct, and keeps stock the request did not mention.
+            // the fields it names, so applying it again to the fresh copy is correct, and keeps stock the request did not mention;
+            // another edit has moved the edit version on, which the check at the top of the loop refuses.
             var fresh = await _listings.GetAsync(existing.Id, existing.VendorId, ct);
             if (fresh is null) return new ListingResult(ListingOutcome.NotFound);
             existing = fresh;

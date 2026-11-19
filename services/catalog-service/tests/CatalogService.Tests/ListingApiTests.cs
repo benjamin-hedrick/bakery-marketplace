@@ -152,19 +152,19 @@ public sealed class ListingApiTests : IDisposable
     [Fact]
     public async Task Writes_require_a_valid_token()
     {
-        Assert.Equal(HttpStatusCode.Unauthorized, (await _anon.PostAsJsonAsync("/catalog/listings", ValidListing())).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _anon.CreateListingAsync(ValidListing())).StatusCode);
 
         var expired = _factory.CreateClient();
         expired.DefaultRequestHeaders.Authorization = new("Bearer", _factory.Token(_vendor, "Vendor", lifetime: TimeSpan.FromMinutes(-10)));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await expired.PostAsJsonAsync("/catalog/listings", ValidListing())).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await expired.CreateListingAsync(ValidListing())).StatusCode);
 
         var forged = _factory.CreateClient();
         forged.DefaultRequestHeaders.Authorization = new("Bearer", _factory.Token(_vendor, "Vendor", wrongKey: true));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await forged.PostAsJsonAsync("/catalog/listings", ValidListing())).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await forged.CreateListingAsync(ValidListing())).StatusCode);
 
         var wrongAudience = _factory.CreateClient();
         wrongAudience.DefaultRequestHeaders.Authorization = new("Bearer", _factory.Token(_vendor, "Vendor", audience: "someone-else"));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await wrongAudience.PostAsJsonAsync("/catalog/listings", ValidListing())).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await wrongAudience.CreateListingAsync(ValidListing())).StatusCode);
     }
 
     [Theory]
@@ -173,8 +173,8 @@ public sealed class ListingApiTests : IDisposable
     public async Task Writes_require_the_vendor_role(string role)
     {
         var client = _factory.ClientFor("someone", role);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/catalog/listings", ValidListing())).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.PutAsJsonAsync("/catalog/listings/any", ValidListing())).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.CreateListingAsync(ValidListing())).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.EditListingAsync("any", ValidListing())).StatusCode);
     }
 
     // ---- vendor writes: create ----------------------------------------------------------------
@@ -195,7 +195,7 @@ public sealed class ListingApiTests : IDisposable
             status = (string?)null,
         };
 
-        var response = await client.PostAsJsonAsync("/catalog/listings", body);
+        var response = await client.CreateListingAsync(body);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = (await response.Content.ReadFromJsonAsync<ListingDto>())!;
@@ -222,12 +222,12 @@ public sealed class ListingApiTests : IDisposable
     {
         var client = _factory.ClientFor(_vendor, "Vendor");
 
-        var rejected = await client.PostAsJsonAsync("/catalog/listings", ValidListing(status: "Published"));
+        var rejected = await client.CreateListingAsync(ValidListing(status: "Published"));
         Assert.Equal(HttpStatusCode.Conflict, rejected.StatusCode);
         Assert.Equal("vendor_not_verified", (await rejected.Content.ReadFromJsonAsync<ApiError>())!.Code);
 
         await _factory.VerifyVendorAsync(_vendor);
-        var accepted = await client.PostAsJsonAsync("/catalog/listings", ValidListing(status: "Published"));
+        var accepted = await client.CreateListingAsync(ValidListing(status: "Published"));
         Assert.Equal(HttpStatusCode.Created, accepted.StatusCode);
         var listing = (await accepted.Content.ReadFromJsonAsync<ListingDto>())!;
         Assert.Equal(HttpStatusCode.OK, (await _anon.GetAsync($"/catalog/listings/{listing.Id}")).StatusCode);
@@ -245,8 +245,8 @@ public sealed class ListingApiTests : IDisposable
         var draft = await CreateAsync(ValidListing(), client);
         Assert.Empty(events); // drafts publish nothing
 
-        await client.PutAsJsonAsync($"/catalog/listings/{draft.Id}", ValidListing(status: "Published"));
-        await client.PutAsJsonAsync($"/catalog/listings/{draft.Id}", ValidListing(status: "Published", priceCents: 900)); // edit, not a transition
+        await client.EditListingAsync(draft.Id, ValidListing(status: "Published"));
+        await client.EditListingAsync(draft.Id, ValidListing(status: "Published", priceCents: 900)); // edit, not a transition
 
         var e = Assert.Single(events);
         Assert.Equal(draft.Id, e.Payload.ListingId);
@@ -262,7 +262,7 @@ public sealed class ListingApiTests : IDisposable
     {
         var client = _factory.ClientFor(_vendor, "Vendor");
 
-        var response = await client.PostAsJsonAsync("/catalog/listings", body);
+        var response = await client.CreateListingAsync(body);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         var error = (await response.Content.ReadFromJsonAsync<ApiError>())!;
@@ -292,7 +292,7 @@ public sealed class ListingApiTests : IDisposable
         var client = _factory.ClientFor(_vendor, "Vendor");
         var created = await CreateAsync(ValidListing(), client);
 
-        var response = await client.PutAsJsonAsync($"/catalog/listings/{created.Id}",
+        var response = await client.EditListingAsync(created.Id,
             new { name = "Rye Loaf", category = "Bread", priceCents = 950, status = (string?)null });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -311,8 +311,8 @@ public sealed class ListingApiTests : IDisposable
         var created = await CreateAsync(ValidListing(), owner);
         var intruder = _factory.ClientFor($"vendor-{Guid.NewGuid():N}", "Vendor");
 
-        var attempt = await intruder.PutAsJsonAsync($"/catalog/listings/{created.Id}", ValidListing(priceCents: 1));
-        var missing = await intruder.PutAsJsonAsync("/catalog/listings/listing-nope", ValidListing());
+        var attempt = await intruder.EditListingAsync(created.Id, ValidListing(priceCents: 1));
+        var missing = await intruder.EditListingAsync("listing-nope", ValidListing());
 
         Assert.Equal(HttpStatusCode.NotFound, attempt.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
@@ -327,8 +327,8 @@ public sealed class ListingApiTests : IDisposable
         var shop = _factory.ClientFor(MockUsers.ShopVendor.Id, MockUsers.ShopVendor.Role);
         var indie = _factory.ClientFor(MockUsers.IndependentVendor.Id, MockUsers.IndependentVendor.Role);
 
-        var own = await shop.PutAsJsonAsync("/catalog/listings/listing-sourdough-001", ValidListing(status: "Published", priceCents: 850));
-        var other = await indie.PutAsJsonAsync("/catalog/listings/listing-sourdough-001", ValidListing(priceCents: 1));
+        var own = await shop.EditListingAsync("listing-sourdough-001", ValidListing(status: "Published", priceCents: 850));
+        var other = await indie.EditListingAsync("listing-sourdough-001", ValidListing(priceCents: 1));
 
         Assert.Equal(HttpStatusCode.OK, own.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, other.StatusCode);
@@ -345,10 +345,10 @@ public sealed class ListingApiTests : IDisposable
 
         await _factory.SuspendVendorAsync(_vendor, 2);
 
-        var blocked = await client.PutAsJsonAsync($"/catalog/listings/{draft.Id}", ValidListing(status: "Published"));
+        var blocked = await client.EditListingAsync(draft.Id, ValidListing(status: "Published"));
         Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
 
-        var unpublish = await client.PutAsJsonAsync($"/catalog/listings/{published.Id}", ValidListing(status: "Draft"));
+        var unpublish = await client.EditListingAsync(published.Id, ValidListing(status: "Draft"));
         Assert.Equal(HttpStatusCode.OK, unpublish.StatusCode);
         Assert.Equal(ListingStatuses.Draft, (await _factory.Listings.GetAsync(published.Id, _vendor))!.Status);
     }
@@ -358,7 +358,7 @@ public sealed class ListingApiTests : IDisposable
     private async Task<ListingDto> CreateAsync(object body, HttpClient? client = null)
     {
         client ??= _factory.ClientFor(_vendor, "Vendor");
-        var response = await client.PostAsJsonAsync("/catalog/listings", body);
+        var response = await client.CreateListingAsync(body);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<ListingDto>())!;
     }

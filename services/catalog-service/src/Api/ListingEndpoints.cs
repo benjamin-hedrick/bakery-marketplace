@@ -57,34 +57,37 @@ public static class ListingEndpoints
             return Results.Ok(new ListingPage(items.Select(l => ListingDto.ForOwner(l, tags)).ToList(), next));
         }).RequireAuthorization("VendorRole");
 
-        group.MapGet("/mine/{id}", async (string id, ClaimsPrincipal user, ListingService svc, TagProjector tags, CancellationToken ct) =>
+        group.MapGet("/mine/{id}", async (string id, ClaimsPrincipal user, ListingService svc, TagProjector tags, HttpContext http, CancellationToken ct) =>
         {
             var vendorId = user.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
             var listing = await svc.GetOwnAsync(id, vendorId, ct);
-            return listing is null ? NotFound() : Results.Ok(ListingDto.ForOwner(listing, tags));
+            return listing is null ? NotFound() : Owner(http, listing, tags);
         }).RequireAuthorization("VendorRole");
 
         // Vendor writes: Vendor role (coarse) + resource ownership (ADR-0006). The vendor id always comes from the token.
-        group.MapPost("/", async (ListingRequest request, ClaimsPrincipal user, ListingService svc, TagProjector tags, CancellationToken ct) =>
+        group.MapPost("/", async (ListingRequest request, ClaimsPrincipal user, ListingService svc, TagProjector tags, HttpContext http, CancellationToken ct) =>
         {
             var vendorId = user.SubjectId();
             if (vendorId is null) return Results.Unauthorized();
 
             var result = await svc.CreateAsync(vendorId, request, ct);
-            return result.Outcome switch
-            {
-                ListingOutcome.Created => Results.Created($"/catalog/listings/{result.Listing!.Id}", ListingDto.ForOwner(result.Listing, tags)),
-                _ => ToError(result),
-            };
+            if (result.Outcome != ListingOutcome.Created) return ToError(result);
+            http.Response.Headers.ETag = EditVersionHeader.Format(result.Listing!.EditVersion);
+            return Results.Created($"/catalog/listings/{result.Listing.Id}", ListingDto.ForOwner(result.Listing, tags));
         }).RequireAuthorization("VendorRole");
 
+        // An edit names the edit version its form was read at (If-Match, WI-CAT-007, register 208): without one it is refused (428), and when the
+        // listing has been edited since it is refused (409 version_mismatch, with the current version) and nothing is written.
         group.MapPut("/{id}", async (
             string id, ListingRequest request, ClaimsPrincipal user,
-            ListingService svc, IAuthorizationService authz, TagProjector tags, CancellationToken ct) =>
+            ListingService svc, IAuthorizationService authz, TagProjector tags, HttpContext http, CancellationToken ct) =>
         {
             var callerId = user.SubjectId();
             if (callerId is null) return Results.Unauthorized();
+
+            var ifMatch = http.Request.Headers.IfMatch;
+            if (EditVersionHeader.Parse(ifMatch.Count == 1 ? ifMatch[0] : null) is not { } expected) return PreconditionRequired();
 
             // Looked up in the caller's own partition: another vendor's listing is indistinguishable from a missing one.
             var existing = await svc.GetOwnAsync(id, callerId, ct);
@@ -95,14 +98,14 @@ public static class ListingEndpoints
                 user, new ListingResource(existing.Id, existing.VendorId), new ResourceOwnershipRequirement("Vendor"));
             if (!auth.Succeeded) return Results.Forbid();
 
-            var result = await svc.UpdateAsync(existing, request, ct);
-            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.ForOwner(result.Listing!, tags)) : ToError(result);
+            var result = await svc.UpdateAsync(existing, expected, request, ct);
+            return result.Outcome == ListingOutcome.Ok ? Owner(http, result.Listing!, tags) : ToError(result);
         }).RequireAuthorization("VendorRole");
 
         // Increment or decrement the quantity of a limited-stock listing (ADR-0017). Same ownership rules as an edit.
         group.MapPost("/{id}/stock/adjust", async (
             string id, StockAdjustRequest request, ClaimsPrincipal user,
-            ListingService svc, IAuthorizationService authz, TagProjector tags, CancellationToken ct) =>
+            ListingService svc, IAuthorizationService authz, TagProjector tags, HttpContext http, CancellationToken ct) =>
         {
             var callerId = user.SubjectId();
             if (callerId is null) return Results.Unauthorized();
@@ -118,7 +121,7 @@ public static class ListingEndpoints
             if (!auth.Succeeded) return Results.Forbid();
 
             var result = await svc.AdjustStockAsync(existing, request.Delta!.Value, ct);
-            return result.Outcome == ListingOutcome.Ok ? Results.Ok(ListingDto.ForOwner(result.Listing!, tags)) : ToError(result);
+            return result.Outcome == ListingOutcome.Ok ? Owner(http, result.Listing!, tags) : ToError(result);
         }).RequireAuthorization("VendorRole");
 
         return app;
@@ -126,6 +129,17 @@ public static class ListingEndpoints
 
     private static IResult NotFound() =>
         Results.Json(new ApiError("not_found", "Listing not found."), statusCode: StatusCodes.Status404NotFound);
+
+    /// <summary>One listing in its owner's view, with its edit version as the ETag an edit names in If-Match.</summary>
+    private static IResult Owner(HttpContext http, ListingDocument listing, TagProjector tags)
+    {
+        http.Response.Headers.ETag = EditVersionHeader.Format(listing.EditVersion);
+        return Results.Ok(ListingDto.ForOwner(listing, tags));
+    }
+
+    private static IResult PreconditionRequired() => Results.Json(
+        new ApiError("precondition_required", "An edit needs an If-Match header with the listing's edit version. Reload the listing and try again."),
+        statusCode: StatusCodes.Status428PreconditionRequired);
 
     private static IResult ToError(ListingResult r) => r.Outcome switch
     {
@@ -139,6 +153,9 @@ public static class ListingEndpoints
             statusCode: StatusCodes.Status409Conflict),
         ListingOutcome.InsufficientStock => Results.Json(
             new ApiError("insufficient_stock", "The quantity cannot go below zero."), statusCode: StatusCodes.Status409Conflict),
+        ListingOutcome.VersionMismatch => Results.Json(
+            new VersionMismatchError("version_mismatch", "The listing was edited since it was read. Reload it and try again.", r.Listing!.EditVersion),
+            statusCode: StatusCodes.Status409Conflict),
         ListingOutcome.Conflict => Results.Json(
             new ApiError("conflict", "The listing was changed by another request. Reload it and try again."),
             statusCode: StatusCodes.Status409Conflict),
