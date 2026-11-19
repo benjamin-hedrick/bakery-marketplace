@@ -21,7 +21,7 @@ Everything below runs on a developer machine (Docker Compose for Redis Streams, 
 
 ## In flight
 
-- **`feature/register-184-vendor-screens`**: register 199 closed (the picomatch advisory was withdrawn), the cache invalidation gap (register 184), and the specs of the vendor's listing and stock screens (`WI-CAT-007`, `CAT-008`). `WI-CAT-007` (catalog and BFF) is built and In review (register 208 resolved; register 210 open for the lead); `WI-CAT-008` (the screens) is next on the same branch. (`feature/hardening-followups`, registers 200, 202 to 207, 66, 74 and 166, merged 2026-11-18.)
+- **`feature/register-184-vendor-screens`**: register 199 closed (the picomatch advisory was withdrawn), the cache invalidation gap (register 184), and the specs of the vendor's listing and stock screens (`WI-CAT-007`, `CAT-008`). `WI-CAT-007` (catalog and BFF) is built and In review (registers 208 and 210 resolved); `WI-CAT-008` (the screens) is next on the same branch. (`feature/hardening-followups`, registers 200, 202 to 207, 66, 74 and 166, merged 2026-11-18.)
 
 ## Next
 

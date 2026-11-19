@@ -123,13 +123,13 @@ public sealed class TagAssignmentApiTests : IDisposable
     }
 
     [Theory]
-    [InlineData("nonsense", "'nonsense' is not a tag the catalog offers.")]
+    [InlineData("nonsense", "Not a tag the catalog offers.")]
     [InlineData("dairy", "allergen")] // allergens keep their own fields
     [InlineData("staff-pick", "cannot be assigned by a vendor")] // hidden, platform only
     [InlineData("featured", "cannot be assigned by a vendor")] // public but platform only
     [InlineData("old-diet", "cannot be assigned by a vendor")] // retired
     [InlineData("", "A tag id is required")]
-    public async Task A_tag_a_vendor_may_not_assign_is_422_naming_the_field_and_the_value(string tag, string message)
+    public async Task A_tag_a_vendor_may_not_assign_is_422_at_its_position_without_repeating_the_value(string tag, string message)
     {
         var vendor = await VendorAsync();
 
@@ -137,7 +137,9 @@ public sealed class TagAssignmentApiTests : IDisposable
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         var errors = (await JsonOf(response)).GetProperty("errors");
-        Assert.Contains(message, errors.GetProperty("tags[1]")[0].GetString());
+        var sentence = errors.GetProperty("tags[1]")[0].GetString()!;
+        Assert.Contains(message, sentence);
+        if (tag.Length > 0) Assert.DoesNotContain(tag, sentence); // register 210
         Assert.Empty((await JsonOf(await vendor.GetAsync("/catalog/listings/mine"))).GetProperty("items").EnumerateArray()); // nothing was created
     }
 

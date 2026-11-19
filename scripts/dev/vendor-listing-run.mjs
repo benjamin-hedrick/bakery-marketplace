@@ -251,14 +251,22 @@ try {
     );
   });
 
-  // Register 210: what the real catalog answers for an allergen it does not know (the value comes back in the sentence).
+  // Register 210 (resolved by option (a)): a refused value is reported at its position, and the sentence never repeats it.
   await run(
-    'An allergen the catalog does not know (register 210)',
+    'An allergen and a tag the catalog does not offer: refused at their positions, the value not repeated (register 210)',
     'vendor-shop-001',
     shop,
     CREATE,
-    { input: input({ allergenFlags: ['<b>nuts</b>'] }), key: `run-${randomUUID()}` },
-    (b) => check(b.data.createListing.code === 'INVALID', 'INVALID'),
+    { input: input({ allergenFlags: ['gluten', '<b>nuts</b>'], tags: ['<b>nuts</b>'] }), key: `run-${randomUUID()}` },
+    (b) => {
+      check(b.data.createListing.code === 'INVALID', 'INVALID');
+      const fields = b.data.createListing.fields.map((f) => f.field);
+      check(
+        fields.includes('allergenFlags[1]') && fields.includes('tags[0]'),
+        'reported at allergenFlags[1] and tags[0]',
+      );
+      check(!JSON.stringify(b).toLowerCase().includes('nuts</b>'), 'the value is not in the answer');
+    },
   );
 
   console.log(`\n${step} steps, ${failures} failed`);
