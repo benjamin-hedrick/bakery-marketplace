@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 56 |
 | In progress | 5 |
-| In review | 36 |
+| In review | 37 |
 | Built | 1 |
-| Ready | 3 |
+| Ready | 2 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 2 |
@@ -81,7 +81,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CAT-005](WI-CAT-005.md) | Listing stock fields and vendor stock controls | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CAT-006](WI-CAT-006.md) | Stock reservation and release endpoints | EPIC-CATALOG | Done | evidence: the Outcome note under this banner; `services/catalog-service` |
 | [CAT-007](WI-CAT-007.md) | Safe listing writes for the vendor's screens: an edit precondition, stock settings without the quantity, an idempotent create, and the BFF operations | EPIC-CATALOG | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-CAT-007/` · waiting for the review |
-| [CAT-008](WI-CAT-008.md) | The vendor's listing and stock screens: list, create, edit, publish and adjust stock in the vendor's web app | EPIC-CATALOG | Ready | decided by the lead 2026-11-18 (see `WI-CAT-007`'s open points); blocked by `WI-CAT-007` (the operations it calls) |
+| [CAT-008](WI-CAT-008.md) | The vendor's listing and stock screens: list, create, edit, publish and adjust stock in the vendor's web app | EPIC-CATALOG | In review | evidence: the Outcome note under this banner; `docs/evidence/WI-CAT-008/` · waiting for the review |
 | [CHAOS-001](WI-CHAOS-001.md) | Chaos scenarios, phase 1: the foundation, the events and cache layers, the C# services | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos`, `tools/tests/BakeryMarketplace.Chaos.Tests`, `services/ordering-service/tests/OrderingService.Tests/ChaosHostTests.cs`, `chaos/` |
 | [CHAOS-002](WI-CHAOS-002.md) | Chaos scenarios, phase 2: the repository, broadcast, payment, catalog-gateway and notification-sender layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `tools/BakeryMarketplace.Chaos` (repository and broadcast layers), `services/ordering-service/src/Chaos`, `services/notification-service/src/Chaos`, their tests, `chaos/scenarios/checkout-trouble.json` |
 | [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `packages/chaos`, `services/graphql-bff/src/chaos.ts`, `services/graphql-bff/test/chaos.test.ts`, `apps/mobile-customer/tests/chaos-outcomes.test.ts`, the lost-response tests in `tools/tests` and the service tests |

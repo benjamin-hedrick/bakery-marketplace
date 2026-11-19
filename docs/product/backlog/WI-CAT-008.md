@@ -1,4 +1,6 @@
-> **Status:** Ready · decided by the lead 2026-11-18 (see `WI-CAT-007`'s open points); blocked by `WI-CAT-007` (the operations it calls)
+> **Status:** In review · evidence: the Outcome note under this banner; `docs/evidence/WI-CAT-008/` · waiting for the review
+
+> **Outcome note (2026-11-18):** built on `feature/register-184-vendor-screens`, not merged, on `WI-CAT-007`'s operations (nothing new in the BFF or in `packages/web-session`). The vendor's web app (`apps/web-queue-display`, the name used in its README and `local-dev.md`) has `/listings` (price, status, stock, when it changed; filters, paging, an empty state; **Add**, **Remove** and **Sold out** as adjustments only, a removal past zero showing the count as it is now; **Publish** and **Unpublish** saving only the status with the row's edit version) and `/listings/new` and `/listings/[id]` (the form, the catalog's sentences beside their fields and in a summary, the edit version on every save with `CHANGED` keeping what was typed and offering the newer copy, a counted listing saved without a count, one idempotency key per create page, `KEY_REUSED` answered by repeating the earlier attempts to find and link the listing that was made, a tag the registry no longer offers kept), and header links between the queue and the listings. Tests: 12 unit, 26 browser tests against the mock BFF (queue display 90 in all; the 26 also pass in Firefox and WebKit, no difference), axe on the list, the empty list, the form and the form with errors; five journeys on the real stack in the skeleton smoke (67 of 67 at `8cf8595`: a vendor's draft, publish, price, sold out and unpublish each seen on the customer's detail page; two tabs; another vendor's id; a removal racing a checkout; a customer's login and a write without the origin). The in-app checks (the forbidden page, no count on a counted edit, one key per create, the loaded edit version) were each removed and caught; reading the owner's fields through the public query is refused by the Relay compiler; the CSRF refusal belongs to `packages/web-session` and was not mutated. Evidence: `docs/evidence/WI-CAT-008/real-stack-2026-11-18.md`. Not done: Azure, a real identity provider, a screen reader by hand.
 
 ```
 WI ID:                CAT-008
@@ -7,7 +9,7 @@ Type:                 Frontend
 Epic:                 EPIC-CATALOG
 Shared with epic(s):  EPIC-QUEUE-DISPLAY (the screens are pages of the vendor's web app, `apps/web-queue-display`)
 Hat/Owner:            Engineering/Build, Digital PM (the form and its wording)
-Status:               Ready
+Status:               In review
 Size:                 M
 Verification class:   V3 + J (state-changing actions by a role, across the browser, the web app, the BFF and catalog). The classes are proposed in `docs/process/verification-policy.md` (register item 130); the vendor items follow them as a trial.
 ```
