@@ -66,7 +66,7 @@ public sealed class ListingCacheRedisTests
         var publisher = new ListingEventPublisher(
             new InMemoryEventTransport(), listings, Options.Create(new OutboxOptions()), time, NullLogger<ListingEventPublisher>.Instance);
         var service = new ListingService(listings, new VendorStatusStore(status, TestServices.CacheOff()), publisher, time, NullLogger<ListingService>.Instance, TestServices.Tags, TestServices.TagLimits, TestServices.CacheOff());
-        var created = await service.CreateAsync(vendor, new ListingRequest(
+        var created = await service.CreateWithNewKeyAsync(vendor, new ListingRequest(
             "Country Sourdough", "A loaf", "bread", 800,
             [new ModifierRequest("mod-seeds", "Seed crust", 100, ["sesame"], ["vegan"])],
             ["gluten"], "Published", new StockRequest(42, 6, 7), ["vegan"]));

@@ -11,9 +11,19 @@ namespace CatalogService.Tests;
 /// </summary>
 internal static class ListingWrites
 {
-    /// <summary><c>POST /catalog/listings</c>.</summary>
-    public static Task<HttpResponseMessage> CreateListingAsync(this HttpClient client, object body) =>
-        client.PostAsJsonAsync("/catalog/listings", body);
+    /// <summary><c>POST /catalog/listings</c> with an <c>Idempotency-Key</c>: <paramref name="key"/> when given, else a new one (a new listing).</summary>
+    public static Task<HttpResponseMessage> CreateListingAsync(this HttpClient client, object body, string? key = null)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/catalog/listings") { Content = JsonContent.Create(body) };
+        request.Headers.TryAddWithoutValidation(ListingEndpoints.IdempotencyKeyHeader, key ?? NewKey());
+        return client.SendAsync(request);
+    }
+
+    public static string NewKey() => $"key-{Guid.NewGuid():N}";
+
+    /// <summary>A create through the service with a new idempotency key, for tests that call the service directly and are not about the key.</summary>
+    public static Task<ListingResult> CreateWithNewKeyAsync(this ListingService service, string vendorId, ListingRequest request) =>
+        service.CreateAsync(vendorId, NewKey(), request);
 
     /// <summary>
     /// <c>PUT /catalog/listings/{id}</c> with <c>If-Match</c>: <paramref name="editVersion"/> when given, else the version the caller reads now

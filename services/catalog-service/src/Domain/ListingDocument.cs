@@ -71,6 +71,12 @@ public sealed class ListingDocument : IETagged
     [JsonProperty("editVersion")] public long EditVersion { get; set; } = 1;
 
     /// <summary>
+    /// A hash of the create request (WI-CAT-007 requirement 5), so a repeat of the create with the same <c>Idempotency-Key</c> is told from a reuse of the
+    /// key for something else. Stored only, never returned. Absent on a listing created before the field existed or written by the seed.
+    /// </summary>
+    [JsonProperty("requestFingerprint", NullValueHandling = NullValueHandling.Ignore)] public string? RequestFingerprint { get; set; }
+
+    /// <summary>
     /// Units available to sell (ADR-0017). Absent means made to order: always orderable, never reserved. A number means limited
     /// stock, tracked and enforced; it is a running counter, not tied to a day or window.
     /// </summary>
