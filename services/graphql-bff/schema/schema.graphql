@@ -1,5 +1,6 @@
 # The GraphQL composition contract of docs/architecture/data-model-api-contracts.md ("First-slice mapping"). Shared file: one owner at a time.
-# Listings, tags, preferences, orders, the vendor's queue and its live changes, and the customer's and the vendor's actions on an order.
+# Listings, tags, preferences, orders, the vendor's queue and its live changes, the customer's and the vendor's actions on an order, and the vendor's
+# own listings and their writes (WI-CAT-007).
 # ListingConnection/ListingEdge/PageInfo are the standard Relay connection types the contract left implicit.
 # D-9/D-B: Listing and Order ids are Relay global ids (base64 of `Type:serviceId`), and so is any field that refers to a listing or an order
 # (OrderLineItem.listingId, LineItemInput.listingId); vendorId, modifier ids and cursors stay raw service ids.
@@ -56,6 +57,156 @@ type Query {
   vendorOrders(status: VendorOrderFilter, first: Int = 20, after: String): VendorOrderConnection!
   "One of the calling vendor's own orders. Null when it does not exist, is another vendor's, or has not reached the vendor's view yet."
   vendorOrder(id: ID!): VendorOrder
+  """
+  The calling vendor's own listings (WI-CAT-007), drafts included, ordered by id, optionally one status. Needs a vendor's bearer token (UNAUTHENTICATED
+  without one, FORBIDDEN for another role). Private to the vendor and never cached.
+  """
+  myListings(status: MyListingFilter, first: Int = 20, after: String): MyListingConnection!
+  "One of the calling vendor's own listings. Null when it does not exist or is another vendor's (the two look the same)."
+  myListing(id: ID!): MyListing
+}
+
+"Which of a vendor's own listings to list."
+enum MyListingFilter {
+  DRAFT
+  PUBLISHED
+}
+
+enum ListingStatus {
+  "Only the vendor sees it."
+  DRAFT
+  "Customers see it while the vendor is verified."
+  PUBLISHED
+}
+
+"""
+A listing as its own vendor sees it (WI-CAT-007). A type of its own, not Listing, so the exact quantity, the low-stock threshold and the edit version can
+never reach a customer's query through a shared fragment. It is not a Node: node(id) never returns it.
+"""
+type MyListing {
+  "The Listing global id (the same id the public Listing has once it is published)."
+  id: ID!
+  name: String!
+  description: String
+  category: String!
+  price: Money!
+  status: ListingStatus!
+  modifiers: [Modifier!]!
+  allergenFlags: [String!]!
+  "The vendor's own tags on the listing (ADR-0022), as the catalog shows them to the vendor. The platform's tags are not here."
+  tags: [Tag!]!
+  stock: MyStock!
+  "The edit version: updateListing names it as expectedEditVersion, so an edit made from an older copy is refused (CHANGED) instead of undoing a newer one."
+  editVersion: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"A listing's stock as its vendor sees it (ADR-0017)."
+type MyStock {
+  "What customers see."
+  status: StockStatus!
+  "The most a customer can buy in one order; null means no per-order limit."
+  maxPerOrder: Int
+  "The exact count. Null means the listing is made to order (no count)."
+  availableQuantity: Int
+  "At or below this count the listing shows as LOW; null means the catalog's default."
+  lowStockThreshold: Int
+}
+
+type MyListingEdge {
+  cursor: String!
+  node: MyListing!
+}
+
+type MyListingConnection {
+  edges: [MyListingEdge!]!
+  pageInfo: PageInfo!
+}
+
+"""
+A listing as the vendor writes it (WI-CAT-007). Everything is checked by the catalog, not here; a refusal names the catalog's field (for example
+`priceCents`, `stock.availableQuantity`, `modifiers[0].id`) with the catalog's sentence.
+"""
+input ListingInput {
+  name: String!
+  description: String
+  category: String!
+  "Integer cents, USD."
+  priceCents: Int!
+  "Left out: a new listing is a DRAFT, an edited one keeps its status. PUBLISHED needs a verified vendor."
+  status: ListingStatus
+  "The whole list of options: an option left out of an edit is removed."
+  modifiers: [ModifierInput!]!
+  "Allergen ids from the `tags` registry (kind ALLERGEN)."
+  allergenFlags: [String!]!
+  "Tag ids from the registry, not allergens. Left out, the listing's tags stay as they are."
+  tags: [ID!]
+  "Left out, the stock settings stay as they are (a new listing is made to order)."
+  stock: StockInput
+}
+
+input ModifierInput {
+  "The option's own id (lowercase letters, digits and hyphens), kept across edits."
+  id: ID!
+  name: String!
+  "Integer cents added to the price, USD."
+  priceDeltaCents: Int!
+  "Allergen ids from the `tags` registry."
+  allergens: [String!]!
+  "Tag ids from the registry. Left out, the option's tags stay as they are."
+  tags: [ID!]
+}
+
+"""
+Stock settings (ADR-0017). An edit needs `mode`. On an edit of a COUNTED listing that stays counted, availableQuantity is refused: the count changes only
+by adjustListingStock. A switch to COUNTED needs a starting availableQuantity; a switch to MADE_TO_ORDER drops it. On a create, availableQuantity is the
+starting count and mode may be left out.
+"""
+input StockInput {
+  mode: StockMode
+  availableQuantity: Int
+  maxPerOrder: Int
+  lowStockThreshold: Int
+}
+
+enum StockMode {
+  "No count: always orderable."
+  MADE_TO_ORDER
+  "A count, taken by each order."
+  COUNTED
+}
+
+union ListingWritePayload = ListingWriteSuccess | ListingRejected
+
+type ListingWriteSuccess {
+  listing: MyListing!
+}
+
+"An expected refusal of a listing write. The message is fixed client-safe text; for INVALID the fields carry the catalog's field names and sentences."
+type ListingRejected {
+  code: ListingRejectionCode!
+  message: String!
+  fields: [FieldProblem!]!
+  "For CHANGED: the listing's current edit version, when the catalog gave it."
+  currentEditVersion: Int
+}
+
+enum ListingRejectionCode {
+  "The listing as entered is not valid; see fields."
+  INVALID
+  "No such listing for this vendor (a missing and another vendor's listing look the same)."
+  NOT_FOUND
+  "Only a verified vendor can publish a listing; it can still be saved as a DRAFT."
+  VENDOR_NOT_VERIFIED
+  "The listing was edited since this copy was read (or changed too often to save); reload it and try again."
+  CHANGED
+  "A made-to-order listing has no count to adjust."
+  MADE_TO_ORDER
+  "The adjustment would take the count below zero."
+  INSUFFICIENT_STOCK
+  "The idempotency key was already used to create a different listing."
+  KEY_REUSED
 }
 
 "What a tag means (ADR-0022): an allergen is a warning, a diet is the vendor's claim, the rest describe."
@@ -393,6 +544,20 @@ type Mutation {
   cancelOrder(input: CancelOrderInput!): CancelOrderPayload!
   "Places an order for the caller (the payment is a stub). Needs a bearer token. Expected failures come back as PlaceOrderRejected, not as errors."
   placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
+  """
+  Creates a listing for the calling vendor (WI-CAT-007). Needs a vendor's bearer token (UNAUTHENTICATED without one, FORBIDDEN for another role).
+  idempotencyKey is generated by the client when the form opens: the same key with the same input returns the listing it created (as it is now), so a
+  retry after a timeout makes no second listing; the same key with other input is KEY_REUSED. Expected refusals come back as ListingRejected.
+  """
+  createListing(input: ListingInput!, idempotencyKey: String!): ListingWritePayload!
+  """
+  Replaces one of the calling vendor's listings with the input (WI-CAT-007). expectedEditVersion is the editVersion of the copy the form was filled
+  from; when the listing has been edited since, nothing is written and the answer is CHANGED with the current version. Orders and stock adjustments
+  never make a copy stale.
+  """
+  updateListing(id: ID!, input: ListingInput!, expectedEditVersion: Int!): ListingWritePayload!
+  "Adds delta (negative to remove) to a counted listing's count, atomically (ADR-0017). The only way to change the count of a COUNTED listing."
+  adjustListingStock(id: ID!, delta: Int!): ListingWritePayload!
 }
 
 "A saved payment method. The id is ordering-service's own (not a global id); the description is free text the customer reads. Nothing else is exposed."

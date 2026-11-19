@@ -83,7 +83,82 @@ export interface CatalogCartLineCheck {
   dietMatches?: CatalogDietMatch[];
 }
 
+/**
+ * A listing in its owner's view (WI-CAT-007): also the status, the exact count and threshold (absent when not set; no count means made to order)
+ * and the edit version an edit must name.
+ */
+export interface CatalogOwnListing extends Omit<CatalogListing, 'stock'> {
+  status: string;
+  stock: { status: string; maxPerOrder: number | null; availableQuantity?: number; lowStockThreshold?: number };
+  editVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CatalogOwnPage {
+  items: CatalogOwnListing[];
+  nextCursor: string | null;
+}
+
+/** A listing write as the catalog takes it (`ListingRequest`). Optional parts are left out, never sent as null, where the catalog reads absent as "keep". */
+export interface CatalogListingBody {
+  name: string;
+  description: string | null;
+  category: string;
+  priceCents: number;
+  modifiers: { id: string; name: string; priceDeltaCents: number; allergens: string[]; tags?: string[] }[];
+  allergenFlags: string[];
+  status?: string;
+  tags?: string[];
+  stock?: {
+    mode?: string;
+    availableQuantity: number | null;
+    maxPerOrder: number | null;
+    lowStockThreshold: number | null;
+  };
+}
+
+/**
+ * The answer to a listing write. `refused` is the catalog's expected refusal with its error code (`validation_failed`, `version_mismatch`, ...), its
+ * per-field sentences and, for `version_mismatch`, the current edit version. A 401 or 403 is a {@link DownstreamError} with that status.
+ */
+export type ListingWriteResult =
+  | { kind: 'ok'; listing: CatalogOwnListing }
+  | { kind: 'not_found' }
+  | {
+      kind: 'refused';
+      code: string;
+      message: string;
+      errors: Record<string, string[]>;
+      currentEditVersion: number | null;
+    };
+
 export interface CatalogClient {
+  /** The caller's own listings, drafts included (the caller's token is forwarded unchanged; the catalog takes the vendor from it). */
+  listOwn(
+    args: { status?: string | undefined; limit: number; after?: string | undefined },
+    authorization: string,
+    trace: TraceContext,
+  ): Promise<CatalogOwnPage>;
+  /** One of the caller's own listings, or null (404: missing or another vendor's). */
+  getOwn(id: string, authorization: string, trace: TraceContext): Promise<CatalogOwnListing | null>;
+  /** Creates a listing; `idempotencyKey` is the client's, sent unchanged as `Idempotency-Key`. A repeat answers the listing it made. */
+  createListing(
+    body: CatalogListingBody,
+    idempotencyKey: string,
+    authorization: string,
+    trace: TraceContext,
+  ): Promise<ListingWriteResult>;
+  /** Replaces a listing, sent with `If-Match: "<expectedEditVersion>"`. */
+  updateListing(
+    id: string,
+    body: CatalogListingBody,
+    expectedEditVersion: number,
+    authorization: string,
+    trace: TraceContext,
+  ): Promise<ListingWriteResult>;
+  /** Adds `delta` to a counted listing's count. */
+  adjustStock(id: string, delta: number, authorization: string, trace: TraceContext): Promise<ListingWriteResult>;
+
   /**
    * The public listings with the caller's conflicts, same order and paging as {@link list}. The caller's token is forwarded unchanged and the
    * catalog takes the customer from it. A 401 or 403 is a {@link DownstreamError} with that status.
@@ -131,7 +206,7 @@ export function createCatalogClient(
   async function request(
     path: string,
     trace: TraceContext,
-    init: { method?: string; authorization?: string; body?: string } = {},
+    init: { method?: string; authorization?: string; body?: string; headers?: Record<string, string> } = {},
   ): Promise<Response> {
     return callDownstream(fetchImpl, 'catalog', `${baseUrl}${path}`, {
       method: init.method ?? 'GET',
@@ -140,13 +215,87 @@ export function createCatalogClient(
         traceparent: toTraceparent(trace),
         ...(init.authorization ? { authorization: init.authorization } : {}),
         ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}),
+        ...init.headers,
       },
       ...(init.body !== undefined ? { body: init.body } : {}),
       signal: AbortSignal.timeout(timeoutMs),
     });
   }
 
+  /**
+   * A write's answer. 200 and 201 are the listing; 404 is not found; a 409 or 422 with a code is the catalog's refusal, its text kept for the field
+   * problems only. A 428 means the BFF sent no usable If-Match: from a caller's version below 1, refused as a field problem. Anything else is a failure.
+   */
+  async function writeResult(res: Response, step: string): Promise<ListingWriteResult> {
+    if (res.status === 200 || res.status === 201) return { kind: 'ok', listing: await parse<CatalogOwnListing>(res) };
+    if (res.status === 404) {
+      await res.body?.cancel().catch(() => undefined);
+      return { kind: 'not_found' };
+    }
+    if (res.status === 409 || res.status === 422 || res.status === 428) {
+      const body = await parse<{
+        code?: unknown;
+        message?: unknown;
+        errors?: Record<string, string[]> | null;
+        currentEditVersion?: unknown;
+      }>(res);
+      if (typeof body.code !== 'string')
+        throw new DownstreamError(`${step} returned a ${res.status} without a code`, res.status);
+      return {
+        kind: 'refused',
+        code: body.code,
+        message: typeof body.message === 'string' ? body.message : '',
+        errors: body.errors ?? {},
+        currentEditVersion: typeof body.currentEditVersion === 'number' ? body.currentEditVersion : null,
+      };
+    }
+    throw await failure(res, step);
+  }
+
   return {
+    async listOwn({ status, limit, after }, authorization, trace) {
+      const qs = new URLSearchParams({ limit: String(limit) });
+      if (status) qs.set('status', status);
+      if (after) qs.set('after', after);
+      const res = await request(`/catalog/listings/mine?${qs}`, trace, { authorization });
+      if (!res.ok) throw await failure(res, 'catalog own listings');
+      return parse<CatalogOwnPage>(res);
+    },
+    async getOwn(id, authorization, trace) {
+      const res = await request(`/catalog/listings/mine/${encodeURIComponent(id)}`, trace, { authorization });
+      if (res.status === 404) {
+        await res.body?.cancel().catch(() => undefined);
+        return null;
+      }
+      if (!res.ok) throw await failure(res, 'catalog own listing');
+      return parse<CatalogOwnListing>(res);
+    },
+    async createListing(body, idempotencyKey, authorization, trace) {
+      const res = await request('/catalog/listings', trace, {
+        method: 'POST',
+        authorization,
+        body: JSON.stringify(body),
+        headers: { 'idempotency-key': idempotencyKey },
+      });
+      return writeResult(res, 'catalog create listing');
+    },
+    async updateListing(id, body, expectedEditVersion, authorization, trace) {
+      const res = await request(`/catalog/listings/${encodeURIComponent(id)}`, trace, {
+        method: 'PUT',
+        authorization,
+        body: JSON.stringify(body),
+        headers: { 'if-match': `"${expectedEditVersion}"` },
+      });
+      return writeResult(res, 'catalog update listing');
+    },
+    async adjustStock(id, delta, authorization, trace) {
+      const res = await request(`/catalog/listings/${encodeURIComponent(id)}/stock/adjust`, trace, {
+        method: 'POST',
+        authorization,
+        body: JSON.stringify({ delta }),
+      });
+      return writeResult(res, 'catalog adjust stock');
+    },
     async listPersonalized({ limit, after, hideConflicts }, authorization, trace) {
       const qs = new URLSearchParams({ limit: String(limit) });
       if (after) qs.set('after', after);
