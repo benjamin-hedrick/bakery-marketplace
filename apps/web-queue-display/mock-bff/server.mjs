@@ -5,6 +5,7 @@
 // silent. By default a subscription is refused (streamMode "unavailable"), which is what the real BFF does when live updates are down: the
 // display then polls, and the tests that predate live updates are unchanged. Not used outside tests.
 import http from 'node:http';
+import { answerListing, changeElsewhere, initialListings, listingNode, REGISTRY } from './listings.mjs';
 
 const PORT = Number(process.env.MOCK_PORT ?? 4101);
 
@@ -36,6 +37,7 @@ const initial = () => ({
   ].map(([id, label]) => ({ id, label })),
   tagReads: 0,
   actions: [], // each vendorOrderAction received: { action, orderId, authorization }
+  ...initialListings(), // the vendor's listings (WI-CAT-008, listings.mjs)
 });
 const state = initial();
 const streams = new Set(); // { res, timer }
@@ -154,8 +156,15 @@ http
         'completeDelayMs',
         'listSnapshot',
         'tagsMode',
+        'listingMode',
+        'listingDelayMs',
+        'verified',
+        'invalidFields',
       ])
         if (next[key] !== undefined) state[key] = next[key];
+      // Listings are given in a short form (listings.mjs listingNode); `vendor: 'other'` makes one another vendor's, which looks missing.
+      if (next.listings !== undefined)
+        state.listings = next.listings.map((l) => ({ vendor: l.vendor ?? 'me', node: listingNode(l) }));
       return send(res, 200, { ok: true });
     }
     if (req.url === '/__state' && req.method === 'GET') {
@@ -168,6 +177,8 @@ http
         openStreams: streams.size,
         actions: state.actions,
         tagReads: state.tagReads,
+        listingWrites: state.listingWrites,
+        listings: state.listings.map((l) => ({ vendor: l.vendor, ...l.node })),
       });
     }
     if (req.url === '/__reset' && req.method === 'POST') {
@@ -180,6 +191,10 @@ http
       const { order } = JSON.parse(await readBody(req));
       for (const s of streams) s.res.write(sse('next', { data: { vendorOrderChanged: { allergens: [], ...order } } }));
       return send(res, 200, { ok: true, streams: streams.size });
+    }
+    // A change made elsewhere to a listing: another tab's edit ({ id, edit }) or a customer's order ({ id, sold }).
+    if (req.url === '/__listing' && req.method === 'POST') {
+      return send(res, changeElsewhere(state, JSON.parse(await readBody(req))) ? 200 : 404, {});
     }
     if (req.url === '/__end' && req.method === 'POST') {
       closeStreams('complete'); // as the BFF does when ordering reports the token expired
@@ -201,6 +216,12 @@ http
           ? send(res, 500, { error: 'boom' })
           : send(res, 200, { data: { tags: state.tags } });
       }
+      // The whole registry for the listing form (WI-CAT-008): public, like the real one.
+      if (query.includes('ListingEditorTagsQuery')) {
+        return state.tagsMode === 'fail'
+          ? send(res, 500, { error: 'boom' })
+          : send(res, 200, { data: { tags: REGISTRY } });
+      }
       state.requests += 1;
       state.authorizations.push(req.headers.authorization ?? null);
       if (!req.headers.authorization || state.mode === 'unauthenticated') {
@@ -208,6 +229,12 @@ http
       }
       if (state.mode === 'forbidden') return send(res, 200, error('FORBIDDEN', 'Not allowed.'));
       if (state.mode === 'error') return send(res, 500, { error: 'boom' });
+      if (
+        await answerListing(state, query, variables, req.headers.authorization ?? null, (code, body) =>
+          send(res, code, body),
+        )
+      )
+        return;
       if (query.includes('vendorOrderAction')) return vendorOrderAction(res, req, query, variables);
       if (query.includes('vendorOrders')) {
         return send(res, 200, {

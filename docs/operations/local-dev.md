@@ -37,7 +37,7 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5300 Data__B
   dotnet run --no-launch-profile --project services/ordering-service/src
 
 # 6. GraphQL BFF on :4100. It links the chaos package (ADR-0024, packages/chaos), which has no run-time dependencies but needs its own `npm ci` for its types
-#    and tests; install it first. The customer app and the queue display link it too, through packages/web-session (step 7).
+#    and tests; install it first. The customer app and the vendor's web app link it too, through packages/web-session (step 7).
 (cd packages/chaos && npm ci)
 (cd services/graphql-bff && npm ci)
 (cd services/graphql-bff && CATALOG_URL=http://localhost:5200 ORDERING_URL=http://localhost:5300 npm start)
@@ -122,7 +122,7 @@ All ports bind to `127.0.0.1` only. The mock issuer signs tokens for anyone who 
 | notification-service | 5400 | 0009 | A container in the `apps` profile, or a host process with `Events__Backend=redis` |
 | GraphQL BFF | 4100 | 0013 | Host process, or a container in the `apps` profile |
 | web-customer | 3000 | 0012 | Host process, or a container in the `apps` profile |
-| web-queue-display | 3100 | 0021 | Host process only (no image yet) |
+| web-queue-display (the vendor's web app: the order queue and, since `WI-CAT-008`, the listing and stock screens at `/listings`) | 3100 | 0021 | Host process only (no image yet) |
 
 ## Environment variables for services run on the host
 
@@ -143,7 +143,7 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | `ListingCache__TtlSeconds` | `60` (default) | catalog-service: how long the cached listings live; `0` turns the cache off (the "without cache" side of `docs/evidence/WI-CAT-003/after-2026-11-07.md`) |
 | `Cosmos__EnsureCreated` | `true` (local only) | creates the database and `catalog` container (partition key `/vendorId`); deployed environments use Terraform |
 
-**Which addresses a login may return to.** The mock issuer only redirects a browser to a registered `redirect_uri`, compared exactly (no prefix, case or trailing-slash leniency); the defaults are the two web apps' **server-side** callbacks, `http://localhost:3000/api/auth/callback` (customer) and `http://localhost:3100/api/auth/callback` (queue display). Set `MockOidc__RedirectUris__0`, `__1`, ... on the `mock-oidc` service to register others, for example another port. A configured list replaces the defaults, so `docker-compose.yml` repeats the two web callbacks and adds the Android app's private-use scheme, `com.bakerymarketplace.mobile:/auth/callback` (WI-MOB-001, ADR-0023); the issuer accepts a non-http scheme only in reverse-domain form (with a dot), exact match, no fragment or credentials. Everything its login page shows is HTML-encoded.
+**Which addresses a login may return to.** The mock issuer only redirects a browser to a registered `redirect_uri`, compared exactly (no prefix, case or trailing-slash leniency); the defaults are the two web apps' **server-side** callbacks, `http://localhost:3000/api/auth/callback` (customer) and `http://localhost:3100/api/auth/callback` (the vendor's web app). Set `MockOidc__RedirectUris__0`, `__1`, ... on the `mock-oidc` service to register others, for example another port. A configured list replaces the defaults, so `docker-compose.yml` repeats the two web callbacks and adds the Android app's private-use scheme, `com.bakerymarketplace.mobile:/auth/callback` (WI-MOB-001, ADR-0023); the issuer accepts a non-http scheme only in reverse-domain form (with a dot), exact match, no fragment or credentials. Everything its login page shows is HTML-encoded.
 
 **Browser login.** The web app's **server** exchanges the authorization code at the issuer's `/token` (ADR-0019), so the browser makes no cross-origin call to the issuer and `MockOidc__AllowedOrigins__*` is no longer needed for login (the CORS middleware stays, with its default, for other callers). Refresh tokens: a login that asks for the `offline_access` scope gets one; it is single use and rotated, a second use revokes the whole login, and it expires after `MockOidc__RefreshTokenMinutes` (default 480).
 
@@ -162,7 +162,7 @@ ASP.NET Core maps `__` to `:` in configuration keys. Template: `infra/local/serv
 | catalog-service against the real Cosmos emulator and real Redis Streams: draft create, publish gate (409), `VendorVerified` delivered via a Redis stream, publish, public read from Cosmos, `ListingPublished` on the stream | Verified, one clean pass from a fresh stack |
 | The emulator's documented fixed account key works | Verified (authenticated operations succeeded) |
 | The vendor's live queue (WI-QUE-003): a customer's order, and each action the vendor takes on it, reach the queue display by push (168 ms for the first order; p50 68 ms, p95 99 ms over 20 orders), with the whole stack running (`node scripts/ci/skeleton-smoke.mjs`, 25 of 25; `docs/evidence/WI-QUE-003/real-stack-2026-11-02.md`) | Verified on this machine, host mode |
-| A stream ending at a real issuer's token expiry, a service or Redis restarted under a live screen, the queue display as a container, an OTLP collector for the stream metrics | **Not verified** |
+| A stream ending at a real issuer's token expiry, a service or Redis restarted under a live screen, the queue display as a container, an OTLP collector for the stream metrics (the vendor's web app is still the folder `apps/web-queue-display`) | **Not verified** |
 | The Cosmos emulator over HTTPS, Linux/macOS hosts, and Docker Desktop on other machines | **Not verified** |
 | Emulator persistence across `down`, resource usage under load, startup time on a cold pull | **Not measured** |
 
@@ -270,7 +270,7 @@ Writes 10 listings (9 Published, 1 Draft negative case; three of the Published o
 2. **Mock users and seed vendors (resolved 2026-10-27).** Ownership requires the token subject to equal the listing's `vendorId`. The issuer now also offers `vendor-shop-001` and `vendor-indep-001` as login users (role Vendor), matching the seeded vendors, so each can edit only its own listings. `user-vendor-1` remains but owns no seeded listings.
 3. **(Fixed 2026-10-28, `S1-06`; kept for the record.) The mock issuer's login page reflected query parameters unescaped** (`redirect_uri`, `state`, `code_challenge`; confirmed by sending a script payload). Dev-only and loopback-bound here, but it is a defect in `tools/BakeryMarketplace.Auth/MockOidcIssuer.cs` (`WI-AUTH-005`); fix with HTML encoding.
 4. **The Redis Streams transport acknowledges messages it cannot deserialize without dead-lettering them** (register item 88; first noted as reconciliation finding B2). Not exercised here.
-5. **No Stripe CLI wiring** (no spec; part of `PAY-001`, backlog N-08). Application containers exist in the `apps` profile (register item 71 resolved; the queue display has no image). The Next.js app, the BFF and the trace viewer exist and run on the host as described above.
+5. **No Stripe CLI wiring** (no spec; part of `PAY-001`, backlog N-08). Application containers exist in the `apps` profile (register item 71 resolved; the vendor's web app, `apps/web-queue-display`, has no image). The Next.js app, the BFF and the trace viewer exist and run on the host as described above.
 
 ## Rate limits (WI-RATE-001, register item 128)
 
