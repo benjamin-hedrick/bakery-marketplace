@@ -247,3 +247,188 @@ section[role='alert'] {
   border-left: 6px solid currentColor;
   font-weight: 700;
 }
+
+/* WI-CAT-008: the vendor's listings and the listing form. Same tokens; an error is text in a colour with at least 4.5:1 on the page, and always words. */
+:root {
+  --error: #a3261a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --error: #ff9b8f;
+  }
+}
+
+a {
+  color: var(--accent);
+}
+
+.site-pages {
+  display: flex;
+  gap: 1rem;
+}
+
+.site-pages a[aria-current='page'] {
+  font-weight: 700;
+  text-decoration-thickness: 3px;
+}
+
+button.primary,
+a.button.primary {
+  background: var(--accent);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.listings,
+.listing-editor {
+  padding: 1rem 1.25rem 2rem;
+  max-width: 60rem;
+}
+
+.listings-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filters,
+.checkboxes,
+.options,
+.stock,
+.option,
+#listing-status {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.9rem 0.8rem;
+}
+
+.filters label,
+.checkboxes label,
+.stock label,
+#listing-status label {
+  margin-right: 1rem;
+  display: inline-block;
+}
+
+.listing-rows {
+  list-style: none;
+  padding: 0;
+}
+
+.listing-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.listing-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  align-items: baseline;
+}
+
+.listing-name {
+  font-weight: 700;
+}
+
+.status.published {
+  font-weight: 700;
+}
+
+.muted,
+.hint {
+  color: var(--muted);
+}
+
+.listing-actions,
+.stock-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--muted);
+  border-radius: 0.3rem;
+  padding: 0.3rem 0.5rem;
+}
+
+input.units {
+  width: 4.5rem;
+}
+
+.editor-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.editor-fields > label,
+.option > label,
+.stock > label[for] {
+  display: block;
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+
+.editor-fields > input,
+.editor-fields > textarea,
+.option > input {
+  display: block;
+  width: min(100%, 32rem);
+}
+
+.field-error {
+  color: var(--error);
+  font-weight: 600;
+  margin: 0.25rem 0 0;
+}
+
+[aria-invalid='true'] {
+  border: 2px solid var(--error);
+}
+
+.notice,
+.error-summary {
+  border: 2px solid var(--error);
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.notice.ok {
+  border-color: var(--border);
+}
+
+.notice p,
+.error-summary h2 {
+  margin: 0.2rem 0;
+  font-size: 1.1rem;
+}
+
+.row-message {
+  margin: 0.4rem 0 0;
+  font-weight: 600;
+}

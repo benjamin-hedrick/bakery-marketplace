@@ -1,6 +1,6 @@
-# web-queue-display
+# web-queue-display: the vendor's web app
 
-The vendor's live order queue: a screen for the counter or the kitchen that shows the orders still in progress, live by push with polling as the fallback, and lets the vendor accept, decline, start, mark ready and hand over an order from its buttons.
+The vendor's web app (the folder keeps its first name, `web-queue-display`): the live order queue, a screen for the counter or the kitchen that shows the orders still in progress, live by push with polling as the fallback, and lets the vendor accept, decline, start, mark ready and hand over an order from its buttons; and, since `WI-CAT-008`, the vendor's listing and stock screens at `/listings`. The header links the two.
 
 **Status (2026-11-08): built and run locally only (`WI-QUE-002`, `WI-QUE-003`, `WI-QUE-004`, `WI-QUE-005`).** Its browser suite passes against a mock BFF and a stubbed issuer; the journeys against the real services and the mock issuer (a vendor works an order from the buttons, the wrong caller is refused) ran in `node scripts/ci/skeleton-smoke.mjs` (`docs/evidence/WI-QUE-004/`) and in the demo film; no real identity provider and no deployed system. Next.js Pages Router, client-rendered (there is nothing public to render on a server, and a vendor's orders must never be), with a Relay environment in the browser only. It talks to the GraphQL BFF (`services/graphql-bff`) through its own origin, `/api/graphql`. Decisions: ADR-0012, ADR-0013; the data is the vendor order read model (`WI-QUE-001`, register items 76 and 113).
 
@@ -12,6 +12,14 @@ Three columns, **New** (placed, waiting for the vendor), **Preparing** (confirme
 - **New orders.** What is on the screen when it opens is not new. An order that appears in a later answer is marked **New** for a minute and announced to screen readers.
 - **When a poll fails** the last good queue stays on the screen with "Cannot refresh. Showing the queue as of ...", and it recovers by itself. A login the service no longer accepts ends the queue and offers the login again; a login that is not a vendor's says so.
 - **Actions** (`WI-QUE-004`). Each order card offers the buttons that fit its status: **Accept** or **Decline** (asks first) for a new order, **Start preparing**, **Mark ready** and **Handed over**, and cancel where the lifecycle allows it. A click sends a mutation through the BFF; the card changes only when the stream (or the next poll) delivers the new status, so there is one source of truth, and if the status does not change the buttons come back. A refused action (the order moved on, or is not this vendor's) says so and refreshes the list. The services decide who may do what; the buttons are a convenience.
+
+## The listings (`WI-CAT-008`)
+
+On the operations of `WI-CAT-007` (`myListings`, `myListing`, `createListing`, `updateListing`, `adjustListingStock`). The catalog decides every rule; its refusals are shown beside their fields, in its own words.
+
+- **`/listings`**: the vendor's own listings with price, Draft or Published, stock (made to order, or the count with In stock, Low or Sold out) and when each last changed; filtered by status and paged. A counted listing has **Add**, **Remove** (a number of units) and **Sold out**, each one adjustment: the screen never sends a count it read earlier (ADR-0017), and a removal past zero after a sale shows the count as it is now. **Publish** and **Unpublish** save only the status, with the edit version the row was read at.
+- **`/listings/new`** and **`/listings/[id]`**: the form (name, description, category, price in dollars and cents, allergens from the registry's closed list, other tags, options with their own allergens and tags, made to order or counted, Draft or Published). An edit sends the edit version it was loaded at; a save from an old copy is refused, keeps what was typed and offers the newer copy. A counted listing is saved without a count (its count changes with the controls on the page). A create sends one idempotency key, made when the page opens, with every attempt, so a retry or a second click makes one listing; if the form was changed after a create that went through, it says so and links to that listing. A tag the registry no longer offers is kept as it is.
+- The logic without React is in `src/lib/listings.ts` (unit tested); the operations in `src/components/ListingFields.ts` and `ListingWrites.ts`. The mock BFF's listing part is `mock-bff/listings.mjs`.
 
 ## Run it (from `apps/web-queue-display`)
 

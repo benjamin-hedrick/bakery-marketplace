@@ -121,6 +121,66 @@ export async function mockRequests(): Promise<{ requests: number; authorizations
   return (await fetch(`${MOCK}/__state`)).json();
 }
 
+// ---- the vendor's listings (WI-CAT-008) ----------------------------------------------------------------------------------------
+
+/** A listing as a test gives it to the mock (mock-bff/listings.mjs builds the BFF's MyListing from it). */
+export interface MockListing {
+  /** A Listing global id. */
+  id: string;
+  /** 'other' makes it another vendor's: the mock answers as if it did not exist. */
+  vendor?: 'me' | 'other';
+  name?: string;
+  description?: string | null;
+  category?: string;
+  priceCents?: number;
+  status?: 'DRAFT' | 'PUBLISHED';
+  allergenFlags?: string[];
+  tags?: string[];
+  modifiers?: { id: string; name: string; priceDeltaCents?: number; allergens?: string[]; tags?: string[] }[];
+  stock?: { availableQuantity?: number | null; maxPerOrder?: number | null; lowStockThreshold?: number | null };
+  editVersion?: number;
+  updatedAt?: string;
+}
+
+export const listingId = (serviceId: string) => Buffer.from(`Listing:${serviceId}`).toString('base64');
+
+/** Sets the vendor's listings and how the mock answers the listing writes. */
+export const setListings = (state: {
+  listings?: MockListing[];
+  listingMode?: 'ok' | 'invalid' | 'changed' | 'conflict' | 'notverified' | 'error' | 'slow' | 'forbidden' | 'lost';
+  listingDelayMs?: number;
+  verified?: boolean;
+  invalidFields?: { field: string; message: string }[];
+}) => post(`${MOCK}/__state`, state);
+
+/** A change made elsewhere: another tab's edit (`edit`, which moves the edit version on) or a customer's order (`sold` units). */
+export const changeListingElsewhere = (change: {
+  id: string;
+  edit?: Partial<{ name: string; description: string }>;
+  sold?: number;
+}) => post(`${MOCK}/__listing`, change);
+
+export interface ListingWrite {
+  op: 'ListingWritesCreateMutation' | 'ListingWritesUpdateMutation' | 'ListingWritesAdjustMutation';
+  variables: Record<string, unknown> & {
+    input?: Record<string, unknown>;
+    key?: string;
+    version?: number;
+    delta?: number;
+    id?: string;
+  };
+  authorization: string | null;
+}
+
+/** The listing writes the mock received, in order, and the listings it holds now. */
+export async function mockListings(): Promise<{ writes: ListingWrite[]; listings: MockListing[] }> {
+  const state = (await (await fetch(`${MOCK}/__state`)).json()) as {
+    listingWrites: ListingWrite[];
+    listings: MockListing[];
+  };
+  return { writes: state.listingWrites, listings: state.listings };
+}
+
 export async function issuerSeen(): Promise<IssuerSeen> {
   return (await fetch(`${ISSUER}/__state`)).json();
 }
