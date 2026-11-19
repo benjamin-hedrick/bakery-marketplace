@@ -153,7 +153,8 @@ Each Claude Code session's cost, model time and size were copied by me from the 
 | 2026-11-17 (late) | the Android flows' own seed listings (register 200), the current plan corrected; time lost to a hung shell (register 201) | 1.85 | 6 min | 179 |
 | 2026-11-18 | the pre-push gates, the wall-clock tests on a manual clock (register 202), the parked order outbox's counters and runbook (register 74), the listing kind (register 66) | 5.60 | 19 min | 665 |
 | 2026-11-18 (second) | the listing outbox's counters and runbook (register 203), dependency outages run on the local stack (register 166) and the three fixes they called for (registers 204 to 206), an intermittent chaos test (register 207) | 14.44 | 59 min | 1,996 |
-| **Total** |  | **206.47** | **16 h 51 min** | **71,672** |
+| 2026-11-18 (third) | the withdrawn picomatch advisory (register 199), a failed cache invalidation no longer serving the old status (register 184), and the vendor's listing and stock screens specified as two Ready items (`WI-CAT-007`, `CAT-008`; register 208) | 3.14 | 13 min | 474 |
+| **Total** |  | **209.61** | **17 h 4 min** | **72,146** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew the specifications, decision records, tests and evidence records it holds now ([`STATUS.md`](../product/backlog/STATUS.md) has where each specification stands); not every item was built in a recorded session, so the table is not a cost per item. Nothing here compares with doing the work by hand.
 
