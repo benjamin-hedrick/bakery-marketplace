@@ -186,3 +186,20 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "budget_amount" {
+  type        = number
+  description = "Monthly budget for the environment's resource group, in the subscription's currency. The alert only notifies; it deletes nothing, and Azure's cost data lags by several hours, so it is a backstop, not a meter."
+  default     = 10
+
+  validation {
+    condition     = var.budget_amount > 0
+    error_message = "budget_amount must be greater than zero."
+  }
+}
+
+variable "budget_contact_emails" {
+  type        = list(string)
+  description = "Who is told at 80 percent of the budget (actual) and when 100 percent is forecast. Empty creates no budget. Private: passed by the pipeline (BUDGET_CONTACT_EMAIL), never written in this repository."
+  default     = []
+}

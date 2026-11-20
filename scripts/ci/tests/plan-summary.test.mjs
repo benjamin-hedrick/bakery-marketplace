@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkExitCode, summarisePlan } from '../plan-summary.mjs';
+import { checkExitCode, compareSummaries, summarisePlan } from '../plan-summary.mjs';
 
 const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'plan-summary.mjs');
 
@@ -89,6 +89,36 @@ describe('the plan summary', () => {
   });
 });
 
+describe('the comparison with the approved plan (register item 110)', () => {
+  const approved = summarisePlan(plan);
+
+  test('the same plan agrees, whatever the order', () => {
+    const reordered = { ...approved, changes: [...approved.changes].reverse() };
+    assert.deepEqual(compareSummaries(approved, reordered), []);
+  });
+
+  test('an added, removed or changed action, or a different output, is a difference', () => {
+    const added = {
+      ...approved,
+      changes: [...approved.changes, { address: 'azurerm_key_vault.extra', action: 'create' }],
+    };
+    assert.match(compareSummaries(approved, added).join(), /not in the approved plan: create azurerm_key_vault.extra/);
+    const removed = { ...approved, changes: approved.changes.slice(1) };
+    assert.match(compareSummaries(approved, removed).join(), /approved but no longer planned/);
+    const changed = {
+      ...approved,
+      changes: approved.changes.map((c) => ({ ...c, action: c.action === 'create' ? 'replace' : c.action })),
+    };
+    assert.equal(compareSummaries(approved, changed).length, 2);
+    assert.match(compareSummaries(approved, { ...approved, outputs: [] }).join(), /approved output no longer changing/);
+  });
+
+  test('a missing approved summary agrees only with an empty plan', () => {
+    assert.deepEqual(compareSummaries(undefined, summarisePlan({ resource_changes: [] })), []);
+    assert.ok(compareSummaries(undefined, approved).length > 0);
+  });
+});
+
 describe('the command line', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'plan-summary-'));
   const planPath = path.join(dir, 'plan.json');
@@ -102,6 +132,20 @@ describe('the command line', () => {
     assert.ok(r.stdout.includes('##vso[task.setvariable variable=hasChanges;isOutput=true]true'));
     assert.ok(!r.stdout.includes(SECRET) && !r.stdout.includes(NAME));
     assert.equal(JSON.parse(readFileSync(outPath, 'utf8')).changes.length, 4);
+  });
+
+  test('with --expect, passes the approved plan and refuses a different one, writing nothing then', () => {
+    const approvedPath = path.join(dir, 'approved.json');
+    writeFileSync(approvedPath, JSON.stringify(summarisePlan(plan)));
+    const same = run('--plan', planPath, '--exit-code', '2', '--out', outPath, '--expect', approvedPath);
+    assert.equal(same.status, 0, same.stderr);
+    assert.match(same.stdout, /is the approved plan/);
+    const otherOut = path.join(dir, 'other.json');
+    writeFileSync(approvedPath, JSON.stringify({ changes: [], outputs: [] }));
+    const differs = run('--plan', planPath, '--exit-code', '2', '--out', otherOut, '--expect', approvedPath);
+    assert.equal(differs.status, 1);
+    assert.match(differs.stderr, /differs from the approved plan/);
+    assert.ok(!differs.stdout.includes('hasChanges'), 'no output variable is set when refused');
   });
 
   test('refuses when the exit code and the plan disagree, and on bad usage', () => {

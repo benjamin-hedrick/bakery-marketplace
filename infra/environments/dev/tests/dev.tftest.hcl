@@ -4,6 +4,7 @@
 mock_provider "azurerm" {
   mock_data "azurerm_resource_group" {
     defaults = {
+      id       = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev"
       name     = "rg-bakery-dev"
       location = "eastus"
     }
@@ -233,6 +234,40 @@ run "an_unknown_host_environment_is_refused" {
   }
 
   expect_failures = [var.host_environment]
+}
+
+run "no_budget_without_contacts" {
+  command = plan
+
+  assert {
+    condition     = length(azurerm_consumption_budget_resource_group.env) == 0 && length(time_static.budget_created) == 0
+    error_message = "With no contact emails there should be no budget."
+  }
+}
+
+run "a_budget_on_the_environment_group_with_two_notifications_when_there_are_contacts" {
+  command = plan
+
+  variables {
+    budget_contact_emails = ["lead@example.test"]
+    budget_amount         = 7
+  }
+
+  assert {
+    condition     = length(azurerm_consumption_budget_resource_group.env) == 1 && azurerm_consumption_budget_resource_group.env[0].amount == 7
+    error_message = "A budget of the requested amount should exist."
+  }
+  assert {
+    condition     = azurerm_consumption_budget_resource_group.env[0].name == "budget-bakery-dev" && azurerm_consumption_budget_resource_group.env[0].time_grain == "Monthly"
+    error_message = "The budget should be named for the environment and reset monthly."
+  }
+  assert {
+    condition = (
+      length(azurerm_consumption_budget_resource_group.env[0].notification) == 2 &&
+      alltrue([for n in azurerm_consumption_budget_resource_group.env[0].notification : n.contact_emails == tolist(["lead@example.test"])])
+    )
+    error_message = "The budget should notify the contacts at 80 percent actual and 100 percent forecast."
+  }
 }
 
 run "development_is_refused_for_an_environment_that_is_not_dev" {

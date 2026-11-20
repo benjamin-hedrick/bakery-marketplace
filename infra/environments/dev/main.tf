@@ -3,7 +3,7 @@
 # Persistent things (registry, the apps identity and its AcrPull) live in infra/foundation.
 #
 # Written and checked with mocked providers only (node scripts/ci/terraform-checks.mjs --roots infra/foundation,infra/environments/dev).
-# Never planned or applied against Azure. What was and was not verified: docs/evidence/WI-DEP-001/.
+# Planned against Azure (2026-11-20, locally and in the dev pipeline), never applied. What was and was not verified: docs/evidence/WI-DEP-001/.
 
 data "azurerm_resource_group" "env" {
   name = var.resource_group_name
@@ -113,6 +113,41 @@ locals {
       }
       secrets = { "session-encryption-key" = "SESSION_ENCRYPTION_KEY" }
     }
+  }
+}
+
+# ---- Budget alert on the environment's resource group (the foundation has its own) ----------------------------------------------------
+# The environment is created after the month starts, and a new budget cannot start in a past month, so the start is the first day of the month
+# the budget is created in, fixed at creation (time_static) so later plans do not move it. It is destroyed with the environment.
+resource "time_static" "budget_created" {
+  count = length(var.budget_contact_emails) > 0 ? 1 : 0
+}
+
+resource "azurerm_consumption_budget_resource_group" "env" {
+  count             = length(var.budget_contact_emails) > 0 ? 1 : 0
+  name              = "budget-${var.name_prefix}-${var.environment}"
+  resource_group_id = data.azurerm_resource_group.env.id
+  amount            = var.budget_amount
+  time_grain        = "Monthly"
+
+  time_period {
+    start_date = formatdate("YYYY-MM-01'T'00:00:00Z", time_static.budget_created[0].rfc3339)
+  }
+
+  notification {
+    enabled        = true
+    threshold      = 80
+    operator       = "GreaterThan"
+    threshold_type = "Actual"
+    contact_emails = var.budget_contact_emails
+  }
+
+  notification {
+    enabled        = true
+    threshold      = 100
+    operator       = "GreaterThan"
+    threshold_type = "Forecasted"
+    contact_emails = var.budget_contact_emails
   }
 }
 
