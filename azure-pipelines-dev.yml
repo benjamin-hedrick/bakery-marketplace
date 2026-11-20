@@ -2,7 +2,7 @@
 # azure-pipelines.yml (pull-request checks) is not touched by it. This pipeline never runs by itself: no push trigger, no pull-request trigger.
 #
 # STATE OF THIS FILE (2026-11-20): the infrastructure plan, apply and teardown are REAL; the image build and push are REAL but have not run in
-# Azure yet, nor has the post-apply secret step; the app update and the smoke are still a REHEARSAL that only prints. With planMode=rehearsal every step goes back
+# Azure yet, nor have the post-apply secret step and the app update; the smoke is still a REHEARSAL that only prints. With planMode=rehearsal every step goes back
 # to its rehearsal (no service connection, no build), to re-prove the gates.
 #
 #   deploy:  images       no service connection: builds the five images (scripts/ci/dev-images.mjs build) and publishes them, saved, as an
@@ -14,7 +14,8 @@
 #                         refuses unless the plan is exactly the approved one (register 110), then applies its own saved plan.
 #            app_deploy   approval at dev-app; bakery-deploy checks its own roles, sets the Key Vault secrets that still hold their placeholder
 #                         (scripts/ci/dev-secrets.mjs), loads the built images, refuses unless they are the ones the build recorded, pushes them
-#                         and publishes the record of their digests; the rest is a rehearsal.
+#                         and publishes the record of their digests, then updates each app to its digest in a new revision, refusing if any app
+#                         runs a newer build (scripts/ci/dev-deploy.mjs; register 110); the smoke is a rehearsal.
 #   destroy: destroy_plan bakery-plan: a destroy plan from the state (-refresh=false: no Azure read, so no secret is read), the real guard on
 #                         it (scripts/ci/destroy-guard.mjs), a value-free summary. Only then the approval.
 #            destroy_apply approval at dev-destroy; bakery-deploy re-plans the destroy with refresh under the lock, runs the guard again,
@@ -322,10 +323,24 @@ stages:
                           artifact: dev-images-pushed
                           displayName: Publish the record of the pushed images (each app's image by digest)
 
-                        - script: |
-                            echo "REHEARSAL - the next real steps update each container app to its digest from dev-images-pushed.json"
-                            echo "(az containerapp update) and run the post-deploy smoke against the deployed address."
-                          displayName: Update the apps to the pushed digests and smoke (rehearsal)
+                        # Register 110: refuses, before changing anything, if any app runs a newer build than this one. Each app gets a new revision
+                        # named for this run, so it also reads the secrets set above, and the step waits until every revision is provisioned.
+                        - task: AzureCLI@2
+                          displayName: Update each app to its pushed digest in a new revision (refuses an older build)
+                          inputs:
+                            azureSubscription: bakery-deploy
+                            scriptType: bash
+                            scriptLocation: inlineScript
+                            inlineScript: |
+                              set -euo pipefail
+                              mkdir -p "$(Build.ArtifactStagingDirectory)/dev-deployment"
+                              node scripts/ci/dev-deploy.mjs --record "$(Build.ArtifactStagingDirectory)/dev-images-pushed/dev-images-pushed.json" --resource-group "$(RESOURCE_GROUP)" --suffix "b$(Build.BuildId)-$(System.JobAttempt)" --out "$(Build.ArtifactStagingDirectory)/dev-deployment/dev-deployment.json"
+                        - publish: $(Build.ArtifactStagingDirectory)/dev-deployment
+                          artifact: dev-deployment
+                          displayName: Publish the record of the deployment (each app's image before and after, and its revision)
+
+                        - script: echo "REHEARSAL - the next real step runs the post-deploy smoke against the deployed address and publishes its result."
+                          displayName: Post-deploy smoke (rehearsal)
 
   # ---- destroy: a plan, the guard, then the approval, then the destroy of a re-plan that must equal the approved one --------------------
   - ${{ if eq(parameters.action, 'destroy') }}:
