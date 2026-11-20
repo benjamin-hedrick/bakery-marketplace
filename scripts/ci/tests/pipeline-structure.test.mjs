@@ -161,6 +161,12 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
       /condition: and\(succeeded\(\), eq\(dependencies\.destroy_plan\.outputs\['guard\.plan\.hasChanges'\], 'true'\)\)/,
     );
     assert.match(s, /az resource list -g "\$\(RESOURCE_GROUP\)"/, 'the teardown checks the group is empty');
+    // Azure lists a just-deleted resource for a while (the first real teardown failed on this): the check asks again before failing.
+    assert.match(
+      s,
+      /for attempt in \$\(seq 1 \d+\); do\s+left=\$\(az resource list[^\n]*\n\s+if \[ -z "\$left" \] \|\| \[ "\$attempt" -eq \d+ \]; then break; fi[\s\S]*?sleep \d+\s+done\s+if \[ -n "\$left" \]; then/,
+      'the emptiness check retries before it fails',
+    );
   });
 
   test('only the value-free summaries are published, never a saved plan or its JSON', () => {

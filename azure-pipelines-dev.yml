@@ -373,7 +373,15 @@ stages:
                               terraform -chdir=infra/environments/dev apply -input=false tfplan
                               echo "Destroy took $(( $(date +%s) - start )) seconds."
                               rm -f infra/environments/dev/tfplan
-                              left=$(az resource list -g "$(RESOURCE_GROUP)" --query "[].{type:type, name:name}" -o tsv)
+                              # Azure's resource list lags a delete: the first real teardown (2026-11-20) still listed the Log Analytics
+                              # workspace just after Terraform had deleted it, and the group was empty minutes later. Ask again for up to
+                              # 10 minutes before failing; anything still listed then is a real leftover.
+                              for attempt in $(seq 1 20); do
+                                left=$(az resource list -g "$(RESOURCE_GROUP)" --query "[].{type:type, name:name}" -o tsv)
+                                if [ -z "$left" ] || [ "$attempt" -eq 20 ]; then break; fi
+                                echo "Still listed in $(RESOURCE_GROUP) (check $attempt of 20); asking again in 30 seconds:"; echo "$left"
+                                sleep 30
+                              done
                               if [ -n "$left" ]; then
                                 echo "##vso[task.logissue type=error]Resources are left in $(RESOURCE_GROUP) after the destroy:"; echo "$left"; exit 1
                               fi

@@ -1,6 +1,6 @@
 # Procedure: tear down the dev environment
 
-> **Status:** Draft · written 2026-11-20 before the first dev apply, so that anything created can be removed the gated way (the lead's condition for deploying). Not run. Decision: ADR-0020 decision 7. Pipeline: [`azure-pipelines-dev.yml`](../../../azure-pipelines-dev.yml), action `destroy`. It becomes Current when a real teardown has run and its "Last tested" says so.
+> **Status:** Current · written 2026-11-20 before the first dev apply, so that anything created can be removed the gated way (the lead's condition for deploying). Run for real on 2026-11-20 (see "Last tested"). Decision: ADR-0020 decision 7. Pipeline: [`azure-pipelines-dev.yml`](../../../azure-pipelines-dev.yml), action `destroy`. It becomes Current when a real teardown has run and its "Last tested" says so.
 
 **Purpose.** Remove everything the dev environment stack created, inside `rg-bakery-dev`, and nothing else: not the resource group (the bootstrap made it), not the foundation (registry, apps identity, budget alert of the foundation), not the state. Costs stop when it finishes (`docs/management/budget-cost-estimate.md`, the dev environment section).
 
@@ -27,7 +27,7 @@
    - runs the guard again;
    - refuses unless the plan has exactly the approved summary's resources and actions (register 110);
    - destroys the saved plan, and prints how long it took;
-   - **fails unless `rg-bakery-dev` is empty** afterwards.
+   - **fails unless `rg-bakery-dev` is empty** afterwards. Azure lists a just-deleted resource for a while, so it asks again every 30 seconds for up to 10 minutes before failing.
 
 ## Verify
 
@@ -52,7 +52,8 @@ The deploy identity cannot purge a deleted vault (purging is a subscription-leve
 | `destroy_plan` fails at the guard | The plan touches something outside `rg-bakery-dev`, or is not a pure destroy | Stop. Do not change the guard to make it pass. Read its reasons and record them in the register |
 | `destroy_apply` refuses: "differs from the approved plan" | The state changed between the plan and the approval (another run, or a drift the refresh found) | Run the teardown again from the start; the new plan is what you approve |
 | The destroy fails part-way | A resource could not be deleted (a permission, a dependency, Azure) | Run the teardown again: the plan is made from what the state still holds. If it fails the same way twice, escalate |
-| "Resources are left in rg-bakery-dev" | Something in the group is not managed by the stack (made by hand, or a platform leftover) | List them (`az resource list -g rg-bakery-dev -o table`), decide with the lead, delete by hand, record it |
+| "Still listed in rg-bakery-dev (check n of 20)" | Azure has not yet caught up with a delete (the first teardown saw this for the Log Analytics workspace) | Nothing; the check asks again. It fails only after 10 minutes |
+| "Resources are left in rg-bakery-dev" | Still listed after 10 minutes: something in the group is not managed by the stack (made by hand, or a platform leftover) | List them (`az resource list -g rg-bakery-dev -o table`), decide with the lead, delete by hand, record it |
 | `AADSTS700024` in a step | The sign-in token expired: the token refresh is not working | Check `PLAN_CONNECTION_ID` and `DEPLOY_CONNECTION_ID` are the connections' ids |
 
 ## What not to do
@@ -67,4 +68,4 @@ The guard refuses, a destroy fails twice in the same place, or anything outside 
 
 ## Last tested
 
-Never. The guard and the comparison with the approved plan are unit-tested (`scripts/ci/tests/destroy-guard.test.mjs`, `plan-summary.test.mjs`) and the pipeline's structure is checked (`pipeline-structure.test.mjs`); none of that is a run on Azure.
+2026-11-20, the first real teardown (`docs/evidence/WI-DEP-001/first-dev-teardown-2026-11-20.md`). Attempt 1: the guard falsely refused the Key Vault secrets before the approval (fixed, register 107). Attempt 2: approved, all 26 resources destroyed in about 23 minutes; the group, the foundation and the state were checked afterwards. Its emptiness check failed falsely because Azure still listed the just-deleted Log Analytics workspace; the check now asks again before failing, and that retry has not yet run on Azure. Not yet seen: a rebuild recovering the soft-deleted vault.
