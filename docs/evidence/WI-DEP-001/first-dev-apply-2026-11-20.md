@@ -45,4 +45,4 @@ After the fix above was merged, the lead ran the pipeline again. The plan stage 
 
 ## Attempt 3
 
-Not run yet. Before it: delete the failed Cosmos account (the lead's approval).
+Not run yet. Before it, on the lead's approval, the agent deleted the failed Cosmos account from the lead's sign-in (`az cosmosdb delete`); afterwards `rg-bakery-dev` held only the four resources the state manages there (the vault, the workspace, the environment, the mock issuer app) and `az cosmosdb check-name-exists` reported the name free.
