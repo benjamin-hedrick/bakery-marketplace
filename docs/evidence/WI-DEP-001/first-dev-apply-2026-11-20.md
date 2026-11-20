@@ -1,6 +1,6 @@
 # The first dev apply, 2026-11-20
 
-> **Status:** Current · in progress: attempt 1 stopped at the deploy identity's role check before anything was created; attempt 2 created part of the stack and stopped on two errors; the fixes are below; attempt 3 is recorded here when it has run. Work item: `WI-DEP-001`. Pipeline: `azure-pipelines-dev.yml` on `main`, action `deploy`, plan mode `real`. Identifiers are left out (this repository is public).
+> **Status:** Current · the dev infrastructure is applied (attempt 3). Attempt 1 stopped at the deploy identity's role check before anything was created; attempt 2 created part of the stack and stopped on two errors, fixed below. The application images are not deployed yet, and the teardown is recorded separately when it has run. Work item: `WI-DEP-001`. Pipeline: `azure-pipelines-dev.yml` on `main`, action `deploy`, plan mode `real`. Identifiers are left out (this repository is public).
 
 ## Attempt 1: stopped by the deploy identity's check (nothing created)
 
@@ -43,6 +43,19 @@ After the fix above was merged, the lead ran the pipeline again. The plan stage 
 
 **After the fixes,** a local plan from the state as the lead, the same command as the pipeline: 14 to add, 0 to change, 0 to destroy (26 resources with the 12 already there); the summary holds none of the private values.
 
-## Attempt 3
+## Attempt 3: the stack applied
 
-Not run yet. Before it, on the lead's approval, the agent deleted the failed Cosmos account from the lead's sign-in (`az cosmosdb delete`); afterwards `rg-bakery-dev` held only the four resources the state manages there (the vault, the workspace, the environment, the mock issuer app) and `az cosmosdb check-name-exists` reported the name free.
+Before it, on the lead's approval, the agent deleted the failed Cosmos account from the lead's sign-in (`az cosmosdb delete`); afterwards `rg-bakery-dev` held only the four resources the state manages there (the vault, the workspace, the environment, the mock issuer app) and `az cosmosdb check-name-exists` reported the name free.
+
+The fixes were merged and the lead ran the pipeline on `main` (action `deploy`, plan mode `real`) and approved at `dev-infra`. The run finished without error. Checked afterwards from the lead's sign-in (no value printed):
+
+- **Azure:** `rg-bakery-dev` holds the 12 Azure resources the stack makes there: the vault, the workspace, the environment, eight container apps (three Redis, catalog, ordering, the BFF, web, the mock issuer), and the Cosmos account, in East US 2, provisioning state `Succeeded`, free tier on. Everything else is in East US. Every app has provisioning state `Succeeded` and the `Consumption` workload profile.
+- **State:** 26 managed resources, none tainted. A plan from the state afterwards, the pipeline's command, reports "No changes. Your infrastructure matches the configuration.", so the workload-profile fixes hold.
+- **The Redis apps:** each revision is `Healthy`, running at its one replica.
+- **The application apps** (catalog, ordering, the BFF, web, the mock issuer) still run Azure's placeholder image (`mcr.microsoft.com/k8se/quickstart`), as the stack creates them until the application deploy sets the real images. Their revisions are `ActivationFailed` with 0 replicas: the system log shows the startup probe failing (the placeholder does not listen on the apps' ports). Expected; no cost while at 0 replicas. The mock issuer's system log shows "Sync with secrets from Azure Key Vault was successful": the persistent apps identity can read the vault through the references, before any real value is set.
+- **Role assignments (register 106):** the deploy identity created both Key Vault assignments (Secrets User for the apps identity, Secrets Officer for itself) through its conditioned Role Based Access Control Administrator right. That the condition refuses other roles is not shown by this run.
+- **Secrets in the state (register 214):** the three Key Vault secrets' `value` empty; the apps' secrets are all Key Vault references with no value; set, as accepted: 8 of the Cosmos account's 12 sensitive attributes (its keys and connection strings) and the workspace's 2 shared keys. Each app also records `custom_domain_verification_id`, marked sensitive, which is not a secret (a public DNS verification value).
+
+Costs from now until the teardown: the three Redis apps, roughly $0.58 to $1.94 a day together (`docs/management/budget-cost-estimate.md`); everything else is at zero replicas or inside free grants.
+
+Not done in this run: the images, the post-apply secret step, the application deploy and the smoke tests (goal 2's next steps), and the teardown.
