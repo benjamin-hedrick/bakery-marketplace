@@ -26,6 +26,7 @@ nav:
       - Container Diagram: architecture/c4/container.md
       - Request Path: architecture/request-path.md
       - Threat Model: architecture/threat-model.md
+      - Secrets and Private Values: architecture/secrets-and-sensitive-values.md
       - Context and Components:
           - System Context: architecture/c4/context.md
           - Service Components: architecture/c4/component-services.md
