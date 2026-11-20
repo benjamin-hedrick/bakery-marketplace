@@ -1,12 +1,17 @@
 #!/usr/bin/env node
-// The pipeline identity's check of itself (bootstrap check 6, docs/operations/runbooks/bootstrap-terraform-state.md; ADR-0020, WI-DEP-001).
-// Signed in as a service connection (inside an AzureCLI@2 step), it lists its own role assignments and fails unless they are exactly the
-// expected ones, then tries to create a resource group and fails unless Azure refuses. Its object id comes from its own token: the pipeline
-// identities have no Microsoft Graph permission to look themselves up.
+// The pipeline identities' role checks (bootstrap check 6, docs/operations/runbooks/bootstrap-terraform-state.md; ADR-0020, WI-DEP-001).
 //
 //   node scripts/ci/identity-check.mjs --identity plan|deploy [--environment dev] [--probe-name rg-...]
+//       The signed-in identity checks itself: it lists its own role assignments and fails unless they are exactly the expected ones, then
+//       tries to create a resource group and fails unless Azure refuses. Its object id comes from its own token (the pipeline identities have
+//       no Microsoft Graph permission to look themselves up).
+//   node scripts/ci/identity-check.mjs --identity deploy --principal <object id> [--environment dev]
+//       The signed-in plan identity checks another identity's complete role set. An identity sees only the assignments at scopes it can read:
+//       the deploy identity cannot read rg-bakery-tfstate, so its own check cannot see its state role, nor any assignment at a scope it cannot
+//       read (seen 2026-11-20). The plan identity reads the whole subscription and sees all of them. No create probe in this mode.
 //
-// Exit code 0 = exactly the expected roles and creating was refused, 1 = not, 2 = bad usage or an Azure call that failed for another reason.
+// Exit code 0 = exactly the expected roles (and, checking itself, creating was refused), 1 = not, 2 = bad usage or an Azure call that failed
+// for another reason.
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -15,7 +20,7 @@ import { fileURLToPath } from 'node:url';
  * Key Vault role exists only while an environment does (the environment stack creates it). `conditioned` says whether the assignment must
  * carry a condition (the constrained role-assignment right) or must not.
  */
-export function expectedRoles(identity, environment) {
+export function expectedRoles(identity, environment, { asSelf = true } = {}) {
   const group = (name) => new RegExp(`^/subscriptions/[^/]+/resourceGroups/${name}$`, 'i');
   const stateContainer = /\/blobServices\/default\/containers\/tfstate$/i;
   if (identity === 'plan')
@@ -29,7 +34,8 @@ export function expectedRoles(identity, environment) {
       { role: 'Contributor', scope: group('rg-bakery-foundation'), conditioned: false },
       { role: 'Role Based Access Control Administrator', scope: group(`rg-bakery-${environment}`), conditioned: true },
       { role: 'Role Based Access Control Administrator', scope: group('rg-bakery-foundation'), conditioned: true },
-      { role: 'Storage Blob Data Contributor', scope: stateContainer, conditioned: false },
+      // Not visible to the deploy identity itself (it cannot read rg-bakery-tfstate); checked by the plan identity instead (--principal).
+      { role: 'Storage Blob Data Contributor', scope: stateContainer, conditioned: false, optional: asSelf },
       {
         role: 'AcrPush',
         scope:
@@ -109,19 +115,31 @@ function main() {
   const identity = get('--identity');
   const environment = get('--environment') ?? 'dev';
   const probe = get('--probe-name') ?? `rg-bakery-identity-probe-${Date.now()}`;
+  const principal = get('--principal');
+  if (principal !== undefined && !/^[0-9a-f-]{36}$/i.test(principal)) {
+    console.error('identity check: --principal must be an object id');
+    process.exit(2);
+  }
   let expected;
   try {
-    expected = expectedRoles(identity, environment);
+    expected = expectedRoles(identity, environment, { asSelf: principal === undefined });
   } catch (e) {
-    console.error(`usage: identity-check.mjs --identity plan|deploy [--environment dev]: ${e.message}`);
+    console.error(
+      `usage: identity-check.mjs --identity plan|deploy [--environment dev] [--principal <object id>]: ${e.message}`,
+    );
     process.exit(2);
   }
 
   let held;
   try {
     const sub = az(['account', 'show', '--query', 'id', '-o', 'tsv']);
-    const oid = objectIdOf(az(['account', 'get-access-token', '--query', 'accessToken', '-o', 'tsv']));
-    console.log(`Signed in as the ${identity} identity, object id ${oid}`);
+    const self = objectIdOf(az(['account', 'get-access-token', '--query', 'accessToken', '-o', 'tsv']));
+    const oid = principal ?? self;
+    console.log(
+      principal
+        ? `Signed in as object id ${self}, checking the ${identity} identity, object id ${oid}`
+        : `Signed in as the ${identity} identity, object id ${oid}`,
+    );
     const listUrl = `https://management.azure.com/subscriptions/${sub}/providers/Microsoft.Authorization/roleAssignments?api-version=2022-04-01&$filter=principalId%20eq%20'${oid}'`;
     const assignments = JSON.parse(az(['rest', '--method', 'get', '--url', listUrl])).value ?? [];
     const names = new Map();
@@ -154,6 +172,10 @@ function main() {
   if (!result.ok) {
     for (const p of result.problems) console.log(`##vso[task.logissue type=error]Identity check: ${p}`);
     process.exit(1);
+  }
+  if (principal) {
+    console.log(`The ${identity} identity's roles are exactly the ${held.length} expected.`);
+    process.exit(0);
   }
 
   try {

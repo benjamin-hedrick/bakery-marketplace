@@ -67,6 +67,24 @@ describe('the identity check', () => {
     );
   });
 
+  test('the deploy identity cannot see its own state role; checking itself it passes without it, checked by the plan identity it must have it', () => {
+    // What the deploy identity saw of itself in the first real apply run (2026-11-20): every role but the one in rg-bakery-tfstate.
+    const seenBySelf = deploy.filter((d) => d.role !== 'Storage Blob Data Contributor');
+    assert.equal(compareRoles(seenBySelf, expectedRoles('deploy', 'dev')).ok, true);
+    const byPlan = compareRoles(seenBySelf, expectedRoles('deploy', 'dev', { asSelf: false }));
+    assert.equal(byPlan.ok, false);
+    assert.match(byPlan.problems.join(), /missing: Storage Blob Data Contributor/);
+    assert.equal(compareRoles(deploy, expectedRoles('deploy', 'dev', { asSelf: false })).ok, true);
+  });
+
+  test('checked by the plan identity, a deploy role at a scope the deploy identity cannot read is still refused', () => {
+    const extra = [...deploy, { role: 'Owner', scope: SUB, conditioned: false }];
+    assert.match(
+      compareRoles(extra, expectedRoles('deploy', 'dev', { asSelf: false })).problems.join(),
+      /unexpected: Owner/,
+    );
+  });
+
   test('refuses an unknown identity', () => {
     assert.throws(() => expectedRoles('admin', 'dev'), /unknown identity/);
   });
