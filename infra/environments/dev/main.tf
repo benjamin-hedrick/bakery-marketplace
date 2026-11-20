@@ -3,7 +3,8 @@
 # Persistent things (registry, the apps identity and its AcrPull) live in infra/foundation.
 #
 # Written and checked with mocked providers only (node scripts/ci/terraform-checks.mjs --roots infra/foundation,infra/environments/dev).
-# Planned against Azure (2026-11-20, locally and in the dev pipeline), never applied. What was and was not verified: docs/evidence/WI-DEP-001/.
+# Planned against Azure (2026-11-20, locally and in the dev pipeline); the first apply created part of it and stopped (Redis args, Cosmos region).
+# What was and was not verified: docs/evidence/WI-DEP-001/.
 
 data "azurerm_resource_group" "env" {
   name = var.resource_group_name
@@ -167,6 +168,13 @@ resource "azurerm_container_app_environment" "env" {
   location                   = local.location
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
   tags                       = local.tags
+
+  # Azure gives a new environment a "Consumption" workload profile even when none is asked for, and the provider does not record it at create
+  # (first apply, 2026-11-20). Declaring it would make a plan from the state REPLACE the environment; leaving it undeclared makes a refreshed
+  # plan try to remove it. So it is ignored. It is billed like the consumption-only plan.
+  lifecycle {
+    ignore_changes = [workload_profile]
+  }
 }
 
 # ---- Key Vault: holds the secrets the apps read by reference ---------------------------------------------------------------------------
@@ -222,7 +230,7 @@ resource "azurerm_key_vault_secret" "placeholder" {
 resource "azurerm_cosmosdb_account" "cosmos" {
   name                = var.cosmos_account_name
   resource_group_name = local.rg
-  location            = local.location
+  location            = var.cosmos_location # not local.location: see the variable; the apps reach it over the public endpoint either way
   offer_type          = "Standard"
   kind                = "GlobalDocumentDB"
   free_tier_enabled   = var.cosmos_free_tier
@@ -232,7 +240,7 @@ resource "azurerm_cosmosdb_account" "cosmos" {
   }
 
   geo_location {
-    location          = local.location
+    location          = var.cosmos_location
     failover_priority = 0
   }
 
@@ -308,6 +316,7 @@ resource "azurerm_container_app" "redis" {
   resource_group_name          = local.rg
   container_app_environment_id = azurerm_container_app_environment.env.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption" # what Azure assigns anyway (see the environment); unset, every plan would try to remove it
   tags                         = local.tags
 
   ingress {
@@ -331,7 +340,8 @@ resource "azurerm_container_app" "redis" {
       image  = "docker.io/library/redis:7.4-alpine"
       cpu    = 0.25
       memory = "0.5Gi"
-      args   = ["redis-server", "--save", "", "--appendonly", "no"]
+      # A bare --save turns snapshots off (Redis 7). Never pass an empty string here: the provider fails reading it back (first apply, 2026-11-20).
+      args = ["redis-server", "--save", "--appendonly", "no"]
     }
   }
 }
@@ -344,6 +354,7 @@ resource "azurerm_container_app" "redis_cache" {
   resource_group_name          = local.rg
   container_app_environment_id = azurerm_container_app_environment.env.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption" # what Azure assigns anyway (see the environment); unset, every plan would try to remove it
   tags                         = local.tags
 
   ingress {
@@ -367,7 +378,7 @@ resource "azurerm_container_app" "redis_cache" {
       image  = "docker.io/library/redis:7.4-alpine"
       cpu    = 0.25
       memory = "0.5Gi"
-      args   = ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+      args   = ["redis-server", "--save", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     }
   }
 }
@@ -380,6 +391,7 @@ resource "azurerm_container_app" "redis_sessions" {
   resource_group_name          = local.rg
   container_app_environment_id = azurerm_container_app_environment.env.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption" # what Azure assigns anyway (see the environment); unset, every plan would try to remove it
   tags                         = local.tags
 
   ingress {
@@ -403,7 +415,7 @@ resource "azurerm_container_app" "redis_sessions" {
       image  = "docker.io/library/redis:7.4-alpine"
       cpu    = 0.25
       memory = "0.5Gi"
-      args   = ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+      args   = ["redis-server", "--save", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
     }
   }
 }
@@ -414,6 +426,7 @@ resource "azurerm_container_app" "apps" {
   resource_group_name          = local.rg
   container_app_environment_id = azurerm_container_app_environment.env.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption" # what Azure assigns anyway (see the environment); unset, every plan would try to remove it
   tags                         = local.tags
 
   identity {
@@ -501,6 +514,7 @@ resource "azurerm_container_app" "mock" {
   resource_group_name          = local.rg
   container_app_environment_id = azurerm_container_app_environment.env.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption" # what Azure assigns anyway (see the environment); unset, every plan would try to remove it
   tags                         = local.tags
 
   identity {

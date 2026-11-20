@@ -89,6 +89,17 @@ variable "cosmos_free_tier" {
   default     = true
 }
 
+variable "cosmos_location" {
+  type        = string
+  description = "Region of the Cosmos account. Not the resource group's: on 2026-11-20 East US refused new Cosmos accounts for this subscription (\"high demand\"; az cosmosdb locations list shows isSubscriptionRegionAccessAllowedForRegular false). East US 2 is the nearest region that allows them."
+  default     = "eastus2"
+
+  validation {
+    condition     = length(var.cosmos_location) > 0
+    error_message = "cosmos_location must name a region."
+  }
+}
+
 variable "issuer_mode" {
   type        = string
   description = "mock: deploy the mock issuer as a container app and derive every issuer address from it (register item 102, decided 2026-10-31). entra: use the three settings below, which are then required (N-02)."
