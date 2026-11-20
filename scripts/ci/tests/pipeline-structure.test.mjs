@@ -39,26 +39,69 @@ describe('azure-pipelines.yml (the pull-request checks)', () => {
   });
 });
 
-describe('azure-pipelines-dev.yml (manual dev operations, currently a rehearsal)', () => {
+describe('azure-pipelines-dev.yml (manual dev operations: a real read-only plan, the rest a rehearsal)', () => {
   const file = 'azure-pipelines-dev.yml';
   const text = code(file);
+  /** The text of one stage, from its "- stage:" line to the next one. */
+  const stage = (name) => {
+    const start = text.indexOf(`- stage: ${name}\n`);
+    assert.ok(start >= 0, `no stage ${name}`);
+    const next = text.indexOf('- stage: ', start + 1);
+    return text.slice(start, next < 0 ? undefined : next);
+  };
 
   test('never starts by itself', () => {
     assert.match(text, /^trigger: none$/m);
     assert.match(text, /^pr: none$/m);
   });
 
-  test('has no Azure service connection: a rehearsal creates nothing and needs no credential', () => {
-    assert.doesNotMatch(text, /azureSubscription|connectedServiceName|AzureCLI@|AzureResourceManager|AzureKeyVault@/);
+  test('the only service connection is the read-only bakery-plan, and only the plan stage uses it', () => {
+    const connections = [...text.matchAll(/azureSubscription: (\S+)/g)].map((m) => m[1]);
+    assert.ok(connections.length > 0, 'the plan stage should use the plan connection');
+    assert.deepEqual([...new Set(connections)], ['bakery-plan']);
+    const outside = text.replace(stage('infra_plan'), '');
+    assert.doesNotMatch(
+      outside,
+      /azureSubscription|connectedServiceName|AzureCLI@|AzureResourceManager|AzureKeyVault@/,
+    );
+    assert.doesNotMatch(text, /bakery-deploy/);
   });
 
-  test('every echo of a real command is marked as a rehearsal, and no step runs terraform or az', () => {
-    for (const line of text.split('\n')) {
-      if (/^\s*(-\s*)?(terraform|az)\s/.test(line)) assert.fail(`a real command runs: ${line.trim()}`);
+  test('real terraform and az commands run only in the plan stage, every plan there is unlocked and read-only, and nothing applies', () => {
+    const outside = text.replace(stage('infra_plan'), '');
+    for (const line of outside.split('\n')) {
+      if (/^\s*(-\s*)?(terraform|az)\s/.test(line))
+        assert.fail(`a real command runs outside the plan stage: ${line.trim()}`);
     }
-    for (const line of text.split('\n').filter((l) => /terraform (plan|apply|show)|az containerapp/.test(l))) {
+    for (const line of outside.split('\n').filter((l) => /terraform (plan|apply|show)|az containerapp/.test(l))) {
       assert.match(line, /REHEARSAL|displayName/, line.trim());
     }
+    const plan = stage('infra_plan');
+    assert.doesNotMatch(plan, /terraform\s+(\S+\s+)?(apply|destroy|import|state|force-unlock|taint)\b/);
+    assert.doesNotMatch(plan, /\baz\s+(containerapp|keyvault|role|cosmosdb|acr)\b/);
+    const plans = [...plan.matchAll(/terraform\s.*\bplan\s.*$/gm)].map((m) => m[0]);
+    assert.ok(plans.length > 0);
+    for (const p of plans) assert.match(p, /-lock=false/, p);
+  });
+
+  test('the plan stage publishes only the value-free summary, never the saved plan or its JSON', () => {
+    const plan = stage('infra_plan');
+    const published = [...plan.matchAll(/- publish: (\S+)/g)].map((m) => m[1]);
+    assert.deepEqual(published, ['$(Build.ArtifactStagingDirectory)/plan-summary']);
+    assert.match(plan, /node scripts\/ci\/plan-summary\.mjs --plan "\$json"/);
+    assert.match(plan, /rm -f "\$json" infra\/environments\/dev\/tfplan/);
+  });
+
+  test('the real plan is the default, and both plan modes set hasChanges on a step named plan (what the apply stage reads)', () => {
+    assert.match(text, /- name: planMode\n(.*\n){2}\s+default: real\n/);
+    const plan = stage('infra_plan');
+    assert.match(plan, /\{\{ if eq\(parameters\.planMode, 'rehearsal'\) \}\}:[\s\S]*?name: plan\n/);
+    assert.match(plan, /\{\{ if eq\(parameters\.planMode, 'real'\) \}\}:[\s\S]*?- task: AzureCLI@2\n\s+name: plan\n/);
+  });
+
+  test('the real Terraform is pinned and its download checked', () => {
+    assert.match(stage('infra_plan'), /TF_ZIP_SHA256: [0-9a-f]{64}\n/);
+    assert.match(stage('infra_plan'), /sha256sum -c -/);
   });
 
   test('only a manual run goes on, and a destroy needs the typed environment name', () => {
