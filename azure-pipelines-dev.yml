@@ -1,11 +1,18 @@
 # Manual operations on the dev environment (ADR-0020, WI-DEP-001). Register this file as its OWN pipeline ("bakery-dev-operations");
 # azure-pipelines.yml (pull-request checks) is not touched by it. This pipeline never runs by itself: no push trigger, no pull-request trigger.
 #
-# STATE OF THIS FILE: a REHEARSAL. Every step only prints what the real step will do. It has no Azure service connection, creates no resource
-# and needs no credential, so it costs nothing and cannot harm anything. Its purpose is to PROVE THE GATES before anything real sits behind them:
-# the same stages, jobs and Azure DevOps Environments the real run will use, so approvals, the branch check, the exclusive lock, the typed
-# confirmation and the skip-when-nothing-changed rule can be seen working. Real steps are added one stage at a time, each rehearsed first.
+# STATE OF THIS FILE: the infrastructure PLAN is real (added 2026-11-20); every other step is still a REHEARSAL that only prints what the
+# real step will do. The real plan runs as the read-only plan identity (service connection bakery-plan: Reader on the subscription, Storage
+# Blob Data Reader on the state container), with -lock=false (ADR-0020 decision 5; the apply re-plans under the lock, register item 110),
+# creates nothing and publishes only a summary with no values (scripts/ci/plan-summary.mjs): a saved plan holds every input and refreshed
+# attribute in clear text, so it never leaves the agent. planMode=rehearsal brings back the simulated plan, to re-prove the gates (G1, G2).
+# The rehearsal steps have no service connection and need no credential. Real steps are added one stage at a time, each rehearsed first.
 # How to set the environments up and what to expect from each run: docs/operations/runbooks/prove-the-pipeline-gates.md.
+#
+# Pipeline variables (Pipelines > bakery-dev-operations > Edit > Variables; set in Azure DevOps, never in this repository; none is a secret,
+# but they name private resources): ARM_SUBSCRIPTION_ID, TF_STATE_ACCOUNT (the state account the bootstrap made), DEPLOY_PRINCIPAL_ID (object id
+# of bakery-deploy's service principal), KEY_VAULT_NAME and COSMOS_ACCOUNT_NAME (the dev stack's globally unique names). The registry, the
+# apps identity and the tenant are read from the foundation's state outputs and the sign-in, so they cannot drift from what was applied.
 #
 # Environments (Pipelines > Environments, with the checks listed in that runbook; configured in the Azure interface, not here):
 #   dev-infra    approval + branch control (main only) + exclusive lock     the infrastructure apply
@@ -24,8 +31,15 @@ parameters:
     values:
       - deploy # infrastructure (only if the plan has changes), then the application
       - destroy # the teardown
+  - name: planMode
+    displayName: Infrastructure plan. real = terraform plan as the read-only identity; rehearsal = the simulated plan below (gate tests)
+    type: string
+    default: real
+    values:
+      - real
+      - rehearsal
   - name: simulateInfrastructureChanges
-    displayName: Rehearsal only. Pretend the infrastructure plan has changes (false = no changes, so the infrastructure approval is skipped)
+    displayName: Rehearsal plan only. Pretend the infrastructure plan has changes (false = no changes, so the infrastructure approval is skipped)
     type: boolean
     default: true
   - name: holdSeconds
@@ -70,20 +84,122 @@ stages:
         dependsOn: inputs
         jobs:
           - job: plan
+            variables:
+              TF_VERSION: 1.17.1
+              # SHA-256 of terraform_1.17.1_linux_amd64.zip from HashiCorp's published SHA256SUMS (taken 2026-11-20). Update with the version.
+              TF_ZIP_SHA256: 4638628058e71a55212b1c563712eac03b902128f40740f3dc8174df12135061
             steps:
               - checkout: self
-              - script: |
-                  set -eu
-                  echo "REHEARSAL - the real step runs terraform plan -detailed-exitcode -out=tfplan   (exit 0 = no changes, 2 = changes)"
-                  if [ "${{ parameters.simulateInfrastructureChanges }}" = "True" ] || [ "${{ parameters.simulateInfrastructureChanges }}" = "true" ]; then
-                    echo "Simulated plan exit code: 2 (changes)"
-                    echo "##vso[task.setvariable variable=hasChanges;isOutput=true]true"
-                  else
-                    echo "Simulated plan exit code: 0 (no changes)"
-                    echo "##vso[task.setvariable variable=hasChanges;isOutput=true]false"
-                  fi
-                name: plan
-                displayName: Plan (rehearsal)
+              - ${{ if eq(parameters.planMode, 'rehearsal') }}:
+                  - script: |
+                      set -eu
+                      echo "REHEARSAL - the real step runs terraform plan -lock=false -detailed-exitcode -out=tfplan   (exit 0 = no changes, 2 = changes)"
+                      if [ "${{ parameters.simulateInfrastructureChanges }}" = "True" ] || [ "${{ parameters.simulateInfrastructureChanges }}" = "true" ]; then
+                        echo "Simulated plan exit code: 2 (changes)"
+                        echo "##vso[task.setvariable variable=hasChanges;isOutput=true]true"
+                      else
+                        echo "Simulated plan exit code: 0 (no changes)"
+                        echo "##vso[task.setvariable variable=hasChanges;isOutput=true]false"
+                      fi
+                    name: plan
+                    displayName: Plan (rehearsal)
+
+              - ${{ if eq(parameters.planMode, 'real') }}:
+                  - task: UseNode@1
+                    inputs:
+                      version: '24.x'
+                  - script: |
+                      set -eu
+                      zip="$(Agent.TempDirectory)/terraform.zip"
+                      curl -fsSL -o "$zip" "https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip"
+                      echo "$(TF_ZIP_SHA256)  $zip" | sha256sum -c -
+                      unzip -q -o "$zip" -d "$(Agent.TempDirectory)/terraform"
+                      echo "##vso[task.prependpath]$(Agent.TempDirectory)/terraform"
+                    displayName: Install Terraform (pinned version, checksum checked)
+
+                  # Bootstrap check 6 (docs/operations/runbooks/bootstrap-terraform-state.md): the identity reports its own roles, which must be
+                  # exactly Reader on the subscription and Storage Blob Data Reader on the state container, and it must fail to create anything.
+                  # Its object id comes from its own token (it has no Microsoft Graph permission to look itself up).
+                  - task: AzureCLI@2
+                    displayName: The plan identity checks its own roles and that it cannot create (bootstrap check 6)
+                    inputs:
+                      azureSubscription: bakery-plan
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      inlineScript: |
+                        set -euo pipefail
+                        sub=$(az account show --query id -o tsv)
+                        oid=$(az account get-access-token --query accessToken -o tsv |
+                          python3 -c 'import base64, json, sys; p = sys.stdin.read().strip().split(".")[1]; print(json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))["oid"])')
+                        echo "Signed in as object id $oid"
+                        roles=$(az rest --method get --url "https://management.azure.com/subscriptions/$sub/providers/Microsoft.Authorization/roleAssignments?api-version=2022-04-01&\$filter=principalId%20eq%20'$oid'")
+                        bad=0; reader=0; blob=0
+                        while IFS=$'\t' read -r rid scope conditioned; do
+                          name=$(az rest --method get --url "https://management.azure.com$rid?api-version=2022-04-01" --query properties.roleName -o tsv)
+                          echo "  $name at $scope (condition: $conditioned)"
+                          case "$name|$scope" in
+                            "Reader|/subscriptions/$sub") reader=$((reader + 1)) ;;
+                            "Storage Blob Data Reader|"*/blobServices/default/containers/tfstate) blob=$((blob + 1)) ;;
+                            *) echo "##vso[task.logissue type=error]The plan identity has a role it should not have: $name at $scope"; bad=1 ;;
+                          esac
+                        done < <(echo "$roles" | jq -r '.value[] | [.properties.roleDefinitionId, .properties.scope, (.properties.condition != null)] | @tsv')
+                        if [ "$bad" -ne 0 ] || [ "$reader" -ne 1 ] || [ "$blob" -ne 1 ]; then
+                          echo "##vso[task.logissue type=error]Expected exactly Reader on the subscription and Storage Blob Data Reader on the tfstate container."
+                          exit 1
+                        fi
+                        probe="rg-bakery-plan-probe-$(Build.BuildId)"
+                        if out=$(az group create -n "$probe" -l eastus --tags Purpose=plan-identity-probe 2>&1); then
+                          echo "##vso[task.logissue type=error]The plan identity created $probe; it must be read-only. Deleting it."
+                          az group delete -n "$probe" --yes --no-wait || true
+                          exit 1
+                        fi
+                        if ! echo "$out" | grep -q AuthorizationFailed; then
+                          echo "##vso[task.logissue type=error]Creating $probe failed, but not for lack of permission:"; echo "$out"; exit 1
+                        fi
+                        echo "Roles are exactly the two expected, and creating a resource group was refused (AuthorizationFailed)."
+
+                  # The plan: read-only identity, no lock (ADR-0020 decision 5), -detailed-exitcode. Terraform signs in with the connection's
+                  # federated token (no secret). The binary plan and its JSON stay on the agent; only the value-free summary is published.
+                  - task: AzureCLI@2
+                    name: plan
+                    displayName: Terraform plan of the dev stack (read-only identity, no lock; publishes a summary only)
+                    inputs:
+                      azureSubscription: bakery-plan
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      addSpnToEnvironment: true
+                      inlineScript: |
+                        set -euo pipefail
+                        for v in ARM_SUBSCRIPTION_ID TF_STATE_ACCOUNT DEPLOY_PRINCIPAL_ID KEY_VAULT_NAME COSMOS_ACCOUNT_NAME; do
+                          if [ -z "${!v:-}" ]; then echo "##vso[task.logissue type=error]Pipeline variable $v is not set."; exit 1; fi
+                        done
+                        export ARM_CLIENT_ID="$servicePrincipalId" ARM_TENANT_ID="$tenantId" ARM_OIDC_TOKEN="$idToken" ARM_USE_OIDC=true TF_IN_AUTOMATION=1
+                        backend=(-input=false -backend-config=resource_group_name=rg-bakery-tfstate -backend-config="storage_account_name=$TF_STATE_ACCOUNT"
+                          -backend-config=container_name=tfstate -backend-config=use_azuread_auth=true)
+
+                        terraform -chdir=infra/foundation init "${backend[@]}" -backend-config=key=foundation.tfstate
+                        foundation=$(terraform -chdir=infra/foundation output -json)
+                        export TF_VAR_tenant_id="$tenantId"
+                        export TF_VAR_registry_login_server=$(jq -er '.registry_login_server.value' <<<"$foundation")
+                        export TF_VAR_app_identity_id=$(jq -er --arg e "$(ENVIRONMENT_NAME)" '.app_identities.value[$e].id' <<<"$foundation")
+                        export TF_VAR_app_identity_principal_id=$(jq -er --arg e "$(ENVIRONMENT_NAME)" '.app_identities.value[$e].principal_id' <<<"$foundation")
+                        export TF_VAR_deploy_principal_id="$DEPLOY_PRINCIPAL_ID" TF_VAR_key_vault_name="$KEY_VAULT_NAME" TF_VAR_cosmos_account_name="$COSMOS_ACCOUNT_NAME"
+
+                        terraform -chdir=infra/environments/dev init "${backend[@]}" -backend-config=key=dev.tfstate
+                        set +e
+                        terraform -chdir=infra/environments/dev plan -input=false -lock=false -detailed-exitcode -out=tfplan
+                        rc=$?
+                        set -e
+                        if [ "$rc" -eq 1 ]; then exit 1; fi
+                        json="$(Agent.TempDirectory)/plan.json"
+                        terraform -chdir=infra/environments/dev show -json tfplan > "$json"
+                        mkdir -p "$(Build.ArtifactStagingDirectory)/plan-summary"
+                        node scripts/ci/plan-summary.mjs --plan "$json" --exit-code "$rc" --out "$(Build.ArtifactStagingDirectory)/plan-summary/dev-plan-summary.json"
+                        rm -f "$json" infra/environments/dev/tfplan
+
+                  - publish: $(Build.ArtifactStagingDirectory)/plan-summary
+                    artifact: dev-plan-summary
+                    displayName: Publish the plan summary (addresses and actions only, no values)
 
       # Runs, and asks for approval, only when the plan has changes. With no changes this stage is skipped and nobody is asked.
       - stage: infra_apply
