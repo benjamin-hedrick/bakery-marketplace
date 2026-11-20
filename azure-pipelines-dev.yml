@@ -114,6 +114,13 @@ stages:
                       scriptType: bash
                       scriptLocation: inlineScript
                       inlineScript: node scripts/ci/identity-check.mjs --identity plan --environment "$(ENVIRONMENT_NAME)" --probe-name "rg-bakery-plan-probe-$(Build.BuildId)"
+                  - task: AzureCLI@2
+                    displayName: The plan identity checks the deploy identity's complete roles (it reads every scope; the deploy identity cannot)
+                    inputs:
+                      azureSubscription: bakery-plan
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      inlineScript: node scripts/ci/identity-check.mjs --identity deploy --principal "$DEPLOY_PRINCIPAL_ID" --environment "$(ENVIRONMENT_NAME)"
 
                   # The binary plan and its JSON stay on the agent; only the value-free summary is published.
                   - task: AzureCLI@2
@@ -263,6 +270,13 @@ stages:
                       scriptType: bash
                       scriptLocation: inlineScript
                       inlineScript: node scripts/ci/identity-check.mjs --identity plan --environment "$(ENVIRONMENT_NAME)" --probe-name "rg-bakery-plan-probe-$(Build.BuildId)"
+                  - task: AzureCLI@2
+                    displayName: The plan identity checks the deploy identity's complete roles (it reads every scope; the deploy identity cannot)
+                    inputs:
+                      azureSubscription: bakery-plan
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      inlineScript: node scripts/ci/identity-check.mjs --identity deploy --principal "$DEPLOY_PRINCIPAL_ID" --environment "$(ENVIRONMENT_NAME)"
 
                   # -refresh=false: the destroy plan is made from the state alone, so the read-only identity reads nothing in Azure (no secret,
                   # no key) and the plan lists exactly what the state manages. The apply stage re-plans with refresh after the approval.

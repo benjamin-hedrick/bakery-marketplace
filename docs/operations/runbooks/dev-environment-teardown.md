@@ -14,7 +14,7 @@
 1. **Run pipeline** on `main`: action `destroy`, plan mode `real`, confirmation `dev`.
 2. `inputs` checks the confirmation. Anything other than `dev` stops the run.
 3. `destroy_plan`, as the read-only `bakery-plan`:
-   - checks its own roles (bootstrap check 6);
+   - checks its own roles (bootstrap check 6), and the deploy identity's complete roles (the deploy identity cannot see all of its own);
    - makes a destroy plan **from the state alone** (`-refresh=false -lock=false`: it reads nothing in Azure, so no secret);
    - runs the **destroy guard** on that plan: a pure destroy, every resource inside `rg-bakery-dev`, nothing tagged as foundation or persistent;
    - publishes `dev-destroy-summary` (addresses and actions only).

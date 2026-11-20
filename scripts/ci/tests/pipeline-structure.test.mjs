@@ -129,6 +129,13 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
       const s = real(name);
       const check = s.indexOf('identity-check.mjs --identity plan');
       assert.ok(check > 0 && check < s.indexOf('dev-stack-env.sh'), name);
+      // The deploy identity cannot see all of its own roles (not those in rg-bakery-tfstate); the plan identity checks the full set before
+      // any approval (2026-11-20).
+      const full = s.indexOf('identity-check.mjs --identity deploy --principal "$DEPLOY_PRINCIPAL_ID"');
+      assert.ok(
+        full > 0 && full < s.indexOf('dev-stack-env.sh'),
+        `${name}: the plan identity checks the deploy identity`,
+      );
     }
   });
 
