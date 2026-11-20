@@ -39,7 +39,7 @@ describe('azure-pipelines.yml (the pull-request checks)', () => {
   });
 });
 
-describe('azure-pipelines-dev.yml (manual dev operations: a real read-only plan, the rest a rehearsal)', () => {
+describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and teardown; the app deploy a rehearsal)', () => {
   const file = 'azure-pipelines-dev.yml';
   const text = code(file);
   /** The text of one stage, from its "- stage:" line to the next one. */
@@ -49,54 +49,127 @@ describe('azure-pipelines-dev.yml (manual dev operations: a real read-only plan,
     const next = text.indexOf('- stage: ', start + 1);
     return text.slice(start, next < 0 ? undefined : next);
   };
+  /** The real branch of a stage (the part under its planMode 'real' condition). */
+  const real = (name) => {
+    const s = stage(name);
+    const at = s.indexOf("{{ if eq(parameters.planMode, 'real') }}:");
+    assert.ok(at >= 0, `${name} has no real branch`);
+    return s.slice(at);
+  };
+  const lines = (t) => t.split('\n');
 
   test('never starts by itself', () => {
     assert.match(text, /^trigger: none$/m);
     assert.match(text, /^pr: none$/m);
   });
 
-  test('the only service connection is the read-only bakery-plan, and only the plan stage uses it', () => {
+  test('only the two pipeline connections are used: bakery-plan in the plan stages, bakery-deploy only in the approved deployment jobs', () => {
     const connections = [...text.matchAll(/azureSubscription: (\S+)/g)].map((m) => m[1]);
-    assert.ok(connections.length > 0, 'the plan stage should use the plan connection');
-    assert.deepEqual([...new Set(connections)], ['bakery-plan']);
-    const outside = text.replace(stage('infra_plan'), '');
-    assert.doesNotMatch(
-      outside,
-      /azureSubscription|connectedServiceName|AzureCLI@|AzureResourceManager|AzureKeyVault@/,
+    assert.deepEqual([...new Set(connections)].sort(), ['bakery-deploy', 'bakery-plan']);
+    for (const name of ['infra_plan', 'destroy_plan']) assert.doesNotMatch(stage(name), /bakery-deploy/, name);
+    for (const name of ['infra_apply', 'destroy_apply']) {
+      assert.doesNotMatch(stage(name), /bakery-plan/, name);
+      assert.match(stage(name), /- deployment: /, `${name} must be a deployment job (an approval)`);
+    }
+    assert.doesNotMatch(stage('app_deploy'), /azureSubscription|AzureCLI@|connectedServiceName/);
+  });
+
+  test('every deployment job is bound to one of the three gated environments, and each is used', () => {
+    const used = [...text.matchAll(/^\s+environment: (\S+)$/gm)].map((m) => m[1]);
+    assert.deepEqual([...used].sort(), ['dev-app', 'dev-destroy', 'dev-infra']);
+    assert.equal([...text.matchAll(/^\s+- deployment: /gm)].length, 3);
+  });
+
+  test('the application deploy is still a rehearsal: no real command runs in it', () => {
+    for (const line of lines(stage('app_deploy'))) {
+      if (/^\s*(-\s*)?(terraform|az|node)\s/.test(line)) assert.fail(`a real command runs: ${line.trim()}`);
+    }
+  });
+
+  test('the plan stages plan without the lock; the destroy plan reads nothing in Azure; neither applies', () => {
+    const plan = real('infra_plan');
+    const destroy = real('destroy_plan');
+    for (const [name, s] of [
+      ['infra_plan', plan],
+      ['destroy_plan', destroy],
+    ]) {
+      const plans = [...s.matchAll(/terraform\s.*\bplan\s.*$/gm)].map((m) => m[0]);
+      assert.equal(plans.length, 1, name);
+      assert.match(plans[0], /-lock=false/, name);
+      assert.doesNotMatch(s, /terraform\s+(\S+\s+)?(apply|destroy|import|state|force-unlock|taint)\b/, name);
+    }
+    assert.match(destroy, /plan -destroy .*-refresh=false/);
+  });
+
+  test('an apply happens only after a re-plan under the lock that is checked against the approved summary, in the same step', () => {
+    for (const [name, artifact] of [
+      ['infra_apply', 'dev-plan-summary'],
+      ['destroy_apply', 'dev-destroy-summary'],
+    ]) {
+      const s = real(name);
+      assert.match(s, new RegExp(`- download: current\\n\\s+artifact: ${artifact}\\n`), name);
+      const replan = s.search(/terraform -chdir=\S+ plan (-destroy )?-input=false -detailed-exitcode -out=tfplan/);
+      const check = s.indexOf(`--expect "$(Pipeline.Workspace)/${artifact}/${artifact}.json"`);
+      const apply = s.indexOf('apply -input=false tfplan');
+      assert.ok(replan > 0 && check > replan && apply > check, `${name}: re-plan, then the check, then the apply`);
+      assert.doesNotMatch(s.slice(replan, apply), /-lock=false/, `${name}: the re-plan takes the lock`);
+      assert.equal(s.split('apply -input=false').length - 1, 1, `${name}: one apply`);
+    }
+    const outside = text.replace(stage('infra_apply'), '').replace(stage('destroy_apply'), '');
+    assert.doesNotMatch(outside, /terraform\s+(-chdir=\S+\s+)?apply\b/);
+  });
+
+  test('the deploy identity checks itself before it plans or applies', () => {
+    for (const name of ['infra_apply', 'destroy_apply']) {
+      const s = real(name);
+      const check = s.indexOf('identity-check.mjs --identity deploy');
+      assert.ok(check > 0 && check < s.indexOf('dev-stack-env.sh'), name);
+    }
+    for (const name of ['infra_plan', 'destroy_plan']) {
+      const s = real(name);
+      const check = s.indexOf('identity-check.mjs --identity plan');
+      assert.ok(check > 0 && check < s.indexOf('dev-stack-env.sh'), name);
+    }
+  });
+
+  test('the destroy guard runs on the real destroy plan before the approval, and again before the destroy', () => {
+    const guardBefore = real('destroy_plan').indexOf('node scripts/ci/destroy-guard.mjs --plan "$json"');
+    assert.ok(guardBefore > 0);
+    const s = real('destroy_apply');
+    const guardAfter = s.indexOf('node scripts/ci/destroy-guard.mjs --plan "$json"');
+    assert.ok(guardAfter > 0 && guardAfter < s.indexOf('apply -input=false tfplan'));
+    assert.match(stage('destroy_apply'), /dependsOn: destroy_plan/);
+    assert.match(
+      stage('destroy_apply'),
+      /condition: and\(succeeded\(\), eq\(dependencies\.destroy_plan\.outputs\['guard\.plan\.hasChanges'\], 'true'\)\)/,
     );
-    assert.doesNotMatch(text, /bakery-deploy/);
+    assert.match(s, /az resource list -g "\$\(RESOURCE_GROUP\)"/, 'the teardown checks the group is empty');
   });
 
-  test('real terraform and az commands run only in the plan stage, every plan there is unlocked and read-only, and nothing applies', () => {
-    const outside = text.replace(stage('infra_plan'), '');
-    for (const line of outside.split('\n')) {
-      if (/^\s*(-\s*)?(terraform|az)\s/.test(line))
-        assert.fail(`a real command runs outside the plan stage: ${line.trim()}`);
+  test('only the value-free summaries are published, never a saved plan or its JSON', () => {
+    const published = [...text.matchAll(/- publish: (\S+)/g)].map((m) => m[1]).sort();
+    assert.deepEqual(published, [
+      '$(Build.ArtifactStagingDirectory)/destroy-summary',
+      '$(Build.ArtifactStagingDirectory)/plan-summary',
+    ]);
+    for (const name of ['infra_plan', 'destroy_plan'])
+      assert.match(real(name), /rm -f "\$json" infra\/environments\/dev\/tfplan/, name);
+  });
+
+  test('Terraform signs in with Azure DevOps token refresh, and the budget e-mail comes in as a mapped (secret) variable', () => {
+    const steps = [...text.matchAll(/source scripts\/ci\/dev-stack-env\.sh "\$\{(\w+):-\}"/g)].map((m) => m[1]);
+    assert.deepEqual(steps.sort(), [
+      'DEPLOY_CONNECTION_ID',
+      'DEPLOY_CONNECTION_ID',
+      'PLAN_CONNECTION_ID',
+      'PLAN_CONNECTION_ID',
+    ]);
+    for (const name of ['infra_plan', 'infra_apply', 'destroy_plan', 'destroy_apply']) {
+      assert.match(real(name), /SYSTEM_ACCESSTOKEN: \$\(System\.AccessToken\)/, name);
+      assert.match(real(name), /BUDGET_CONTACT_EMAIL: \$\(BUDGET_CONTACT_EMAIL\)/, name);
+      assert.match(real(name), /addSpnToEnvironment: true/, name);
     }
-    for (const line of outside.split('\n').filter((l) => /terraform (plan|apply|show)|az containerapp/.test(l))) {
-      assert.match(line, /REHEARSAL|displayName/, line.trim());
-    }
-    const plan = stage('infra_plan');
-    assert.doesNotMatch(plan, /terraform\s+(\S+\s+)?(apply|destroy|import|state|force-unlock|taint)\b/);
-    assert.doesNotMatch(plan, /\baz\s+(containerapp|keyvault|role|cosmosdb|acr)\b/);
-    const plans = [...plan.matchAll(/terraform\s.*\bplan\s.*$/gm)].map((m) => m[0]);
-    assert.ok(plans.length > 0);
-    for (const p of plans) assert.match(p, /-lock=false/, p);
-  });
-
-  test('the plan stage publishes only the value-free summary, never the saved plan or its JSON', () => {
-    const plan = stage('infra_plan');
-    const published = [...plan.matchAll(/- publish: (\S+)/g)].map((m) => m[1]);
-    assert.deepEqual(published, ['$(Build.ArtifactStagingDirectory)/plan-summary']);
-    assert.match(plan, /node scripts\/ci\/plan-summary\.mjs --plan "\$json"/);
-    assert.match(plan, /rm -f "\$json" infra\/environments\/dev\/tfplan/);
-  });
-
-  test('the real plan is the default, and both plan modes set hasChanges on a step named plan (what the apply stage reads)', () => {
-    assert.match(text, /- name: planMode\n(.*\n){2}\s+default: real\n/);
-    const plan = stage('infra_plan');
-    assert.match(plan, /\{\{ if eq\(parameters\.planMode, 'rehearsal'\) \}\}:[\s\S]*?name: plan\n/);
-    assert.match(plan, /\{\{ if eq\(parameters\.planMode, 'real'\) \}\}:[\s\S]*?- task: AzureCLI@2\n\s+name: plan\n/);
+    assert.doesNotMatch(text, /ARM_OIDC_TOKEN=|\$idToken/, 'the 10-minute token must not be used directly');
   });
 
   // Rules for the post-apply secret step, decided 2026-11-20 before it is built (docs/architecture/secrets-and-sensitive-values.md): a secret
@@ -109,20 +182,27 @@ describe('azure-pipelines-dev.yml (manual dev operations: a real read-only plan,
     assert.doesNotMatch(text, /^\s*set -[a-z]*x|set -o xtrace|bash -x/m);
   });
 
-  test('the real Terraform is pinned and its download checked', () => {
-    assert.match(stage('infra_plan'), /TF_ZIP_SHA256: [0-9a-f]{64}\n/);
-    assert.match(stage('infra_plan'), /sha256sum -c -/);
+  test('the real plan is the default, and every stage keeps a rehearsal branch that sets the same outputs', () => {
+    assert.match(text, /- name: planMode\n(.*\n){2}\s+default: real\n/);
+    assert.match(stage('infra_plan'), /\{\{ if eq\(parameters\.planMode, 'rehearsal'\) \}\}:[\s\S]*?name: plan\n/);
+    assert.match(real('infra_plan'), /- task: AzureCLI@2\n\s+name: plan\n/);
+    assert.match(stage('destroy_plan'), /\{\{ if eq\(parameters\.planMode, 'rehearsal'\) \}\}:[\s\S]*?name: plan\n/);
+    assert.match(real('destroy_plan'), /- task: AzureCLI@2\n\s+name: plan\n/);
+    for (const name of ['infra_apply', 'destroy_apply'])
+      assert.match(stage(name), /\{\{ if eq\(parameters\.planMode, 'rehearsal'\) \}\}:/, name);
+  });
+
+  test('the real Terraform is pinned and its download checked, in the shared template', () => {
+    assert.match(text, /TF_ZIP_SHA256: [0-9a-f]{64}\n/);
+    const template = read('pipelines/templates/terraform-tools.yml');
+    assert.match(template, /sha256sum -c -/);
+    for (const name of ['infra_plan', 'infra_apply', 'destroy_plan', 'destroy_apply'])
+      assert.match(real(name), /- template: pipelines\/templates\/terraform-tools\.yml/, name);
   });
 
   test('only a manual run goes on, and a destroy needs the typed environment name', () => {
     assert.match(text, /Build\.Reason\)" != "Manual"/);
     assert.match(text, /parameters\.confirmEnvironment \}\}" != "\$\(ENVIRONMENT_NAME\)"/);
-  });
-
-  test('every deployment job is bound to one of the three gated environments, and each is used', () => {
-    const used = [...text.matchAll(/^\s+environment: (\S+)$/gm)].map((m) => m[1]);
-    assert.deepEqual([...used].sort(), ['dev-app', 'dev-destroy', 'dev-infra']);
-    assert.equal([...text.matchAll(/^\s+- deployment: /gm)].length, 3);
   });
 
   test('the infrastructure apply runs only when the plan has changes, and the application deploy tolerates that skip', () => {
@@ -131,13 +211,6 @@ describe('azure-pipelines-dev.yml (manual dev operations: a real read-only plan,
       /stage: infra_apply[\s\S]*?condition: and\(succeeded\(\), eq\(dependencies\.infra_plan\.outputs\['plan\.plan\.hasChanges'\], 'true'\)\)/,
     );
     assert.match(text, /stage: app_deploy[\s\S]*?- infra_apply[\s\S]*?'Skipped'/);
-  });
-
-  test('the destroy guard runs before the destroy approval, and the destroy stage depends on the guard stage', () => {
-    const guard = text.indexOf('scripts/ci/destroy-guard.mjs');
-    const approval = text.indexOf('environment: dev-destroy');
-    assert.ok(guard > 0 && approval > guard, 'the guard step must come before the dev-destroy deployment');
-    assert.match(text, /stage: destroy_apply[\s\S]*?dependsOn: destroy_plan/);
   });
 
   test('the stages after the inputs check depend on it', () => {

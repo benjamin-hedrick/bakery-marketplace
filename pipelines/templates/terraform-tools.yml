@@ -1,0 +1,15 @@
+# Steps every real Terraform job of the dev pipeline starts with (ADR-0020 decision 9: shared templates). Node runs the repository's scripts
+# (identity check, plan summary, destroy guard); Terraform is the pinned version, its download checked against HashiCorp's published SHA-256.
+# TF_VERSION and TF_ZIP_SHA256 are pipeline-level variables in the calling file.
+steps:
+  - task: UseNode@1
+    inputs:
+      version: '24.x'
+  - script: |
+      set -eu
+      zip="$(Agent.TempDirectory)/terraform.zip"
+      curl -fsSL -o "$zip" "https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip"
+      echo "$(TF_ZIP_SHA256)  $zip" | sha256sum -c -
+      unzip -q -o "$zip" -d "$(Agent.TempDirectory)/terraform"
+      echo "##vso[task.prependpath]$(Agent.TempDirectory)/terraform"
+    displayName: Install Terraform (pinned version, checksum checked)

@@ -86,7 +86,9 @@ Ports: 3000 customer web, 3100 queue display, 4000 mock BFF (browser suites), 41
 | `node scripts/ci/secret-scan.mjs` | gitleaks over the full committed history (Docker). Exit 1 = a finding. **Run before every push.** |
 | `node scripts/ci/terraform-checks.mjs` | Terraform format, init, validate and mocked-provider tests for `infra/` (Docker; no Azure account). |
 | `node scripts/ci/destroy-guard.mjs --plan ... --environment dev ...` | The pipeline's guard on environment teardown (ADR-0020); not run by hand. |
-| `node scripts/ci/plan-summary.mjs --plan ... --exit-code ... --out ...` | The dev pipeline's plan summary: each changed resource's address and action, no values (a saved plan holds every value in clear text, so only this is published); sets `hasChanges`. Not run by hand. |
+| `node scripts/ci/plan-summary.mjs --plan ... --exit-code ... --out ...` | The dev pipeline's plan summary: each changed resource's address and action, no values (a saved plan holds every value in clear text, so only this is published); sets `hasChanges`; with `--expect`, refuses a plan that differs from the approved summary (register 110). Not run by hand. |
+| `node scripts/ci/identity-check.mjs --identity plan\|deploy` | The dev pipeline's check that a service connection's identity holds exactly its expected roles and cannot create a resource group (bootstrap check 6). Runs inside an Azure CLI step; not run by hand (as anyone else it reports the roles as wrong). |
+| `source scripts/ci/dev-stack-env.sh <connection id>` | Sourced by the dev pipeline's Terraform steps: checks the pipeline variables, signs Terraform in with Azure DevOps' token refresh, initialises the foundation and dev stacks and exports the dev stack's inputs. Not run by hand. |
 | `dotnet format whitespace BakeryMarketplace.slnx --verify-no-changes` (and `style`) | C# formatting. |
 
 ## 6. Documentation tools

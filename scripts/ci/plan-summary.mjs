@@ -5,6 +5,10 @@
 // resource (a name, an id, a key) can reach the artifact.
 //
 //   node scripts/ci/plan-summary.mjs --plan plan.json --exit-code <terraform plan -detailed-exitcode result> --out summary.json
+//                                    [--expect approved-summary.json]
+//
+// With --expect (the apply and destroy stages, after the approval) it also refuses unless the plan about to be applied has exactly the
+// approved plan's resource changes and changed outputs (register item 110).
 //
 // It also sets the pipeline output variable hasChanges from the plan's exit code (0 = no changes, 2 = changes), after checking that the
 // plan's JSON agrees with it. Exit code 0 = summary written, 1 = the exit code and the plan disagree or the plan failed, 2 = bad usage or an
@@ -50,6 +54,25 @@ export function summarisePlan(plan) {
   };
 }
 
+/**
+ * Compares the summary of the plan about to be applied with the summary that was approved (register item 110: the apply re-plans after the
+ * approval and aborts on any difference). Only the addresses, actions and changed outputs count; the counts follow from them.
+ * @returns {string[]} the differences, empty when the plans agree
+ */
+export function compareSummaries(approved, actual) {
+  const key = (c) => `${c.action} ${c.address}`;
+  const was = new Set((approved?.changes ?? []).map(key));
+  const now = new Set(actual.changes.map(key));
+  const problems = [];
+  for (const k of now) if (!was.has(k)) problems.push(`not in the approved plan: ${k}`);
+  for (const k of was) if (!now.has(k)) problems.push(`approved but no longer planned: ${k}`);
+  const wasOut = new Set(approved?.outputs ?? []);
+  const nowOut = new Set(actual.outputs);
+  for (const o of nowOut) if (!wasOut.has(o)) problems.push(`output not in the approved plan: ${o}`);
+  for (const o of wasOut) if (!nowOut.has(o)) problems.push(`approved output no longer changing: ${o}`);
+  return problems;
+}
+
 /** Checks the plan's exit code against the summary; returns a problem sentence, or undefined when they agree. */
 export function checkExitCode(exitCode, summary) {
   if (exitCode === 0 && summary.hasChanges)
@@ -80,6 +103,25 @@ function main() {
   if (problem) {
     console.error(`plan summary: REFUSED. ${problem}`);
     process.exit(1);
+  }
+  const expectPath = get('--expect');
+  if (expectPath) {
+    let approved;
+    try {
+      approved = JSON.parse(readFileSync(expectPath, 'utf8'));
+    } catch (e) {
+      console.error(`cannot read the approved summary: ${e.message}`);
+      process.exit(2);
+    }
+    const differences = compareSummaries(approved, summary);
+    if (differences.length > 0) {
+      console.error(
+        'plan summary: REFUSED. The plan to apply differs from the approved plan; nothing is applied (register item 110).',
+      );
+      for (const d of differences) console.error(`  - ${d}`);
+      process.exit(1);
+    }
+    console.log('plan summary: the plan to apply is the approved plan (same resources, actions and outputs).');
   }
   writeFileSync(outPath, `${JSON.stringify(summary, null, 2)}\n`);
   const counted = ACTION_ORDER.filter((a) => summary.counts[a] > 0).map((a) => `${summary.counts[a]} to ${a}`);
