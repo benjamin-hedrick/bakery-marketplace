@@ -156,7 +156,8 @@ Each Claude Code session's cost, model time and size were copied by me from the 
 | 2026-11-18 (third) | the withdrawn picomatch advisory (register 199), a failed cache invalidation no longer serving the old status (register 184), and the vendor's listing and stock screens specified as two Ready items (`WI-CAT-007`, `CAT-008`; register 208) | 3.14 | 13 min | 474 |
 | 2026-11-18 (fourth) | the vendor's listing writes made safe in catalog and the BFF (`WI-CAT-007`; registers 208 and 210) and the vendor's listing and stock screens (`WI-CAT-008`), with the customer seeing each change on the real stack; an intermittent chaos test on a manual clock (register 211) | 16.88 | 45 min | 6,719 |
 | 2026-11-19 | the bootstrap of the dev environment in Azure: the Terraform state, the dev resource group and the pipeline identities' roles, checked and recorded (`WI-DEP-001`; registers 106, 108 and 213); nothing applied | 1.63 | 8 min | 188 |
-| **Total** |  | **228.12** | **17 h 57 min** | **79,053** |
+| 2026-11-20 | the dev environment applied in Azure and torn down: secrets boundaries, costs and a budget alert, the foundation, the real apply and teardown stages, three apply attempts and two teardowns, each failure fixed and recorded (`WI-DEP-001`; registers 107, 108, 201, 213 and 214); the apps not yet deployed | 13.78 | 56 min | 2,754 |
+| **Total** |  | **241.90** | **18 h 53 min** | **81,807** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew the specifications, decision records, tests and evidence records it holds now ([`STATUS.md`](../product/backlog/STATUS.md) has where each specification stands); not every item was built in a recorded session, so the table is not a cost per item. Nothing here compares with doing the work by hand.
 
