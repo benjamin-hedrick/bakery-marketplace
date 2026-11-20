@@ -84,12 +84,12 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply, tear
     assert.equal([...text.matchAll(/^\s+- deployment: /gm)].length, 3);
   });
 
-  test('the application deploy sets the secrets and pushes the built images, and nothing more yet: no app update, no Terraform', () => {
+  test('the application deploy sets the secrets, pushes the built images and updates the apps, in that order; no Terraform', () => {
     const s = stage('app_deploy');
     const commands = lines(s).filter((l) => !/^\s*echo\s/.test(l));
     for (const line of commands)
       if (/\bterraform\s|az containerapp|keyvault secret set/.test(line))
-        assert.fail(`not built yet, or a secret written inline: ${line.trim()}`);
+        assert.fail(`Terraform, or an inline app update or secret write (they belong in the scripts): ${line.trim()}`);
     const real = s.slice(s.indexOf("{{ if eq(parameters.planMode, 'real') }}:"));
     const download = real.search(/- download: current\n\s+artifact: dev-images\n/);
     const check = real.indexOf('identity-check.mjs --identity deploy --environment');
@@ -97,9 +97,12 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply, tear
       'node scripts/ci/dev-secrets.mjs --vault "$(KEY_VAULT_NAME)" --cosmos-account "$(COSMOS_ACCOUNT_NAME)" --resource-group "$(RESOURCE_GROUP)" --temp "$(Agent.TempDirectory)"',
     );
     const push = real.indexOf('node scripts/ci/dev-images.mjs push --in "$(Pipeline.Workspace)/dev-images"');
+    const update = real.indexOf(
+      'node scripts/ci/dev-deploy.mjs --record "$(Build.ArtifactStagingDirectory)/dev-images-pushed/dev-images-pushed.json" --resource-group "$(RESOURCE_GROUP)" --suffix "b$(Build.BuildId)-$(System.JobAttempt)"',
+    );
     assert.ok(
-      download > 0 && check > download && secrets > check && push > secrets,
-      'the artifact, then the identity check, then the secrets, then the push',
+      download > 0 && check > download && secrets > check && push > secrets && update > push,
+      'the artifact, then the identity check, then the secrets, then the push, then the update',
     );
     // The secret step runs only in the approved deploy job.
     assert.equal(text.split('scripts/ci/dev-secrets.mjs').length - 1, 1, 'one step, outside the comments');
@@ -194,10 +197,11 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply, tear
     );
   });
 
-  test('only the value-free summaries and the images are published, never a saved plan or its JSON', () => {
+  test('only the value-free summaries, the images and the image and deployment records are published, never a saved plan or its JSON', () => {
     const published = [...text.matchAll(/- publish: (\S+)/g)].map((m) => m[1]).sort();
     assert.deepEqual(published, [
       '$(Build.ArtifactStagingDirectory)/destroy-summary',
+      '$(Build.ArtifactStagingDirectory)/dev-deployment',
       '$(Build.ArtifactStagingDirectory)/dev-images',
       '$(Build.ArtifactStagingDirectory)/dev-images-pushed',
       '$(Build.ArtifactStagingDirectory)/plan-summary',
