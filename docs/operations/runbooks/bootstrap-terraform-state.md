@@ -1,6 +1,6 @@
 # Procedure: bootstrap the Terraform state and the pipeline identities
 
-> **Status:** Current · written 2026-10-31, **run 2026-11-19** by the lead (record: [`bootstrap-2026-11-19.md`](../../evidence/WI-DEP-001/bootstrap-2026-11-19.md)); steps 1 to 5 and checks 1 to 5 done and this page corrected from the run; check 6 needs a pipeline step and is not run. Decision: ADR-0020. Needs the lead's Azure subscription and rights (Owner or equivalent on the subscription); IAM changes need the lead's approval.
+> **Status:** Current · written 2026-10-31, **run 2026-11-19** by the lead (record: [`bootstrap-2026-11-19.md`](../../evidence/WI-DEP-001/bootstrap-2026-11-19.md)); steps 1 to 5 and checks 1 to 5 done and this page corrected from the run; check 6 passed for `bakery-plan` on 2026-11-20 (the dev pipeline's plan stage, build 70: [`foundation-apply-and-first-plan-2026-11-20.md`](../../evidence/WI-DEP-001/foundation-apply-and-first-plan-2026-11-20.md)); for `bakery-deploy` it waits for the real apply stage. Decision: ADR-0020. Needs the lead's Azure subscription and rights (Owner or equivalent on the subscription); IAM changes need the lead's approval.
 
 **Purpose.** Terraform cannot create the place its own state lives, and the pipeline cannot create its own identity. A person does both once, here. Afterwards Terraform and the pipeline manage everything else. Nothing in this procedure creates or stores a secret: the state is reached with Entra identities (no storage key), and the pipeline connects with workload identity federation (no password).
 
@@ -57,4 +57,4 @@ A role the pipeline needs cannot be limited as described, or Azure refuses `--al
 
 ## Last tested
 
-2026-11-19, by the lead (the agent ran the commands from the lead's signed-in Azure CLI): steps 1 to 5 and checks 1 to 5 passed; check 6 not run. Record: [`bootstrap-2026-11-19.md`](../../evidence/WI-DEP-001/bootstrap-2026-11-19.md). Written 2026-10-31.
+2026-11-19, by the lead (the agent ran the commands from the lead's signed-in Azure CLI): steps 1 to 5 and checks 1 to 5 passed; check 6 not run. Record: [`bootstrap-2026-11-19.md`](../../evidence/WI-DEP-001/bootstrap-2026-11-19.md). 2026-11-20, in the dev pipeline (build 70): check 6 passed for `bakery-plan`, the step in `azure-pipelines-dev.yml`. Written 2026-10-31.
