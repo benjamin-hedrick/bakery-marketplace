@@ -293,3 +293,43 @@ run "a_plain_http_issuer_address_is_refused" {
 
   expect_failures = [var.auth_authority]
 }
+
+# The first apply (2026-11-20) stopped on both of these; the mocked provider could not have caught either, so the tests pin the fixes.
+run "the_redis_apps_turn_snapshots_off_without_an_empty_argument" {
+  command = plan
+
+  assert {
+    condition = alltrue([for args in [
+      azurerm_container_app.redis.template[0].container[0].args,
+      azurerm_container_app.redis_cache.template[0].container[0].args,
+      azurerm_container_app.redis_sessions.template[0].container[0].args,
+    ] : contains(args, "--save") && !contains(args, "") && args[index(args, "--save") + 1] == "--appendonly"])
+    error_message = "Each Redis app turns snapshots off with a bare --save and passes no empty argument (the provider fails reading one back)."
+  }
+}
+
+run "cosmos_is_in_its_own_region_not_the_resource_groups" {
+  command = plan
+
+  assert {
+    condition     = azurerm_cosmosdb_account.cosmos.location == "eastus2" && one(azurerm_cosmosdb_account.cosmos.geo_location).location == "eastus2"
+    error_message = "Cosmos defaults to East US 2: East US refuses new accounts for this subscription."
+  }
+  assert {
+    condition     = azurerm_container_app_environment.env.location == "eastus"
+    error_message = "Everything else stays in the resource group's region."
+  }
+}
+
+run "every_app_names_the_consumption_profile_azure_assigns" {
+  command = plan
+
+  assert {
+    condition = alltrue(concat(
+      [for a in azurerm_container_app.apps : a.workload_profile_name == "Consumption"],
+      [for a in azurerm_container_app.mock : a.workload_profile_name == "Consumption"],
+      [for a in [azurerm_container_app.redis, azurerm_container_app.redis_cache, azurerm_container_app.redis_sessions] : a.workload_profile_name == "Consumption"],
+    ))
+    error_message = "Every container app names the Consumption profile; unset, each plan after the first apply tries to remove it."
+  }
+}

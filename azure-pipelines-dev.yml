@@ -4,9 +4,10 @@
 # STATE OF THIS FILE (2026-11-20): the infrastructure plan, apply and teardown are REAL; the application deploy is still a REHEARSAL that only
 # prints. With planMode=rehearsal every infrastructure step goes back to its rehearsal (no service connection), to re-prove the gates.
 #
-#   deploy:  infra_plan   bakery-plan (read-only): checks its own roles, plans the dev stack with -lock=false (ADR-0020 decision 5) and
-#                         publishes a value-free summary (a saved plan holds every value in clear text; register 214).
-#            infra_apply  only if the plan has changes; approval at dev-infra; bakery-deploy checks its own roles, re-plans under the lock,
+#   deploy:  infra_plan   bakery-plan (read-only): checks its own roles, plans the dev stack from the state with -lock=false (ADR-0020
+#                         decision 5) and -refresh=false (register 213: refreshing a Key Vault secret reads its value), and publishes a
+#                         value-free summary (a saved plan holds every value in clear text; register 214).
+#            infra_apply  only if the plan has changes; approval at dev-infra; bakery-deploy checks its own roles, re-plans from the state under the lock,
 #                         refuses unless the plan is exactly the approved one (register 110), then applies its own saved plan.
 #            app_deploy   approval at dev-app; rehearsal.
 #   destroy: destroy_plan bakery-plan: a destroy plan from the state (-refresh=false: no Azure read, so no secret is read), the real guard on
@@ -123,9 +124,11 @@ stages:
                       inlineScript: node scripts/ci/identity-check.mjs --identity deploy --principal "$DEPLOY_PRINCIPAL_ID" --environment "$(ENVIRONMENT_NAME)"
 
                   # The binary plan and its JSON stay on the agent; only the value-free summary is published.
+                  # -refresh=false (register 213): refreshing a Key Vault secret reads its value (GetSecret), which the read-only identity may not
+                  # do, so the plan is made from the state alone, like the destroy plan. The apply stage's re-plan is made the same way, so the two match.
                   - task: AzureCLI@2
                     name: plan
-                    displayName: Terraform plan of the dev stack (read-only identity, no lock; publishes a summary only)
+                    displayName: Terraform plan of the dev stack from the state (read-only identity, no lock, no refresh; publishes a summary only)
                     env:
                       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                       BUDGET_CONTACT_EMAIL: $(BUDGET_CONTACT_EMAIL)
@@ -138,7 +141,7 @@ stages:
                         set -euo pipefail
                         source scripts/ci/dev-stack-env.sh "${PLAN_CONNECTION_ID:-}"
                         set +e
-                        terraform -chdir=infra/environments/dev plan -input=false -lock=false -detailed-exitcode -out=tfplan
+                        terraform -chdir=infra/environments/dev plan -input=false -lock=false -refresh=false -detailed-exitcode -out=tfplan
                         rc=$?
                         set -e
                         if [ "$rc" -eq 1 ]; then exit 1; fi
@@ -188,6 +191,8 @@ stages:
                             inlineScript: node scripts/ci/identity-check.mjs --identity deploy --environment "$(ENVIRONMENT_NAME)" --probe-name "rg-bakery-deploy-probe-$(Build.BuildId)"
 
                         # Register item 110: the plan applied is made here, under the lock, and must equal the approved plan; it never leaves this step.
+                        # From the state, like the approved plan (register 213): a refreshed re-plan would differ from it after any drift and refuse
+                        # every run, since nothing else refreshes the state. Drift in Azure is overwritten by the apply, not detected.
                         - task: AzureCLI@2
                           displayName: Re-plan under the lock, refuse unless it is the approved plan, then apply it
                           env:
@@ -202,7 +207,7 @@ stages:
                               set -euo pipefail
                               source scripts/ci/dev-stack-env.sh "${DEPLOY_CONNECTION_ID:-}"
                               set +e
-                              terraform -chdir=infra/environments/dev plan -input=false -detailed-exitcode -out=tfplan
+                              terraform -chdir=infra/environments/dev plan -input=false -refresh=false -detailed-exitcode -out=tfplan
                               rc=$?
                               set -e
                               if [ "$rc" -eq 1 ]; then exit 1; fi

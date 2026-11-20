@@ -86,7 +86,7 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
     }
   });
 
-  test('the plan stages plan without the lock; the destroy plan reads nothing in Azure; neither applies', () => {
+  test('the plan stages plan from the state without the lock (the read-only identity reads nothing in Azure, no secret); neither applies', () => {
     const plan = real('infra_plan');
     const destroy = real('destroy_plan');
     for (const [name, s] of [
@@ -96,9 +96,17 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
       const plans = [...s.matchAll(/terraform\s.*\bplan\s.*$/gm)].map((m) => m[0]);
       assert.equal(plans.length, 1, name);
       assert.match(plans[0], /-lock=false/, name);
+      // Register 213: refreshing a Key Vault secret reads its value, which the plan identity may not do (first apply, 2026-11-20).
+      assert.match(plans[0], /-refresh=false/, name);
       assert.doesNotMatch(s, /terraform\s+(\S+\s+)?(apply|destroy|import|state|force-unlock|taint)\b/, name);
     }
     assert.match(destroy, /plan -destroy .*-refresh=false/);
+  });
+
+  test('the apply re-plans from the state like the approved plan, so drift cannot make every run refuse', () => {
+    const replans = [...real('infra_apply').matchAll(/terraform\s.*\bplan\s.*$/gm)].map((m) => m[0]);
+    assert.equal(replans.length, 1);
+    assert.match(replans[0], /-refresh=false/);
   });
 
   test('an apply happens only after a re-plan under the lock that is checked against the approved summary, in the same step', () => {
@@ -108,7 +116,9 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
     ]) {
       const s = real(name);
       assert.match(s, new RegExp(`- download: current\\n\\s+artifact: ${artifact}\\n`), name);
-      const replan = s.search(/terraform -chdir=\S+ plan (-destroy )?-input=false -detailed-exitcode -out=tfplan/);
+      const replan = s.search(
+        /terraform -chdir=\S+ plan (-destroy )?-input=false (-refresh=false )?-detailed-exitcode -out=tfplan/,
+      );
       const check = s.indexOf(`--expect "$(Pipeline.Workspace)/${artifact}/${artifact}.json"`);
       const apply = s.indexOf('apply -input=false tfplan');
       assert.ok(replan > 0 && check > replan && apply > check, `${name}: re-plan, then the check, then the apply`);
