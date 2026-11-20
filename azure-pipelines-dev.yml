@@ -1,15 +1,19 @@
 # Manual operations on the dev environment (ADR-0020, WI-DEP-001). Register this file as its OWN pipeline ("bakery-dev-operations");
 # azure-pipelines.yml (pull-request checks) is not touched by it. This pipeline never runs by itself: no push trigger, no pull-request trigger.
 #
-# STATE OF THIS FILE (2026-11-20): the infrastructure plan, apply and teardown are REAL; the application deploy is still a REHEARSAL that only
-# prints. With planMode=rehearsal every infrastructure step goes back to its rehearsal (no service connection), to re-prove the gates.
+# STATE OF THIS FILE (2026-11-20): the infrastructure plan, apply and teardown are REAL; the image build and push are REAL but have not run in
+# Azure yet; the secret step, the app update and the smoke are still a REHEARSAL that only prints. With planMode=rehearsal every step goes back
+# to its rehearsal (no service connection, no build), to re-prove the gates.
 #
-#   deploy:  infra_plan   bakery-plan (read-only): checks its own roles, plans the dev stack from the state with -lock=false (ADR-0020
+#   deploy:  images       no service connection: builds the five images (scripts/ci/dev-images.mjs build) and publishes them, saved, as an
+#                         artifact, while the plan runs, so a broken build fails before any approval.
+#            infra_plan   bakery-plan (read-only): checks its own roles, plans the dev stack from the state with -lock=false (ADR-0020
 #                         decision 5) and -refresh=false (register 213: refreshing a Key Vault secret reads its value), and publishes a
 #                         value-free summary (a saved plan holds every value in clear text; register 214).
 #            infra_apply  only if the plan has changes; approval at dev-infra; bakery-deploy checks its own roles, re-plans from the state under the lock,
 #                         refuses unless the plan is exactly the approved one (register 110), then applies its own saved plan.
-#            app_deploy   approval at dev-app; rehearsal.
+#            app_deploy   approval at dev-app; bakery-deploy checks its own roles, loads the built images, refuses unless they are the ones the
+#                         build recorded, pushes them and publishes the record of their digests; the rest is a rehearsal.
 #   destroy: destroy_plan bakery-plan: a destroy plan from the state (-refresh=false: no Azure read, so no secret is read), the real guard on
 #                         it (scripts/ci/destroy-guard.mjs), a value-free summary. Only then the approval.
 #            destroy_apply approval at dev-destroy; bakery-deploy re-plans the destroy with refresh under the lock, runs the guard again,
@@ -57,6 +61,7 @@ parameters:
 variables:
   ENVIRONMENT_NAME: dev
   RESOURCE_GROUP: rg-bakery-dev
+  FOUNDATION_RESOURCE_GROUP: rg-bakery-foundation
   TF_VERSION: 1.17.1
   # SHA-256 of terraform_1.17.1_linux_amd64.zip from HashiCorp's published SHA256SUMS (taken 2026-11-20). Update with the version.
   TF_ZIP_SHA256: 4638628058e71a55212b1c563712eac03b902128f40740f3dc8174df12135061
@@ -219,13 +224,39 @@ stages:
                               rm -f infra/environments/dev/tfplan
                               terraform -chdir=infra/environments/dev output
 
-      # Needs the plan stage to have succeeded and the apply stage to have either succeeded or been skipped (no changes).
+      # The images are built while the infrastructure is planned, with no service connection and no registry, so a broken build fails before
+      # anyone is asked to approve. Only the approved application deploy pushes them (bakery-deploy holds AcrPush and is used only in approved
+      # jobs; decided by the lead 2026-11-20). Build once, promote by digest (ADR-0020 decision 1): the record of the pushed digests is published.
+      - stage: images
+        displayName: Build the application images (no credentials)
+        dependsOn: inputs
+        jobs:
+          - job: build
+            timeoutInMinutes: 60
+            steps:
+              - checkout: self
+              - ${{ if eq(parameters.planMode, 'rehearsal') }}:
+                  - script: echo "REHEARSAL - the real step builds the five images (scripts/ci/dev-images.mjs build) and publishes them as the dev-images artifact."
+                    displayName: Build the images (rehearsal)
+
+              - ${{ if eq(parameters.planMode, 'real') }}:
+                  - task: UseNode@1
+                    inputs:
+                      version: '24.x'
+                  - script: node scripts/ci/dev-images.mjs build --tag "$(Build.BuildId)" --revision "$(Build.SourceVersion)" --out "$(Build.ArtifactStagingDirectory)/dev-images"
+                    displayName: Build the five images one at a time and save them (no registry, no credentials)
+                  - publish: $(Build.ArtifactStagingDirectory)/dev-images
+                    artifact: dev-images
+                    displayName: Publish the saved images and their ids
+
+      # Needs the plan and image stages to have succeeded and the apply stage to have either succeeded or been skipped (no changes).
       - stage: app_deploy
         displayName: Application deploy (approval)
         dependsOn:
           - infra_plan
           - infra_apply
-        condition: and(succeeded('infra_plan'), in(dependencies.infra_apply.result, 'Succeeded', 'SucceededWithIssues', 'Skipped'))
+          - images
+        condition: and(succeeded('infra_plan'), succeeded('images'), in(dependencies.infra_apply.result, 'Succeeded', 'SucceededWithIssues', 'Skipped'))
         jobs:
           - deployment: deploy
             environment: dev-app
@@ -233,10 +264,55 @@ stages:
               runOnce:
                 deploy:
                   steps:
-                    - script: |
-                        echo "REHEARSAL - the real steps update each container app to the image digest (az containerapp update),"
-                        echo "then run the post-deploy smoke against the deployed address and publish its result."
-                      displayName: Update the apps to the new image and smoke (rehearsal)
+                    - ${{ if eq(parameters.planMode, 'rehearsal') }}:
+                        - script: |
+                            echo "REHEARSAL - the real steps push the built images, update each container app to its digest (az containerapp update),"
+                            echo "then run the post-deploy smoke against the deployed address and publish its result."
+                          displayName: Push the images, update the apps and smoke (rehearsal)
+
+                    - ${{ if eq(parameters.planMode, 'real') }}:
+                        - checkout: self
+                        - task: UseNode@1
+                          inputs:
+                            version: '24.x'
+                        - download: current
+                          artifact: dev-images
+                          displayName: The images the image stage built
+                        - task: AzureCLI@2
+                          displayName: The deploy identity checks its own roles and that it cannot create (bootstrap check 6)
+                          inputs:
+                            azureSubscription: bakery-deploy
+                            scriptType: bash
+                            scriptLocation: inlineScript
+                            inlineScript: node scripts/ci/identity-check.mjs --identity deploy --environment "$(ENVIRONMENT_NAME)" --probe-name "rg-bakery-deploy-probe-$(Build.BuildId)"
+
+                        # The registry is the one in the foundation group (its name is private, so it is looked up, not typed). The script refuses
+                        # unless the loaded images are the ones the build recorded, then pushes each and records its digest.
+                        - task: AzureCLI@2
+                          displayName: Push the images to the registry and record their digests
+                          inputs:
+                            azureSubscription: bakery-deploy
+                            scriptType: bash
+                            scriptLocation: inlineScript
+                            inlineScript: |
+                              set -euo pipefail
+                              registries=$(az acr list --resource-group "$(FOUNDATION_RESOURCE_GROUP)" --query "[].name" -o tsv)
+                              if [ "$(echo "$registries" | grep -c .)" -ne 1 ]; then
+                                echo "##vso[task.logissue type=error]Expected one registry in $(FOUNDATION_RESOURCE_GROUP), found: ${registries:-none}"
+                                exit 1
+                              fi
+                              az acr login --name "$registries"
+                              login=$(az acr show --name "$registries" --query loginServer -o tsv)
+                              mkdir -p "$(Build.ArtifactStagingDirectory)/dev-images-pushed"
+                              node scripts/ci/dev-images.mjs push --in "$(Pipeline.Workspace)/dev-images" --registry "$login" --out "$(Build.ArtifactStagingDirectory)/dev-images-pushed/dev-images-pushed.json"
+                        - publish: $(Build.ArtifactStagingDirectory)/dev-images-pushed
+                          artifact: dev-images-pushed
+                          displayName: Publish the record of the pushed images (each app's image by digest)
+
+                        - script: |
+                            echo "REHEARSAL - the next real steps set the secrets after the apply, update each container app to its digest from"
+                            echo "dev-images-pushed.json (az containerapp update), and run the post-deploy smoke against the deployed address."
+                          displayName: Set the secrets, update the apps to the pushed digests and smoke (rehearsal)
 
   # ---- destroy: a plan, the guard, then the approval, then the destroy of a re-plan that must equal the approved one --------------------
   - ${{ if eq(parameters.action, 'destroy') }}:

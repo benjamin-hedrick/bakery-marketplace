@@ -39,7 +39,7 @@ describe('azure-pipelines.yml (the pull-request checks)', () => {
   });
 });
 
-describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and teardown; the app deploy a rehearsal)', () => {
+describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply, teardown and image push; the app update a rehearsal)', () => {
   const file = 'azure-pipelines-dev.yml';
   const text = code(file);
   /** The text of one stage, from its "- stage:" line to the next one. */
@@ -67,11 +67,15 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
     const connections = [...text.matchAll(/azureSubscription: (\S+)/g)].map((m) => m[1]);
     assert.deepEqual([...new Set(connections)].sort(), ['bakery-deploy', 'bakery-plan']);
     for (const name of ['infra_plan', 'destroy_plan']) assert.doesNotMatch(stage(name), /bakery-deploy/, name);
-    for (const name of ['infra_apply', 'destroy_apply']) {
+    for (const name of ['infra_apply', 'destroy_apply', 'app_deploy']) {
       assert.doesNotMatch(stage(name), /bakery-plan/, name);
       assert.match(stage(name), /- deployment: /, `${name} must be a deployment job (an approval)`);
     }
-    assert.doesNotMatch(stage('app_deploy'), /azureSubscription|AzureCLI@|connectedServiceName/);
+    // The image build runs before any approval, so it holds no connection and signs in to nothing.
+    assert.doesNotMatch(
+      stage('images'),
+      /azureSubscription|AzureCLI@|connectedServiceName|docker login|acr login|\baz\s/,
+    );
   });
 
   test('every deployment job is bound to one of the three gated environments, and each is used', () => {
@@ -80,10 +84,23 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
     assert.equal([...text.matchAll(/^\s+- deployment: /gm)].length, 3);
   });
 
-  test('the application deploy is still a rehearsal: no real command runs in it', () => {
-    for (const line of lines(stage('app_deploy'))) {
-      if (/^\s*(-\s*)?(terraform|az|node)\s/.test(line)) assert.fail(`a real command runs: ${line.trim()}`);
-    }
+  test('the application deploy pushes the built images and nothing more yet: no app update, no secret, no Terraform', () => {
+    const s = stage('app_deploy');
+    const commands = lines(s).filter((l) => !/^\s*echo\s/.test(l));
+    for (const line of commands)
+      if (/\bterraform\s|az containerapp|keyvault secret set/.test(line))
+        assert.fail(`not built yet, but runs: ${line.trim()}`);
+    const real = s.slice(s.indexOf("{{ if eq(parameters.planMode, 'real') }}:"));
+    const download = real.search(/- download: current\n\s+artifact: dev-images\n/);
+    const check = real.indexOf('identity-check.mjs --identity deploy --environment');
+    const push = real.indexOf('node scripts/ci/dev-images.mjs push --in "$(Pipeline.Workspace)/dev-images"');
+    assert.ok(download > 0 && check > download && push > check, 'the artifact, then the identity check, then the push');
+    assert.match(
+      stage('images'),
+      /node scripts\/ci\/dev-images\.mjs build --tag "\$\(Build\.BuildId\)" --revision "\$\(Build\.SourceVersion\)"/,
+    );
+    assert.match(s, /dependsOn:\n(\s+- \w+\n)*\s+- images\n/);
+    assert.match(s, /condition: and\(succeeded\('infra_plan'\), succeeded\('images'\), /);
   });
 
   test('the plan stages plan from the state without the lock (the read-only identity reads nothing in Azure, no secret); neither applies', () => {
@@ -169,10 +186,12 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
     );
   });
 
-  test('only the value-free summaries are published, never a saved plan or its JSON', () => {
+  test('only the value-free summaries and the images are published, never a saved plan or its JSON', () => {
     const published = [...text.matchAll(/- publish: (\S+)/g)].map((m) => m[1]).sort();
     assert.deepEqual(published, [
       '$(Build.ArtifactStagingDirectory)/destroy-summary',
+      '$(Build.ArtifactStagingDirectory)/dev-images',
+      '$(Build.ArtifactStagingDirectory)/dev-images-pushed',
       '$(Build.ArtifactStagingDirectory)/plan-summary',
     ]);
     for (const name of ['infra_plan', 'destroy_plan'])
@@ -211,7 +230,7 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
     assert.match(real('infra_plan'), /- task: AzureCLI@2\n\s+name: plan\n/);
     assert.match(stage('destroy_plan'), /\{\{ if eq\(parameters\.planMode, 'rehearsal'\) \}\}:[\s\S]*?name: plan\n/);
     assert.match(real('destroy_plan'), /- task: AzureCLI@2\n\s+name: plan\n/);
-    for (const name of ['infra_apply', 'destroy_apply'])
+    for (const name of ['infra_apply', 'destroy_apply', 'images', 'app_deploy'])
       assert.match(stage(name), /\{\{ if eq\(parameters\.planMode, 'rehearsal'\) \}\}:/, name);
   });
 
@@ -239,6 +258,7 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply and t
   test('the stages after the inputs check depend on it', () => {
     assert.match(text, /stage: infra_plan[\s\S]*?dependsOn: inputs/);
     assert.match(text, /stage: destroy_plan[\s\S]*?dependsOn: inputs/);
+    assert.match(stage('images'), /dependsOn: inputs/);
   });
 });
 
