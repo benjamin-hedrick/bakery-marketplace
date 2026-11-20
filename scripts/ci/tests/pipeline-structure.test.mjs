@@ -99,6 +99,16 @@ describe('azure-pipelines-dev.yml (manual dev operations: a real read-only plan,
     assert.match(plan, /\{\{ if eq\(parameters\.planMode, 'real'\) \}\}:[\s\S]*?- task: AzureCLI@2\n\s+name: plan\n/);
   });
 
+  // Rules for the post-apply secret step, decided 2026-11-20 before it is built (docs/architecture/secrets-and-sensitive-values.md): a secret
+  // never goes on a command line (where the process list and a traced shell would show it) and the shell is never traced.
+  test('a secret is written to Key Vault only from a file, never as a command-line value, and no step traces its shell', () => {
+    for (const line of text.split('\n').filter((l) => /keyvault secret set/.test(l))) {
+      assert.match(line, /--file /, line.trim());
+      assert.doesNotMatch(line, /--value\b/, line.trim());
+    }
+    assert.doesNotMatch(text, /^\s*set -[a-z]*x|set -o xtrace|bash -x/m);
+  });
+
   test('the real Terraform is pinned and its download checked', () => {
     assert.match(stage('infra_plan'), /TF_ZIP_SHA256: [0-9a-f]{64}\n/);
     assert.match(stage('infra_plan'), /sha256sum -c -/);

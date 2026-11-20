@@ -19,8 +19,10 @@ locals {
     Lifetime    = "disposable"
   })
 
-  # Secrets whose real value never passes through Terraform or its state (ADR-0020, decision 4).
-  # Terraform creates each with a placeholder and ignores later changes; a pipeline step sets the real value with "az keyvault secret set".
+  # Secrets whose real value never passes through Terraform, its state or a plan (ADR-0020 decision 4 and its note of 2026-11-20).
+  # Terraform creates each with a placeholder through the write-only value_wo, which is never stored and never read back, so the real value a
+  # pipeline step sets later with "az keyvault secret set" stays out of the state. Other secrets do reach the state (the Cosmos account's keys,
+  # the Log Analytics shared keys): docs/architecture/secrets-and-sensitive-values.md.
   placeholder_secrets = toset(["cosmos-connection-string", "ordering-client-secret", "session-encryption-key"])
   placeholder_value   = "set-after-apply"
 
@@ -167,13 +169,17 @@ resource "time_sleep" "kv_roles" {
 resource "azurerm_key_vault_secret" "placeholder" {
   for_each     = local.placeholder_secrets
   name         = each.key
-  value        = local.placeholder_value
   key_vault_id = azurerm_key_vault.kv.id
   tags         = local.tags
   depends_on   = [time_sleep.kv_roles]
 
+  # Write-only: sent on create, never stored in state or a plan, never compared. Raising the version would overwrite the real value with the
+  # placeholder, so it stays 1.
+  value_wo         = local.placeholder_value
+  value_wo_version = 1
+
   lifecycle {
-    ignore_changes = [value, tags]
+    ignore_changes = [tags]
   }
 }
 

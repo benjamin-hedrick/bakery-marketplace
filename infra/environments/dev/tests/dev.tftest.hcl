@@ -42,12 +42,16 @@ run "no_secret_value_is_in_the_configuration" {
   command = plan
 
   assert {
-    condition     = alltrue([for s in azurerm_key_vault_secret.placeholder : nonsensitive(s.value) == "set-after-apply"])
+    condition     = local.placeholder_value == "set-after-apply"
     error_message = "Key Vault secrets must be created with the placeholder only; real values are set after apply (ADR-0020, decision 4)."
   }
   assert {
+    condition     = alltrue([for s in azurerm_key_vault_secret.placeholder : s.value == null && s.value_wo_version == 1])
+    error_message = "Key Vault secrets must be written through the write-only value_wo (version 1), so no value is stored in state or a plan."
+  }
+  assert {
     condition     = length(azurerm_key_vault_secret.placeholder) == 3
-    error_message = "Expected the Cosmos connection string and the ordering client secret."
+    error_message = "Expected the Cosmos connection string, the ordering client secret and the session encryption key."
   }
 }
 
