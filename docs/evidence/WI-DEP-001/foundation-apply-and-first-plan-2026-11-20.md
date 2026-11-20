@@ -1,6 +1,6 @@
 # Foundation apply and the first real plan step, 2026-11-20
 
-> **Status:** Current · the foundation stack's first apply and the deploy identity's roles on it, run by the agent from the lead's signed-in Azure CLI after the lead approved each step; the dev pipeline's plan step made real and run locally as the lead. The first pipeline run of the plan step is recorded below when it has run. Work item: `WI-DEP-001`. Decisions: ADR-0020, register items 106, 110, 213, 214. Identifiers (subscription, tenant, object ids, account, registry, vault and Cosmos names) are left out on purpose: they are not secrets, but this repository is public.
+> **Status:** Current · the foundation stack's first apply and the deploy identity's roles on it, run by the agent from the lead's signed-in Azure CLI after the lead approved each step; the dev pipeline's plan step made real, run locally as the lead and then in Azure DevOps (build 70, on `main`), where it passed. Work item: `WI-DEP-001`. Decisions: ADR-0020, register items 106, 110, 213, 214. Identifiers (subscription, tenant, object ids, account, registry, vault and Cosmos names) are left out on purpose: they are not secrets, but this repository is public.
 
 ## Foundation stack, first apply
 
@@ -39,8 +39,22 @@ Local checks: the script tests pass (61, including the plan summary's test that 
 
 The token decoding and the role query of the self-check were run against the lead's identity (two assignments found, role names resolved); the create probe was not, since the lead may create.
 
+## The first pipeline run (build 70)
+
+The lead set the five pipeline variables (plain, not secret), merged the change, ran `bakery-dev-operations` on `main` (action `deploy`, plan mode `real`) and permitted `bakery-plan` for the pipeline. The lead pasted the steps' logs and the artifact.
+
+| Step | Seen | Result |
+|---|---|---|
+| Sign-in | The Azure CLI task signed in with the federated token (`az login --service-principal ... --federated-token ***`), as a service principal | Pass |
+| Bootstrap check 6, `bakery-plan` | Its object id from its own token; exactly two assignments: Reader on the subscription and Storage Blob Data Reader on the `tfstate` container, neither with a condition; "creating a resource group was refused (AuthorizationFailed)" | **Pass** |
+| The plan | The foundation outputs read from state; the dev stack planned with `-lock=false`; `plan summary: 24 to create; 5 output(s) changed`, the same 24 as the local run | **Pass** |
+| The artifact | `dev-plan-summary` published (2,852 bytes): addresses, actions, output names, counts; no name, id or value of a resource | **Pass** |
+| The gated stages | `infra_apply` waited at `dev-infra`; the lead approved; it and `app_deploy` are still rehearsals and only printed | As designed |
+| Afterwards | `rg-bakery-dev` holds 0 resources; no `rg-bakery-plan-probe-*` group exists | Nothing created |
+
+The run log names private values (the tenant and subscription ids, the plan identity's object id, the state account's path): some from the Azure CLI task's own sign-in output, some from the role listing. None is a secret and the project is private; register 215 checks that nothing in a run is readable signed out.
+
 ## Not yet run
 
-- The plan step in Azure DevOps as `bakery-plan` (needs the pipeline variables, the branch pushed, and the lead permitting the connection for the pipeline on first use). Expected: check 6 passes; the plan shows 24 to add; `infra_apply` then stops at the `dev-infra` branch check when the run is on a branch other than `main`.
 - `bakery-deploy`'s own check 6, which belongs in the approved apply stage.
 - Whether `bakery-plan` can refresh an existing dev stack (register 213) and what the dev state holds (register 214): both need the first dev apply.
