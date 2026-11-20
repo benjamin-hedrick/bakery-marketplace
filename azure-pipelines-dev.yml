@@ -2,7 +2,7 @@
 # azure-pipelines.yml (pull-request checks) is not touched by it. This pipeline never runs by itself: no push trigger, no pull-request trigger.
 #
 # STATE OF THIS FILE (2026-11-20): the infrastructure plan, apply and teardown are REAL; the image build and push are REAL but have not run in
-# Azure yet; the secret step, the app update and the smoke are still a REHEARSAL that only prints. With planMode=rehearsal every step goes back
+# Azure yet, nor has the post-apply secret step; the app update and the smoke are still a REHEARSAL that only prints. With planMode=rehearsal every step goes back
 # to its rehearsal (no service connection, no build), to re-prove the gates.
 #
 #   deploy:  images       no service connection: builds the five images (scripts/ci/dev-images.mjs build) and publishes them, saved, as an
@@ -12,8 +12,9 @@
 #                         value-free summary (a saved plan holds every value in clear text; register 214).
 #            infra_apply  only if the plan has changes; approval at dev-infra; bakery-deploy checks its own roles, re-plans from the state under the lock,
 #                         refuses unless the plan is exactly the approved one (register 110), then applies its own saved plan.
-#            app_deploy   approval at dev-app; bakery-deploy checks its own roles, loads the built images, refuses unless they are the ones the
-#                         build recorded, pushes them and publishes the record of their digests; the rest is a rehearsal.
+#            app_deploy   approval at dev-app; bakery-deploy checks its own roles, sets the Key Vault secrets that still hold their placeholder
+#                         (scripts/ci/dev-secrets.mjs), loads the built images, refuses unless they are the ones the build recorded, pushes them
+#                         and publishes the record of their digests; the rest is a rehearsal.
 #   destroy: destroy_plan bakery-plan: a destroy plan from the state (-refresh=false: no Azure read, so no secret is read), the real guard on
 #                         it (scripts/ci/destroy-guard.mjs), a value-free summary. Only then the approval.
 #            destroy_apply approval at dev-destroy; bakery-deploy re-plans the destroy with refresh under the lock, runs the guard again,
@@ -286,6 +287,18 @@ stages:
                             scriptLocation: inlineScript
                             inlineScript: node scripts/ci/identity-check.mjs --identity deploy --environment "$(ENVIRONMENT_NAME)" --probe-name "rg-bakery-deploy-probe-$(Build.BuildId)"
 
+                        # The post-apply secret step (ADR-0020 amendment; rules: docs/architecture/secrets-and-sensitive-values.md, decision 3).
+                        # Sets each Key Vault secret that still holds Terraform's placeholder: the Cosmos connection string read from Azure, the
+                        # client secret and the session key generated. A value goes through a mode-600 file in the job's temporary folder, deleted
+                        # at once, never a command line; it is masked in the log. A secret already set is kept, so a redeploy rotates nothing.
+                        - task: AzureCLI@2
+                          displayName: Set the secrets that still hold their placeholder (values only through a temporary file)
+                          inputs:
+                            azureSubscription: bakery-deploy
+                            scriptType: bash
+                            scriptLocation: inlineScript
+                            inlineScript: node scripts/ci/dev-secrets.mjs --vault "$(KEY_VAULT_NAME)" --cosmos-account "$(COSMOS_ACCOUNT_NAME)" --resource-group "$(RESOURCE_GROUP)" --temp "$(Agent.TempDirectory)"
+
                         # The registry is the one in the foundation group (its name is private, so it is looked up, not typed). The script refuses
                         # unless the loaded images are the ones the build recorded, then pushes each and records its digest.
                         - task: AzureCLI@2
@@ -310,9 +323,9 @@ stages:
                           displayName: Publish the record of the pushed images (each app's image by digest)
 
                         - script: |
-                            echo "REHEARSAL - the next real steps set the secrets after the apply, update each container app to its digest from"
-                            echo "dev-images-pushed.json (az containerapp update), and run the post-deploy smoke against the deployed address."
-                          displayName: Set the secrets, update the apps to the pushed digests and smoke (rehearsal)
+                            echo "REHEARSAL - the next real steps update each container app to its digest from dev-images-pushed.json"
+                            echo "(az containerapp update) and run the post-deploy smoke against the deployed address."
+                          displayName: Update the apps to the pushed digests and smoke (rehearsal)
 
   # ---- destroy: a plan, the guard, then the approval, then the destroy of a re-plan that must equal the approved one --------------------
   - ${{ if eq(parameters.action, 'destroy') }}:

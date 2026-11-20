@@ -84,17 +84,25 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply, tear
     assert.equal([...text.matchAll(/^\s+- deployment: /gm)].length, 3);
   });
 
-  test('the application deploy pushes the built images and nothing more yet: no app update, no secret, no Terraform', () => {
+  test('the application deploy sets the secrets and pushes the built images, and nothing more yet: no app update, no Terraform', () => {
     const s = stage('app_deploy');
     const commands = lines(s).filter((l) => !/^\s*echo\s/.test(l));
     for (const line of commands)
       if (/\bterraform\s|az containerapp|keyvault secret set/.test(line))
-        assert.fail(`not built yet, but runs: ${line.trim()}`);
+        assert.fail(`not built yet, or a secret written inline: ${line.trim()}`);
     const real = s.slice(s.indexOf("{{ if eq(parameters.planMode, 'real') }}:"));
     const download = real.search(/- download: current\n\s+artifact: dev-images\n/);
     const check = real.indexOf('identity-check.mjs --identity deploy --environment');
+    const secrets = real.indexOf(
+      'node scripts/ci/dev-secrets.mjs --vault "$(KEY_VAULT_NAME)" --cosmos-account "$(COSMOS_ACCOUNT_NAME)" --resource-group "$(RESOURCE_GROUP)" --temp "$(Agent.TempDirectory)"',
+    );
     const push = real.indexOf('node scripts/ci/dev-images.mjs push --in "$(Pipeline.Workspace)/dev-images"');
-    assert.ok(download > 0 && check > download && push > check, 'the artifact, then the identity check, then the push');
+    assert.ok(
+      download > 0 && check > download && secrets > check && push > secrets,
+      'the artifact, then the identity check, then the secrets, then the push',
+    );
+    // The secret step runs only in the approved deploy job.
+    assert.equal(text.split('scripts/ci/dev-secrets.mjs').length - 1, 1, 'one step, outside the comments');
     assert.match(
       stage('images'),
       /node scripts\/ci\/dev-images\.mjs build --tag "\$\(Build\.BuildId\)" --revision "\$\(Build\.SourceVersion\)"/,
