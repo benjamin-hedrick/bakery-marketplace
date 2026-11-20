@@ -595,6 +595,7 @@ Update 2026-11-20 (first dev apply, `docs/evidence/WI-DEP-001/first-dev-apply-20
 Type: Verification gap · Source: `WI-DEP-001` (2026-10-31) · Hat: Platform Engineering
 Status: Open
 `scripts/ci/destroy-guard.mjs` reads `terraform show -json` output. Its fixtures were written by hand from the documented format, so the attributes it relies on (`resource_group_name`, `scope`, `resource_group_id`, `id`, `tags` in `before`) are not confirmed against a real destroy plan of this stack. It fails closed (an unknown group is a refusal), so the risk is a false refusal, not a false pass, but it must be run on the first real destroy plan and the output compared. Also unproven: that every resource in the future environment stack carries a resource-group attribute the guard recognises.
+Update 2026-11-20 (the first real destroy plan, `docs/evidence/WI-DEP-001/first-dev-teardown-2026-11-20.md`): as predicted, a false refusal, before the approval and with nothing destroyed. Of the 26 resources, 23 were placed and the three Key Vault secrets were not: their `id` is a data-plane URL and they have no group attribute. Fixed: the guard reads the vault's group from `key_vault_id`, still failing closed. The real plan, reduced to what the guard reads with identifiers replaced, is now a test fixture, and the guard passes it with 26 deletes. Every resource type in the dev stack is now recognised. Reconciled when the teardown has run with the fixed guard.
 
 
 **108. The deploy identity needs Key Vault Secrets Officer, which is outside the approved role condition**

@@ -20,7 +20,9 @@ export function resourceGroupOf(change) {
   const before = change.change?.before ?? {};
   if (change.type === 'azurerm_resource_group') return before.name;
   if (typeof before.resource_group_name === 'string') return before.resource_group_name;
-  for (const key of ['resource_group_id', 'scope', 'id']) {
+  // key_vault_id: a Key Vault secret's own id is the vault's data-plane URL (https://<vault>.vault.azure.net/...), which names no group;
+  // the secret lives in its vault, and the vault's ARM id names the group (the first real destroy plan, 2026-11-20).
+  for (const key of ['resource_group_id', 'scope', 'id', 'key_vault_id']) {
     const match = typeof before[key] === 'string' ? RESOURCE_GROUP_IN_ID.exec(before[key]) : null;
     if (match) return match[1];
   }

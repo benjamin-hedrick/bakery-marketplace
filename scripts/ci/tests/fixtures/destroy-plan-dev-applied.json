@@ -1,0 +1,455 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {
+      "address": "azurerm_consumption_budget_resource_group.env[0]",
+      "type": "azurerm_consumption_budget_resource_group",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "budget-bakery-dev",
+          "resource_group_id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.Consumption/budgets/budget-bakery-dev"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.apps[\"bff\"]",
+      "type": "azurerm_container_app",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "graphql-bff",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/containerApps/graphql-bff",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.apps[\"catalog\"]",
+      "type": "azurerm_container_app",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "catalog",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/containerApps/catalog",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.apps[\"ordering\"]",
+      "type": "azurerm_container_app",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "ordering",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/containerApps/ordering",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.apps[\"web\"]",
+      "type": "azurerm_container_app",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "web",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/containerApps/web",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.mock[0]",
+      "type": "azurerm_container_app",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "mock-oidc",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/containerApps/mock-oidc",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.redis",
+      "type": "azurerm_container_app",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "redis-events",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/containerApps/redis-events",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.redis_cache",
+      "type": "azurerm_container_app",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "redis-cache",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/containerApps/redis-cache",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app.redis_sessions",
+      "type": "azurerm_container_app",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "redis-sessions",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/containerApps/redis-sessions",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_container_app_environment.env",
+      "type": "azurerm_container_app_environment",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "cae-bakery-dev",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/managedEnvironments/cae-bakery-dev",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_cosmosdb_account.cosmos",
+      "type": "azurerm_cosmosdb_account",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "cosmos-bakery-dev-test1",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-bakery-dev-test1",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_cosmosdb_sql_container.catalog",
+      "type": "azurerm_cosmosdb_sql_container",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "catalog",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-bakery-dev-test1/sqlDatabases/bakery/containers/catalog"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_cosmosdb_sql_container.orders",
+      "type": "azurerm_cosmosdb_sql_container",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "orders",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-bakery-dev-test1/sqlDatabases/bakery/containers/orders"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_cosmosdb_sql_container.payment_methods",
+      "type": "azurerm_cosmosdb_sql_container",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "payment-methods",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-bakery-dev-test1/sqlDatabases/bakery/containers/payment-methods"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_cosmosdb_sql_container.preferences",
+      "type": "azurerm_cosmosdb_sql_container",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "preferences",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-bakery-dev-test1/sqlDatabases/bakery/containers/preferences"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_cosmosdb_sql_container.vendor_orders",
+      "type": "azurerm_cosmosdb_sql_container",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "vendor-orders",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-bakery-dev-test1/sqlDatabases/bakery/containers/vendor-orders"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_cosmosdb_sql_database.bakery",
+      "type": "azurerm_cosmosdb_sql_database",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "bakery",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-bakery-dev-test1/sqlDatabases/bakery"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_key_vault.kv",
+      "type": "azurerm_key_vault",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "kv-bakery-dev-test1",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_key_vault_secret.placeholder[\"cosmos-connection-string\"]",
+      "type": "azurerm_key_vault_secret",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "cosmos-connection-string",
+          "id": "https://kv-bakery-dev-test1.vault.azure.net/secrets/cosmos-connection-string/00000000000000000000000000000000",
+          "key_vault_id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_key_vault_secret.placeholder[\"ordering-client-secret\"]",
+      "type": "azurerm_key_vault_secret",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "ordering-client-secret",
+          "id": "https://kv-bakery-dev-test1.vault.azure.net/secrets/ordering-client-secret/00000000000000000000000000000000",
+          "key_vault_id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_key_vault_secret.placeholder[\"session-encryption-key\"]",
+      "type": "azurerm_key_vault_secret",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "session-encryption-key",
+          "id": "https://kv-bakery-dev-test1.vault.azure.net/secrets/session-encryption-key/00000000000000000000000000000000",
+          "key_vault_id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_log_analytics_workspace.logs",
+      "type": "azurerm_log_analytics_workspace",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "log-bakery-dev",
+          "resource_group_name": "rg-bakery-dev",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.OperationalInsights/workspaces/log-bakery-dev",
+          "tags": {
+            "Environment": "dev",
+            "Lifetime": "disposable",
+            "ManagedBy": "Terraform",
+            "Stack": "environment"
+          }
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_role_assignment.kv_secrets_officer_deploy",
+      "type": "azurerm_role_assignment",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "00000000-0000-0000-0000-000000000000",
+          "scope": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1/providers/Microsoft.Authorization/roleAssignments/00000000-0000-0000-0000-000000000000"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "azurerm_role_assignment.kv_secrets_user_apps",
+      "type": "azurerm_role_assignment",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "name": "00000000-0000-0000-0000-000000000000",
+          "scope": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1/providers/Microsoft.Authorization/roleAssignments/00000000-0000-0000-0000-000000000000"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "time_sleep.kv_roles",
+      "type": "time_sleep",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "id": "2026-01-01T00:00:00Z"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "time_static.budget_created[0]",
+      "type": "time_static",
+      "mode": "managed",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "id": "2026-01-01T00:00:00Z"
+        },
+        "after": null
+      }
+    }
+  ]
+}

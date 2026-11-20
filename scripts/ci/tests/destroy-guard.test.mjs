@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,6 +140,43 @@ describe('the destroy guard', () => {
       'rg-x',
     );
     assert.equal(resourceGroupOf(del('a.b', 'azurerm_thing', {})), undefined);
+  });
+
+  // A Key Vault secret's id is a data-plane URL; only key_vault_id names the group. The guard refused the first real destroy plan on this.
+  const secret = (vaultGroup) =>
+    del('azurerm_key_vault_secret.s', 'azurerm_key_vault_secret', {
+      name: 's',
+      id: 'https://kv-bakery-dev-test1.vault.azure.net/secrets/s/00000000000000000000000000000000',
+      ...(vaultGroup && {
+        key_vault_id: `${SUB}/resourceGroups/${vaultGroup}/providers/Microsoft.KeyVault/vaults/kv-bakery-dev-test1`,
+      }),
+    });
+
+  test('places a Key Vault secret in its vault group, refuses it when the vault is elsewhere, and fails closed without the vault', () => {
+    assert.equal(resourceGroupOf(secret('rg-bakery-dev')), 'rg-bakery-dev');
+    assert.equal(checkDestroyPlan(plan(secret('rg-bakery-dev')), expected).ok, true);
+    const elsewhere = checkDestroyPlan(plan(secret('rg-bakery-foundation')), expected);
+    assert.equal(elsewhere.ok, false);
+    assert.match(elsewhere.problems[0], /rg-bakery-foundation/);
+    assert.equal(checkDestroyPlan(plan(secret(undefined)), expected).ok, false);
+  });
+
+  test('passes the real destroy plan of the applied dev stack (2026-11-20, reduced to what the guard reads, identifiers replaced)', () => {
+    const fixture = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      'fixtures',
+      'destroy-plan-dev-applied.json',
+    );
+    const real = JSON.parse(readFileSync(fixture, 'utf8'));
+    const result = checkDestroyPlan(real, expected);
+    assert.equal(result.ok, true, result.problems.join('; '));
+    assert.equal(result.deleted.length, 26);
+    assert.ok(result.deleted.includes('azurerm_key_vault_secret.placeholder["session-encryption-key"]'));
+    assert.ok(result.deleted.includes('azurerm_cosmosdb_account.cosmos'));
+    assert.ok(
+      !result.deleted.some((a) => a.startsWith('azurerm_resource_group')),
+      'the group itself is never in the plan',
+    );
   });
 });
 
