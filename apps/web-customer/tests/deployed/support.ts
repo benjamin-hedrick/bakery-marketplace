@@ -26,6 +26,8 @@ export const CUSTOMERS = {
 export const LISTINGS = {
   sourdough: 'Country Sourdough',
   croissant: 'Almond Croissant',
+  tart: 'Walnut Praline Tart', // the allergen test's own (made to order, so a long-lived environment never sells it out)
+  loaf: 'Wheat and Rye Loaf', // tests 2, 5 and 6: stocked (so ordering reserves stock), and deep enough not to sell out between deploys
   latte: 'Oat Milk Latte',
   lemonade: 'Yuzu Lemonade', // the concurrency test's own (stock 2, one per order)
 } as const;

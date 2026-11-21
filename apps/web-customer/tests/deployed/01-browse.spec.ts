@@ -41,8 +41,8 @@ test('1. the server-rendered home page shows the seeded listings (web, BFF, cata
 
 test('2. a listing page renders its price, options and stock from the catalog', async ({ page }) => {
   await page.goto('/');
-  await page.getByTestId('listing').filter({ hasText: LISTINGS.sourdough }).getByRole('link').click();
-  await expect(page.getByRole('heading', { level: 1, name: LISTINGS.sourdough })).toBeVisible();
+  await page.getByTestId('listing').filter({ hasText: LISTINGS.loaf }).getByRole('link').click();
+  await expect(page.getByRole('heading', { level: 1, name: LISTINGS.loaf })).toBeVisible();
   await expect(page.getByTestId('stock')).toHaveText(/In stock|Low stock/);
   await expect(page.getByRole('checkbox', { name: /Sliced/ })).toBeVisible(); // an option from the catalog
   await expect(page.getByLabel('Quantity')).toBeVisible();
