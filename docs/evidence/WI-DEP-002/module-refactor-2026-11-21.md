@@ -22,6 +22,7 @@ The saved plan and its JSON (which hold values in clear text) were deleted strai
 ## Found and fixed on the way
 
 - **A plan whose only changes are moves** exits with 2 (Terraform counts the state rewrite as a change), but `plan-summary.mjs` skipped every no-op entry, and a move is a no-op with a previous address. The first pipeline run after the refactor would have stopped at the plan stage with "terraform plan said changes (exit 2) but the plan lists none". It now keeps such an entry as `move` with the address it moved from, and compares moves after approval like any other change (a test covers it).
+- **Later the same day (WI-CHAOS-006 step 5):** the web app gained `DEPLOYMENT_ENVIRONMENT`, so a plan against the dev state now shows 26 moves and one in-place update of the web app (moved and updated). As register 217 says, that apply puts the web app back on the placeholder image until the application deploy of the same run.
 - **What the next dev run does:** its plan shows 27 moves; the infrastructure approval is asked for; the apply only rewrites the state's addresses. No resource in Azure changes. The `moved` blocks can be removed after that apply.
 
 ## Step 2b: the pipeline's stages in a template

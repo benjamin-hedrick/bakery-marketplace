@@ -45,6 +45,12 @@ locals {
   # plain-http token metadata in Development, which the https validations on the issuer variables guard against.
   # Deployment__Environment names the environment itself; chaos scenarios (ADR-0024) read it. It is always var.environment, and only the dev root
   # passes environment = "dev" (scripts/ci/tests/chaos-not-deployed.test.mjs).
+  # The chaos scenario (WI-CHAOS-006): with one named, every app starts with it, each through the settings its own library reads; with none, no app
+  # has a chaos setting at all. var.chaos_scenario refuses a scenario outside dev.
+  chaos_on     = var.chaos_scenario != "none"
+  dotnet_chaos = local.chaos_on ? { Chaos__Enabled = "true", Chaos__Scenario = var.chaos_scenario } : {}
+  node_chaos   = local.chaos_on ? { CHAOS_ENABLED = "true", CHAOS_SCENARIO = var.chaos_scenario } : {}
+
   dotnet_env = {
     ASPNETCORE_ENVIRONMENT  = var.host_environment
     Deployment__Environment = var.environment
@@ -66,7 +72,7 @@ locals {
       port     = 5200
       external = false
       # The listing cache (ADR-0002, WI-CAT-003) uses the cache Redis below; if it is unreachable the catalog serves from its in-process fallback.
-      env = merge(local.dotnet_env, {
+      env = merge(local.dotnet_env, local.dotnet_chaos, {
         Cache__Backend                 = "redis"
         Cache__Redis__ConnectionString = "redis-cache:6380"
       })
@@ -76,7 +82,7 @@ locals {
       name     = "ordering"
       port     = 5300
       external = false
-      env = merge(local.dotnet_env, {
+      env = merge(local.dotnet_env, local.dotnet_chaos, {
         Catalog__BaseUrl           = "http://catalog"
         ServiceAuth__TokenEndpoint = local.token_endpoint
         ServiceAuth__ClientId      = var.service_auth_client_id
@@ -91,19 +97,19 @@ locals {
       name     = "graphql-bff"
       port     = 4100
       external = false
-      env = {
+      env = merge(local.node_chaos, {
         CATALOG_URL  = "http://catalog"
         ORDERING_URL = "http://ordering"
         # Names the environment for chaos scenarios (ADR-0024): the image sets NODE_ENV=production everywhere, so this is what allows a scenario here.
         DEPLOYMENT_ENVIRONMENT = var.environment
-      }
+      })
       secrets = {}
     }
     web = {
       name     = "web"
       port     = 3000
       external = true
-      env = {
+      env = merge(local.node_chaos, {
         GRAPHQL_URL    = "http://graphql-bff/graphql"
         AUTH_ISSUER    = local.web_issuer
         AUTH_CLIENT_ID = var.web_auth_client_id
@@ -114,7 +120,9 @@ locals {
         # The Container Apps ingress is one proxy in front of the app and appends the visitor's address to X-Forwarded-For. With 0 the rate limits would
         # count every visitor by the ingress's address and share one login limit between all of them (docs/operations/local-dev.md, TRUSTED_PROXY_HOPS).
         TRUSTED_PROXY_HOPS = "1"
-      }
+        # Names the environment for chaos scenarios (ADR-0024, WI-CHAOS-006), as for the BFF: without it a web or session layer would refuse to start.
+        DEPLOYMENT_ENVIRONMENT = var.environment
+      })
       secrets = { "session-encryption-key" = "SESSION_ENCRYPTION_KEY" }
     }
   }

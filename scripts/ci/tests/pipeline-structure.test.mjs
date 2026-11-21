@@ -71,11 +71,32 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
 
   test('passes every run parameter through to the stage template, which declares them all', () => {
     assert.match(caller, /^stages:\n(\s*#.*\n)*\s+- template: pipelines\/templates\/environment-stages\.yml\n/m);
-    for (const name of ['action', 'planMode', 'simulateInfrastructureChanges', 'holdSeconds', 'confirmEnvironment']) {
+    for (const name of [
+      'action',
+      'planMode',
+      'simulateInfrastructureChanges',
+      'holdSeconds',
+      'confirmEnvironment',
+      'chaosScenario',
+    ]) {
       assert.equal(passed(name), `\${{ parameters.${name} }}`, name);
       assert.match(template, new RegExp(`^ {2}- name: ${name}$`, 'm'), name);
     }
     assert.doesNotMatch(caller, /- stage: /, 'no stage is left in the dev file');
+  });
+
+  test('the chaos scenario (WI-CHAOS-006): offered as none or dev-chaos, given only to the deploy plan and the apply, and refused outside dev', () => {
+    assert.match(caller, /- name: chaosScenario\n(.*\n){2}\s+default: none\n\s+values:\n\s+- none\n\s+- dev-chaos\n/);
+    const given = [...template.matchAll(/TF_VAR_chaos_scenario: (.+)/g)].map((m) => m[1].trim());
+    assert.deepEqual(given, ['${{ parameters.chaosScenario }}', '${{ parameters.chaosScenario }}']);
+    assert.match(real('infra_plan'), /TF_VAR_chaos_scenario/);
+    assert.match(real('infra_apply'), /TF_VAR_chaos_scenario/);
+    for (const name of ['destroy_plan', 'destroy_apply', 'app_deploy', 'smoke', 'observe'])
+      assert.doesNotMatch(stage(name), /chaos_scenario|chaosScenario/, name);
+    assert.ok(
+      stage('inputs').includes('[ "${{ parameters.chaosScenario }}" != "none" ] && [ "$(ENVIRONMENT_NAME)" != "dev" ]'),
+      'the inputs stage refuses a scenario outside dev',
+    );
   });
 
   test('never starts by itself', () => {
@@ -374,7 +395,8 @@ function runStep(script, values) {
   const filled = script
     .replaceAll('$(Build.SourceBranch)', values.branch ?? 'refs/heads/main')
     .replaceAll('$(Build.Reason)', values.reason ?? 'Manual')
-    .replaceAll('$(ENVIRONMENT_NAME)', 'dev')
+    .replaceAll('$(ENVIRONMENT_NAME)', values.environment ?? 'dev')
+    .replaceAll('${{ parameters.chaosScenario }}', values.chaos ?? 'none')
     .replaceAll('${{ parameters.action }}', values.action ?? 'deploy')
     .replaceAll('${{ parameters.confirmEnvironment }}', values.confirm ?? '')
     .replaceAll('${{ parameters.simulateInfrastructureChanges }}', values.simulate ?? 'True');
@@ -408,6 +430,14 @@ describe('the logic in the rehearsal steps, run with the macros filled in', () =
 
   test('the confirmation is not asked for on a deploy', () => {
     assert.equal(runStep(inputs(), { action: 'deploy', confirm: 'anything' }).status, 0);
+  });
+
+  test('the input check lets dev name a chaos scenario and stops any other environment that does (WI-CHAOS-006)', () => {
+    assert.equal(runStep(inputs(), { action: 'deploy', chaos: 'dev-chaos' }).status, 0);
+    const refused = runStep(inputs(), { action: 'deploy', chaos: 'dev-chaos', environment: 'uat' });
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stdout, /only for the dev environment/);
+    assert.equal(runStep(inputs(), { action: 'deploy', chaos: 'none', environment: 'uat' }).status, 0);
   });
 
   test('the simulated plan reports changes or none, in the form the apply stage reads (Azure prints a boolean as True or False)', () => {

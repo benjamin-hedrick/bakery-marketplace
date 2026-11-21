@@ -20,6 +20,23 @@ variable "host_environment" {
   }
 }
 
+variable "chaos_scenario" {
+  type        = string
+  description = "The chaos scenario every app of the environment starts with (ADR-0024, WI-CHAOS-006): none, or the name of a file in chaos/scenarios/ (dev-chaos). Only the dev environment may name one; the apps' own start-up gates refuse chaos anywhere else as well. It lives as long as the deployment, until a run changes it."
+  default     = "none"
+  nullable    = false
+
+  validation {
+    condition     = var.chaos_scenario == "none" || can(regex("^[a-z0-9][a-z0-9-]*$", var.chaos_scenario))
+    error_message = "chaos_scenario must be none or the plain name of a scenario file (lower-case letters, digits and dashes)."
+  }
+
+  validation {
+    condition     = var.chaos_scenario == "none" || var.environment == "dev"
+    error_message = "chaos_scenario may name a scenario only when environment is dev; UAT and production never run chaos (ADR-0024)."
+  }
+}
+
 variable "name_prefix" {
   type    = string
   default = "bakery"

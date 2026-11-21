@@ -14,6 +14,10 @@ parameters:
     type: number
   - name: confirmEnvironment
     type: string
+  # The chaos scenario the deployment's apps start with (WI-CHAOS-006): none, or one the calling file offers. Refused for any environment but dev.
+  - name: chaosScenario
+    type: string
+    default: none
   # The environment's connections and approval environments (configured in Azure DevOps; never a run parameter).
   - name: planConnection
     type: string
@@ -42,7 +46,11 @@ stages:
                 echo "##vso[task.logissue type=error]To destroy, the confirmation must be exactly the environment name: $(ENVIRONMENT_NAME)"
                 exit 1
               fi
-              echo "Inputs are acceptable: action=${{ parameters.action }}"
+              if [ "${{ parameters.chaosScenario }}" != "none" ] && [ "$(ENVIRONMENT_NAME)" != "dev" ]; then
+                echo "##vso[task.logissue type=error]A chaos scenario may be named only for the dev environment (ADR-0024), not $(ENVIRONMENT_NAME)."
+                exit 1
+              fi
+              echo "Inputs are acceptable: action=${{ parameters.action }} chaosScenario=${{ parameters.chaosScenario }}"
             displayName: Manual run, and for a destroy the typed confirmation (must equal the environment name)
 
   # ---- deploy: infrastructure first (its apply is asked for only if the plan has changes), then the application ---------------------------
@@ -94,6 +102,7 @@ stages:
                     env:
                       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                       BUDGET_CONTACT_EMAIL: $(BUDGET_CONTACT_EMAIL)
+                      TF_VAR_chaos_scenario: ${{ parameters.chaosScenario }}
                     inputs:
                       azureSubscription: ${{ parameters.planConnection }}
                       scriptType: bash
@@ -160,6 +169,7 @@ stages:
                           env:
                             SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                             BUDGET_CONTACT_EMAIL: $(BUDGET_CONTACT_EMAIL)
+                            TF_VAR_chaos_scenario: ${{ parameters.chaosScenario }}
                           inputs:
                             azureSubscription: ${{ parameters.deployConnection }}
                             scriptType: bash

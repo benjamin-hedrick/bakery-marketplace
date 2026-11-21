@@ -76,6 +76,19 @@ describe('chaos settings in deployment configuration', () => {
     }
   });
 
+  test('only the dev pipeline offers a chaos scenario (WI-CHAOS-006), and only through the dev-only Terraform variable', () => {
+    for (const file of readdirSync(root).filter(
+      (f) => /^azure-pipelines.*.yml$/.test(f) && f !== 'azure-pipelines-dev.yml',
+    ))
+      assert.doesNotMatch(
+        read(file),
+        /chaosScenario|dev-chaos|chaos_scenario/,
+        `${file} must not offer a chaos scenario`,
+      );
+    const module = read('infra/modules/environment/variables.tf');
+    assert.match(module, /var.chaos_scenario == "none" || var.environment == "dev"/);
+  });
+
   test('the local Compose file does not turn chaos on by default', () => {
     const code = read('docker-compose.yml')
       .split('\n')
