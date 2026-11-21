@@ -3,7 +3,8 @@
 //   Cosmos__ConnectionString="AccountEndpoint=http://localhost:8081/;AccountKey=<emulator key>" dotnet run --project tools/BakeryMarketplace.Seed
 //
 // Settings use the same names as catalog-service so one env file serves both. Redis__ConnectionString defaults to
-// localhost:6379; Cosmos__Database to "bakery". Refuses to run against a non-local Cosmos endpoint.
+// localhost:6379; Cosmos__Database to "bakery". Refuses any Cosmos endpoint but a loopback one, except the deployed dev environment's when its seed job
+// sets Seed__AllowDeployedDev=true and Deployment__Environment=dev (SeedTarget; register 224). There it creates nothing: the containers are the dev stack's.
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using CatalogService.Domain;
@@ -29,25 +30,43 @@ internal static class SeedProgram
             return 2;
         }
 
-        var endpoint = cosmosConnection.Split(';', StringSplitOptions.RemoveEmptyEntries)
-            .FirstOrDefault(p => p.StartsWith("AccountEndpoint=", StringComparison.OrdinalIgnoreCase))?["AccountEndpoint=".Length..];
-        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || !uri.IsLoopback)
+        var target = SeedTarget.Decide(cosmosConnection, config[SeedTarget.AllowDeployedDevSetting], config[SeedTarget.DeploymentEnvironmentSetting]);
+        if (!target.Allowed)
         {
-            Console.Error.WriteLine("Refusing to seed: the Cosmos endpoint is not a loopback address. The seed is for the local emulator only.");
+            Console.Error.WriteLine($"Refusing to seed: {target.Reason}");
             return 2;
         }
+        var deployed = target.Kind == SeedTargetKind.DeployedDev;
+        var redisConnection = config["Redis:ConnectionString"];
+        if (deployed && string.IsNullOrWhiteSpace(redisConnection))
+        {
+            // Locally the events Redis is on localhost; in the deployed environment there is no such default (the dev stack names it).
+            Console.Error.WriteLine("Redis__ConnectionString is required when seeding the deployed dev environment.");
+            return 2;
+        }
+        Console.WriteLine(deployed ? "Seeding the deployed dev environment." : "Seeding the local emulator.");
 
         var database = config["Cosmos:Database"] ?? "bakery";
-        var cosmos = CosmosClientFactory.Create(cosmosConnection, gatewayMode: true); // the emulator only works over the gateway
-        var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
-        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId") { DefaultTimeToLive = -1 });
-        // The same container, with the same partition key, that catalog-service creates for customers' saved allergen profiles (its Program.cs).
-        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("preferences", "/customerId"));
+        var cosmos = CosmosClientFactory.Create(cosmosConnection, gatewayMode: true); // the emulator only works over the gateway; https only, for the deployed account too
+        string[] containers = ["catalog", "preferences", "payment-methods"];
+        if (deployed)
+        {
+            // The deployed database and containers are the dev stack's (infra/environments/dev, Terraform); the seed never creates or changes them there.
+            foreach (var name in containers)
+                await cosmos.GetContainer(database, name).ReadContainerAsync();
+        }
+        else
+        {
+            var db = (await cosmos.CreateDatabaseIfNotExistsAsync(database)).Database;
+            await db.CreateContainerIfNotExistsAsync(new ContainerProperties("catalog", "/vendorId") { DefaultTimeToLive = -1 });
+            // The same container, with the same partition key, that catalog-service creates for customers' saved allergen profiles (its Program.cs).
+            await db.CreateContainerIfNotExistsAsync(new ContainerProperties("preferences", "/customerId"));
 
-        // The same container, with the same partition key, that ordering-service creates for customers' saved payment methods (its Program.cs; WI-ORD-010).
-        await db.CreateContainerIfNotExistsAsync(new ContainerProperties("payment-methods", "/customerId"));
+            // The same container, with the same partition key, that ordering-service creates for customers' saved payment methods (its Program.cs; WI-ORD-010).
+            await db.CreateContainerIfNotExistsAsync(new ContainerProperties("payment-methods", "/customerId"));
+        }
 
-        var redis = await ConnectionMultiplexer.ConnectAsync(config["Redis:ConnectionString"] ?? "localhost:6379");
+        var redis = await ConnectionMultiplexer.ConnectAsync(redisConnection ?? "localhost:6379");
         var seeder = new Seeder(
             new CosmosRepository<ListingDocument>(cosmos, database, "catalog"),
             new RedisStreamsEventTransport(redis),
