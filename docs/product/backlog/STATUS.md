@@ -11,11 +11,11 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 56 |
-| In progress | 6 |
+| In progress | 7 |
 | In review | 37 |
 | Built | 1 |
 | Ready | 2 |
-| Proposed | 5 |
+| Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 2 |
 
@@ -87,7 +87,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `packages/chaos`, `services/graphql-bff/src/chaos.ts`, `services/graphql-bff/test/chaos.test.ts`, `apps/mobile-customer/tests/chaos-outcomes.test.ts`, the lost-response tests in `tools/tests` and the service tests |
 | [CHAOS-004](WI-CHAOS-004.md) | Chaos scenarios: a layer on the web servers' session store | EPIC-QUALITY-EVIDENCE | In review | evidence: `packages/web-session/src/chaos-store.ts`, `packages/web-session/tests/chaos-store.test.ts`, `chaos/scenarios/session-outage.json`, `apps/web-customer/tests/chaos/session-outage.spec.ts`, `docs/evidence/WI-CHAOS-004/README.md` |
 | [CHAOS-005](WI-CHAOS-005.md) | Chaos scenarios: the web apps' Relay network functions against an equivalence contract | EPIC-QUALITY-EVIDENCE | Done | evidence: `packages/web-session/tests/relay-network-contract.ts`, `apps/web-customer/tests/unit/relay-network.test.ts`, `apps/web-queue-display/tests/unit/relay-network.test.ts` |
-| [CHAOS-006](WI-CHAOS-006.md) | Chaos scenarios in the deployed dev environment: a pipeline input, a chaos stage that switches a scenario on and off, deployed specs | EPIC-QUALITY-EVIDENCE | In progress | built: the observe step counts the scenarios switched on and the faults injected (`dev-observe.mjs`); remaining: the lead's answers to the questions below, then the chaos stage, its script, the web app's environment name, and the deployed chaos specs |
+| [CHAOS-006](WI-CHAOS-006.md) | Chaos in the deployed dev environment: one scenario, aimed at chaos seed data, switched on per deployment, exercised by the standard suite | EPIC-QUALITY-EVIDENCE | In progress | built: the observe step counts the scenarios started and the faults injected (`dev-observe.mjs`); the full plan below waits for the lead's agreement before any other piece is built (the lead, 2026-11-21: agree the whole plan first, then build in steps) |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer` (`/orders/{id}`); `docs/evidence/slice-1/findings.md`. The order history list was split out into `WI-CUST-007` |
@@ -101,7 +101,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
 | [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | EPIC-CLOUD-INFRA | In progress | remaining: infrastructure as code, the deploy stage, the post-deploy smoke, teardown and cost evidence; the images and the Compose `apps` profile are built (see the progress note) |
-| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | EPIC-CLOUD-INFRA | Proposed | the lead decided steps 2 to 7 on 2026-11-21 (below); open: the ADR-0020 note (decision 1), the questions at the end, then build in the order given |
+| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | EPIC-CLOUD-INFRA | In progress | every decision taken (2026-11-21); building step 2 (the refactors, approved); remaining: steps 1 and 3 to 9 |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | EPIC-LOCAL-DEV | Done | evidence: `BakeryMarketplace.slnx` and the projects it lists |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | EPIC-LOCAL-DEV | Done | evidence: merged `c945b18`; verified under Docker, `docs/operations/local-dev.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | EPIC-LOCAL-DEV | Done | evidence: the Outcome note under this banner; `tools/BakeryMarketplace.Seed` |
