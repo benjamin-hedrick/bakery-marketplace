@@ -2,6 +2,8 @@
 
 > **Status:** Current · written 2026-11-20 before the first dev apply, so that anything created can be removed the gated way (the lead's condition for deploying). Run for real on 2026-11-20 (see "Last tested"). Decision: ADR-0020 decision 7. Pipeline: [`azure-pipelines-dev.yml`](../../../azure-pipelines-dev.yml), action `destroy`. It becomes Current when a real teardown has run and its "Last tested" says so.
 
+**UAT** is torn down the same way, with `azure-pipelines-uat.yml`, confirmation `uat`, approval at `uat-destroy` and `rg-bakery-uat` wherever this says `rg-bakery-dev` (both pipelines run the same stage template; [`uat-environment.md`](uat-environment.md), section 4). Not yet run for UAT.
+
 **Purpose.** Remove everything the dev environment stack created, inside `rg-bakery-dev`, and nothing else: not the resource group (the bootstrap made it), not the foundation (registry, apps identity, budget alert of the foundation), not the state. Costs stop when it finishes (`docs/management/budget-cost-estimate.md`, the dev environment section).
 
 ## Before you start

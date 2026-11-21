@@ -101,7 +101,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
 | [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | EPIC-CLOUD-INFRA | In progress | remaining: infrastructure as code, the deploy stage, the post-deploy smoke, teardown and cost evidence; the images and the Compose `apps` profile are built (see the progress note) |
-| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | EPIC-CLOUD-INFRA | In progress | every decision taken (2026-11-21); step 2 built (2a proved against the dev state, 2b by equivalence; neither run by the pipeline yet); remaining: steps 1 and 3 to 9 |
+| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | EPIC-CLOUD-INFRA | In progress | steps 1 to 6 and 8 built (2026-11-21; 2a proved against the dev state; the pipeline files checked by text and unit tests only, not yet by Azure DevOps' preview or a run); remaining: step 7 (the lead's bootstrap, with register 230's roles to decide), the first UAT run and step 9's evidence |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | EPIC-LOCAL-DEV | Done | evidence: `BakeryMarketplace.slnx` and the projects it lists |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | EPIC-LOCAL-DEV | Done | evidence: merged `c945b18`; verified under Docker, `docs/operations/local-dev.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | EPIC-LOCAL-DEV | Done | evidence: the Outcome note under this banner; `tools/BakeryMarketplace.Seed` |
@@ -218,13 +218,13 @@ Accepted: 23 · Superseded: 1
 
 ## Open-items register
 
-230 numbered items in `docs/governance/open-items-register.md` (highest number 232).
+231 numbered items in `docs/governance/open-items-register.md` (highest number 232).
 
 | Type | Count |
 |---|---|
 | Gap | 55 |
+| Decision | 27 |
 | Deferred scope | 26 |
-| Decision | 26 |
 | Defect | 24 |
 | Limitation | 23 |
 | Verification gap | 23 |
@@ -240,4 +240,4 @@ Accepted: 23 · Superseded: 1
 | Resolved | 121 |
 | Accepted | 8 |
 | Tracking | 14 |
-| Open | 72 |
+| Open | 73 |

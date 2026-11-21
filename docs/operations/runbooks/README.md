@@ -19,6 +19,7 @@ These are not failure scenarios but one-off or repeated operations on the deploy
 | [`bootstrap-terraform-state.md`](bootstrap-terraform-state.md) | Create the Terraform state storage and the pipeline identities once, with a verify section | 2026-11-19 (checks 1 to 5); check 6 for `bakery-plan` 2026-11-20 |
 | [`prove-the-pipeline-gates.md`](prove-the-pipeline-gates.md) | Prove the approvals, branch check, lock and typed confirmation with a pipeline that only prints | 2026-10-31 to 2026-11-01 (G1 to G8) |
 | [`dev-environment-teardown.md`](dev-environment-teardown.md) | Remove everything the dev environment stack created, through the gated destroy | Never (written 2026-11-20, before the first dev apply) |
+| [`uat-environment.md`](uat-environment.md) | Bootstrap UAT once (IAM, the lead), deploy a passing dev build to it, run side by side with dev, tear it down | Never (written 2026-11-21, `WI-DEP-002`) |
 
 Still to write, when it first runs: create the dev environment.
 
