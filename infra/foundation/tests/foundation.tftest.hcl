@@ -125,3 +125,26 @@ run "an_environment_identity_gets_acrpull_on_the_registry_and_stays_persistent" 
     error_message = "The identity must carry the persistent tag so the destroy guard refuses to delete it."
   }
 }
+
+# WI-DEP-002 step 6: UAT is one more entry. The identities are keyed by environment name, so adding uat leaves dev's identity and its AcrPull at
+# the same addresses (a plan against the foundation state adds two resources and changes nothing).
+run "dev_and_uat_each_get_their_own_identity_with_acrpull" {
+  command = plan
+
+  variables {
+    app_identities = ["dev", "uat"]
+  }
+
+  assert {
+    condition     = azurerm_user_assigned_identity.apps["dev"].name == "id-bakery-dev-apps" && azurerm_user_assigned_identity.apps["uat"].name == "id-bakery-uat-apps"
+    error_message = "Each environment has its own apps identity, named for it."
+  }
+  assert {
+    condition     = length(azurerm_role_assignment.acr_pull_apps) == 2 && alltrue([for k in ["dev", "uat"] : azurerm_role_assignment.acr_pull_apps[k].role_definition_name == "AcrPull"])
+    error_message = "Each apps identity gets AcrPull on the one registry (UAT pulls the same digests, ADR-0020 note of 2026-11-21)."
+  }
+  assert {
+    condition     = azurerm_user_assigned_identity.apps["uat"].tags["Environment"] == "uat" && azurerm_user_assigned_identity.apps["uat"].tags["Lifetime"] == "persistent"
+    error_message = "The UAT identity is tagged for its environment and as persistent."
+  }
+}
