@@ -2,7 +2,7 @@ import { after, afterEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { ChaosRuntime, validate } from '@bakery/chaos';
+import { ChaosRuntime, parseScenario, validate } from '@bakery/chaos';
 import { BffChaos } from '../src/chaos.ts';
 import { SAFE_INTERNAL_MESSAGE } from '../src/errors.ts';
 import { toGlobalId } from '../src/global-id.ts';
@@ -29,7 +29,7 @@ const LISTING = {
   updatedAt: '2026-01-01T00:00:00+00:00',
 };
 
-let catalogMode: 'ok' | 'error' | 'badjson' | 'hang' = 'ok';
+let catalogMode: 'ok' | 'error' | 'badjson' | 'hang' | 'injected' = 'ok';
 let catalogCalls = 0;
 const catalog = http.createServer((req, res) => {
   catalogCalls++;
@@ -42,7 +42,11 @@ const catalog = http.createServer((req, res) => {
     res.writeHead(200);
     return res.end('<html>nope');
   }
-  res.writeHead(200, { 'content-type': 'application/json' });
+  // 'injected': the service answers normally and says, as a service with a scenario on does, which faults it injected (one name is not well formed).
+  res.writeHead(200, {
+    'content-type': 'application/json',
+    ...(catalogMode === 'injected' ? { 'x-chaos-injected': 'repository:latency, not a name,cache:failure' } : {}),
+  });
   res.end(JSON.stringify({ items: [LISTING], nextCursor: null }));
 });
 await new Promise<void>((r) => catalog.listen(0, '127.0.0.1', r));
@@ -340,5 +344,66 @@ describe('the wrappers on the service clients (layers bffCatalog and bffOrdering
 
     assert.equal(outcome.errors, undefined);
     assert.equal(catalogCalls, 1);
+  });
+});
+
+// WI-CHAOS-006 (ADR-0024 note of 2026-11-21): the door is aimed like any layer, and a service's own indicator reaches the BFF's answer.
+describe('aiming at the door, and the faults a service injected', () => {
+  async function startWith(runtime: ChaosRuntime): Promise<string> {
+    const server = createServer(
+      { port: 0, catalogUrl, orderingUrl: 'http://127.0.0.1:1', timeoutMs: 300, checkoutTimeoutMs: 300 },
+      { log: silent, exporter: () => undefined, chaos: new BffChaos(runtime) },
+    );
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    running.push({ url: '', runtime, stop: () => (server.closeAllConnections(), server.close()) });
+    return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  }
+  const AIMED = 'c4a05c4a05c4a05c4a05c4a05c4a05c4';
+  const OTHER = '0123456789abcdef0123456789abcdef';
+  const traceparent = (id: string) => ({ traceparent: `00-${id}-00f067aa0ba902b7-01` });
+
+  test("a door rule disturbs only the requests it names (here the caller's own trace id); every other request goes through", async () => {
+    const runtime = new ChaosRuntime(
+      parseScenario(
+        JSON.stringify({
+          name: 'aimed-door',
+          seed: 1,
+          layers: { bff: { rejectRate: 1 } },
+          where: { bff: [{ key: AIMED }] },
+        }),
+      ),
+    );
+    const base = await startWith(runtime);
+
+    const hit = await gql(base, LISTINGS, traceparent(AIMED));
+    assert.equal(runtime.journal.count('bff', 'reject'), 1);
+    assert.equal(hit.status, 503);
+    assert.equal(hit.headers.get('x-chaos-injected'), 'bff:reject');
+
+    assert.equal((await gql(base, LISTINGS, traceparent(OTHER))).status, 200);
+    assert.equal((await gql(base, LISTINGS)).status, 200);
+    assert.equal(runtime.journal.count('bff', 'reject'), 1);
+  });
+
+  test("a service's own X-Chaos-Injected is in the BFF's answer, each well-formed name prefixed with the service", async () => {
+    catalogMode = 'injected';
+    const base = await startWith(new ChaosRuntime(validate('observed', 1n, { bff: { rejectRate: 0 } })));
+
+    const res = await gql(base, LISTINGS);
+
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('x-chaos-injected'), 'catalog/cache:failure,catalog/repository:latency');
+    assert.deepEqual(
+      ((await res.json()) as { extensions: { chaos: { injected: string[] } } }).extensions.chaos.injected,
+      ['catalog/cache:failure', 'catalog/repository:latency'],
+    );
+  });
+
+  test("with chaos off the BFF copies nothing: a service's header never reaches the caller", async () => {
+    catalogMode = 'injected';
+    const off = await start(undefined);
+    const res = await gql(off.url, LISTINGS);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('x-chaos-injected'), null);
   });
 });

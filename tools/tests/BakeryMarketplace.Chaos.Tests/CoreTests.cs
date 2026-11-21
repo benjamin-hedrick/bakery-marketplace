@@ -82,6 +82,7 @@ public sealed class ChaosScenarioTests
     [Theory]
     [InlineData("flaky-broker")]
     [InlineData("slow-cache")]
+    [InlineData("dev-chaos")]
     public void TheCommittedScenarioFilesLoad(string name)
     {
         var scenario = ChaosScenario.Load(RepoChaos.Path($"scenarios/{name}.json"));

@@ -1,6 +1,8 @@
 import type http from 'node:http';
 import {
+  addRequestFaults,
   ChaosRuntime,
+  customerOf,
   describeCall,
   indicatorHeaders,
   requestFaults,
@@ -17,7 +19,9 @@ import type { TraceContext } from './trace.ts';
 //                             non-JSON body, reset the connection, or never answer. The process stays up; to the caller the BFF behaves as if it were not.
 //   `bffCatalog`/`bffOrdering` a wrapper around a service client: the call fails as an unreachable service does, answers a 5xx, answers a body that is
 //                             not JSON, or succeeds and then loses its answer. The errors are the DownstreamError the real clients throw.
-// Faults a service injects (ordering, catalog) are reported by that service, not copied here; the journals are joined by trace id.
+// Faults a service injects (ordering, catalog) are reported by that service in its own X-Chaos-Injected; since WI-CHAOS-006 (ADR-0024 note of
+// 2026-11-21) the BFF also copies them into its answer, each prefixed with the service (ordering/payment:lostResponse), by a wrapper on the fetch its
+// clients use. The journals are still joined by trace id.
 
 type Send = (code: number, body: unknown) => void;
 
@@ -60,9 +64,20 @@ export class BffChaos {
   /** The gate. Returns true when it answered (or deliberately did not answer) the request, so the handler stops. */
   async gate(req: http.IncomingMessage, res: http.ServerResponse, trace: TraceContext, send: Send): Promise<boolean> {
     const door = this.#door;
-    if (!door.active) return false;
+    if (!door.declared && !this.runtime.hasSignals) return false;
     // A caller that sets its own traceparent chooses the key, so a test can say which requests will be hit; otherwise it is the request's number.
     const key = trace.continued ? trace.traceId : `seq:${++this.#seq}`;
+    // Aimed like any layer (WI-CHAOS-006): a rule may name the key (the caller's own trace id), the path as the operation, or the customer of the
+    // bearer token (read, not verified: it only chooses which requests are disturbed; the BFF and the services still validate it).
+    const authorization = req.headers.authorization;
+    const call = {
+      client: 'bff',
+      operation: (req.url ?? '/').split('?')[0] ?? '/',
+      key,
+      customer: typeof authorization === 'string' ? customerOf(authorization) : undefined,
+      payload: undefined,
+    };
+    if (!door.disturbs(call)) return false;
     return runDoor(door, req, res, key, {
       reject: () => this.#reject(res, send),
       malformed: () => {
@@ -89,6 +104,26 @@ export class BffChaos {
         },
       ],
     });
+  }
+
+  /**
+   * The fetch a service client uses, wrapped so a service's own `X-Chaos-Injected` is added to the faults of the request being served, each name
+   * prefixed with the service. Only well-formed names (layer:fault) are taken; the response itself is returned unchanged.
+   */
+  observe(service: 'catalog' | 'ordering', inner: typeof fetch = fetch): typeof fetch {
+    return (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+      const res = await inner(input, init);
+      const injected = res.headers.get('x-chaos-injected');
+      if (injected)
+        addRequestFaults(
+          injected
+            .split(',')
+            .map((n) => n.trim())
+            .filter((n) => /^[A-Za-z][A-Za-z0-9-]*:[A-Za-z][A-Za-z0-9:-]*$/.test(n))
+            .map((n) => `${service}/${n}`),
+        );
+      return res;
+    }) as typeof fetch;
   }
 
   /**

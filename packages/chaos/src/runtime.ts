@@ -26,6 +26,16 @@ export const runInRequestScope = <T>(traceId: string | undefined, fn: () => T): 
 /** The distinct "layer:fault" names injected so far in the current request, sorted. */
 export const requestFaults = (): string[] => [...(scopes.getStore()?.faults ?? [])].sort();
 
+/**
+ * Adds faults another process injected for the request being served (WI-CHAOS-006): the BFF reads a service's `X-Chaos-Injected` and adds each name
+ * prefixed with the service (`ordering/payment:lostResponse`), so the response it gives says what happened downstream too. Names only, as the
+ * indicator holds; outside a request it does nothing.
+ */
+export const addRequestFaults = (names: readonly string[]): void => {
+  const scope = scopes.getStore();
+  for (const name of names) scope?.faults.add(name);
+};
+
 /** Names the trace of the request being served, once it is known, so journal entries made from then on carry it. */
 export const setRequestTrace = (traceId: string): void => {
   const scope = scopes.getStore();
@@ -196,6 +206,15 @@ export class ChaosLayer {
   /** In the scenario at all, whether or not it is switched off now (a signal may turn it on). */
   get declared(): boolean {
     return this.name in this.#runtime.scenario.layers;
+  }
+
+  /**
+   * The first thing a layer asks for a call (as the C# library's `ChaosLayer.Disturbs`): runs the signals the call matches, then answers whether this
+   * layer disturbs it (on, and aimed at it by `where`, if the layer has one). The doors use it with the request's trace id as the key (WI-CHAOS-006).
+   */
+  disturbs(call: CallInfo): boolean {
+    this.#runtime.signal(call);
+    return this.active && this.#runtime.appliesTo(this.name, call);
   }
 
   /** The attempt number of this operation and key for this fault, counted from 1; the first `failFirstAttempts` of them are to fail. */

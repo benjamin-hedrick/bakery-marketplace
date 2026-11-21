@@ -29,6 +29,16 @@ export function webChaosGate(runtime: ChaosRuntime | undefined): RequestGate | u
       // A caller that sets its own traceparent chooses the key, so a test can say which requests will be hit; otherwise it is the request's number.
       const traceId = /^00-([0-9a-f]{32})-/.exec(String(req.headers['traceparent'] ?? ''))?.[1];
       const key = traceId ?? `seq:${++seq}`;
+      // Aimed like any layer (WI-CHAOS-006): a rule may name the key (the caller's own trace id) or the route as the operation. The session is not read
+      // before the door, so a rule here cannot name a customer.
+      const call = {
+        client: 'web',
+        operation: String(req.url ?? '/').split('?')[0] ?? '/',
+        key,
+        customer: undefined,
+        payload: undefined,
+      };
+      if (!door.disturbs(call)) return false;
       const indicator = () => {
         for (const [name, value] of Object.entries(indicatorHeaders(runtime, requestFaults())))
           res.setHeader(name, value);

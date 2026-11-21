@@ -76,6 +76,7 @@ Both libraries apply the same rules; `match-vectors.json` holds the cases both t
 | Layer | Operations | Key | Payload |
 |---|---|---|---|
 | `bffCatalog`, `bffOrdering` (BFF) | the client method | the call's first plain string (an id, an idempotency key) | the first object or array argument |
+| `bff`, `web` (the doors) | the request's path | the request's own trace id when the caller sends a `traceparent`, otherwise its number | none (the BFF matches the bearer token's customer; the web door cannot, the session is not read yet) |
 | `repository` | `get`, `save`, `saveIfUnchanged`, `delete`, `query`, `batch` | the partition (the vendor of catalog documents, the customer of orders) | the entity saved, or `{ id }` |
 | `catalog` (ordering's gateway) | `getListing`, `reserve`, `release`, `getAllergenIds`, `listActiveReservations` | the listing id or the order id | `reserve`: `{ orderId, vendorId, lines: [{ listingId, quantity }] }`; `release`: `{ orderId, vendorId }` |
 | `payment` | `authorize`, `void` | the order id | `authorize`: the request (`paymentMethodId`, amount, ...) |
@@ -84,7 +85,11 @@ Both libraries apply the same rules; `match-vectors.json` holds the cases both t
 | `cache` | the store method | the cache key | none |
 | `contacts`, `notification` | `read`, `send` | the customer ids, the event id | none (they hold addresses) |
 
+The BFF copies a service's `X-Chaos-Injected` into its own answer, each name prefixed with the service (`ordering/payment:lostResponse`), so a browser sees every fault its request met (ADR-0024 note of 2026-11-21).
+
 In the services a rule's `customer` is the signed-in user of the request being served, so a background call (an event handler, a sweeper) has none. A signal acts in the process that sees the matching call: a rule meant to switch a catalog fault on must match a call that reaches ordering's catalog gateway.
+
+`dev-chaos` is the dev environment's one scenario (WI-CHAOS-006): every layer in it is aimed at the chaos seed data (the "(chaos test)" listings, the chaos customers' cards), so the regular tests are never disturbed, and the deployed suite's chaos-aware tests (`apps/web-customer/tests/deployed/06b-chaos.spec.ts`) meet its faults. A seed test keeps the two in step.
 
 `mobile-flows` is the scenario the Android flows' runner gives the BFF (`node scripts/dev/mobile-flows.mjs`): it fails the first attempt of the one order flow 11 places.
 

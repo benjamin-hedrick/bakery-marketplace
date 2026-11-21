@@ -126,3 +126,42 @@ describe('the web door', () => {
     assert.equal(out.status, 0);
   });
 });
+
+// WI-CHAOS-006: the web door is aimed like any layer, by the caller's own trace id (the session is not read before the door).
+describe('aiming at the web door', () => {
+  const AIMED = 'c4a05c4a05c4a05c4a05c4a05c4a05c4';
+  test('a rule on the key disturbs only the requests that carry that trace id; a signal can switch the door on', async () => {
+    const runtime = new ChaosRuntime(
+      parseScenario(
+        JSON.stringify({
+          name: 'aimed-web',
+          seed: 1,
+          layers: { web: { rejectRate: 1 } },
+          where: { web: [{ key: AIMED }] },
+          off: ['web'],
+          signals: [{ when: { client: 'web', operation: '/api/chaos-on' }, do: 'enable', layer: 'web' }],
+        }),
+      ),
+    );
+    const gate = webChaosGate(runtime)!;
+    const aimed = { traceparent: `00-${AIMED}-00f067aa0ba902b7-01` };
+
+    const before = exchange(aimed);
+    assert.equal(await gate(before.req, before.res), false, 'off at start');
+
+    const trigger = exchange();
+    (trigger.req as { url?: string }).url = '/api/chaos-on?x=1';
+    assert.equal(await gate(trigger.req, trigger.res), false, 'the trigger itself is not aimed at');
+    assert.equal(runtime.journal.count('signal', 'enable:web'), 1);
+
+    const hit = exchange(aimed);
+    assert.equal(await gate(hit.req, hit.res), true);
+    assert.equal(runtime.journal.count('web', 'reject'), 1);
+    assert.equal(hit.out.status, 503);
+
+    const other = exchange({ traceparent: '00-0123456789abcdef0123456789abcdef-00f067aa0ba902b7-01' });
+    assert.equal(await gate(other.req, other.res), false);
+    const plain = exchange();
+    assert.equal(await gate(plain.req, plain.res), false);
+  });
+});

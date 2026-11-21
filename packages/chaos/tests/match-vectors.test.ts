@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ChaosRuntime, contains, parseScenario } from '../src/index.ts';
+import {
+  addRequestFaults,
+  ChaosRuntime,
+  contains,
+  parseScenario,
+  requestFaults,
+  runInRequestScope,
+} from '../src/index.ts';
 import { matches, type CallInfo } from '../src/match.ts';
 import type { Match } from '../src/scenario.ts';
 
@@ -53,4 +60,42 @@ describe('the shared aiming vectors', () => {
         assert.equal(disturbs, step.disturbs, `step ${i}: disturbs`);
       }
     });
+});
+
+describe('a layer asks for each call (as the C# ChaosLayer.Disturbs does)', () => {
+  test('disturbs runs the signals, then answers on-and-aimed', () => {
+    const runtime = new ChaosRuntime(
+      parseScenario(
+        JSON.stringify({
+          name: 'd',
+          seed: 1,
+          layers: { bffCatalog: { unavailableRate: 1 } },
+          where: { bffCatalog: [{ key: 'listing-chaos-outage-001' }] },
+          off: ['bffCatalog'],
+          signals: [{ when: { key: 'listing-chaos-outage-on' }, do: 'enable', layer: 'bffCatalog' }],
+        }),
+      ),
+    );
+    const layer = runtime.layer('bffCatalog');
+    const call = (key: string) => ({
+      client: 'bffCatalog',
+      operation: 'get',
+      key,
+      customer: undefined,
+      payload: undefined,
+    });
+    assert.equal(layer.disturbs(call('listing-chaos-outage-001')), false);
+    assert.equal(layer.disturbs(call('listing-chaos-outage-on')), false);
+    assert.equal(layer.disturbs(call('listing-chaos-outage-001')), true);
+    assert.equal(layer.disturbs(call('listing-latte-001')), false);
+  });
+
+  test("addRequestFaults adds another process's faults to the request being served, and nothing outside one", () => {
+    addRequestFaults(['ordering/payment:lostResponse']);
+    const inside = runInRequestScope(undefined, () => {
+      addRequestFaults(['ordering/payment:lostResponse', 'catalog/cache:failure']);
+      return requestFaults();
+    });
+    assert.deepEqual(inside, ['catalog/cache:failure', 'ordering/payment:lostResponse']);
+  });
 });

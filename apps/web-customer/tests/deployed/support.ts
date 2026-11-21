@@ -30,6 +30,26 @@ export const LISTINGS = {
   lemonade: 'Yuzu Lemonade', // the concurrency test's own (stock 2, one per order)
 } as const;
 
+/**
+ * The chaos seed data (WI-CHAOS-006; tools/BakeryMarketplace.Seed and BakeryMarketplace.Auth): what the dev-chaos scenario aims at
+ * (chaos/scenarios/dev-chaos.json). Only the chaos-aware tests (06b-chaos) use it, one data point each.
+ */
+export const CHAOS = {
+  customers: {
+    payment: 'Casey (chaos test: payment answers get lost)',
+    stock: 'Remy (chaos test: the stock check says no)',
+  },
+  listings: {
+    payment: 'Patient Pretzel (chaos test)',
+    stock: 'Stubborn Strudel (chaos test)',
+    outage: 'Flickering Focaccia (chaos test)',
+    outageOn: 'Lights-Out Loaf (chaos test)',
+    outageOff: 'Lights-On Loaf (chaos test)',
+  },
+  /** The trace id whose requests the scenario slows at the BFF's door: a caller sends it in its own traceparent. */
+  slowTraceId: 'c4a05000000000000000000000000001',
+} as const;
+
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export interface Correlated {

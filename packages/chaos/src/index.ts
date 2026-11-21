@@ -5,6 +5,7 @@ export {
   ChaosJournal,
   ChaosLayer,
   ChaosRuntime,
+  addRequestFaults,
   requestFaults,
   runInRequestScope,
   setRequestTrace,

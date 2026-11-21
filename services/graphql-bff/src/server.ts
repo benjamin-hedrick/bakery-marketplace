@@ -71,13 +71,15 @@ export function createServer(
   } = {},
 ): http.Server {
   const chaos = deps.chaos; // ADR-0024: a scenario's gate at the door and its wrappers on the two service clients; absent unless chaos is switched on
-  const realCatalog = deps.catalog ?? createCatalogClient(config.catalogUrl, config.timeoutMs);
+  // With a scenario on, the clients' fetch is observed so a service's own chaos indicator reaches this answer too (WI-CHAOS-006).
+  const realCatalog =
+    deps.catalog ?? createCatalogClient(config.catalogUrl, config.timeoutMs, chaos?.observe('catalog'));
   const realOrdering =
     deps.ordering ??
     createOrderingClient(
       config.orderingUrl,
       config.timeoutMs,
-      undefined,
+      chaos?.observe('ordering'),
       config.checkoutTimeoutMs,
       config.streamIdleMs,
     );
