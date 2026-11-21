@@ -15,12 +15,28 @@ public static class SeedData
     public const string ShopVendorId = "vendor-shop-001";
     public const string IndependentVendorId = "vendor-indep-001";
 
-    /// <summary>Vendor id → vendor type (glossary: Shop, Independent). Both are published as <c>VendorVerified</c>.</summary>
+    /// <summary>
+    /// The chaos test bakery (WI-CHAOS-006): its listings are the data the dev environment's one chaos scenario (chaos/scenarios/dev-chaos.json) aims its
+    /// faults at, so the regular tests, which never use them, are not disturbed. Seeded in every environment alike; where no scenario is on (UAT, a
+    /// plain local stack) they are ordinary listings and the chaos-aware tests check the plain path.
+    /// </summary>
+    public const string ChaosVendorId = "vendor-chaos-001";
+
+    /// <summary>Vendor id → vendor type (glossary: Shop, Independent). All are published as <c>VendorVerified</c>.</summary>
     public static readonly IReadOnlyDictionary<string, string> Vendors = new Dictionary<string, string>
     {
         [ShopVendorId] = "Shop",
         [IndependentVendorId] = "Independent",
+        [ChaosVendorId] = "Shop",
     };
+
+    // The chaos data points (WI-CHAOS-006), one per chaos-aware test, so two of them can run at once. Their ids start "listing-zz-chaos-" so they sort
+    // after every other listing and the listings other tests and flows open keep their places in browse.
+    public const string ChaosPaymentListingId = "listing-zz-chaos-payment-001";
+    public const string ChaosStockListingId = "listing-zz-chaos-stock-001";
+    public const string ChaosOutageListingId = "listing-zz-chaos-outage-001";
+    public const string ChaosOutageOnListingId = "listing-zz-chaos-outage-on-001";
+    public const string ChaosOutageOffListingId = "listing-zz-chaos-outage-off-001";
 
     // Customers with a saved allergen profile (WI-MOB-002). The ids are the ones the mock identity gives these customers (BakeryMarketplace.Auth, MockUsers); a catalog test
     // keeps the two lists in step. Alice (user-customer-1) has no profile on purpose: she is the customer who never saved one. Allergen ids are the tag registry's.
@@ -96,6 +112,25 @@ public static class SeedData
         Listing("listing-yuzu-lemonade-001", ShopVendorId, "Yuzu Lemonade", "drink", 450,
             "Sparkling lemonade with yuzu juice.",
             Array.Empty<string>()),
+        // The chaos test bakery's listings (WI-CHAOS-006). Each says "(chaos test)", and each is used by one chaos-aware test only. In dev, with the
+        // dev-chaos scenario on: an order of the first loses its payment answer (with the chaos payment customer's card); an order of the second is told
+        // the stock is gone (by ordering's stock check, the catalog's own stock unchanged); the third is "not available just now" between a read of the
+        // fourth and a read of the fifth. Made to order except the second, whose stock lets a test see it is unchanged.
+        Listing(ChaosPaymentListingId, ChaosVendorId, "Patient Pretzel (chaos test)", "bread", 300,
+            "A soft pretzel. With the dev chaos scenario on, the payment answer for it can get lost on the way back.",
+            Gluten),
+        Listing(ChaosStockListingId, ChaosVendorId, "Stubborn Strudel (chaos test)", "pastry", 425,
+            "Apple strudel. With the dev chaos scenario on, the stock check for it always says no.",
+            GlutenDairyEgg),
+        Listing(ChaosOutageListingId, ChaosVendorId, "Flickering Focaccia (chaos test)", "bread", 550,
+            "Rosemary focaccia. With the dev chaos scenario on, it can be made unavailable for a while.",
+            Gluten),
+        Listing(ChaosOutageOnListingId, ChaosVendorId, "Lights-Out Loaf (chaos test)", "bread", 400,
+            "A plain loaf. With the dev chaos scenario on, opening it makes the Flickering Focaccia unavailable.",
+            Gluten),
+        Listing(ChaosOutageOffListingId, ChaosVendorId, "Lights-On Loaf (chaos test)", "bread", 400,
+            "A plain loaf. With the dev chaos scenario on, opening it makes the Flickering Focaccia available again.",
+            Gluten),
         // Negative case: must never appear in browse (publish gate / Published filter).
         Listing("listing-draft-001", ShopVendorId, "Draft Seasonal Tart", "pastry", 300,
             "Unfinished listing used to prove the publish gate.",
@@ -113,6 +148,7 @@ public static class SeedData
         ["listing-cookies-001"] = (24, 6),
         ["listing-muffin-001"] = (0, null),
         ["listing-yuzu-lemonade-001"] = (2, 1), // the concurrency test's: fewer than the customers who try at once
+        [ChaosStockListingId] = (30, null), // enough for many runs; the chaos-aware test checks it is unchanged after a refused order
     };
 
     // Tags (WI-TAG-002, ADR-0022): a few diet, occasion and season tags, one with a window, and one hidden platform tag that only tests look for.

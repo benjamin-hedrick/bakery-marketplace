@@ -29,6 +29,11 @@ public static class MockUsers
     // A customer with no saved payment methods (WI-ORD-010), so the "no methods" screen is covered by data (BakeryMarketplace.Seed, PaymentSeedData). No allergen profile either.
     public static readonly MockUser NoPaymentMethodsCustomer = new("user-customer-nomethods", "Nia (no saved payment methods)", "nia@customer.local", "Customer");
 
+    // The chaos customers (WI-CHAOS-006): identity rows only, for the chaos-aware tests (their cards are seed data, PaymentSeedData). Customer role, like
+    // every other customer; the dev chaos scenario aims at their data, nothing here or in any service treats them differently.
+    public static readonly MockUser ChaosPaymentCustomer = new("user-customer-chaos-payment", "Casey (chaos test: payment answers get lost)", "casey@customer.local", "Customer");
+    public static readonly MockUser ChaosStockCustomer = new("user-customer-chaos-stock", "Remy (chaos test: the stock check says no)", "remy@customer.local", "Customer");
+
     public static readonly MockUser Vendor = new("user-vendor-1", "Bob Baker", "bob@bakery.local", "Vendor", "Shop");
 
     // Vendor owners for the ids WI-DEV-004 seeds (first-slice-contract section 7). Ownership needs token `sub` == listing `vendorId`,
@@ -46,6 +51,8 @@ public static class MockUsers
         [AvoidsDairyCustomer.Id] = AvoidsDairyCustomer,
         [SeveralCustomer.Id] = SeveralCustomer,
         [NoPaymentMethodsCustomer.Id] = NoPaymentMethodsCustomer,
+        [ChaosPaymentCustomer.Id] = ChaosPaymentCustomer,
+        [ChaosStockCustomer.Id] = ChaosStockCustomer,
         [Vendor.Id] = Vendor,
         [ShopVendor.Id] = ShopVendor,
         [IndependentVendor.Id] = IndependentVendor,

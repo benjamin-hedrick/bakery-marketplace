@@ -18,6 +18,13 @@ public static class PaymentSeedData
     public const string AvoidsDairyCustomerId = SeedData.AvoidsDairyCustomerId;
     public const string SeveralCustomerId = SeedData.SeveralCustomerId;
 
+    /// <summary>The chaos customers (WI-CHAOS-006): one per chaos-aware test that needs a login, so two can run at once (MockUsers has them).</summary>
+    public const string ChaosPaymentCustomerId = "user-customer-chaos-payment";
+    public const string ChaosStockCustomerId = "user-customer-chaos-stock";
+
+    /// <summary>The token of the chaos payment customer's card: the dev chaos scenario aims its lost payment answers at it (chaos/scenarios/dev-chaos.json).</summary>
+    public const string ChaosLostPaymentToken = "pm_seed_chaos_lost";
+
     /// <summary>The customer who has no saved payment method at all, so the "no methods" screen is covered by data.</summary>
     public const string NoMethodsCustomerId = "user-customer-nomethods";
 
@@ -39,6 +46,9 @@ public static class PaymentSeedData
         Method("pm-several-ok", SeveralCustomerId, "Test card (accepted)", "pm_seed_several_1", 0),
         Method("pm-several-ok-2", SeveralCustomerId, "Second test card (accepted)", "pm_seed_several_2", 1), // a real choice in the dropdown
         // NoMethodsCustomerId: deliberately none.
+        // The chaos customers' cards (WI-CHAOS-006): ordinary accepted tokens; only the dev chaos scenario treats the first one differently.
+        Method("pm-chaos-lost", ChaosPaymentCustomerId, "Test card (chaos test: the answer can get lost)", ChaosLostPaymentToken, 0),
+        Method("pm-chaos-stock-ok", ChaosStockCustomerId, "Test card (accepted)", "pm_seed_chaos_stock_1", 0),
     ];
 
     private static PaymentMethodDocument Method(string id, string customerId, string description, string token, int secondsAfterStamp) =>

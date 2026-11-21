@@ -1,0 +1,21 @@
+{
+  "name": "dev-chaos",
+  "seed": 20261121,
+  "layers": {
+    "payment": { "lostResponseRate": 1 },
+    "catalog": { "rejectRate": 1 },
+    "bffCatalog": { "unavailableRate": 1 },
+    "bff": { "latencyMs": 2000 }
+  },
+  "where": {
+    "payment": [{ "operation": "authorize", "payload": { "token": "pm_seed_chaos_lost" } }],
+    "catalog": [{ "operation": "reserve", "payload": { "lines": [{ "listingId": "listing-zz-chaos-stock-001" }] } }],
+    "bffCatalog": [{ "key": "listing-zz-chaos-outage-001" }],
+    "bff": [{ "key": "c4a05000000000000000000000000001" }]
+  },
+  "off": ["bffCatalog"],
+  "signals": [
+    { "when": { "client": "bffCatalog", "key": "listing-zz-chaos-outage-on-001" }, "do": "enable", "layer": "bffCatalog" },
+    { "when": { "client": "bffCatalog", "key": "listing-zz-chaos-outage-off-001" }, "do": "disable", "layer": "bffCatalog" }
+  ]
+}
