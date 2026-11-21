@@ -4,6 +4,8 @@ import { CUSTOMERS, LISTINGS, WEB, addToOrder, expect, logInAs, placeButton, tes
 // Tests 5 to 8 of the deployed suite (register 218): orders through the web app, the BFF and ordering, which reserves stock at the catalog with its own
 // service token (client credentials from the mock issuer, ADR-0018, the client secret from Key Vault): the first time services reach the issuer in a
 // deployed environment (item 102). Prices are read from the page and compared, never assumed. The latte is made to order, so tests 7 and 8 use no stock.
+// Tests 5 and 6 order the Wheat and Rye Loaf, stocked deep for them: a deployed environment keeps its stock between deploys, and the sourdough they
+// ordered before (12 units, two a run) would have sold out after six runs (the croissant of test 9 did, 2026-11-21).
 
 /** The checkout's estimate, then the order placed; returns the estimate shown before placing. */
 async function place(page: Page) {
@@ -24,14 +26,14 @@ test("5. a plain order: browse, choose, log in, order; confirmed by itself, the 
   page,
   browser,
 }) => {
-  await addToOrder(page, LISTINGS.sourdough);
+  await addToOrder(page, LISTINGS.loaf);
   await toCheckout(page);
-  await expect(page.getByTestId('order-line')).toContainText(LISTINGS.sourdough);
+  await expect(page.getByTestId('order-line')).toContainText(LISTINGS.loaf);
   const estimate = await place(page);
 
   await expect(page.getByTestId('order-status')).toHaveText('Order confirmed'); // no options, no time: nobody had to act
   await expect(page.getByTestId('order-status')).toHaveAttribute('data-status', 'CONFIRMED');
-  await expect(page.getByTestId('order-item')).toContainText(`1 × ${LISTINGS.sourdough}`);
+  await expect(page.getByTestId('order-item')).toContainText(`1 × ${LISTINGS.loaf}`);
   await expect(page.getByTestId('order-total')).toHaveText(estimate.replace(/^.*?(\$[\d.,]+).*$/, '$1')); // priced by ordering from the catalog
   await expect(page.getByTestId('order-pickup')).toHaveText('No specific pickup time');
   await expect(page.getByTestId('cart-link')).toHaveCount(0);
@@ -61,7 +63,7 @@ test("5. a plain order: browse, choose, log in, order; confirmed by itself, the 
 test('6. an order with an option and a pickup time waits for the bakery, with the option and the time shown', async ({
   page,
 }) => {
-  await addToOrder(page, LISTINGS.sourdough, { option: /Sliced/ });
+  await addToOrder(page, LISTINGS.loaf, { option: /Sliced/ });
   await toCheckout(page);
   const chosen = await chooseLastPickupTime(page);
   expect(chosen).toMatch(/\d/);
@@ -69,7 +71,7 @@ test('6. an order with an option and a pickup time waits for the bakery, with th
 
   await expect(page.getByTestId('order-status')).toHaveText('Order received'); // an option and a time: the bakery decides
   await expect(page.getByTestId('order-status')).toHaveAttribute('data-status', 'PLACED');
-  await expect(page.getByTestId('order-item')).toContainText(`1 × ${LISTINGS.sourdough}`);
+  await expect(page.getByTestId('order-item')).toContainText(`1 × ${LISTINGS.loaf}`);
   await expect(page.getByTestId('order-item')).toContainText('Sliced');
   await expect(page.getByTestId('order-total')).toHaveText(estimate.replace(/^.*?(\$[\d.,]+).*$/, '$1'));
   await expect(page.getByTestId('order-pickup')).toContainText(chosen);

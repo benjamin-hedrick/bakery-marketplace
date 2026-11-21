@@ -106,6 +106,21 @@ public static class SeedData
             "Butter pastry with walnut and maple filling.",
             GlutenDairyTreeNut,
             Mod("mod-extra-walnuts-danish", "Extra walnuts", 75, "tree-nut")),
+        // Used only by the deployed suite's allergen test (test 9, register 218): Nora orders it with its option, and the order waits for her acknowledgement
+        // (tree nuts on the item and on the option, an allergy; dairy, an avoid). It replaced the croissant there on 2026-11-21: the croissant has 4 units, a
+        // deployed environment keeps its stock between runs, and the fifth run found it sold out. Made to order, so it never runs out. Its id sorts after the
+        // Danish and before the lemonade, so the listings other tests open keep their places.
+        Listing("listing-walnut-praline-tart-001", ShopVendorId, "Walnut Praline Tart", "pastry", 525,
+            "Shortcrust tart with walnut praline and cream.",
+            GlutenDairyTreeNut,
+            Mod("mod-extra-praline", "Extra praline", 75, "tree-nut")),
+        // Used only by the deployed suite's listing page and order tests (tests 2, 5 and 6, register 218), which need a stocked item so that ordering reserves
+        // stock at the catalog with its service token. It replaced the sourdough there on 2026-11-21: two units a run against the sourdough's 12 would sell it
+        // out in a long-lived environment. Stocked deep, with no per-order maximum and no allergens. Its id sorts after the tart and before the lemonade.
+        Listing("listing-wheat-rye-loaf-001", ShopVendorId, "Wheat and Rye Loaf", "bread", 700,
+            "A mixed wheat and rye sandwich loaf.",
+            Gluten,
+            Mod("mod-sliced-rye", "Sliced", 0)),
         // Used only by the deployed dev suite's concurrency test (WI-DEP-001, register 218): several seeded customers order it at once, and exactly as many as
         // its stock may succeed. Little stock, one per order, no options and no allergens, so no customer's allergy profile asks for an acknowledgement and no
         // other test shares its stock. Its id sorts after every other listing, so it comes last in browse and the others keep their places.
@@ -147,6 +162,7 @@ public static class SeedData
         ["listing-croissant-001"] = (4, null),
         ["listing-cookies-001"] = (24, 6),
         ["listing-muffin-001"] = (0, null),
+        ["listing-wheat-rye-loaf-001"] = (1000, null), // the deployed order tests': two units a run, so a long-lived environment does not sell it out
         ["listing-yuzu-lemonade-001"] = (2, 1), // the concurrency test's: fewer than the customers who try at once
         [ChaosStockListingId] = (30, null), // enough for many runs; the chaos-aware test checks it is unchanged after a refused order
     };
