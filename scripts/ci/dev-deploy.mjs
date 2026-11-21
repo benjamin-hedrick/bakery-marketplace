@@ -27,6 +27,9 @@ export const ORDER = ['mock-oidc', 'catalog', 'ordering', 'graphql-bff', 'web'];
 /** The container app jobs, run once per deploy before the apps are updated: the seed (register 224). */
 export const JOBS = ['seed'];
 
+/** The apps with a public address (external ingress in infra/environments/dev): the smoke reaches the environment only through these. */
+export const PUBLIC = ['web', 'mock-oidc'];
+
 /** The job execution states Container Apps reports; anything else is still running. */
 const DONE_OK = new Set(['Succeeded']);
 const DONE_BAD = new Set(['Failed', 'Degraded', 'Stopped']);
@@ -117,6 +120,7 @@ export function deploy(
   log = console.log,
 ) {
   checkSuffix(suffix);
+  const deployedAt = new Date(clock.now()).toISOString(); // the start of the observe stage's window (scripts/ci/dev-observe.mjs)
   const registryName = record.registry.split('.')[0];
   const current = {};
   for (const app of [...JOBS, ...ORDER]) {
@@ -255,7 +259,25 @@ export function deploy(
     log(`${app}: revision ${revision} provisioned, ${image}`);
     deployed.push({ app, before: current[app].image, beforeBuild: current[app].build ?? null, image, revision });
   }
-  return { build: record.tag, revision: record.revision, jobs, deployed };
+  // The public addresses, for the smoke stage (the deployed suite and the latency run reach the environment only through them).
+  const urls = {};
+  for (const app of PUBLIC) {
+    const fqdn = az([
+      'containerapp',
+      'show',
+      '--name',
+      app,
+      '--resource-group',
+      resourceGroup,
+      '--query',
+      'properties.configuration.ingress.fqdn',
+      '--output',
+      'tsv',
+    ]).trim();
+    if (!/^[a-z0-9.-]+$/.test(fqdn)) throw new Error(`${app}: no public address (${fqdn || 'none'})`);
+    urls[app] = `https://${fqdn}`;
+  }
+  return { build: record.tag, revision: record.revision, deployedAt, jobs, deployed, urls };
 }
 
 function main() {

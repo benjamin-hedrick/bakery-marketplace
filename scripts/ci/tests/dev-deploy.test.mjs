@@ -137,6 +137,8 @@ describe('the deploy, with a fake Azure CLI', () => {
         if (args[2] === 'start') return 'seed-abc123\n';
         if (args[2] === 'execution') return `${seed.length > 1 ? seed.shift() : seed[0]}\n`;
       }
+      if (args[0] === 'containerapp' && args[1] === 'show' && args.includes('properties.configuration.ingress.fqdn'))
+        return `${name}.test-env.eastus.azurecontainerapps.io\n`;
       if (args[0] === 'containerapp' && args[1] === 'show') return `${images[name]}\n`;
       if (args[0] === 'acr')
         return JSON.stringify({ digest: name.split('@')[1], tags: tags[name.split('@')[0]] ?? [] });
@@ -169,6 +171,10 @@ describe('the deploy, with a fake Azure CLI', () => {
     assert.deepEqual(appUpdates(f.calls), ORDER);
     assert.equal(f.calls.filter((c) => c[1] === 'revision' && c.includes('catalog')).length, 3);
     assert.ok(!f.calls.some((c) => c[0] === 'acr'), 'no registry lookup for a placeholder');
+    assert.deepEqual(result.urls, {
+      web: 'https://web.test-env.eastus.azurecontainerapps.io',
+      'mock-oidc': 'https://mock-oidc.test-env.eastus.azurecontainerapps.io',
+    });
     assert.deepEqual(result.jobs, [
       {
         job: 'seed',

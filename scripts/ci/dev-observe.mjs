@@ -1,0 +1,230 @@
+#!/usr/bin/env node
+// Observability evidence of a dev run (WI-DEP-001, register 221): what the platform saw while the smoke ran. Runs in the dev pipeline's observe stage as
+// the read-only bakery-plan identity (Reader), after the smoke, whether the smoke passed or failed:
+//
+//   node scripts/ci/dev-observe.mjs --resource-group rg-bakery-dev --workspace log-bakery-dev --deployment dev-deployment.json
+//        [--correlation correlation-ids.jsonl] --out observe.json
+//
+//   1. Platform metrics of each app for the window (from the deployment to now, one-minute grain): requests, replicas, restarts, CPU, memory.
+//   2. The environment's log (Log Analytics, through its query API with "az rest": the log query command needs a CLI extension): console lines and
+//      lines that look like errors per app, and the platform's system events per app and reason.
+//   3. Which of the smoke's correlation ids (X-Correlation-Id, the trace id, ADR-0016) appear in the apps' console log, and in which app.
+// Only counts, reasons and ids are kept, never a log line's text (it could hold a customer's details). A metric or query that fails is recorded as
+// failed with its message, and the others still run: the point is to see what is and is not observable. Exit code 0 = written (even with failures
+// recorded), 1 = nothing could be read, 2 = bad usage.
+import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+export const APPS = ['web', 'graphql-bff', 'catalog', 'ordering', 'mock-oidc'];
+
+/** The metrics asked for, each with the aggregation that answers the question (Container Apps metric names). */
+export const METRICS = [
+  { name: 'Requests', aggregation: 'Total' },
+  { name: 'Replicas', aggregation: 'Maximum' },
+  { name: 'RestartCount', aggregation: 'Maximum' },
+  { name: 'UsageNanoCores', aggregation: 'Maximum' },
+  { name: 'WorkingSetBytes', aggregation: 'Maximum' },
+];
+
+const kql = (s) => s.replace(/'/g, "\\'");
+
+/** The log queries for the window. Ids are 32 hex characters (checked), so they are safe inside the query text. */
+export function queries(start, end, ids = []) {
+  const window = `TimeGenerated between (datetime('${kql(start)}') .. datetime('${kql(end)}'))`;
+  const safeIds = ids.filter((id) => /^[0-9a-f]{32}$/.test(id));
+  const list = safeIds.map((id) => `'${id}'`).join(', ');
+  const q = {
+    consoleLinesPerApp: `ContainerAppConsoleLogs_CL | where ${window} | summarize lines = count() by app = ContainerAppName_s`,
+    errorLikeLinesPerApp:
+      `ContainerAppConsoleLogs_CL | where ${window} | where Log_s has_any ('error', 'fail', 'exception', 'unhandled') ` +
+      `| summarize lines = count() by app = ContainerAppName_s`,
+    systemEventsPerAppAndReason: `ContainerAppSystemLogs_CL | where ${window} | summarize events = count() by app = ContainerAppName_s, reason = Reason_s`,
+  };
+  if (safeIds.length > 0)
+    q.correlationIdsInConsoleLog =
+      `ContainerAppConsoleLogs_CL | where ${window} | extend id = extract('([0-9a-f]{32})', 1, Log_s) ` +
+      `| where id in (${list}) | summarize lines = count() by id, app = ContainerAppName_s`;
+  return q;
+}
+
+/** A Log Analytics query API answer as rows of named columns. */
+export function rowsOf(answer) {
+  const table = answer?.tables?.[0];
+  if (!table) return [];
+  const names = table.columns.map((c) => c.name);
+  return table.rows.map((r) => Object.fromEntries(names.map((n, i) => [n, r[i]])));
+}
+
+/** The largest (or summed, for Total) value of one metric's time series. */
+export function metricValue(answer, aggregation) {
+  const points = (answer?.value?.[0]?.timeseries ?? []).flatMap((t) => t.data ?? []);
+  const key = aggregation.toLowerCase();
+  const values = points.map((p) => p[key]).filter((v) => typeof v === 'number');
+  if (values.length === 0) return null;
+  return aggregation === 'Total' ? values.reduce((a, b) => a + b, 0) : Math.max(...values);
+}
+
+/** The correlation ids of the smoke run (one JSON object per line), distinct, newest first, at most `limit`. */
+export function correlationIds(jsonl, limit = 40) {
+  const ids = [];
+  for (const line of jsonl.split('\n')) {
+    try {
+      const id = JSON.parse(line).correlationId;
+      if (/^[0-9a-f]{32}$/.test(id) && !ids.includes(id)) ids.push(id);
+    } catch {
+      // a line that is not JSON is skipped
+    }
+  }
+  return ids.reverse().slice(0, limit);
+}
+
+/**
+ * Collects the evidence.
+ * @param {(args: string[]) => string} az
+ */
+export function observe({ resourceGroup, workspace, start, end, ids }, az) {
+  const out = { window: { start, end }, metrics: {}, logs: {}, failures: [] };
+  const attempt = (what, fn) => {
+    try {
+      return fn();
+    } catch (e) {
+      out.failures.push({ what, error: String(e.message).split('\n')[0].slice(0, 300) });
+      return undefined;
+    }
+  };
+
+  for (const app of APPS) {
+    const id = attempt(`${app}: resource id`, () =>
+      az([
+        'containerapp',
+        'show',
+        '--name',
+        app,
+        '--resource-group',
+        resourceGroup,
+        '--query',
+        'id',
+        '--output',
+        'tsv',
+      ]).trim(),
+    );
+    if (!id) continue;
+    out.metrics[app] = {};
+    for (const m of METRICS) {
+      const answer = attempt(`${app}: metric ${m.name}`, () =>
+        JSON.parse(
+          az([
+            'monitor',
+            'metrics',
+            'list',
+            '--resource',
+            id,
+            '--metrics',
+            m.name,
+            '--aggregation',
+            m.aggregation,
+            '--start-time',
+            start,
+            '--end-time',
+            end,
+            '--interval',
+            'PT1M',
+            '--output',
+            'json',
+          ]),
+        ),
+      );
+      if (answer) out.metrics[app][m.name] = { aggregation: m.aggregation, value: metricValue(answer, m.aggregation) };
+    }
+  }
+
+  const customerId = attempt('log workspace id', () =>
+    az([
+      'monitor',
+      'log-analytics',
+      'workspace',
+      'show',
+      '--resource-group',
+      resourceGroup,
+      '--workspace-name',
+      workspace,
+      '--query',
+      'customerId',
+      '--output',
+      'tsv',
+    ]).trim(),
+  );
+  if (customerId) {
+    for (const [name, query] of Object.entries(queries(start, end, ids))) {
+      const answer = attempt(`log query ${name}`, () =>
+        JSON.parse(
+          az([
+            'rest',
+            '--method',
+            'post',
+            '--resource',
+            'https://api.loganalytics.io',
+            '--url',
+            `https://api.loganalytics.io/v1/workspaces/${customerId}/query`,
+            '--body',
+            JSON.stringify({ query }),
+            '--output',
+            'json',
+          ]),
+        ),
+      );
+      if (answer) out.logs[name] = rowsOf(answer);
+    }
+  }
+  if (ids.length > 0) {
+    const found = new Set((out.logs.correlationIdsInConsoleLog ?? []).map((r) => r.id));
+    out.correlation = { asked: ids.length, foundInConsoleLog: found.size };
+  }
+  return out;
+}
+
+function main() {
+  const argv = process.argv.slice(2);
+  const get = (name) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined);
+  const [resourceGroup, workspace, deployment, outPath] = [
+    '--resource-group',
+    '--workspace',
+    '--deployment',
+    '--out',
+  ].map(get);
+  if (!resourceGroup || !workspace || !deployment || !outPath) {
+    console.error(
+      'usage: dev-observe.mjs --resource-group <rg> --workspace <name> --deployment <dev-deployment.json> [--correlation <file>] --out <observe.json>',
+    );
+    process.exit(2);
+  }
+  const record = JSON.parse(readFileSync(deployment, 'utf8'));
+  const end = new Date().toISOString();
+  // From five minutes before the deployment (its record's time) to now; without a time, the last two hours.
+  const start = new Date(
+    (record.deployedAt ? Date.parse(record.deployedAt) : Date.now() - 2 * 3600_000) - 5 * 60_000,
+  ).toISOString();
+  const correlation = get('--correlation');
+  const ids = correlation && existsSync(correlation) ? correlationIds(readFileSync(correlation, 'utf8')) : [];
+  const az = (args) => execFileSync('az', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const result = observe({ resourceGroup, workspace, start, end, ids }, az);
+  writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`);
+  console.log(`dev observe: ${start} to ${end}`);
+  for (const [app, metrics] of Object.entries(result.metrics))
+    console.log(
+      `  ${app.padEnd(12)} ${Object.entries(metrics)
+        .map(([k, v]) => `${k}=${v.value ?? '-'}`)
+        .join('  ')}`,
+    );
+  for (const [name, rows] of Object.entries(result.logs)) console.log(`  log ${name}: ${rows.length} row(s)`);
+  if (result.correlation)
+    console.log(
+      `  correlation ids: ${result.correlation.foundInConsoleLog} of ${result.correlation.asked} found in the console log`,
+    );
+  for (const f of result.failures) console.log(`  NOT READ: ${f.what}: ${f.error}`);
+  const anything = Object.keys(result.metrics).length > 0 || Object.keys(result.logs).length > 0;
+  process.exitCode = anything ? 0 : 1;
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) main();

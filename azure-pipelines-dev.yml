@@ -1,9 +1,9 @@
 # Manual operations on the dev environment (ADR-0020, WI-DEP-001). Register this file as its OWN pipeline ("bakery-dev-operations");
 # azure-pipelines.yml (pull-request checks) is not touched by it. This pipeline never runs by itself: no push trigger, no pull-request trigger.
 #
-# STATE OF THIS FILE (2026-11-20): the infrastructure plan, apply and teardown are REAL; the image build and push are REAL but have not run in
-# Azure yet, nor have the post-apply secret step and the app update; the smoke is still a REHEARSAL that only prints. With planMode=rehearsal every step goes back
-# to its rehearsal (no service connection, no build), to re-prove the gates.
+# STATE OF THIS FILE (2026-11-20): every step is REAL. The infrastructure plan, apply and teardown have run in Azure; the image build and push, the
+# post-apply secret step, the seed job, the app update, the smoke and the observe stage are written and run locally where they can be, NOT yet in
+# Azure. With planMode=rehearsal every step goes back to its rehearsal (no service connection, no build), to re-prove the gates.
 #
 #   deploy:  images       no service connection: builds the six images (scripts/ci/dev-images.mjs build) and publishes them, saved, as an
 #                         artifact, while the plan runs, so a broken build fails before any approval.
@@ -14,8 +14,10 @@
 #                         refuses unless the plan is exactly the approved one (register 110), then applies its own saved plan.
 #            app_deploy   approval at dev-app; bakery-deploy checks its own roles, sets the Key Vault secrets that still hold their placeholder
 #                         (scripts/ci/dev-secrets.mjs), loads the built images, refuses unless they are the ones the build recorded, pushes them
-#                         and publishes the record of their digests, then updates each app to its digest in a new revision, refusing if any app
-#                         runs a newer build (scripts/ci/dev-deploy.mjs; register 110); the smoke is a rehearsal.
+#                         and publishes the record of their digests, runs the seed job, then updates each app to its digest in a new revision,
+#                         refusing if any app or the job runs a newer build (scripts/ci/dev-deploy.mjs; registers 110, 224).
+#            smoke        no service connection: the deployed customer suite and the latency run against the two public addresses (register 218).
+#            observe      bakery-plan (read-only), after the smoke whatever its result: metrics, log counts, correlation ids (register 221).
 #   destroy: destroy_plan bakery-plan: a destroy plan from the state (-refresh=false: no Azure read, so no secret is read), the real guard on
 #                         it (scripts/ci/destroy-guard.mjs), a value-free summary. Only then the approval.
 #            destroy_apply approval at dev-destroy; bakery-deploy re-plans the destroy with refresh under the lock, runs the guard again,
@@ -339,8 +341,92 @@ stages:
                           artifact: dev-deployment
                           displayName: Publish the record of the deployment (each app's image before and after, and its revision)
 
-                        - script: echo "REHEARSAL - the next real step runs the post-deploy smoke against the deployed address and publishes its result."
-                          displayName: Post-deploy smoke (rehearsal)
+      # The post-deploy smoke, from outside: the deployed customer suite (11 tests) and the latency run, against the two public addresses only, with no
+      # service connection (nothing on this agent can change Azure). Its addresses come from the deployment record. Evidence is published whatever the result.
+      - stage: smoke
+        displayName: Post-deploy smoke (no credentials)
+        dependsOn: app_deploy
+        condition: succeeded()
+        jobs:
+          - job: smoke
+            timeoutInMinutes: 60
+            steps:
+              - checkout: self
+              - ${{ if eq(parameters.planMode, 'rehearsal') }}:
+                  - script: echo "REHEARSAL - the real steps run the deployed suite (playwright.deployed.config.ts) and scripts/ci/deployed-latency.mjs against the deployed addresses."
+                    displayName: Post-deploy smoke (rehearsal)
+
+              - ${{ if eq(parameters.planMode, 'real') }}:
+                  - task: UseNode@1
+                    inputs:
+                      version: '24.x'
+                  - download: current
+                    artifact: dev-deployment
+                    displayName: The deployment record (the public addresses)
+                  - script: |
+                      set -euo pipefail
+                      for d in packages/chaos packages/web-session packages/customer-core apps/web-customer; do (cd "$d" && npm ci --no-audit --no-fund); done
+                      cd apps/web-customer && npx playwright install --with-deps chromium
+                    displayName: Install the web app's test tools and Chromium
+                  - script: |
+                      set -uo pipefail
+                      record="$(Pipeline.Workspace)/dev-deployment/dev-deployment.json"
+                      web=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).urls.web)" "$record")
+                      issuer=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).urls['mock-oidc'])" "$record")
+                      out="$(Build.ArtifactStagingDirectory)/dev-smoke"
+                      mkdir -p "$out"
+                      (cd apps/web-customer && WEB_URL="$web" ISSUER_URL="$issuer" DEPLOYED_EVIDENCE_DIR="$out" npx playwright test -c playwright.deployed.config.ts)
+                      suite=$?
+                      node scripts/ci/deployed-latency.mjs --web "$web" --issuer "$issuer" --where agent --json "$out/latency-agent.json"
+                      latency=$?
+                      echo "Deployed suite exit $suite, latency exit $latency."
+                      if [ "$suite" -ne 0 ] || [ "$latency" -ne 0 ]; then exit 1; fi
+                    displayName: The deployed customer suite, then latency from the agent
+                  - publish: $(Build.ArtifactStagingDirectory)/dev-smoke
+                    artifact: dev-smoke
+                    displayName: Publish the smoke evidence (reports, screenshots, correlation ids, latency)
+                    condition: always()
+
+      # What the platform saw during the smoke (register 221): metrics and log counts, and which correlation ids reached the log. The read-only identity;
+      # it runs after the smoke whether the smoke passed or failed, so a failure has its evidence too.
+      - stage: observe
+        displayName: Observability evidence (read-only)
+        dependsOn:
+          - app_deploy
+          - smoke
+        condition: and(succeeded('app_deploy'), in(dependencies.smoke.result, 'Succeeded', 'SucceededWithIssues', 'Failed'))
+        jobs:
+          - job: observe
+            steps:
+              - checkout: self
+              - ${{ if eq(parameters.planMode, 'rehearsal') }}:
+                  - script: echo "REHEARSAL - the real step reads the run's metrics and log counts (scripts/ci/dev-observe.mjs) as the read-only identity."
+                    displayName: Observability evidence (rehearsal)
+
+              - ${{ if eq(parameters.planMode, 'real') }}:
+                  - task: UseNode@1
+                    inputs:
+                      version: '24.x'
+                  - download: current
+                    artifact: dev-deployment
+                    displayName: The deployment record (the window's start)
+                  - download: current
+                    artifact: dev-smoke
+                    displayName: The smoke's correlation ids
+                  - task: AzureCLI@2
+                    displayName: Metrics and log counts of the run, and which correlation ids reached the log (read-only identity)
+                    inputs:
+                      azureSubscription: bakery-plan
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      inlineScript: |
+                        set -euo pipefail
+                        mkdir -p "$(Build.ArtifactStagingDirectory)/dev-observe"
+                        node scripts/ci/dev-observe.mjs --resource-group "$(RESOURCE_GROUP)" --workspace "log-bakery-$(ENVIRONMENT_NAME)" --deployment "$(Pipeline.Workspace)/dev-deployment/dev-deployment.json" --correlation "$(Pipeline.Workspace)/dev-smoke/correlation-ids.jsonl" --out "$(Build.ArtifactStagingDirectory)/dev-observe/observe.json"
+                  - publish: $(Build.ArtifactStagingDirectory)/dev-observe
+                    artifact: dev-observe
+                    displayName: Publish the observability evidence (counts and ids only, no log text)
+                    condition: always()
 
   # ---- destroy: a plan, the guard, then the approval, then the destroy of a re-plan that must equal the approved one --------------------
   - ${{ if eq(parameters.action, 'destroy') }}:
