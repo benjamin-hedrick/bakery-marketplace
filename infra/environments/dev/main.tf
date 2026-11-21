@@ -175,6 +175,14 @@ resource "azurerm_container_app_environment" "env" {
   lifecycle {
     ignore_changes = [workload_profile]
   }
+
+  # The provider's default create limit is 30 minutes. On 2026-11-20 Azure accepted the create and left the environment "Waiting" for over
+  # 77 minutes; the apply stopped at 30 with the environment in Azure but not in the state (register 227). 45 minutes allows a slow create
+  # and still ends inside the apply job's 60-minute limit (Azure DevOps' default, not set in the pipeline), so Terraform stops on its own
+  # and releases the state lock instead of being killed with the lock held. It does not help an environment that never finishes.
+  timeouts {
+    create = "45m"
+  }
 }
 
 # ---- Key Vault: holds the secrets the apps read by reference ---------------------------------------------------------------------------
