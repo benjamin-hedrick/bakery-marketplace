@@ -124,6 +124,14 @@ variable "issuer_mode" {
     condition     = contains(["mock", "entra"], var.issuer_mode)
     error_message = "issuer_mode must be mock or entra."
   }
+
+  # Without the mock issuer and without these, the services would have no authority and the web app no AUTH_ISSUER: its session layer would not
+  # configure and nobody could log in (WI-DEP-002, 2026-11-21). Until Entra External ID exists (register 222) no environment can give them, so a
+  # pipeline run with the mock issuer switched off is refused here at plan time, as well as by the pipeline's inputs stage.
+  validation {
+    condition     = var.issuer_mode == "mock" || (var.auth_authority != "" && var.service_auth_token_endpoint != "" && var.web_auth_issuer != "")
+    error_message = "issuer_mode entra needs auth_authority, service_auth_token_endpoint and web_auth_issuer; until Entra External ID exists (register 222) an environment needs the mock issuer."
+  }
 }
 
 variable "issuer_roles" {

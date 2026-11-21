@@ -1,4 +1,5 @@
-# Sourced (not run) by the dev pipeline's Terraform steps, inside an AzureCLI@2 step with addSpnToEnvironment (ADR-0020, WI-DEP-001):
+# Sourced (not run) by the environment pipelines' Terraform steps (dev and uat), inside an AzureCLI@2 step with addSpnToEnvironment (ADR-0020,
+# WI-DEP-001, WI-DEP-002):
 #
 #   source scripts/ci/dev-stack-env.sh "${PLAN_CONNECTION_ID:-}" "$(ENVIRONMENT_NAME)"     (or "${DEPLOY_CONNECTION_ID:-}")
 #
@@ -8,9 +9,17 @@
 #
 # It checks the pipeline variables, signs Terraform in through the service connection with Azure DevOps' token refresh (the federated token a
 # step receives lasts about 10 minutes, shorter than an apply; with the connection id, the job's access token and the OIDC request address,
-# the provider and the state backend ask for a fresh one when they need it), initialises the foundation and dev stacks against the remote state,
-# and exports the dev stack's inputs: from the foundation's state outputs (registry, apps identity), the sign-in (tenant) and the pipeline
-# variables. Nothing here is printed except Terraform's own init output. The budget e-mail is a secret pipeline variable so the log masks it.
+# the provider and the state backend ask for a fresh one when they need it), initialises the environment's stack against the remote state,
+# and exports its inputs: the registry and apps identity, the sign-in (tenant), the pipeline variables, and the run's issuer inputs.
+# Nothing here is printed except Terraform's own init output. The budget e-mail is a secret pipeline variable so the log masks it.
+#
+# Per environment (WI-DEP-002, decided by the lead 2026-11-21):
+#   dev   state container tfstate; the registry and apps identity read from the foundation's state outputs, as before.
+#   other state container tfstate-<environment>, its own; the registry and apps identity from the plain pipeline variables
+#         REGISTRY_LOGIN_SERVER, APP_IDENTITY_ID and APP_IDENTITY_PRINCIPAL_ID (none a secret), because its deploy identity has no read of the
+#         tfstate container, which also holds dev's state and so dev's Cosmos keys (register 214).
+# The issuer inputs (step 3): when the step maps MOCK_ISSUER, ISSUER_ROLES and ISSUER_ALLOWED_IPS (the deploy plan and the apply do; a destroy
+# does not, and takes the module's defaults), scripts/ci/run-inputs.mjs checks them and gives TF_VAR_issuer_mode, _issuer_roles and _allowed_ips.
 set -euo pipefail
 
 connection_id="${1:-}"
@@ -49,25 +58,45 @@ export ARM_OIDC_REQUEST_TOKEN="$SYSTEM_ACCESSTOKEN" ARM_OIDC_REQUEST_URL="$SYSTE
 unset ARM_OIDC_TOKEN
 export TF_IN_AUTOMATION=1 TF_INPUT=0
 
+if [ "$environment" = "dev" ]; then state_container=tfstate; else state_container="tfstate-$environment"; fi
 backend=(-input=false -backend-config=resource_group_name=rg-bakery-tfstate -backend-config="storage_account_name=$TF_STATE_ACCOUNT"
-  -backend-config=container_name=tfstate -backend-config=use_azuread_auth=true)
+  -backend-config="container_name=$state_container" -backend-config=use_azuread_auth=true)
 
-terraform -chdir=infra/foundation init "${backend[@]}" -backend-config=key=foundation.tfstate
-foundation=$(terraform -chdir=infra/foundation output -json)
-# jq -e exits 1 without a word on a missing value; each lookup names what it could not find (names only, no value is printed). It runs inside
-# $(...), so the message goes to stderr, which the step's log shows.
-foundation_output() {
-  local value
-  if ! value=$(jq -er --arg e "$environment" "$1" <<<"$foundation"); then
-    echo "ERROR: the foundation state has no $2 (lookup $1, environment '$environment'; outputs present: $(jq -c 'keys' <<<"$foundation"))." >&2
-    return 1
-  fi
-  printf '%s' "$value"
-}
 export TF_VAR_tenant_id="$tenantId"
-TF_VAR_registry_login_server=$(foundation_output '.registry_login_server.value' 'registry login server')
-TF_VAR_app_identity_id=$(foundation_output '.app_identities.value[$e].id' 'apps identity id')
-TF_VAR_app_identity_principal_id=$(foundation_output '.app_identities.value[$e].principal_id' 'apps identity principal id')
+if [ "$environment" = "dev" ]; then
+  terraform -chdir=infra/foundation init "${backend[@]}" -backend-config=key=foundation.tfstate
+  foundation=$(terraform -chdir=infra/foundation output -json)
+  # jq -e exits 1 without a word on a missing value; each lookup names what it could not find (names only, no value is printed). It runs inside
+  # $(...), so the message goes to stderr, which the step's log shows.
+  foundation_output() {
+    local value
+    if ! value=$(jq -er --arg e "$environment" "$1" <<<"$foundation"); then
+      echo "ERROR: the foundation state has no $2 (lookup $1, environment '$environment'; outputs present: $(jq -c 'keys' <<<"$foundation"))." >&2
+      return 1
+    fi
+    printf '%s' "$value"
+  }
+  TF_VAR_registry_login_server=$(foundation_output '.registry_login_server.value' 'registry login server')
+  TF_VAR_app_identity_id=$(foundation_output '.app_identities.value[$e].id' 'apps identity id')
+  TF_VAR_app_identity_principal_id=$(foundation_output '.app_identities.value[$e].principal_id' 'apps identity principal id')
+else
+  for v in REGISTRY_LOGIN_SERVER APP_IDENTITY_ID APP_IDENTITY_PRINCIPAL_ID; do
+    if [ -z "${!v:-}" ]; then
+      echo "##vso[task.logissue type=error]$v is not set (the foundation's output for $environment, a plain pipeline variable: the header of azure-pipelines-$environment.yml)."
+      exit 1
+    fi
+  done
+  TF_VAR_registry_login_server="$REGISTRY_LOGIN_SERVER"
+  TF_VAR_app_identity_id="$APP_IDENTITY_ID"
+  TF_VAR_app_identity_principal_id="$APP_IDENTITY_PRINCIPAL_ID"
+fi
+if [ -n "${MOCK_ISSUER+set}" ]; then
+  issuer_vars=$(node scripts/ci/run-inputs.mjs tfvars --mock-issuer "$MOCK_ISSUER" --roles "${ISSUER_ROLES:-}" --allowed-ips "${ISSUER_ALLOWED_IPS:-}")
+  TF_VAR_issuer_mode=$(sed -n 's/^TF_VAR_issuer_mode=//p' <<<"$issuer_vars")
+  TF_VAR_issuer_roles=$(sed -n 's/^TF_VAR_issuer_roles=//p' <<<"$issuer_vars")
+  TF_VAR_allowed_ips=$(sed -n 's/^TF_VAR_allowed_ips=//p' <<<"$issuer_vars")
+  export TF_VAR_issuer_mode TF_VAR_issuer_roles TF_VAR_allowed_ips
+fi
 TF_VAR_budget_contact_emails=$(jq -nc --arg e "$BUDGET_CONTACT_EMAIL" '[$e]')
 export TF_VAR_registry_login_server TF_VAR_app_identity_id TF_VAR_app_identity_principal_id TF_VAR_budget_contact_emails
 export TF_VAR_deploy_principal_id="$DEPLOY_PRINCIPAL_ID" TF_VAR_key_vault_name="$KEY_VAULT_NAME" TF_VAR_cosmos_account_name="$COSMOS_ACCOUNT_NAME"

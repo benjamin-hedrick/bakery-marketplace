@@ -2,9 +2,10 @@
 # azure-pipelines.yml (pull-request checks) is not touched by it. This pipeline never runs by itself: no push trigger, no pull-request trigger.
 #
 # STATE OF THIS FILE (2026-11-21): every step is REAL and every stage has run in Azure (the teardown on 2026-11-20; plan to observe in build 88,
-# 2026-11-21). The stages themselves are in pipelines/templates/environment-stages.yml (WI-DEP-002 step 2b), shared with the UAT pipeline to come;
+# 2026-11-21). The stages themselves are in pipelines/templates/environment-stages.yml (WI-DEP-002 step 2b), shared with azure-pipelines-uat.yml;
 # this file holds the run parameters, dev's variables and the connections and approval environments it passes. With planMode=rehearsal every step
-# goes back to its rehearsal (no service connection, no build), to re-prove the gates.
+# goes back to its rehearsal (no service connection, no build), to re-prove the gates. The run inputs seed, issuerRoles and issuerAllowedIps
+# (WI-DEP-002 step 3) default to what dev always did; the mock issuer is dev's only issuer, so it is always on here and not offered.
 #
 #   deploy:  images       no service connection: builds the six images (scripts/ci/dev-images.mjs build) and publishes them, saved, as an
 #                         artifact, while the plan runs, so a broken build fails before any approval.
@@ -65,6 +66,23 @@ parameters:
     values:
       - none
       - dev-chaos
+  - name: seed
+    displayName: Run the seed job before the apps are updated (fixture data; dev always has)
+    type: boolean
+    default: true
+  - name: issuerRoles
+    displayName: Roles that may log in at the mock issuer. Any role but Customer needs issuerAllowedIps
+    type: string
+    default: Customer
+    values:
+      - Customer
+      - Customer,Vendor
+      - Customer,Admin
+      - Customer,Vendor,Admin
+  - name: issuerAllowedIps
+    displayName: IPv4 ranges allowed to reach the web app and the mock issuer (none = everyone). Shown in the run's parameters; the agent's smoke cannot reach a restricted environment
+    type: string
+    default: none
   - name: confirmEnvironment
     displayName: To destroy, type the environment name (dev)
     type: string
@@ -85,12 +103,18 @@ stages:
   # Every stage is in the shared template (WI-DEP-002 step 2b); this file gives it dev's connections and approval environments.
   - template: pipelines/templates/environment-stages.yml
     parameters:
+      environmentName: dev
+      imageSource: build
       action: ${{ parameters.action }}
       planMode: ${{ parameters.planMode }}
       simulateInfrastructureChanges: ${{ parameters.simulateInfrastructureChanges }}
       holdSeconds: ${{ parameters.holdSeconds }}
       confirmEnvironment: ${{ parameters.confirmEnvironment }}
       chaosScenario: ${{ parameters.chaosScenario }}
+      seed: ${{ parameters.seed }}
+      mockIssuer: true
+      issuerRoles: ${{ parameters.issuerRoles }}
+      issuerAllowedIps: ${{ parameters.issuerAllowedIps }}
       planConnection: bakery-plan
       deployConnection: bakery-deploy
       infraEnvironment: dev-infra

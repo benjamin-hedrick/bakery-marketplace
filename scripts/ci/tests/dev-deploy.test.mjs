@@ -190,6 +190,19 @@ describe('the deploy, with a fake Azure CLI', () => {
     );
   });
 
+  test('with the seed input off (WI-DEP-002 step 3) the seed job is neither updated nor run, and every app is still deployed', () => {
+    const f = fake({ images: placeholders });
+    const result = run(f, { seed: false });
+    assert.ok(
+      !f.calls.some((c) => c[1] === 'job' && c[2] !== 'show'),
+      'the job is only read (its build still counts for the refusal)',
+    );
+    assert.deepEqual(appUpdates(f.calls), ORDER);
+    assert.deepEqual(result.jobs, []);
+    assert.equal(result.seeded, false);
+    assert.equal(run(fake({ images: placeholders })).seeded, true, 'on by default, as dev always ran it');
+  });
+
   test('an older build is refused before anything is updated or run', () => {
     const images = Object.fromEntries(ALL.map((app) => [app, `${registry}/${repoOf(app)}@${digest('f')}`]));
     const tags = Object.fromEntries(ALL.map((app) => [repoOf(app), ['121']]));

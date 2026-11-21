@@ -99,3 +99,25 @@ run "entra_mode_has_no_mock_issuer_and_uses_the_given_addresses" {
     error_message = "Entra mode uses the configured authority."
   }
 }
+
+# A pipeline run with the mock issuer off asks for entra mode; with no Entra addresses (none exist until register 222) it is refused at plan time.
+run "entra_mode_without_its_addresses_is_refused_at_plan_time" {
+  command = plan
+
+  variables {
+    issuer_mode = "entra"
+  }
+
+  expect_failures = [var.issuer_mode]
+}
+
+run "entra_mode_with_only_some_of_its_addresses_is_refused_at_plan_time" {
+  command = plan
+
+  variables {
+    issuer_mode    = "entra"
+    auth_authority = "https://issuer.example.test"
+  }
+
+  expect_failures = [var.issuer_mode]
+}

@@ -1,0 +1,111 @@
+# Manual operations on the UAT environment (ADR-0020 decision 9 and its note of 2026-11-21; WI-DEP-002 step 8). Register this file as its OWN
+# pipeline ("bakery-uat-operations"); it never runs by itself: no push trigger, no pull-request trigger.
+#
+# STATE OF THIS FILE (2026-11-21): written, NOT RUN. Nothing it needs in Azure or Azure DevOps exists yet (WI-DEP-002 step 7, the lead's bootstrap:
+# rg-bakery-uat, the tfstate-uat container, the bakery-uat-deploy connection, the uat-infra, uat-app and uat-destroy approval environments, and
+# the variables below). Until they exist, do not queue it: an approval environment Azure DevOps has not seen is created on first use with no checks.
+#
+# The stages are dev's (pipelines/templates/environment-stages.yml), in promote mode:
+#   inputs      also checks the issuer inputs and, with this run's own token, that devBuild is a real deploy of the dev pipeline from main whose
+#               smoke stage succeeded (scripts/ci/promote-check.mjs). Only then does anything else run.
+#   images      builds nothing: fetches that dev run's record of its pushed digests, checks it is that run's, and publishes it as uat-images-pushed.
+#   infra_plan, infra_apply, app_deploy, smoke, observe, destroy: as in dev, against infra/environments/uat and rg-bakery-uat, with UAT's own
+#               deploy connection and approval environments. app_deploy pushes nothing (the digests are already in the foundation's registry) and
+#               runs the seed job only when the seed input is on.
+# The services run as Production (infra/environments/uat). No chaos scenario is offered (ADR-0024).
+#
+# Pipeline variables (Pipelines > bakery-uat-operations > Edit > Variables; set in Azure DevOps, never in this repository):
+#   plain (they name private resources; none is a secret): ARM_SUBSCRIPTION_ID, TF_STATE_ACCOUNT, DEPLOY_PRINCIPAL_ID (bakery-uat-deploy's object
+#   id), KEY_VAULT_NAME, COSMOS_ACCOUNT_NAME (UAT's own, globally unique), PLAN_CONNECTION_ID and DEPLOY_CONNECTION_ID, DEV_PIPELINE_ID (the dev
+#   pipeline's definition id, for the promote check), and the foundation's outputs for uat, which this pipeline does not read from the foundation's
+#   state (register 214; approved 2026-11-21 on the condition that no secret is exposed or logged; none of them is one, and no step prints them):
+#   REGISTRY_LOGIN_SERVER, APP_IDENTITY_ID and APP_IDENTITY_PRINCIPAL_ID (terraform -chdir=infra/foundation output app_identities, entry uat);
+#   secret (masked in the log): BUDGET_CONTACT_EMAIL.
+trigger: none
+pr: none
+
+parameters:
+  - name: action
+    displayName: What to do
+    type: string
+    default: deploy
+    values:
+      - deploy # infrastructure (only if the plan has changes), then the promoted application
+      - destroy # the teardown
+  - name: devBuild
+    displayName: The dev run to promote (its run id). Refused unless it was a real deploy from main whose smoke passed
+    type: number
+    default: 0
+  - name: planMode
+    displayName: Infrastructure steps. real = plan, apply and teardown in Azure; rehearsal = print only, no service connection (gate tests)
+    type: string
+    default: real
+    values:
+      - real
+      - rehearsal
+  - name: simulateInfrastructureChanges
+    displayName: Rehearsal plan only. Pretend the infrastructure plan has changes (false = no changes, so the infrastructure approval is skipped)
+    type: boolean
+    default: true
+  - name: holdSeconds
+    displayName: Rehearsal only. Seconds the infrastructure apply step waits, to hold the stage open for the lock test. Leave 0 otherwise
+    type: number
+    default: 0
+  - name: seed
+    displayName: Run the seed job before the apps are updated (fixture data; off by default in UAT)
+    type: boolean
+    default: false
+  - name: mockIssuer
+    displayName: Deploy the mock issuer (UAT's only issuer until Entra, register 222; a run with it off is refused until then)
+    type: boolean
+    default: false
+  - name: issuerRoles
+    displayName: Roles that may log in at the mock issuer. Any role but Customer needs issuerAllowedIps
+    type: string
+    default: Customer
+    values:
+      - Customer
+      - Customer,Vendor
+      - Customer,Admin
+      - Customer,Vendor,Admin
+  - name: issuerAllowedIps
+    displayName: IPv4 ranges allowed to reach the web app and the mock issuer (none = everyone). Shown in the run's parameters; the agent's smoke cannot reach a restricted environment
+    type: string
+    default: none
+  - name: confirmEnvironment
+    displayName: To destroy, type the environment name (uat)
+    type: string
+    default: none # not empty: the run dialog keeps Next disabled while a text box is blank; any value but the environment name fails a destroy
+
+variables:
+  ENVIRONMENT_NAME: uat
+  RESOURCE_GROUP: rg-bakery-uat
+  FOUNDATION_RESOURCE_GROUP: rg-bakery-foundation
+  # The same Terraform as dev (scripts/ci/tests/pipeline-structure.test.mjs checks the two files agree).
+  TF_VERSION: 1.17.1
+  TF_ZIP_SHA256: 4638628058e71a55212b1c563712eac03b902128f40740f3dc8174df12135061
+
+pool:
+  vmImage: ubuntu-24.04
+
+stages:
+  # Every stage is in the shared template; this file gives it UAT's connections and approval environments, in promote mode.
+  - template: pipelines/templates/environment-stages.yml
+    parameters:
+      environmentName: uat
+      imageSource: promote
+      devBuild: ${{ parameters.devBuild }}
+      action: ${{ parameters.action }}
+      planMode: ${{ parameters.planMode }}
+      simulateInfrastructureChanges: ${{ parameters.simulateInfrastructureChanges }}
+      holdSeconds: ${{ parameters.holdSeconds }}
+      confirmEnvironment: ${{ parameters.confirmEnvironment }}
+      seed: ${{ parameters.seed }}
+      mockIssuer: ${{ parameters.mockIssuer }}
+      issuerRoles: ${{ parameters.issuerRoles }}
+      issuerAllowedIps: ${{ parameters.issuerAllowedIps }}
+      planConnection: bakery-plan
+      deployConnection: bakery-uat-deploy
+      infraEnvironment: uat-infra
+      appEnvironment: uat-app
+      destroyEnvironment: uat-destroy
