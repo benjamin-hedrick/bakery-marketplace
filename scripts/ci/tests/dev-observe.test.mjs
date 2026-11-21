@@ -26,6 +26,28 @@ describe('the pieces', () => {
     assert.doesNotMatch(q.coldStarts, /Log_s/);
   });
 
+  test('the chaos queries keep counts by app, scenario, layer and fault, never the key or trace id, and read both journals', () => {
+    const q = queries(START, END);
+    assert.match(q.chaosScenariosOn, /\| summarize starts = count\(\) by app = ContainerAppName_s, scenario$/);
+    assert.match(q.chaosInjected, /\| summarize faults = count\(\) by app = ContainerAppName_s, layer, fault$/);
+    for (const text of [q.chaosScenariosOn, q.chaosInjected]) assert.doesNotMatch(text, /\bkey\b|trace/i);
+    // The patterns inside the queries (simple enough to mean the same in RE2 and JavaScript), against a line of each journal.
+    const patterns = (text) => [...text.matchAll(/extract\((['"])(.+?)\1, 1, Log_s\)/g)].map((m) => new RegExp(m[2]));
+    const first = (text, line) =>
+      patterns(text)
+        .map((p) => p.exec(line)?.[1])
+        .filter(Boolean);
+    const dotnet = '      chaos injected: layer=payment fault=lost-response key=order-1 trace=abc';
+    const node =
+      '{"level":"warn","msg":"chaos injected","layer":"bff-door","fault":"reject","key":"seq:3","traceId":"abc"}';
+    assert.deepEqual(first(q.chaosInjected, dotnet), ['payment', 'lost-response']);
+    assert.deepEqual(first(q.chaosInjected, node), ['bff-door', 'reject']);
+    assert.deepEqual(
+      first(q.chaosScenariosOn, "warn: x[0] CHAOS SCENARIO 'checkout-trouble' IS ON (seed 7, layers payment)."),
+      ['checkout-trouble'],
+    );
+  });
+
   test('rows of a query answer, by column name', () => {
     const answer = {
       tables: [
@@ -91,7 +113,7 @@ describe('observe, with a fake Azure CLI', () => {
     assert.equal(calls.filter((c) => c[1] === 'metrics').length, APPS.length * METRICS.length);
     assert.equal(out.metrics.web.Requests.value, 4);
     const rest = calls.filter((c) => c[0] === 'rest');
-    assert.equal(rest.length, 5); // console lines, error-like lines, system events, replica starts, correlation ids
+    assert.equal(rest.length, 7); // console lines, error-like lines, system events, replica starts, chaos on, chaos injected, correlation ids
     assert.ok(rest.every((c) => c.includes('https://api.loganalytics.io/v1/workspaces/workspace-guid/query')));
     assert.deepEqual(out.correlation, { asked: 2, foundInConsoleLog: 1 });
     assert.deepEqual(out.failures, []);

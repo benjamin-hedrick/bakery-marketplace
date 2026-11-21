@@ -141,6 +141,7 @@ Scope: cross-cutting (all contexts) · Primary hat(s): Architect, Platform Engin
 - 🔵 CHAOS-003 (Test/Mock/Chaos) — see `WI-CHAOS-003.md` — chaos scenarios: the lost response (the work was done, the answer was lost) in five layers, and `packages/chaos` with the BFF's gate and client layers (ADR-0024), In review
 - 🔵 CHAOS-004 (Test/Mock/Chaos) — see `WI-CHAOS-004.md` — chaos scenarios: a layer on the web servers' session store, the `session-outage` scenario and its whole-stack run (ADR-0024), In review
 - 🔵 CHAOS-005 (Test/Mock/Chaos) — see `WI-CHAOS-005.md` — chaos scenarios: the web apps' Relay network functions against an equivalence contract shared by both apps (ADR-0024), In review
+- ⚪ CHAOS-006 (Test/Mock/Chaos) — see `WI-CHAOS-006.md` — chaos scenarios in the deployed dev environment: a pipeline input, a chaos stage that switches a scenario on and off, deployed specs (register 218 (4), 169)
 - ⚪ EVT-005 (Infra/Environment) — Terraform Event Grid custom topic + subscription filters
 
 ### EPIC-DATA-STORE — Cosmos DB Repositories

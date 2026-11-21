@@ -14,7 +14,9 @@
 // failed with its message, and the others still run: the point is to see what is and is not observable. Exit code 0 = written (even with failures
 // recorded), 1 = nothing could be read, 2 = bad usage.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const APPS = ['web', 'graphql-bff', 'catalog', 'ordering', 'mock-oidc'];
@@ -49,6 +51,18 @@ export function queries(start, end, ids = []) {
       `| extend prevReason = prev(reason), prevT = prev(t), prevApp = prev(app) ` +
       `| where reason == 'ContainerStarted' and prevReason == 'AssigningReplica' and prevApp == app and isnotempty(app) ` +
       `| project app, assigned = prevT, containerStarted = t, seconds = round(datetime_diff('millisecond', t, prevT) / 1000.0, 1) | order by assigned asc`,
+    // Chaos in the deployed dev stack (ADR-0024, WI-CHAOS-006): which apps started with a scenario on, and the faults each injected, counted by layer
+    // and fault. The .NET journal writes "chaos injected: layer=... fault=..." and the Node one a JSON line with "layer" and "fault"; the key and the
+    // trace id on those lines are not kept, only the counts (decision 8's summary).
+    chaosScenariosOn:
+      `ContainerAppConsoleLogs_CL | where ${window} | where Log_s has 'CHAOS SCENARIO' ` +
+      `| extend scenario = extract("CHAOS SCENARIO '([a-z0-9-]+)' IS ON", 1, Log_s) | where isnotempty(scenario) ` +
+      `| summarize starts = count() by app = ContainerAppName_s, scenario`,
+    chaosInjected:
+      `ContainerAppConsoleLogs_CL | where ${window} | where Log_s has 'chaos injected' ` +
+      `| extend layer = coalesce(extract('layer=([a-z-]+)', 1, Log_s), extract('"layer":"([a-z-]+)"', 1, Log_s)), ` +
+      `fault = coalesce(extract('fault=([a-z-]+)', 1, Log_s), extract('"fault":"([a-z-]+)"', 1, Log_s)) ` +
+      `| where isnotempty(layer) and isnotempty(fault) | summarize faults = count() by app = ContainerAppName_s, layer, fault`,
   };
   if (safeIds.length > 0)
     q.correlationIdsInConsoleLog =
@@ -227,16 +241,30 @@ function main() {
   const correlation = get('--correlation');
   const ids = correlation && existsSync(correlation) ? correlationIds(readFileSync(correlation, 'utf8')) : [];
   // The pipeline runs this on Linux, where az is called directly. On Windows (the lead's --since run) az is a .cmd that needs a shell, so each argument
-  // is quoted for cmd, as identity-check.mjs does.
-  const az = (args) =>
-    process.platform === 'win32'
-      ? execFileSync(`az.cmd ${args.map((a) => `"${a.replaceAll('"', '""')}"`).join(' ')}`, {
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'pipe'],
-          shell: true,
-        })
-      : execFileSync('az', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-  const result = observe({ resourceGroup, workspace, start, end, ids }, az);
+  // is quoted for cmd, as identity-check.mjs does, and a query body goes in a file (--body @file): a query's own double quotes do not survive cmd.
+  const scratch = process.platform === 'win32' ? mkdtempSync(path.join(tmpdir(), 'dev-observe-')) : null;
+  let bodies = 0;
+  const az = (args) => {
+    if (!scratch) return execFileSync('az', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const at = args.indexOf('--body');
+    const final = [...args];
+    if (at >= 0) {
+      const bodyFile = path.join(scratch, `body-${++bodies}.json`);
+      writeFileSync(bodyFile, args[at + 1]);
+      final[at + 1] = `@${bodyFile}`;
+    }
+    return execFileSync(`az.cmd ${final.map((a) => `"${a.replaceAll('"', '""')}"`).join(' ')}`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true,
+    });
+  };
+  let result;
+  try {
+    result = observe({ resourceGroup, workspace, start, end, ids }, az);
+  } finally {
+    if (scratch) rmSync(scratch, { recursive: true, force: true });
+  }
   writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`);
   console.log(`dev observe: ${start} to ${end}`);
   for (const [app, metrics] of Object.entries(result.metrics))
@@ -250,6 +278,10 @@ function main() {
     console.log(
       `  replica start  ${String(r.app).padEnd(12)} assigned ${String(r.assigned).slice(11, 19)}  started after ${r.seconds} s`,
     );
+  for (const r of result.logs.chaosScenariosOn ?? [])
+    console.log(`  chaos on       ${String(r.app).padEnd(12)} ${r.scenario} (${r.starts} start(s))`);
+  for (const r of result.logs.chaosInjected ?? [])
+    console.log(`  chaos injected ${String(r.app).padEnd(12)} ${r.layer}:${r.fault} x${r.faults}`);
   if (result.correlation)
     console.log(
       `  correlation ids: ${result.correlation.foundInConsoleLog} of ${result.correlation.asked} found in the console log`,
