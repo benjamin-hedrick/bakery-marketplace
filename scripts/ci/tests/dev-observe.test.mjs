@@ -17,8 +17,13 @@ describe('the pieces', () => {
     assert.match(q.correlationIdsInConsoleLog, new RegExp(`in \\('${id('a')}', '${id('b')}'\\)`));
     assert.doesNotMatch(q.correlationIdsInConsoleLog, /take 1/);
     assert.equal(queries(START, END, []).correlationIdsInConsoleLog, undefined);
-    // Only counts and names are asked for, never a line's text.
-    for (const text of Object.values(q)) assert.match(text, /summarize/);
+    // Only counts and names are asked for, never a line's text; the replica starts are names and times only.
+    for (const [name, text] of Object.entries(q)) if (name !== 'coldStarts') assert.match(text, /summarize/);
+    assert.match(
+      q.coldStarts,
+      /\| project app, assigned = prevT, containerStarted = t, seconds = [^|]*\| order by assigned asc$/,
+    );
+    assert.doesNotMatch(q.coldStarts, /Log_s/);
   });
 
   test('rows of a query answer, by column name', () => {
@@ -86,7 +91,7 @@ describe('observe, with a fake Azure CLI', () => {
     assert.equal(calls.filter((c) => c[1] === 'metrics').length, APPS.length * METRICS.length);
     assert.equal(out.metrics.web.Requests.value, 4);
     const rest = calls.filter((c) => c[0] === 'rest');
-    assert.equal(rest.length, 4);
+    assert.equal(rest.length, 5); // console lines, error-like lines, system events, replica starts, correlation ids
     assert.ok(rest.every((c) => c.includes('https://api.loganalytics.io/v1/workspaces/workspace-guid/query')));
     assert.deepEqual(out.correlation, { asked: 2, foundInConsoleLog: 1 });
     assert.deepEqual(out.failures, []);
