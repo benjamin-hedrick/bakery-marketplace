@@ -148,7 +148,7 @@ stages:
                       addSpnToEnvironment: true
                       inlineScript: |
                         set -euo pipefail
-                        source scripts/ci/dev-stack-env.sh "${PLAN_CONNECTION_ID:-}"
+                        source scripts/ci/dev-stack-env.sh "${PLAN_CONNECTION_ID:-}" "$(ENVIRONMENT_NAME)"
                         set +e
                         terraform -chdir=infra/environments/dev plan -input=false -lock=false -refresh=false -detailed-exitcode -out=tfplan
                         rc=$?
@@ -214,7 +214,7 @@ stages:
                             addSpnToEnvironment: true
                             inlineScript: |
                               set -euo pipefail
-                              source scripts/ci/dev-stack-env.sh "${DEPLOY_CONNECTION_ID:-}"
+                              source scripts/ci/dev-stack-env.sh "${DEPLOY_CONNECTION_ID:-}" "$(ENVIRONMENT_NAME)"
                               set +e
                               terraform -chdir=infra/environments/dev plan -input=false -refresh=false -detailed-exitcode -out=tfplan
                               rc=$?
@@ -488,7 +488,7 @@ stages:
                       addSpnToEnvironment: true
                       inlineScript: |
                         set -euo pipefail
-                        source scripts/ci/dev-stack-env.sh "${PLAN_CONNECTION_ID:-}"
+                        source scripts/ci/dev-stack-env.sh "${PLAN_CONNECTION_ID:-}" "$(ENVIRONMENT_NAME)"
                         set +e
                         terraform -chdir=infra/environments/dev plan -destroy -input=false -lock=false -refresh=false -detailed-exitcode -out=tfplan
                         rc=$?
@@ -548,7 +548,7 @@ stages:
                             addSpnToEnvironment: true
                             inlineScript: |
                               set -euo pipefail
-                              source scripts/ci/dev-stack-env.sh "${DEPLOY_CONNECTION_ID:-}"
+                              source scripts/ci/dev-stack-env.sh "${DEPLOY_CONNECTION_ID:-}" "$(ENVIRONMENT_NAME)"
                               set +e
                               terraform -chdir=infra/environments/dev plan -destroy -input=false -detailed-exitcode -out=tfplan
                               rc=$?
