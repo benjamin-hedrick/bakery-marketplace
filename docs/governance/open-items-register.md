@@ -1336,6 +1336,8 @@ The lead wants a UAT environment deployed next to DEV (with Azure trial credits)
 3. A deploy identity scoped to the UAT group (an IAM change), an Azure DevOps environment with its approval check, and a budget alert.
 4. Promotion by digest from a recorded passing DEV smoke, as ADR-0020 already designs, and which subscription the trial credits are on.
 
+**Update 2026-11-21, later:** the lead decided: the two refactors approved; UAT has its own state container; seeding UAT is a per-run option; the mock issuer is extended to UAT only for side-by-side runs and switched on per run; one subscription, and since it allows one Container Apps environment per region (Free Trial, read 2026-11-21), UAT's environment goes in East US 2; DEV stays up for the dev chaos work (`WI-CHAOS-006`). Run options become pipeline inputs (the table in `WI-DEP-002`). Open questions are in the spec.
+
 The proposal is `WI-DEP-002` (written 2026-11-21). It found that two pieces of decision 9 were built only for dev and need a refactor before UAT is additive: the Terraform is one root, not a module both roots call, and the pipeline is one file, not templates; and that the seed refuses every deployed environment but dev.
 
 Reconciled when the lead has approved or declined the proposal.
