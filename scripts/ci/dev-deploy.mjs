@@ -18,7 +18,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { IMAGES } from './dev-images.mjs';
 
-/** The image infra/environments/dev creates every app with (var.image_placeholder's default). */
+/** The image the environment module (infra/modules/environment) creates every app with (var.image_placeholder's default). */
 export const PLACEHOLDER = 'mcr.microsoft.com/k8se/quickstart:latest';
 
 /** The order of the updates: the issuer first, then the services, the BFF and the web app (each only reaches the ones before it). */
@@ -27,7 +27,7 @@ export const ORDER = ['mock-oidc', 'catalog', 'ordering', 'graphql-bff', 'web'];
 /** The container app jobs, run once per deploy before the apps are updated: the seed (register 224). */
 export const JOBS = ['seed'];
 
-/** The apps with a public address (external ingress in infra/environments/dev): the smoke reaches the environment only through these. */
+/** The apps with a public address (external ingress in infra/modules/environment): the smoke reaches the environment only through these. */
 export const PUBLIC = ['web', 'mock-oidc'];
 
 /** The job execution states Container Apps reports; anything else is still running. */

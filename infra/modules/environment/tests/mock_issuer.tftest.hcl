@@ -18,6 +18,10 @@ variables {
   deploy_principal_id       = "00000000-0000-0000-0000-000000000003"
   key_vault_name            = "kv-bakery-dev-test1"
   cosmos_account_name       = "cosmos-bakery-dev-test1"
+  # What the dev root sets (infra/environments/dev/main.tf); the module requires each root to say them.
+  environment         = "dev"
+  resource_group_name = "rg-bakery-dev"
+  host_environment    = "Development"
 }
 
 run "by_default_the_mock_issuer_is_public_and_lets_only_customers_in" {

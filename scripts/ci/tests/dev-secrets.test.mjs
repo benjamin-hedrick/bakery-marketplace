@@ -44,7 +44,7 @@ const cosmosKeys = {
 
 describe('the secret list agrees with the dev stack', () => {
   test('the same three secrets Terraform creates with a placeholder', () => {
-    const stack = readFileSync(path.join(root, 'infra/environments/dev/main.tf'), 'utf8');
+    const stack = readFileSync(path.join(root, 'infra/modules/environment/main.tf'), 'utf8');
     const listed = /placeholder_secrets\s*=\s*toset\(\[([^\]]*)\]\)/
       .exec(stack)[1]
       .match(/"[^"]+"/g)

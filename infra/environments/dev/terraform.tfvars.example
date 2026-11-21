@@ -1,4 +1,5 @@
-# Copy to dev.tfvars (git-ignored) or pass as pipeline variables. None of these is a secret.
+# Copy to dev.tfvars (git-ignored) or pass as pipeline variables. None of these is a secret. The values dev fixes (its name, group, host
+# environment, Cosmos tier and region) are in main.tf; the descriptions and checks of every setting are in infra/modules/environment/variables.tf.
 tenant_id                 = "00000000-0000-0000-0000-000000000000"
 registry_login_server     = "bakerymkt123.azurecr.io"
 app_identity_id           = "/subscriptions/.../resourceGroups/rg-bakery-foundation/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-bakery-dev-apps"
@@ -13,5 +14,4 @@ cosmos_account_name       = "cosmos-bakery-dev-abc12"
 # To also allow Admin or Vendor logins (requires allowed_ips): issuer_roles = ["Customer", "Admin"]
 # Entra mode: issuer_mode = "entra", and set auth_authority, service_auth_token_endpoint and web_auth_issuer.
 
-# The .NET services run as Development in dev (a per-environment value; a UAT or production root would set Production):
-# host_environment = "Development"
+# The .NET services run as Development in dev: set in main.tf (host_environment), not here; a UAT root sets Production.

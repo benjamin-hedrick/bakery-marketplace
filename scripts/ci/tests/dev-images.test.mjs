@@ -10,7 +10,7 @@ const read = (file) => readFileSync(path.join(root, file), 'utf8');
 const digest = (c) => `sha256:${c.repeat(64)}`;
 
 describe('the image list agrees with the dev stack and the Compose apps profile', () => {
-  const stack = read('infra/environments/dev/main.tf');
+  const stack = read('infra/modules/environment/main.tf');
   const compose = read('docker-compose.yml');
 
   test('every container app that starts on the placeholder image has exactly one image, and no other image is built', () => {

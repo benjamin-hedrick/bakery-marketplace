@@ -1,4 +1,6 @@
-> **Status:** In progress · every decision taken (2026-11-21); building step 2 (the refactors, approved); remaining: steps 1 and 3 to 9
+> **Status:** In progress · every decision taken (2026-11-21); step 2a built and proved against the dev state (not yet applied by the pipeline); remaining: step 2b, then steps 1 and 3 to 9
+
+> **Progress note (2026-11-21):** step 2a built: the dev resources are in `infra/modules/environment`, the dev root calls it with `moved` blocks, and a read-only plan against the dev state shows 27 moves and nothing else (`docs/evidence/WI-DEP-002/module-refactor-2026-11-21.md`). Found on the way: `plan-summary.mjs` would have refused a moves-only plan; fixed.
 
 ```
 WI ID:               DEP-002

@@ -16,7 +16,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const ACTION_ORDER = ['create', 'update', 'replace', 'delete', 'read'];
+const ACTION_ORDER = ['create', 'update', 'replace', 'delete', 'read', 'move'];
 
 /** The action word for one change: Terraform writes a replacement as [delete, create] or [create, delete]. */
 function actionOf(actions) {
@@ -35,9 +35,17 @@ export function summarisePlan(plan) {
   const changes = [];
   for (const change of plan.resource_changes ?? []) {
     if (change.mode === 'data') continue;
-    const action = actionOf(change.change?.actions ?? []);
+    const actions = change.change?.actions ?? [];
+    // A resource that only moved (a moved block, WI-DEP-002 step 2a) is a no-op with its old address: Terraform still reports the plan as a change
+    // (exit 2), because applying it rewrites the state, so it is kept as "move", with the address it moved from.
+    const moved = typeof change.previous_address === 'string' && change.previous_address !== change.address;
+    const action = actionOf(actions) === 'no-op' && moved ? 'move' : actionOf(actions);
     if (action === 'no-op' || action === '') continue;
-    changes.push({ address: String(change.address), action });
+    changes.push(
+      moved
+        ? { address: String(change.address), action, from: String(change.previous_address) }
+        : { address: String(change.address), action },
+    );
   }
   const outputs = Object.entries(plan.output_changes ?? {})
     .filter(([, c]) => !(c?.actions?.length === 1 && c.actions[0] === 'no-op'))
@@ -60,7 +68,7 @@ export function summarisePlan(plan) {
  * @returns {string[]} the differences, empty when the plans agree
  */
 export function compareSummaries(approved, actual) {
-  const key = (c) => `${c.action} ${c.address}`;
+  const key = (c) => `${c.action} ${c.address}${c.from ? ` from ${c.from}` : ''}`;
   const was = new Set((approved?.changes ?? []).map(key));
   const now = new Set(actual.changes.map(key));
   const problems = [];

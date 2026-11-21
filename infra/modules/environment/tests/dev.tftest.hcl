@@ -1,5 +1,5 @@
-# Plan-level tests of the dev environment stack with a mocked provider: no Azure account, no credentials, no network. They check what the code
-# asks Azure for, not that Azure accepts it. Run: node scripts/ci/terraform-checks.mjs --roots infra/foundation,infra/environments/dev
+# Plan-level tests of the environment module with dev's values and a mocked provider: no Azure account, no credentials, no network. They check what
+# the code asks Azure for, not that Azure accepts it. Run: node scripts/ci/terraform-checks.mjs --roots infra/modules/environment
 
 mock_provider "azurerm" {
   mock_data "azurerm_resource_group" {
@@ -20,6 +20,10 @@ variables {
   deploy_principal_id       = "00000000-0000-0000-0000-000000000003"
   key_vault_name            = "kv-bakery-dev-test1"
   cosmos_account_name       = "cosmos-bakery-dev-test1"
+  # What the dev root sets (infra/environments/dev/main.tf); the module requires each root to say them.
+  environment         = "dev"
+  resource_group_name = "rg-bakery-dev"
+  host_environment    = "Development"
 }
 
 run "only_the_web_app_is_reachable_from_outside" {

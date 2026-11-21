@@ -54,10 +54,40 @@ describe('the plan summary', () => {
       { address: 'azurerm_container_app.web', action: 'replace' },
       { address: 'azurerm_role_assignment.old', action: 'delete' },
     ]);
-    assert.deepEqual(s.counts, { create: 1, update: 1, replace: 1, delete: 1, read: 0 });
+    assert.deepEqual(s.counts, { create: 1, update: 1, replace: 1, delete: 1, read: 0, move: 0 });
     assert.deepEqual(s.outputs, ['key_vault_name']);
     assert.equal(s.terraformVersion, '1.17.1');
     assert.equal(s.hasChanges, true);
+  });
+
+  test('a plan whose only changes are moves (moved blocks) has changes: each kept as "move" with the address it moved from', () => {
+    const moves = {
+      resource_changes: [
+        {
+          address: 'module.environment.azurerm_key_vault.kv',
+          previous_address: 'azurerm_key_vault.kv',
+          mode: 'managed',
+          change: { actions: ['no-op'], before: { name: NAME }, after: { name: NAME } },
+        },
+        {
+          address: 'module.environment.azurerm_log_analytics_workspace.logs',
+          mode: 'managed',
+          change: { actions: ['no-op'] },
+        },
+      ],
+    };
+    const s = summarisePlan(moves);
+    assert.deepEqual(s.changes, [
+      { address: 'module.environment.azurerm_key_vault.kv', action: 'move', from: 'azurerm_key_vault.kv' },
+    ]);
+    assert.equal(s.counts.move, 1);
+    assert.equal(s.hasChanges, true);
+    assert.equal(checkExitCode(2, s), undefined);
+    assert.ok(!JSON.stringify(s).includes(NAME));
+    // The same move from another address is a different plan.
+    const other = { ...s, changes: [{ ...s.changes[0], from: 'azurerm_key_vault.other' }] };
+    assert.equal(compareSummaries(s, other).length, 2);
+    assert.deepEqual(compareSummaries(s, summarisePlan(moves)), []);
   });
 
   test('copies no attribute value: no key, name or id from the plan appears in the summary', () => {
