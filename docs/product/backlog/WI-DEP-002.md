@@ -1,6 +1,6 @@
-> **Status:** In progress · every decision taken (2026-11-21); step 2a built and proved against the dev state (not yet applied by the pipeline); remaining: step 2b, then steps 1 and 3 to 9
+> **Status:** In progress · every decision taken (2026-11-21); step 2 built (2a proved against the dev state, 2b by equivalence; neither run by the pipeline yet); remaining: steps 1 and 3 to 9
 
-> **Progress note (2026-11-21):** step 2a built: the dev resources are in `infra/modules/environment`, the dev root calls it with `moved` blocks, and a read-only plan against the dev state shows 27 moves and nothing else (`docs/evidence/WI-DEP-002/module-refactor-2026-11-21.md`). Found on the way: `plan-summary.mjs` would have refused a moves-only plan; fixed.
+> **Progress note (2026-11-21):** step 2a built: the dev resources are in `infra/modules/environment`, the dev root calls it with `moved` blocks, and a read-only plan against the dev state shows 27 moves and nothing else (`docs/evidence/WI-DEP-002/module-refactor-2026-11-21.md`). Found on the way: `plan-summary.mjs` would have refused a moves-only plan; fixed. Step 2b built the same day: the stages are in `pipelines/templates/environment-stages.yml` and the dev file passes its connections and approval environments; substituting them back gives the original stages byte for byte.
 
 ```
 WI ID:               DEP-002
