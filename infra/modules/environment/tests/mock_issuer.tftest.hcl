@@ -42,6 +42,14 @@ run "by_default_the_mock_issuer_is_public_and_lets_only_customers_in" {
     condition     = length([for e in azurerm_container_app.mock[0].template[0].container[0].env : e if e.name == "MockOidc__IngressRestricted" && e.value == "false"]) == 1
     error_message = "With no allow-list the host must be told the ingress is NOT restricted."
   }
+  assert {
+    condition = (
+      length([for e in azurerm_container_app.mock[0].template[0].container[0].env : e if e.name == "MockOidc__AllowDeployed" && e.value == "true"]) == 1
+      && length([for e in azurerm_container_app.mock[0].template[0].container[0].env : e if e.name == "Deployment__Environment" && e.value == var.environment]) == 1
+      && length([for e in azurerm_container_app.mock[0].template[0].container[0].env : e if e.name == "MockOidc__AllowDeployedDev"]) == 0
+    )
+    error_message = "The host starts in Production only with MockOidc__AllowDeployed and an environment that says it is dev or uat (MockOidcDeployment, WI-DEP-002 step 4)."
+  }
 }
 
 run "an_admin_login_without_an_allow_list_is_refused_at_plan_time" {

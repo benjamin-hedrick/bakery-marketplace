@@ -8,8 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace BakeryMarketplace.Auth.Tests;
 
 /// <summary>
-/// The rule for running the mock issuer in a deployed dev environment (register item 102): Production is refused unless a named switch is set on
-/// safe terms, and a role outside the allowed list cannot be logged in as, whether the login page lists it or the id is posted by hand.
+/// The rule for running the mock issuer in a deployed dev or uat environment (register item 102, WI-DEP-002 step 4): Production is refused unless a named
+/// switch is set on safe terms, and a role outside the allowed list cannot be logged in as, whether the login page lists it or the id is posted by hand.
 /// </summary>
 [Collection("SequentialAuth")]
 public class MockOidcDeploymentTests
@@ -18,6 +18,10 @@ public class MockOidcDeploymentTests
         new ConfigurationBuilder().AddInMemoryCollection(values.Select(v => new KeyValuePair<string, string?>(v.Key, v.Value))).Build();
 
     private const string Https = "https://mock.example.test";
+
+    /// <summary>The switch and a deployed environment's name, as each environment's stack sets them, plus <paramref name="more"/>.</summary>
+    private static IConfiguration Deployed(string environment, params (string Key, string Value)[] more) =>
+        Config([(MockOidcDeployment.AllowDeployedKey, "true"), (MockOidcDeployment.DeploymentEnvironmentKey, environment), .. more]);
 
     // ---- the start-up rule ----------------------------------------------------------------------------------------------------
 
@@ -38,16 +42,43 @@ public class MockOidcDeploymentTests
     public void Production_WithTheSwitch_NeedsAnHttpsIssuer()
     {
         Assert.Throws<InvalidOperationException>(() => MockOidcDeployment.Resolve(
-            Config((MockOidcDeployment.AllowDeployedDevKey, "true"), ("MockOidc:Issuer", "http://mock.example.test")), isProduction: true));
-        Assert.Throws<InvalidOperationException>(() => MockOidcDeployment.Resolve(
-            Config((MockOidcDeployment.AllowDeployedDevKey, "true")), isProduction: true));
+            Deployed("dev", ("MockOidc:Issuer", "http://mock.example.test")), isProduction: true));
+        Assert.Throws<InvalidOperationException>(() => MockOidcDeployment.Resolve(Deployed("dev"), isProduction: true));
+    }
+
+    [Theory]
+    [InlineData("dev")]
+    [InlineData("uat")]
+    public void Production_WithTheSwitch_InDevOrUat_DefaultsToCustomerOnly(string environment)
+    {
+        var roles = MockOidcDeployment.Resolve(Deployed(environment, ("MockOidc:Issuer", Https)), isProduction: true);
+        Assert.Equal(["Customer"], roles);
+    }
+
+    [Theory]
+    [InlineData(null)] // no environment name
+    [InlineData("prod")]
+    [InlineData("production")]
+    [InlineData("staging")]
+    [InlineData("local")]
+    [InlineData("Dev")] // exactly dev
+    [InlineData("UAT")] // exactly uat
+    [InlineData("")]
+    public void Production_WithTheSwitch_IsRefusedInAnyOtherEnvironment(string? environment)
+    {
+        var settings = new List<(string, string)> { (MockOidcDeployment.AllowDeployedKey, "true"), ("MockOidc:Issuer", Https) };
+        if (environment is not null) settings.Add((MockOidcDeployment.DeploymentEnvironmentKey, environment));
+
+        var ex = Assert.Throws<InvalidOperationException>(() => MockOidcDeployment.Resolve(Config([.. settings]), isProduction: true));
+        Assert.Contains("only in a dev or uat environment", ex.Message);
     }
 
     [Fact]
-    public void Production_WithTheSwitch_DefaultsToCustomerOnly()
+    public void Production_TheOldDevOnlySwitchNameIsNoLongerHonoured()
     {
-        var roles = MockOidcDeployment.Resolve(Config((MockOidcDeployment.AllowDeployedDevKey, "true"), ("MockOidc:Issuer", Https)), isProduction: true);
-        Assert.Equal(["Customer"], roles);
+        var ex = Assert.Throws<InvalidOperationException>(() => MockOidcDeployment.Resolve(
+            Config(("MockOidc:AllowDeployedDev", "true"), (MockOidcDeployment.DeploymentEnvironmentKey, "dev"), ("MockOidc:Issuer", Https)), isProduction: true));
+        Assert.Contains("refuses to start in the Production", ex.Message);
     }
 
     [Theory]
@@ -55,12 +86,12 @@ public class MockOidcDeploymentTests
     [InlineData("Vendor")]
     public void Production_ARoleOtherThanCustomer_NeedsTheIngressToBeRestricted(string role)
     {
-        var withoutRestriction = Config(
-            (MockOidcDeployment.AllowDeployedDevKey, "true"), ("MockOidc:Issuer", Https), ($"{MockOidcDeployment.AllowedRolesKey}:0", "Customer"), ($"{MockOidcDeployment.AllowedRolesKey}:1", role));
+        var withoutRestriction = Deployed(
+            "uat", ("MockOidc:Issuer", Https), ($"{MockOidcDeployment.AllowedRolesKey}:0", "Customer"), ($"{MockOidcDeployment.AllowedRolesKey}:1", role));
         Assert.Throws<InvalidOperationException>(() => MockOidcDeployment.Resolve(withoutRestriction, isProduction: true));
 
-        var restricted = Config(
-            (MockOidcDeployment.AllowDeployedDevKey, "true"), ("MockOidc:Issuer", Https), ($"{MockOidcDeployment.AllowedRolesKey}:0", "Customer"), ($"{MockOidcDeployment.AllowedRolesKey}:1", role),
+        var restricted = Deployed(
+            "uat", ("MockOidc:Issuer", Https), ($"{MockOidcDeployment.AllowedRolesKey}:0", "Customer"), ($"{MockOidcDeployment.AllowedRolesKey}:1", role),
             (MockOidcDeployment.IngressRestrictedKey, "true"));
         Assert.Contains(role, MockOidcDeployment.Resolve(restricted, isProduction: true)!);
     }
