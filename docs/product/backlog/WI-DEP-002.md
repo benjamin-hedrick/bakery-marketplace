@@ -1,4 +1,4 @@
-> **Status:** Proposed · the lead decides: the proposal below (register 229), first the ADR-0020 note and the two refactors (steps 1 and 2), which need the lead's approval before anything is built
+> **Status:** Proposed · the lead decided steps 2 to 7 on 2026-11-21 (below); open: the ADR-0020 note (decision 1), the questions at the end, then build in the order given
 
 ```
 WI ID:               DEP-002
@@ -11,78 +11,97 @@ Status:               Proposed
 Size:                 M
 ```
 
-> Written 2026-11-21 at the lead's request (register 229). The lead wants a UAT environment deployed next to DEV, and expects it to be small additive changes, because ADR-0020 decision 9 designed UAT in from the start. This spec says what of that design is already in the code, what is not, and the steps that close the difference. Nothing here is built.
+> Written 2026-11-21 at the lead's request (register 229). The lead wants a UAT environment deployed next to DEV, mainly so the same tests can run side by side in two deployed environments, and expects small additive changes because ADR-0020 decision 9 designed UAT in from the start. This spec says what of that design is already in the code, what is not, the lead's decisions, and the steps. Nothing here is built.
 
 **Context / Why**
 
-ADR-0020 decision 9 designed UAT and Prod as a second pipeline over the same templates, an environment root per folder validated on every pull request, and promotion of the same image digest after a recorded passing smoke in the environment before it. Decision 9 also said UAT and Prod would be reviewed and never run; the lead now wants UAT run. The lead has decided that UAT has its own Cosmos account, off the free tier (register 229).
+ADR-0020 decision 9 designed UAT and Prod as a second pipeline over the same templates, an environment root per folder validated on every pull request, and promotion of the same image digest after a recorded passing smoke in the environment before it. It also said UAT and Prod would be reviewed and never run; the lead now wants UAT run, on demand.
 
 **What of the design is already in the code (no change needed)**
 
 - `scripts/ci/dev-stack-env.sh` takes the environment as an argument, initialises `infra/environments/<environment>` with the state key `<environment>.tfstate`, and reads that environment's apps identity from the foundation's `app_identities` map.
-- The dev stack's names come from `var.environment` (`log-`, `cae-`, `budget-bakery-<environment>`); the resource group, vault and Cosmos names are variables; the budget is per environment.
-- `host_environment` refuses `Development` for any environment but `dev`, so a UAT root must run as `Staging` or `Production`, and chaos scenarios are refused outside dev (ADR-0024).
+- The dev stack's names come from `var.environment`; the resource group, vault, Cosmos names and both locations are variables; the budget is per environment.
+- `host_environment` refuses `Development` for any environment but `dev`, so a UAT root runs as `Staging` or `Production`; chaos scenarios are refused outside dev (ADR-0024).
 - The pipeline's steps read `ENVIRONMENT_NAME` and `RESOURCE_GROUP`; the identity check, the destroy guard and the teardown's emptiness check take the environment and group as arguments.
-- The foundation's `app_identities` is a list (`["dev"]` today), so a UAT apps identity with AcrPull is one more entry.
-- The mock issuer's guard is not tied to the name `dev`: a deployed issuer needs its switch, an https issuer and a role list (Customer only by default).
+- The foundation's `app_identities` is a list, so a UAT apps identity with AcrPull is one more entry.
 - The deployed suite, the warm-up, the latency run and the observe step take the public addresses and the group as arguments.
 
 **What is not (the difference)**
 
-1. **The Terraform is one root, not shared code.** `infra/environments/dev` holds every resource directly. A UAT root would have to copy about 680 lines, or the resources move into a module that both roots call. The `staging` folder the ADR mentions was never created.
-2. **The pipeline is one file, not templates.** `azure-pipelines-dev.yml` (578 lines) holds every stage; only the Terraform install is a template. Its approval environments (`dev-infra`, `dev-app`, `dev-destroy`), variables and connections are written into it. There is no promote pipeline and no check of a previous environment's smoke.
-3. **The seed refuses every deployed environment but dev.** `SeedTarget` accepts only `Deployment:Environment = dev` (register 224), so a UAT would start empty and the deployed suite could not run there.
-4. **The identities are dev's.** `bakery-deploy` is scoped to `rg-bakery-dev` and the foundation group; its Storage Blob Data Contributor on the `tfstate` container would also let it write a UAT state, and the other way round.
+1. **The Terraform is one root, not shared code.** `infra/environments/dev` holds every resource directly (about 680 lines).
+2. **The pipeline is one file, not templates.** `azure-pipelines-dev.yml` (578 lines) holds every stage; only the Terraform install is a template. There is no promote pipeline and no check of a previous environment's smoke.
+3. **The seed and the mock issuer are switched on by settings named for dev** (`Seed:AllowDeployedDev`, `MockOidc:AllowDeployedDev`), and the seed accepts only `Deployment:Environment = dev`.
+4. **The identities and the state container are dev's.** `bakery-deploy` is scoped to `rg-bakery-dev` and the foundation group, with Storage Blob Data Contributor on the one `tfstate` container.
 5. **ADR-0020 says promotion imports the digest into that environment's registry.** There is one registry, in the foundation.
+6. **The subscription allows one Container Apps environment per region** (Free Trial offer, spending limit on; read 2026-11-21: East US 1 of 1 used by dev, East US 2 0 of 1). UAT's environment therefore goes in East US 2, where dev's Cosmos account already is. A second Cosmos account (not on the free tier) is within the account limit; whether East US 2 has capacity for it is known only when it is created (East US refused dev's for "high demand").
 
-So the design holds, but two pieces were built only for dev and need a refactor first (items 1 and 2). The rest is additive.
+**Decided by the lead (2026-11-21)**
 
-**Proposal, in order (each step small, each one a commit)**
+- Step 2's two refactors are approved (decision 2).
+- UAT has its own state container (decision 3).
+- Seeding UAT is an option chosen per run (decision 4).
+- The mock issuer is extended to UAT, only so the same tests can run side by side in two deployed environments, and switched on per run (decision 5).
+- One subscription and one account: UAT goes in the same subscription, its environment in East US 2 (decision 6, from the quota above; the credits are left aside).
+- DEV stays up while the dev chaos work goes on (`WI-CHAOS-006`); UAT is created later (decision 7).
+- Run options become pipeline inputs where they can (below).
 
-1. **ADR-0020, a dated note** (the decision text is not edited): UAT is deployed on demand with the same gates, and created and torn down like dev; Prod stays designed only. UAT uses the foundation's registry (the same digest, nothing imported); a Prod registry of its own stays the design for Prod.
-2. **Refactors, no behaviour change, each proved before UAT exists:**
-   a. The dev root's resources move into `infra/modules/environment` (variables, outputs and the resources as they are). `infra/environments/dev` keeps its backend, provider and variable file and calls the module, with `moved` blocks so the state keeps every resource. Proof: `terraform-checks.mjs` passes, and a plan against the dev state shows no changes (from the lead's machine, read only).
-   b. The pipeline's stages move into `pipelines/templates/environment-stages.yml`, with parameters for the environment, the group, the approval environments, the connection ids, and whether the run builds images or promotes them. `azure-pipelines-dev.yml` calls it with the values it has today. Proof: `pipeline-structure.test.mjs` passes unchanged in what it checks, and the next dev run behaves as build 88 did.
-3. **`infra/environments/uat`**: a thin root calling the same module with `environment = "uat"`, `resource_group_name = "rg-bakery-uat"`, `host_environment = "Production"`, `cosmos_free_tier = false`, its own vault and Cosmos names and budget; `uat.tfvars.example`. `terraform-checks.mjs` validates it.
-4. **Foundation:** `app_identities = ["dev", "uat"]` (one more apps identity with AcrPull). Applied from the lead's machine after a plan is shown, as the foundation was on 2026-11-20.
-5. **Bootstrap for UAT (the lead, in Azure and Azure DevOps; IAM):** the group `rg-bakery-uat`; a deploy connection `bakery-uat-deploy` with the same roles as `bakery-deploy` but on `rg-bakery-uat` (Contributor, and RBAC Administrator limited by condition to the two Key Vault roles); the plan connection `bakery-plan` reused (Reader on the subscription already covers UAT); approval environments `uat-infra`, `uat-app`, `uat-destroy` with an approval, branch control (`main` only) and an exclusive lock; the pipeline variables. Recorded in an evidence file like `bootstrap-2026-11-19.md`.
-6. **`azure-pipelines-uat.yml`** (`trigger: none`, `pr: none`): the same template in promote mode. It takes a dev build number, refuses unless that run's smoke stage succeeded, and deploys that run's recorded digests (`dev-images-pushed`): no image is built for UAT. The plan, apply, deploy, smoke with the warm-up, observe and destroy stages are the template's, so UAT runs the code dev runs.
-7. **Seed data in UAT:** `SeedTarget` accepts `uat` as well as `dev`, never anything else, with tests; the seed job is in the module, so UAT gets the same seed. (If the lead prefers an empty UAT, this step goes and the deployed suite does not run there.)
-8. **Mock issuer in UAT:** the same switch and limits as dev (public, Customer logins only). No code change; it is an auth setting, so it is the lead's call. Entra stays the later step (register 222).
-9. **Runbooks and evidence:** the teardown runbook names UAT; the first UAT run, its smoke and its teardown are recorded under `docs/evidence/WI-DEP-002/`.
+**Run options as pipeline inputs**
 
-**Decisions for the lead**
+The pipeline already takes `action` (deploy or destroy) and `planMode` (real or rehearsal). The proposal adds inputs of two kinds, so each lands where it is reviewed:
 
-1. Approve the ADR-0020 note in step 1 (UAT run on demand; one shared registry for dev and UAT).
-2. Approve the two refactors of step 2 (module extraction with `moved` blocks; pipeline stages into a template), done before any UAT code and proved to change nothing for dev.
-3. State isolation: share the `tfstate` container (simplest; each deploy identity could write the other's state), or give UAT its own container `tfstate-uat` with its deploy identity's role on that container only (one more backend setting; dev unchanged). Proposed: UAT's own container.
-4. Seed UAT with the demo data (step 7), or keep it empty.
-5. The mock issuer in UAT (step 8).
-6. Which subscription the trial credits are on. A new subscription means a fresh bootstrap (state account, registry or cross-subscription pull, connections), not the steps above; and free-trial subscriptions have low quotas that may refuse a second Container Apps environment or a second Cosmos account.
-7. Whether DEV stays up while UAT is built, or both are created for the side-by-side run and torn down after.
+| Input | Kind | Dev | UAT | How it is applied |
+|---|---|---|---|---|
+| `seed` | run | default on | default off | the application deploy runs the seed job, or skips it |
+| `mockIssuer` | infrastructure | always on (dev's only issuer) | default off; on for a side-by-side run | a Terraform variable: the mock issuer app and the services' issuer settings exist only when on, so turning it on or off is a plan change behind the infrastructure approval |
+| `issuerRoles`, `issuerAllowedIps` | infrastructure | Customer only, no list | the same | Terraform variables (the existing `issuer_roles` and `allowed_ips`); Vendor or Admin logins need an allow-list, as the issuer's guard already requires |
+| `chaosScenario` | run | `none` or one of a fixed list | not offered | dev only: a chaos stage switches it on, runs its spec, and switches it off (`WI-CHAOS-006`) |
+| `devBuild` | run | not offered | the dev build to promote | refuses a build whose smoke did not pass |
+
+An infrastructure input is passed to the plan and to the re-plan after approval the same way, so the approved plan is the applied plan (ADR-0020 decision 6). A run input is recorded in the deployment record. Neither kind can name a value outside the list the pipeline file allows.
+
+**Steps, in order (each step small, each one a commit)**
+
+1. **ADR-0020, a dated note** (the decision text is not edited): UAT is deployed on demand with the same gates, created and torn down like dev; Prod stays designed only. UAT uses the foundation's registry (the same digest, nothing imported); a Prod registry of its own stays the design for Prod. UAT may run the mock issuer, only when a run asks for it, until Entra (register 222).
+2. **Refactors, no behaviour change, proved before UAT exists:**
+   a. The dev root's resources move into `infra/modules/environment`. `infra/environments/dev` keeps its backend, provider and variable file and calls the module, with `moved` blocks so the state keeps every resource. `chaos-not-deployed.test.mjs` is changed to match: the module may name the chaos and deployment-environment settings only through `var.environment`, and no root but dev may set `environment = "dev"`. Proof: `terraform-checks.mjs` passes, and a plan against the dev state shows no changes (read only, from the lead's machine).
+   b. The pipeline's stages move into `pipelines/templates/environment-stages.yml`, with parameters for the environment, the group, the approval environments, the connection ids, whether the run builds or promotes images, and the inputs above. `azure-pipelines-dev.yml` calls it with today's values. Proof: `pipeline-structure.test.mjs` checks the same things, and the next dev run behaves as build 88 did.
+3. **The inputs** of the table above, in the template, the module and the scripts, defaulting to what dev does today.
+4. **Settings named for deployed environments, not for dev** (the lead's approval; auth): `Seed:AllowDeployed` and `MockOidc:AllowDeployed` replace the `...Dev` names, and both accept only `Deployment:Environment` of `dev` or `uat`, never anything else. The mock issuer keeps every other limit (https issuer, Customer only unless an allow-list). Tests in the seed and auth projects.
+5. **`infra/environments/uat`**: a thin root calling the module with `environment = "uat"`, `resource_group_name = "rg-bakery-uat"`, `location = "eastus2"`, `host_environment = "Production"`, `cosmos_free_tier = false`, its own vault and Cosmos names and budget, and the `tfstate-uat` container; `uat.tfvars.example`. `terraform-checks.mjs` validates it.
+6. **Foundation:** `app_identities = ["dev", "uat"]` (one more apps identity with AcrPull). Applied from the lead's machine after the plan is shown, as on 2026-11-20.
+7. **Bootstrap for UAT (the lead, in Azure and Azure DevOps; IAM):** the group `rg-bakery-uat`; the container `tfstate-uat`; a deploy connection `bakery-uat-deploy` with `bakery-deploy`'s roles moved to `rg-bakery-uat` (Contributor; RBAC Administrator limited by condition to the two Key Vault roles; Storage Blob Data Contributor on `tfstate-uat` only; the foundation's outputs as pipeline variables rather than a read of the `tfstate` container, which also holds dev's state and so dev's Cosmos keys, register 214); `bakery-plan` reused (Reader on the subscription covers UAT; Storage Blob Data Reader added on `tfstate-uat`); approval environments `uat-infra`, `uat-app`, `uat-destroy` with an approval, branch control (`main` only) and an exclusive lock; the pipeline variables. Recorded like `bootstrap-2026-11-19.md`.
+8. **`azure-pipelines-uat.yml`** (`trigger: none`, `pr: none`): the template in promote mode. It takes `devBuild`, refuses unless that run's smoke stage succeeded, and deploys that run's recorded digests: no image is built for UAT.
+9. **Runbooks and evidence:** the teardown runbook names UAT; the first UAT run, a side-by-side run of the deployed suite against both, and the UAT teardown are recorded under `docs/evidence/WI-DEP-002/`.
 
 **Cost (while UAT is up)**
 
-The same shape as dev (`docs/management/budget-cost-estimate.md`): three Redis apps always on, the other apps scaled to zero, Key Vault and Log Analytics at small usage, plus a Cosmos account off the free tier at 400 RU/s shared (about 0.03 USD an hour, about 0.77 a day). The Container Apps monthly free grant is per subscription, so two environments use it up about twice as fast. The registry is shared and already paid for. A budget alert per environment (a notification only).
+The same shape as dev (`docs/management/budget-cost-estimate.md`): three Redis apps always on, the other apps scaled to zero, Key Vault and Log Analytics at small usage, plus a Cosmos account off the free tier at 400 RU/s shared (about 0.03 USD an hour, 0.77 a day). The Container Apps monthly free grant is per subscription, so two environments use it about twice as fast. The registry is shared. A budget alert per environment. On a Free Trial with the spending limit on, Azure disables the subscription's resources when the credit runs out or the trial ends; the trial's end date is on the subscription's page in the portal.
 
 **Out of scope**
 
-- Deploying Prod (designed only, as ADR-0020 says); a Prod root may be added later the same way and validated, never applied.
-- Chaos in UAT (refused outside dev by design, ADR-0024).
-- Entra External ID (register 222), the vendor app (register 219), the Android app against a deployed environment (register 220).
+- Deploying Prod (designed only); chaos in UAT (refused by design); Entra External ID (register 222); the vendor app (register 219); the Android app against a deployed environment (register 220).
 
 **Requirements / Acceptance Criteria**
 
-- A dev plan after step 2a shows no changes, and a dev run after step 2b behaves as build 88 did (the same stages, smoke 12 of 12 on fresh seed data).
+- A dev plan after step 2a shows no changes, and a dev run after step 2b behaves as build 88 did.
 - A UAT run promotes a dev build whose smoke passed, refuses one whose smoke failed or is missing, and builds no image.
+- A UAT run without `mockIssuer` has no mock issuer; with it, the deployed suite passes in UAT and in dev in the same session (the side-by-side run).
 - UAT's smoke (with the warm-up) and observe stages pass, and their evidence is recorded.
-- A UAT teardown leaves `rg-bakery-uat` empty and the foundation, the tfstate account and dev untouched.
+- A UAT teardown leaves `rg-bakery-uat` empty, and the foundation, the state account and dev untouched.
 - Anything found while doing it and not fixed is recorded in the register in the same change.
+
+**Questions for the lead**
+
+1. The ADR-0020 note of step 1, as worded.
+2. With `mockIssuer` off, UAT has no issuer at all, so only its public pages work. Is that the default you want, or should UAT's default be on?
+3. Step 4 renames two settings and widens them to `uat`: approve (it is auth and seed logic)?
+4. UAT's host runs as `Production`. Dev has never run the services as Production in Azure, so UAT is the first place a Production-only difference would show. Accept it as part of what UAT tests?
+5. UAT needs the foundation's outputs (registry, its apps identity). Reading them from the foundation's state would give UAT's identity read access to the `tfstate` container, which holds dev's state too. Proposed: UAT gets them as pipeline variables (they change only when the foundation is applied), and `dev-stack-env.sh` takes either source. Agree?
 
 **Dependencies**
 
-- Blocked by: the lead's decisions above.
-- Builds on: `WI-DEP-001` (the dev environment, build 88, `docs/evidence/WI-DEP-001/first-full-dev-deploy-2026-11-21.md`).
+- Blocked by: the questions above.
+- Builds on: `WI-DEP-001` (build 88, `docs/evidence/WI-DEP-001/first-full-dev-deploy-2026-11-21.md`). Shares the template work of step 2b with `WI-CHAOS-006`.
 
 **Inputs / References**
 
