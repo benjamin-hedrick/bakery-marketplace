@@ -1,4 +1,4 @@
-> **Status:** In progress · the lead agreed the whole plan and the request-sequence triggers (2026-11-21). Built: the observe step's chaos counts, and step 2 (the C# library applies `where`, `off` and `signals`, with shared vectors). Remaining: steps 1, 3 to 7
+> **Status:** In progress · the lead agreed the whole plan and the request-sequence triggers (2026-11-21). Built: the observe step's chaos counts, and step 2 (the C# library applies `where`, `off` and `signals`, with shared vectors). Remaining: the lead's decisions on the four design findings below, then steps 1, 3 to 7
 
 ```
 WI ID:               CHAOS-006
@@ -36,6 +36,22 @@ Size:                 L
 
 - Step 2 (2026-11-21): the C# library applies `where`, `off` and `signals` (`ChaosRuntime.Signal`, `ChaosLayer.Disturbs`, `ChaosMatching`); every C# layer asks `Disturbs` first and passes a call it is not aimed at straight through. `chaos/match-vectors.json` holds the shared cases (payload patterns, rules against calls, and two runs of signals); the Node and C# suites both reproduce them. The key and payload a rule sees per layer are in `chaos/README.md`; ADR-0024 has a dated note. Tests: the chaos library 79 of 79 (all earlier tests unchanged), the Node chaos package 71 of 71, ordering 551, catalog 411, notification 64 passed (Redis and Cosmos tests skipped without their containers).
 - `dev-observe.mjs` counts, per app, the scenarios that started (`chaosScenariosOn`) and the faults injected by layer and fault (`chaosInjected`), counts only. Run against the dev workspace on 2026-11-21: both read, 0 rows.
+
+**Design findings, 2026-11-21 (while making the first wave concrete; for the lead's decision before the seed data and the scenario are built)**
+
+1. **A service's faults are not visible to the browser.** ADR-0024 decision 10: "A service's own faults are reported by that service; the BFF does not copy them to the client." So a browser test sees `X-Chaos-Injected` for the BFF's and the web app's own layers only; a payment, catalog-gateway or repository fault in ordering or catalog never reaches it, and a chaos-aware test could not fail itself when its fault did not happen. Faults in event handlers happen after the response in any case. **Proposed:** (a) a dated note on ADR-0024 so the BFF copies a service's `X-Chaos-Injected` into its own, each name prefixed with the service (`ordering/payment:lostResponse`), and the web app passes it on, as it already passes the BFF's; composition only, no rule. (b) For faults with no response to carry them (events), the observe stage checks the journal in the environment's log by each chaos test's trace id (the C# journal line carries it) and fails when an expected fault is missing.
+2. **The doors (`bff`, `web`) are not aimed.** They apply `latencyMs`, the outage window and the rates to every request; `where` is not applied at a door, so a door fault in `dev-chaos` would reach the regular tests. **Proposed:** the door applies `where` too, matching the request's own trace id as the key (a test that wants a door fault sends its own `traceparent`, the W3C header every client may send, ADR-0016) and, at the BFF, the customer from the bearer token.
+3. **One fault profile per layer.** A layer's settings apply to every call its `where` matches, so within one scenario two chaos data points cannot get two different faults from the same layer. The first wave fits (each fault on its own layer), and `dev-chaos` can hold one aimed profile on each of the thirteen layers. **Proposed:** start within this; if a second profile on one layer is needed later, per-rule settings in `where` is a format change in both libraries and an ADR note.
+4. **Chaos seed data is visible.** A chaos vendor and its listings appear on the home page and in search, in dev and UAT alike. **Proposed:** a vendor named "Chaos Test Bakery" and listings that say "(chaos test)", visible; hiding them from browsing would be a product rule (a new kind of listing), not seed data.
+
+**The first wave, concretely (proposed)**
+
+| Layer (process) | Aimed at (new seed data) | Fault | Trigger | What a test asserts, in dev and in UAT |
+|---|---|---|---|---|
+| `payment` (ordering) | the payment method `pm-chaos-lost` of a new chaos customer | `lostResponseRate` 1: the authorization is made, the answer is lost | always on | the order ends confirmed or refused, exactly once; never two authorizations; a refused order's authorization is voided |
+| `catalog` (ordering's gateway) | `reserve` of an order whose one line is `listing-chaos-reserve-001` | `rejectRate` 1: the stock check says no | always on | the order is refused for stock, and the listing's stock is unchanged |
+| `bffCatalog` (BFF) | the listing `listing-chaos-outage-001` | `unavailableRate` 1, the layer off at start | reading `listing-chaos-outage-on` switches it on, reading `listing-chaos-outage-off` switches it off | the listing page says it is not available just now while on, and shows the listing again after off |
+| `bff` door (BFF) | the test's own trace id (finding 2) | `latencyMs` 2000 | always on | the page waits, then loads; nothing else is slowed |
 
 **Order of building, after agreement**
 
