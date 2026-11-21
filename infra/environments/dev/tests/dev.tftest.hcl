@@ -321,6 +321,47 @@ run "cosmos_is_in_its_own_region_not_the_resource_groups" {
   }
 }
 
+run "the_seed_job_is_started_by_hand_and_names_the_dev_switch_with_its_database_secret_from_the_vault" {
+  command = plan
+
+  assert {
+    condition     = length(azurerm_container_app_job.seed.manual_trigger_config) == 1 && length(azurerm_container_app_job.seed.schedule_trigger_config) == 0 && length(azurerm_container_app_job.seed.event_trigger_config) == 0
+    error_message = "The seed job runs only when the application deploy starts it (register 224)."
+  }
+  assert {
+    condition = (
+      length([for e in azurerm_container_app_job.seed.template[0].container[0].env : e if e.name == "Seed__AllowDeployedDev" && e.value == "true"]) == 1
+      && length([for e in azurerm_container_app_job.seed.template[0].container[0].env : e if e.name == "Deployment__Environment" && e.value == "dev"]) == 1
+    )
+    error_message = "The seed refuses a cloud database unless the job sets Seed__AllowDeployedDev=true and Deployment__Environment=dev (SeedTarget)."
+  }
+  assert {
+    condition = (
+      length([for e in azurerm_container_app_job.seed.template[0].container[0].env : e if e.name == "Cosmos__ConnectionString" && e.secret_name == "cosmos-connection-string" && e.value == null]) == 1
+      && one(azurerm_container_app_job.seed.secret).identity == var.app_identity_id
+    )
+    error_message = "The seed's connection string is the Key Vault secret, read by the apps identity, never a literal value."
+  }
+  assert {
+    condition     = azurerm_container_app_job.seed.replica_retry_limit == 0 && azurerm_container_app_job.seed.workload_profile_name == "Consumption"
+    error_message = "A failed seed is not retried; the job names the Consumption profile like the apps."
+  }
+}
+
+run "the_seed_job_names_another_environment_when_the_stack_is_not_dev" {
+  command = plan
+
+  variables {
+    environment      = "uat"
+    host_environment = "Production"
+  }
+
+  assert {
+    condition     = length([for e in azurerm_container_app_job.seed.template[0].container[0].env : e if e.name == "Deployment__Environment" && e.value == "uat"]) == 1
+    error_message = "The job passes the stack's own environment name, so the seed's guard refuses it anywhere but dev."
+  }
+}
+
 run "every_app_names_the_consumption_profile_azure_assigns" {
   command = plan
 

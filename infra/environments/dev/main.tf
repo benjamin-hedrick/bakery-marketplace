@@ -504,6 +504,76 @@ resource "azurerm_container_app" "apps" {
   depends_on = [azurerm_container_app.redis, azurerm_container_app.redis_cache, azurerm_container_app.redis_sessions, azurerm_container_app.mock]
 }
 
+# ---- The seed job (register item 224; decided by the lead 2026-11-20) -------------------------------------------------------------------
+# The seed runs inside the environment because its VendorVerified events go to the events Redis, which only apps in the environment can reach. Started by
+# hand from the application deploy (az containerapp job start), never on a schedule. The seed's own guard (SeedTarget) refuses any database but the local
+# emulator unless both settings below are present, and creates nothing here: the containers above are this stack's. Billed only while it runs.
+resource "azurerm_container_app_job" "seed" {
+  name                         = "seed"
+  resource_group_name          = local.rg
+  location                     = local.location
+  container_app_environment_id = azurerm_container_app_environment.env.id
+  workload_profile_name        = "Consumption" # what Azure assigns anyway (see the environment)
+  replica_timeout_in_seconds   = 600
+  replica_retry_limit          = 0 # a failed seed is looked at, not retried
+  tags                         = local.tags
+
+  manual_trigger_config {
+    parallelism              = 1
+    replica_completion_count = 1
+  }
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.app_identity_id]
+  }
+
+  registry {
+    server   = var.registry_login_server
+    identity = var.app_identity_id
+  }
+
+  secret {
+    name                = "cosmos-connection-string"
+    identity            = var.app_identity_id
+    key_vault_secret_id = azurerm_key_vault_secret.placeholder["cosmos-connection-string"].versionless_id
+  }
+
+  template {
+    container {
+      name   = "seed"
+      image  = var.image_placeholder
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      dynamic "env" {
+        for_each = {
+          Seed__AllowDeployedDev  = "true"
+          Deployment__Environment = var.environment # the seed refuses anything but "dev"
+          Redis__ConnectionString = local.dotnet_env.Redis__ConnectionString
+          Cosmos__Database        = local.dotnet_env.Cosmos__Database
+        }
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
+      env {
+        name        = "Cosmos__ConnectionString"
+        secret_name = "cosmos-connection-string"
+      }
+    }
+  }
+
+  # The application deploy owns the image, as for the apps.
+  lifecycle {
+    ignore_changes = [template[0].container[0].image]
+  }
+
+  depends_on = [azurerm_container_app.redis]
+}
+
 # ---- The mock issuer (register item 102; chosen for the first deployed dev environment on 2026-10-31) -------------------------
 # Public https ingress, because the browser logs in here. It signs tokens for whoever asks, so it is held to MockOidcDeployment: it starts in
 # Production only with AllowDeployedDev, an https issuer, and the role list below (Customer only unless allowed_ips is set). Its ordering client

@@ -90,6 +90,12 @@ public static class SeedData
             "Butter pastry with walnut and maple filling.",
             GlutenDairyTreeNut,
             Mod("mod-extra-walnuts-danish", "Extra walnuts", 75, "tree-nut")),
+        // Used only by the deployed dev suite's concurrency test (WI-DEP-001, register 218): several seeded customers order it at once, and exactly as many as
+        // its stock may succeed. Little stock, one per order, no options and no allergens, so no customer's allergy profile asks for an acknowledgement and no
+        // other test shares its stock. Its id sorts after every other listing, so it comes last in browse and the others keep their places.
+        Listing("listing-yuzu-lemonade-001", ShopVendorId, "Yuzu Lemonade", "drink", 450,
+            "Sparkling lemonade with yuzu juice.",
+            Array.Empty<string>()),
         // Negative case: must never appear in browse (publish gate / Published filter).
         Listing("listing-draft-001", ShopVendorId, "Draft Seasonal Tart", "pastry", 300,
             "Unfinished listing used to prove the publish gate.",
@@ -106,6 +112,7 @@ public static class SeedData
         ["listing-croissant-001"] = (4, null),
         ["listing-cookies-001"] = (24, 6),
         ["listing-muffin-001"] = (0, null),
+        ["listing-yuzu-lemonade-001"] = (2, 1), // the concurrency test's: fewer than the customers who try at once
     };
 
     // Tags (WI-TAG-002, ADR-0022): a few diet, occasion and season tags, one with a window, and one hidden platform tag that only tests look for.

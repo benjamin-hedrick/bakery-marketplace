@@ -7,9 +7,11 @@
 // 1. For every app first, before anything changes: reads the image it runs now. The placeholder Terraform creates it with (or puts back, register
 //    217) counts as "no build yet"; an image of this registry counts as the build its tag names (the push tags each image with the build id). It
 //    refuses the whole deploy if any app runs a newer build than this one, or an image it cannot place.
-// 2. Updates each app to its digest from the record, with a new revision named for this run (a new revision also reads the Key Vault secrets the
+//    The seed job's image is checked the same way.
+// 2. Runs the seed job (register 224) on its digest and waits until the execution has succeeded; a failed seed stops the deploy before any app changes.
+// 3. Updates each app to its digest from the record, with a new revision named for this run (a new revision also reads the Key Vault secrets the
 //    step before may have set), and waits until each new revision is provisioned.
-// 3. Writes the record of what each app ran before and runs now.
+// 4. Writes the record of what each app and job ran before and runs now, and the seed's execution name (its output is in the environment's log).
 // Exit code 0 = deployed, 1 = refused or an Azure call failed, 2 = bad usage.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -21,6 +23,13 @@ export const PLACEHOLDER = 'mcr.microsoft.com/k8se/quickstart:latest';
 
 /** The order of the updates: the issuer first, then the services, the BFF and the web app (each only reaches the ones before it). */
 export const ORDER = ['mock-oidc', 'catalog', 'ordering', 'graphql-bff', 'web'];
+
+/** The container app jobs, run once per deploy before the apps are updated: the seed (register 224). */
+export const JOBS = ['seed'];
+
+/** The job execution states Container Apps reports; anything else is still running. */
+const DONE_OK = new Set(['Succeeded']);
+const DONE_BAD = new Set(['Failed', 'Degraded', 'Stopped']);
 
 /** A revision suffix: lower-case letters, digits and '-', starting with a letter (Container Apps' rule), short enough for every app name. */
 export function checkSuffix(suffix) {
@@ -55,9 +64,10 @@ export function refusals(record, current) {
   const build = Number(record.tag);
   if (!/^\d+$/.test(String(record.tag))) problems.push(`the record's build tag is not a build id: ${record.tag}`);
   const apps = (record.images ?? []).map((i) => i.app).sort();
-  if (JSON.stringify(apps) !== JSON.stringify([...ORDER].sort()))
-    problems.push(`the record holds ${JSON.stringify(apps)}, expected ${JSON.stringify([...ORDER].sort())}`);
-  for (const app of ORDER) {
+  const expected = [...ORDER, ...JOBS].sort();
+  if (JSON.stringify(apps) !== JSON.stringify(expected))
+    problems.push(`the record holds ${JSON.stringify(apps)}, expected ${JSON.stringify(expected)}`);
+  for (const app of [...JOBS, ...ORDER]) {
     const now = current[app];
     if (!now) continue;
     const where = classify(now.image, record.registry);
@@ -109,9 +119,10 @@ export function deploy(
   checkSuffix(suffix);
   const registryName = record.registry.split('.')[0];
   const current = {};
-  for (const app of ORDER) {
+  for (const app of [...JOBS, ...ORDER]) {
+    const group = JOBS.includes(app) ? ['containerapp', 'job'] : ['containerapp'];
     const image = az([
-      'containerapp',
+      ...group,
       'show',
       '--name',
       app,
@@ -152,6 +163,67 @@ export function deploy(
     throw error;
   }
 
+  // The seed first: the apps' new revisions then find the data, and the catalog applies the seed's VendorVerified events when it starts.
+  const jobs = [];
+  for (const job of JOBS) {
+    const image = record.images.find((i) => i.app === job).image;
+    az([
+      'containerapp',
+      'job',
+      'update',
+      '--name',
+      job,
+      '--resource-group',
+      resourceGroup,
+      '--image',
+      image,
+      '--output',
+      'none',
+    ]);
+    const execution = az([
+      'containerapp',
+      'job',
+      'start',
+      '--name',
+      job,
+      '--resource-group',
+      resourceGroup,
+      '--query',
+      'name',
+      '--output',
+      'tsv',
+    ]).trim();
+    if (!execution) throw new Error(`${job}: the job did not start (no execution name)`);
+    log(`${job}: execution ${execution} started, ${image}`);
+    const deadline = clock.now() + timeoutMs;
+    for (;;) {
+      const status = az([
+        'containerapp',
+        'job',
+        'execution',
+        'show',
+        '--name',
+        job,
+        '--resource-group',
+        resourceGroup,
+        '--job-execution-name',
+        execution,
+        '--query',
+        'properties.status',
+        '--output',
+        'tsv',
+      ]).trim();
+      if (DONE_OK.has(status)) break;
+      if (DONE_BAD.has(status))
+        throw new Error(`${job}: execution ${execution} ended ${status}; its output is in the environment's log`);
+      if (clock.now() >= deadline)
+        throw new Error(`${job}: execution ${execution} still ${status || 'unknown'} after ${timeoutMs / 1000} s`);
+      clock.wait(pollMs);
+    }
+    log(`${job}: execution ${execution} succeeded`);
+    jobs.push({ job, before: current[job].image, beforeBuild: current[job].build ?? null, image, execution });
+  }
+
   const deployed = [];
   for (const app of ORDER) {
     const image = record.images.find((i) => i.app === app).image;
@@ -183,7 +255,7 @@ export function deploy(
     log(`${app}: revision ${revision} provisioned, ${image}`);
     deployed.push({ app, before: current[app].image, beforeBuild: current[app].build ?? null, image, revision });
   }
-  return { build: record.tag, revision: record.revision, deployed };
+  return { build: record.tag, revision: record.revision, jobs, deployed };
 }
 
 function main() {
