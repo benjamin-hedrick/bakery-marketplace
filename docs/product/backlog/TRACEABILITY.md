@@ -30,6 +30,7 @@ Of 56 work items marked Done: 30 are named by a test file, 21 by an evidence rec
 | [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | In review | `chaos-outcomes.test.ts` | `README.md`, `README.md`, `flows-07-11-2026-11-11.md` and 3 more |
 | [CHAOS-004](WI-CHAOS-004.md) | Chaos scenarios: a layer on the web servers' session store | In review | `session-outage.spec.ts`, `chaos-store.test.ts` | `README.md`, `README.md`, `README.md` and 1 more |
 | [CHAOS-005](WI-CHAOS-005.md) | Chaos scenarios: the web apps' Relay network functions against an equivalence contract | Done | `relay-network.test.ts`, `relay-network.test.ts`, `relay-network-contract.ts` | `README.md`, `ai-usage-2026-11-16-b.md`, `ai-usage-2026-11-17-c.md` |
+| [CHAOS-006](WI-CHAOS-006.md) | Chaos scenarios in the deployed dev environment: a pipeline input, a chaos stage that switches a scenario on and off, deployed specs | In progress | *none* | *none* |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | Done | *none* | *none* |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | Done | *none* | `baseline-2026-10-30.md` |
