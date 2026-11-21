@@ -1294,7 +1294,7 @@ Status: Open · fix approved by the lead and built 2026-11-20; open until a depl
 
 **227. An apply that times out on a create can leave the resource in Azure but outside the state; the next apply and the teardown then fail on it**
 Type: Risk (seen once) · Source: the first full dev deploy run, 2026-11-20 (`docs/evidence/WI-DEP-001/first-full-dev-runs-2026-11-20.md`) · Hat: Platform Engineering
-Status: Open · the create limit was raised and the runbook updated on 2026-11-20 (lead's go-ahead); the cause is not known
+Status: Resolved 2026-11-21 (build 88 created the environment in 14 min 43 s, inside the limit) · was: Open · the create limit was raised and the runbook updated on 2026-11-20 (lead's go-ahead); the cause is not known
 Azure accepted the create of the Container Apps environment and left it `Waiting` for more than 77 minutes. The provider stopped polling at its default 30 minutes (`context deadline exceeded`) and recorded nothing, so the environment was in Azure but not in the state. In that position the next apply would fail because the name is taken. The destroy cannot see the resource, so the teardown's emptiness check fails on it (it did, correctly). The lead approved deleting it by hand; it took about 25 minutes to go. No service health event was listed, the same definition had been created before without trouble, and East US had refused a Cosmos account for "high demand" the same day, so capacity is a guess.
 **Update 2026-11-21 (activity log):** the create did end, `Succeeded` about 77 minutes after it was accepted, a minute before the delete; a normal create of the same definition took 14.5 minutes. The 45-minute limit allows a slow create of that kind (the apps then add about a minute), not one like this run's.
 
@@ -1308,3 +1308,31 @@ Azure accepted the create of the Container Apps environment and left it `Waiting
 Also not explained: the deploy identity went on reading the environment about every 15 seconds for about 17 minutes after the apply step ended.
 
 Reconciled when a full deploy run creates the environment within the limit, or the lead picks one of the options above.
+
+**Resolved 2026-11-21:** build 88 (the first complete dev deploy, `docs/evidence/WI-DEP-001/first-full-dev-deploy-2026-11-21.md`) created the environment in 14 min 43 s in East US, unchanged. The cause of the 77-minute create is still not known; if it recurs, the three options above are where to start.
+
+**228. The deployed apps start from zero one at a time, and a cold start takes about 20 to 45 seconds an app**
+Type: Finding (measured) · Source: the deployed suite from the lead's machine, 2026-11-21 (`docs/evidence/WI-DEP-001/first-full-dev-deploy-2026-11-21.md`) · Hat: Platform Engineering
+Status: Resolved 2026-11-21 (the lead: keep scale to zero, add a warm-up step, measure the cold starts) · was: Open
+The five apps scale to zero when idle (ADR-0020, decision 7). Each wakes only when something calls it, so after an idle period the first request wakes the web app, which then wakes the BFF, which then wakes catalog: the first page took 3 minutes. Run against an idle environment, the deployed suite failed three tests on cold starts (the issuer's first answer over the 30-second request limit, and the pickup windows twice while ordering started); warm, the same suite passed. The pipeline's own smoke had passed because it runs straight after the deploy has started every app.
+
+**Decided by the lead (2026-11-21):** for a demo, scaling to zero is right and stays. The cold starts are worth measuring, so: when they happen and how long they take.
+
+**Done:** `scripts/ci/deployed-warm-up.mjs` wakes the apps one at a time in the order they call each other (issuer, web, BFF, catalog, ordering) and records when each step started, how long until its first good answer, and every attempt. It is the deployed suite's global setup (`apps/web-customer/tests/deployed/warm-up.ts`), so no run of the suite skips it, from the pipeline (`DEPLOYED_WHERE=agent`) or the lead's machine (`DEPLOYED_WHERE=lead`); its record is `warm-up.json` with the suite's evidence and its table goes to the step's log. Run from the lead's machine on 2026-11-21; not yet run by the pipeline. `scripts/ci/dev-observe.mjs` adds the platform's side, `coldStarts` (every replica start in the window: from the platform assigning the replica to its container starting), and takes `--since <time>` for a window the lead reads from their machine. Not test-only functionality: it calls the public addresses the suite already calls, and changes nothing in the apps.
+
+First numbers (the evidence file): the client's warm-up 20 to 26 seconds an app, 112 seconds in all; the platform's replica starts about 40 seconds at 16:50 and about 17 seconds at 17:08 for the same images (not explained).
+
+**229. UAT next to DEV: the lead's direction, and what it changes**
+Type: Decision needed · Source: the lead, 2026-11-21 · Hat: Platform Engineering
+Status: Open
+The lead wants a UAT environment deployed next to DEV (with Azure trial credits), and more of the full tests and chaos running in the deployed environments.
+
+**Decided by the lead (2026-11-21):** UAT has its own Cosmos account, not on the free tier (`cosmos_free_tier = false`). The free tier is one account per subscription and stays with DEV. Alternatives weighed and not taken: the Cosmos emulator as a container app in DEV (DEV would no longer test the real adapter, and its data would go on every restart), and the in-memory store (`Data:Backend=fake`: one store per replica, emptied on every scale to zero, and the seed job cannot reach it). At 400 RU/s shared, a non-free account is about 0.03 USD an hour while it exists.
+
+**Open, for a proposal the lead approves before anything is built:**
+1. ADR-0020 decision 9 says UAT and Prod are designed and never run. Deploying UAT changes that: a dated amendment, the lead's approval.
+2. There is no `infra/environments/uat` root yet: the same modules as DEV, running as Production (no chaos, ADR-0024), its own state key and resource group.
+3. A deploy identity scoped to the UAT group (an IAM change), an Azure DevOps environment with its approval check, and a budget alert.
+4. Promotion by digest from a recorded passing DEV smoke, as ADR-0020 already designs, and which subscription the trial credits are on.
+
+Reconciled when the lead has approved or declined the proposal.
