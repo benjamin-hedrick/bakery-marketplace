@@ -1,4 +1,4 @@
-> **Status:** Proposed · the lead decided steps 2 to 7 on 2026-11-21 (below); open: the ADR-0020 note (decision 1), the questions at the end, then build in the order given
+> **Status:** In progress · every decision taken (2026-11-21); building step 2 (the refactors, approved); remaining: steps 1 and 3 to 9
 
 ```
 WI ID:               DEP-002
@@ -7,7 +7,7 @@ Type:                 Document/Artifact
 Epic:                 EPIC-CLOUD-INFRA
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Proposed
+Status:               In progress
 Size:                 M
 ```
 
@@ -54,7 +54,7 @@ The pipeline already takes `action` (deploy or destroy) and `planMode` (real or 
 | `seed` | run | default on | default off | the application deploy runs the seed job, or skips it |
 | `mockIssuer` | infrastructure | always on (dev's only issuer) | default off; on for a side-by-side run | a Terraform variable: the mock issuer app and the services' issuer settings exist only when on, so turning it on or off is a plan change behind the infrastructure approval |
 | `issuerRoles`, `issuerAllowedIps` | infrastructure | Customer only, no list | the same | Terraform variables (the existing `issuer_roles` and `allowed_ips`); Vendor or Admin logins need an allow-list, as the issuer's guard already requires |
-| `chaosScenario` | run | `none` or one of a fixed list | not offered | dev only: a chaos stage switches it on, runs its spec, and switches it off (`WI-CHAOS-006`) |
+| `chaosScenario` | infrastructure | `none` (default) or `dev-chaos` | not offered | dev only: a Terraform variable the module refuses outside dev; the scenario lives as long as the deployment, and the standard suite runs against it unchanged (`WI-CHAOS-006`) |
 | `devBuild` | run | not offered | the dev build to promote | refuses a build whose smoke did not pass |
 
 An infrastructure input is passed to the plan and to the re-plan after approval the same way, so the approved plan is the applied plan (ADR-0020 decision 6). A run input is recorded in the deployment record. Neither kind can name a value outside the list the pipeline file allows.
@@ -90,17 +90,17 @@ The same shape as dev (`docs/management/budget-cost-estimate.md`): three Redis a
 - A UAT teardown leaves `rg-bakery-uat` empty, and the foundation, the state account and dev untouched.
 - Anything found while doing it and not fixed is recorded in the register in the same change.
 
-**Questions for the lead**
+**Answered by the lead (2026-11-21, later)**
 
-1. The ADR-0020 note of step 1, as worded.
-2. With `mockIssuer` off, UAT has no issuer at all, so only its public pages work. Is that the default you want, or should UAT's default be on?
-3. Step 4 renames two settings and widens them to `uat`: approve (it is auth and seed logic)?
-4. UAT's host runs as `Production`. Dev has never run the services as Production in Azure, so UAT is the first place a Production-only difference would show. Accept it as part of what UAT tests?
-5. UAT needs the foundation's outputs (registry, its apps identity). Reading them from the foundation's state would give UAT's identity read access to the `tfstate` container, which holds dev's state too. Proposed: UAT gets them as pipeline variables (they change only when the foundation is applied), and `dev-stack-env.sh` takes either source. Agree?
+1. The ADR-0020 note of step 1: approved as worded.
+2. UAT's `mockIssuer` defaults to off; a run may switch it on, which UAT could not do before, so two deployed environments can be tested side by side sooner.
+3. The two settings are renamed and widened to `uat` (step 4): approved.
+4. UAT runs the services as Production, as part of what UAT tests: approved.
+5. The foundation's outputs reach UAT as pipeline variables, not through the `tfstate` container: approved, on the condition that no secret is exposed or logged. The outputs are a registry login server and an identity's resource id and principal id, none of them a secret; they are still set as plain pipeline variables (not printed by any step), and `dev-stack-env.sh` prints nothing but Terraform's own init output.
 
 **Dependencies**
 
-- Blocked by: the questions above.
+- Blocked by: none.
 - Builds on: `WI-DEP-001` (build 88, `docs/evidence/WI-DEP-001/first-full-dev-deploy-2026-11-21.md`). Shares the template work of step 2b with `WI-CHAOS-006`.
 
 **Inputs / References**
