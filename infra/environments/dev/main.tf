@@ -636,7 +636,10 @@ resource "azurerm_container_app" "mock" {
       dynamic "env" {
         for_each = merge(
           {
-            ASPNETCORE_ENVIRONMENT                                       = "Production" # deliberately not var.host_environment: Production is what makes the host enforce MockOidcDeployment
+            ASPNETCORE_ENVIRONMENT = "Production" # deliberately not var.host_environment: Production is what makes the host enforce MockOidcDeployment
+            # The ingress ends TLS and forwards plain http with X-Forwarded-Proto; without this the discovery document names http addresses, which the
+            # services refuse (register 226, approved by the lead 2026-11-20). From outside only the ingress reaches the app.
+            ASPNETCORE_FORWARDEDHEADERS_ENABLED                          = "true"
             Auth__Audience                                               = var.auth_audience
             MockOidc__AllowDeployedDev                                   = "true"
             MockOidc__Issuer                                             = local.mock_url

@@ -194,6 +194,10 @@ run "the_dotnet_services_run_as_this_environments_host_environment_and_the_mock_
     error_message = "The mock issuer must stay Production: that is what makes it enforce MockOidcDeployment."
   }
   assert {
+    condition     = length([for e in azurerm_container_app.mock[0].template[0].container[0].env : e if e.name == "ASPNETCORE_FORWARDEDHEADERS_ENABLED" && e.value == "true"]) == 1
+    error_message = "Behind the TLS-ending ingress the mock issuer must take the scheme from X-Forwarded-Proto, or its discovery document names http addresses the services refuse (register 226)."
+  }
+  assert {
     condition     = length([for e in azurerm_container_app.apps["bff"].template[0].container[0].env : e if e.name == "DEPLOYMENT_ENVIRONMENT" && e.value == "dev"]) == 1
     error_message = "The BFF is told which environment this is (the Node gate for chaos scenarios reads it, ADR-0024)."
   }
