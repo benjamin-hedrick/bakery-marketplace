@@ -240,7 +240,9 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
   });
 
   test('Terraform signs in with Azure DevOps token refresh, and the budget e-mail comes in as a mapped (secret) variable', () => {
-    const steps = [...text.matchAll(/source scripts\/ci\/dev-stack-env\.sh "\$\{(\w+):-\}"/g)].map((m) => m[1]);
+    const steps = [
+      ...text.matchAll(/source scripts\/ci\/dev-stack-env\.sh "\$\{(\w+):-\}" "\$\(ENVIRONMENT_NAME\)"\n/g),
+    ].map((m) => m[1]);
     assert.deepEqual(steps.sort(), [
       'DEPLOY_CONNECTION_ID',
       'DEPLOY_CONNECTION_ID',
@@ -253,6 +255,18 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
       assert.match(real(name), /addSpnToEnvironment: true/, name);
     }
     assert.doesNotMatch(text, /ARM_OIDC_TOKEN=|\$idToken/, 'the 10-minute token must not be used directly');
+  });
+
+  // In a deployment job Azure DevOps exports Environment.Name (dev-infra, dev-destroy) as ENVIRONMENT_NAME; the first dev deploy's apply step
+  // stopped silently on it (2026-11-20). The script takes the environment as an argument and names any foundation output it cannot find.
+  test('the shared Terraform setup never reads ENVIRONMENT_NAME from the environment, and names a missing foundation output', () => {
+    const code = read('scripts/ci/dev-stack-env.sh')
+      .split('\n')
+      .filter((l) => !/^\s*#/.test(l))
+      .join('\n');
+    assert.doesNotMatch(code, /\$\{?ENVIRONMENT_NAME/);
+    assert.match(code, /^environment="\$\{2:-\}"$/m);
+    assert.doesNotMatch(code, /^TF_VAR_\w+=\$\(jq -er/m, 'every foundation lookup goes through the named check');
   });
 
   // Rules for the post-apply secret step, decided 2026-11-20 before it is built (docs/architecture/secrets-and-sensitive-values.md): a secret
