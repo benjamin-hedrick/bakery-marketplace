@@ -214,6 +214,7 @@ Scope: cross-cutting · Primary hat(s): Platform Engineering, Architect · Statu
 - ⚪ INFRA-001 (Infra/Environment) — Per-environment `.tfvars` (dev/staging/prod), matching existing `/infra/environments` scaffold
 - ⚪ INFRA-002 (Infra/Environment) — Container Apps compute + Static Web Apps frontend hosting (per tech-stack.md). **ADJUSTED 2026-10-26**: Static Web Apps no longer fits Next.js SSR; frontend + BFF need Node-capable hosting (Container Apps the default candidate, decided here) — ADR-0012/0013
 - ⚪ DEP-001 (Document/Artifact) — Deployment path: images, deploy stage, dev environment, post-deploy smoke — added 2026-10-30 to track gaps found by the documentation review; spec: `WI-DEP-001.md`
+- ⚪ DEP-002 (Document/Artifact) — A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV — added 2026-11-21 at the lead's request (register 229); spec: `WI-DEP-002.md`
 
 ### EPIC-REPO-OPS — Repo/Tooling Meta-Infrastructure
 Scope: repo-level · Primary hat(s): Manager/Lead, Platform Engineering · Status: see [STATUS.md](STATUS.md)

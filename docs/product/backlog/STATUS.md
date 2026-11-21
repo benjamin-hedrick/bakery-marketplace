@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-118 specs.
+119 specs.
 
 | Status | Count |
 |---|---|
@@ -15,7 +15,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In review | 37 |
 | Built | 1 |
 | Ready | 2 |
-| Proposed | 4 |
+| Proposed | 5 |
 | Deferred | 11 |
 | Superseded | 2 |
 
@@ -31,7 +31,7 @@ Superseded and obsolete items are not counted.
 | EPIC-CACHING | 4 of 4 | CACHE-001, CACHE-002, CACHE-003, CACHE-004 |
 | EPIC-CATALOG | 3 of 6 | CAT-001, CAT-003, CAT-005, CAT-006, CAT-007, CAT-008 |
 | EPIC-CI-CD | 0 of 2 | SEC-004, SEC-005 |
-| EPIC-CLOUD-INFRA | 0 of 1 | DEP-001 |
+| EPIC-CLOUD-INFRA | 0 of 2 | DEP-001, DEP-002 |
 | EPIC-DATA-STORE | 2 of 2 | DATA-001, DATA-002 |
 | EPIC-EVENTING | 2 of 3 | EVT-001, EVT-003, EVT-004 |
 | EPIC-FRONTEND-QUALITY | 0 of 1 | DOC-003 |
@@ -100,6 +100,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
 | [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | EPIC-CLOUD-INFRA | In progress | remaining: infrastructure as code, the deploy stage, the post-deploy smoke, teardown and cost evidence; the images and the Compose `apps` profile are built (see the progress note) |
+| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | EPIC-CLOUD-INFRA | Proposed | the lead decides: the proposal below (register 229), first the ADR-0020 note and the two refactors (steps 1 and 2), which need the lead's approval before anything is built |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | EPIC-LOCAL-DEV | Done | evidence: `BakeryMarketplace.slnx` and the projects it lists |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | EPIC-LOCAL-DEV | Done | evidence: merged `c945b18`; verified under Docker, `docs/operations/local-dev.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | EPIC-LOCAL-DEV | Done | evidence: the Outcome note under this banner; `tools/BakeryMarketplace.Seed` |
