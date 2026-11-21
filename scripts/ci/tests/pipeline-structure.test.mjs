@@ -40,8 +40,19 @@ describe('azure-pipelines.yml (the pull-request checks)', () => {
 });
 
 describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, secrets, seed, app update, smoke, observe, teardown)', () => {
+  // Since WI-DEP-002 step 2b the stages are in a shared template and this file passes dev's connections and approval environments; the checks read
+  // both, and the ones about what a stage holds read the template.
   const file = 'azure-pipelines-dev.yml';
-  const text = code(file);
+  const templateFile = 'pipelines/templates/environment-stages.yml';
+  const caller = code(file);
+  const template = code(templateFile);
+  const text = `${caller}\n${template}`;
+  /** The value the dev file passes for one of the template's parameters. */
+  const passed = (name) => {
+    const m = new RegExp(`^ {6}${name}: (.+)$`, 'm').exec(caller);
+    assert.ok(m, `azure-pipelines-dev.yml passes no ${name}`);
+    return m[1].trim();
+  };
   /** The text of one stage, from its "- stage:" line to the next one. */
   const stage = (name) => {
     const start = text.indexOf(`- stage: ${name}\n`);
@@ -58,17 +69,34 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
   };
   const lines = (t) => t.split('\n');
 
+  test('passes every run parameter through to the stage template, which declares them all', () => {
+    assert.match(caller, /^stages:\n(\s*#.*\n)*\s+- template: pipelines\/templates\/environment-stages\.yml\n/m);
+    for (const name of ['action', 'planMode', 'simulateInfrastructureChanges', 'holdSeconds', 'confirmEnvironment']) {
+      assert.equal(passed(name), `\${{ parameters.${name} }}`, name);
+      assert.match(template, new RegExp(`^ {2}- name: ${name}$`, 'm'), name);
+    }
+    assert.doesNotMatch(caller, /- stage: /, 'no stage is left in the dev file');
+  });
+
   test('never starts by itself', () => {
     assert.match(text, /^trigger: none$/m);
     assert.match(text, /^pr: none$/m);
   });
 
   test('only the two pipeline connections are used: bakery-plan in the plan stages, bakery-deploy only in the approved deployment jobs', () => {
-    const connections = [...text.matchAll(/azureSubscription: (\S+)/g)].map((m) => m[1]);
-    assert.deepEqual([...new Set(connections)].sort(), ['bakery-deploy', 'bakery-plan']);
-    for (const name of ['infra_plan', 'destroy_plan']) assert.doesNotMatch(stage(name), /bakery-deploy/, name);
+    // The template names a connection only through its two parameters, and dev passes its two connections to them.
+    const connections = [...template.matchAll(/azureSubscription: (.+)/g)].map((m) => m[1].trim());
+    assert.deepEqual([...new Set(connections)].sort(), [
+      '${{ parameters.deployConnection }}',
+      '${{ parameters.planConnection }}',
+    ]);
+    assert.equal(passed('planConnection'), 'bakery-plan');
+    assert.equal(passed('deployConnection'), 'bakery-deploy');
+    assert.doesNotMatch(caller, /azureSubscription/);
+    for (const name of ['infra_plan', 'destroy_plan'])
+      assert.doesNotMatch(stage(name), /parameters\.deployConnection/, name);
     for (const name of ['infra_apply', 'destroy_apply', 'app_deploy']) {
-      assert.doesNotMatch(stage(name), /bakery-plan/, name);
+      assert.doesNotMatch(stage(name), /parameters\.planConnection/, name);
       assert.match(stage(name), /- deployment: /, `${name} must be a deployment job (an approval)`);
     }
     // The image build runs before any approval, so it holds no connection and signs in to nothing.
@@ -79,8 +107,8 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
     // The smoke runs browser tests against the public addresses: nothing on its agent can change Azure.
     assert.doesNotMatch(stage('smoke'), /azureSubscription|AzureCLI@|connectedServiceName|\baz\s/);
     // The observe stage reads only, as the read-only identity, and is no deployment job.
-    assert.doesNotMatch(stage('observe'), /bakery-deploy|- deployment: /);
-    assert.match(real('observe'), /azureSubscription: bakery-plan/);
+    assert.doesNotMatch(stage('observe'), /parameters\.deployConnection|- deployment: /);
+    assert.match(real('observe'), /azureSubscription: \$\{\{ parameters\.planConnection \}\}/);
   });
 
   test('the smoke runs the deployed suite and the latency run on the recorded addresses after the deploy, and the observe stage follows it either way', () => {
@@ -106,9 +134,18 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
   });
 
   test('every deployment job is bound to one of the three gated environments, and each is used', () => {
-    const used = [...text.matchAll(/^\s+environment: (\S+)$/gm)].map((m) => m[1]);
-    assert.deepEqual([...used].sort(), ['dev-app', 'dev-destroy', 'dev-infra']);
-    assert.equal([...text.matchAll(/^\s+- deployment: /gm)].length, 3);
+    const used = [...template.matchAll(/^\s+environment: (.+)$/gm)].map((m) => m[1].trim());
+    assert.deepEqual([...used].sort(), [
+      '${{ parameters.appEnvironment }}',
+      '${{ parameters.destroyEnvironment }}',
+      '${{ parameters.infraEnvironment }}',
+    ]);
+    assert.deepEqual(['infraEnvironment', 'appEnvironment', 'destroyEnvironment'].map(passed), [
+      'dev-infra',
+      'dev-app',
+      'dev-destroy',
+    ]);
+    assert.equal([...template.matchAll(/^\s+- deployment: /gm)].length, 3);
   });
 
   test('the application deploy sets the secrets, pushes the built images and updates the apps, in that order; no Terraform', () => {
@@ -294,7 +331,7 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
     const template = read('pipelines/templates/terraform-tools.yml');
     assert.match(template, /sha256sum -c -/);
     for (const name of ['infra_plan', 'infra_apply', 'destroy_plan', 'destroy_apply'])
-      assert.match(real(name), /- template: pipelines\/templates\/terraform-tools\.yml/, name);
+      assert.match(real(name), /- template: terraform-tools\.yml/, name); // resolved from the stage template's own folder
   });
 
   test('only a manual run goes on, and a destroy needs the typed environment name', () => {
@@ -320,7 +357,7 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
 // The shell in the rehearsal steps is plain sh with Azure's macros in it. These tests take the step text from the file, replace the macros with
 // values, and run it, so the logic that decides "stop" and "has changes" is exercised and not only read.
 function stepScript(displayName) {
-  const all = lines('azure-pipelines-dev.yml');
+  const all = lines('pipelines/templates/environment-stages.yml');
   const at = all.findIndex((l) => l.includes(`displayName: ${displayName}`));
   assert.ok(at > 0, `no step with the display name "${displayName}"`);
   let start = at;

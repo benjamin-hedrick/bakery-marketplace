@@ -63,7 +63,11 @@ describe('chaos settings in deployment configuration', () => {
   });
 
   test('the pull-request and dev pipelines do not switch chaos on', () => {
-    for (const file of ['azure-pipelines.yml', 'azure-pipelines-dev.yml']) {
+    for (const file of [
+      'azure-pipelines.yml',
+      'azure-pipelines-dev.yml',
+      'pipelines/templates/environment-stages.yml',
+    ]) {
       const code = read(file)
         .split('\n')
         .filter((l) => !l.trim().startsWith('#'))

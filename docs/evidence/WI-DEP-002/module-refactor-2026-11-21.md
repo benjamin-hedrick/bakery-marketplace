@@ -24,6 +24,14 @@ The saved plan and its JSON (which hold values in clear text) were deleted strai
 - **A plan whose only changes are moves** exits with 2 (Terraform counts the state rewrite as a change), but `plan-summary.mjs` skipped every no-op entry, and a move is a no-op with a previous address. The first pipeline run after the refactor would have stopped at the plan stage with "terraform plan said changes (exit 2) but the plan lists none". It now keeps such an entry as `move` with the address it moved from, and compares moves after approval like any other change (a test covers it).
 - **What the next dev run does:** its plan shows 27 moves; the infrastructure approval is asked for; the apply only rewrites the state's addresses. No resource in Azure changes. The `moved` blocks can be removed after that apply.
 
+## Step 2b: the pipeline's stages in a template
+
+- `pipelines/templates/environment-stages.yml` holds every stage that `azure-pipelines-dev.yml` held. Its parameters are the five run choices (passed through) and the environment's two connections and three approval environments; the stages name a connection or an approval environment only through them, and reach the Terraform install template by its path from the template's own folder.
+- `azure-pipelines-dev.yml` keeps its header, triggers, run parameters, variables and pool, and calls the template with `bakery-plan`, `bakery-deploy`, `dev-infra`, `dev-app` and `dev-destroy`. Artifact names stay `dev-*` (to be parameterised with the UAT pipeline, step 8).
+- **Equivalence, checked mechanically:** putting dev's values back into the template's parameters (and the old template path) gives the original `stages:` section byte for byte, before and after formatting; in the dev file's header only the "state of this file" paragraph changed (brought up to date: every stage has run in Azure, and the stages are now in the template).
+- `pipeline-structure.test.mjs` reads the dev file and the template together; the checks on connections, approval environments and the Terraform template now check the parameters in the template and the values the dev file passes, plus a new check that every run parameter is passed through. 142 of 142 script tests pass.
+- **Not proved:** that Azure DevOps expands the template as intended. There is no local validator; Azure DevOps' preview of a run (expansion only, nothing runs) can check it once the branch is on the remote, and the next dev run proves it.
+
 ## Not done here
 
-- Step 2b (the pipeline stages into a template) and everything after it.
+- Everything after step 2.
