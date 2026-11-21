@@ -450,5 +450,7 @@ FodyWeavers.xsd
 *.tfstate.*
 *.tfplan
 tfplan*
+# A local variable file (dev.tfvars, uat.tfvars) holds no secret but may hold private values (the budget contact); the *.tfvars.example files are committed.
+*.tfvars
 crash.log
 backend.hcl

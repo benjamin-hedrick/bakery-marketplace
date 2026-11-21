@@ -3,7 +3,7 @@
 // `init -backend=false`, `validate`, and `test` (plan-level tests with a mocked provider, when the stack has a tests folder).
 // The pipeline's `terraform` job runs this same script on every pull request, so the image and the steps live here only.
 //
-//   node scripts/ci/terraform-checks.mjs [--roots infra/foundation,infra/modules/environment,infra/environments/dev]
+//   node scripts/ci/terraform-checks.mjs [--roots infra/foundation,infra/modules/environment,infra/environments/dev,infra/environments/uat]
 // (the environment module is checked on its own, with its tests; each environment root is initialised and validated with it)
 //
 // Needs Docker; the first run pulls the image and the azurerm provider. Exit code 0 when every step passes, 1 when a step fails,
@@ -20,7 +20,7 @@ const image = 'hashicorp/terraform@sha256:6bbb82d575aa7bd4f0a2c6e3a0838ab9590426
 
 const argv = process.argv.slice(2);
 const rootsArg = argv.includes('--roots') ? argv[argv.indexOf('--roots') + 1] : undefined;
-const roots = (rootsArg ?? 'infra/foundation,infra/modules/environment,infra/environments/dev')
+const roots = (rootsArg ?? 'infra/foundation,infra/modules/environment,infra/environments/dev,infra/environments/uat')
   .split(',')
   .map((r) => r.trim());
 

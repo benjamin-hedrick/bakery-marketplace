@@ -366,7 +366,7 @@ run "the_seed_job_names_another_environment_when_the_stack_is_not_dev" {
 
   assert {
     condition     = length([for e in azurerm_container_app_job.seed.template[0].container[0].env : e if e.name == "Deployment__Environment" && e.value == "uat"]) == 1
-    error_message = "The job passes the stack's own environment name, so the seed's guard refuses it anywhere but dev."
+    error_message = "The job passes the stack's own environment name, so the seed's guard refuses it anywhere but dev or uat."
   }
 }
 
