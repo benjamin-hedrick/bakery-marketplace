@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
 
 /**
- * The images the dev stack runs. `app` is the container app's (or, with `kind: 'job'`, the container app job's) name in infra/environments/dev/main.tf;
+ * The images the dev stack runs. `app` is the container app's (or, with `kind: 'job'`, the container app job's) name in infra/modules/environment/main.tf;
  * the build arguments match the `apps` profile in docker-compose.yml. The notification service is not deployed to dev (no event crosses a service
  * boundary there), so it has no image. The seed is a job: it runs once per deploy and exits (register 224).
  */

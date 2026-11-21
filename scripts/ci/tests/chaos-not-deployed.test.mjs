@@ -26,11 +26,40 @@ const CHAOS_SETTING =
   /\bChaos(__|:)|Deployment__Environment|Deployment:Environment|CHAOS_ENABLED|CHAOS_SCENARIO|DEPLOYMENT_ENVIRONMENT/;
 
 describe('chaos settings in deployment configuration', () => {
-  test('only the dev environment may name a chaos or deployment-environment setting', () => {
+  // Since WI-DEP-002 step 2a the dev resources are in the shared environment module, which every environment root calls. The rule is now: only the
+  // module names these settings, and only with the environment's own name (var.environment); only the dev root names itself "dev".
+  const MODULE = 'infra/modules/environment/';
+  const code = (file) =>
+    read(file)
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('#'))
+      .join('\n');
+
+  test('only the environment module may name a chaos or deployment-environment setting', () => {
     const offenders = filesUnder('infra')
-      .filter((f) => !f.startsWith('infra/environments/dev/'))
+      .filter((f) => !f.startsWith(MODULE) && !f.startsWith('infra/environments/dev/'))
       .filter((f) => CHAOS_SETTING.test(read(f)));
-    assert.deepEqual(offenders, [], `chaos settings outside infra/environments/dev: ${offenders.join(', ')}`);
+    assert.deepEqual(offenders, [], `chaos settings outside the environment module: ${offenders.join(', ')}`);
+  });
+
+  test("the module sets the environment's name only from var.environment", () => {
+    const lines = filesUnder(MODULE)
+      .filter((f) => f.endsWith('.tf'))
+      .flatMap((f) => code(f).split('\n'))
+      .filter((l) => /Deployment__Environment|DEPLOYMENT_ENVIRONMENT/.test(l));
+    assert.ok(lines.length > 0, 'the module names the environment for its apps');
+    for (const line of lines) assert.match(line, /=\s*var\.environment\b/, line.trim());
+  });
+
+  test('only the dev root names itself dev', () => {
+    const roots = readdirSync(path.join(root, 'infra/environments')).filter((d) =>
+      statSync(path.join(root, 'infra/environments', d)).isDirectory(),
+    );
+    assert.ok(roots.includes('dev'));
+    for (const dir of roots.filter((d) => d !== 'dev'))
+      for (const f of filesUnder(`infra/environments/${dir}`).filter((x) => x.endsWith('.tf') || x.endsWith('.tfvars')))
+        assert.doesNotMatch(code(f), /\benvironment\s*=\s*"dev"/, `${f} must not name itself dev`);
+    assert.match(code('infra/environments/dev/main.tf'), /\benvironment\s*=\s*"dev"/);
   });
 
   test('the pull-request and dev pipelines do not switch chaos on', () => {

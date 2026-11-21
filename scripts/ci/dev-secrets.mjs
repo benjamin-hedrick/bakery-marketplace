@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 /** The tag this step puts on every version it writes. Terraform's placeholder version carries the stack's tags, not this one. */
 export const WRITTEN_BY = { key: 'written-by', value: 'post-apply-step' };
 
-/** The secrets of infra/environments/dev/main.tf (local.placeholder_secrets) and where each value comes from. */
+/** The secrets of infra/modules/environment/main.tf (local.placeholder_secrets) and where each value comes from. */
 export const SECRETS = [
   { name: 'cosmos-connection-string', source: 'cosmos' },
   { name: 'ordering-client-secret', source: 'random' },

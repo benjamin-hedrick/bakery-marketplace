@@ -30,7 +30,7 @@ const record = (tag = '120') => ({
 
 describe('agreement with the dev stack', () => {
   test('the placeholder is the dev stack default; every built app is deployed and every built job run', () => {
-    const variables = readFileSync(path.join(root, 'infra/environments/dev/variables.tf'), 'utf8');
+    const variables = readFileSync(path.join(root, 'infra/modules/environment/variables.tf'), 'utf8');
     assert.match(
       variables,
       new RegExp(`variable "image_placeholder" \\{[\\s\\S]*?default\\s+= "${PLACEHOLDER.replace(/[.]/g, '\\.')}"`),

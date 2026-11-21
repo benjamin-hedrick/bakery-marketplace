@@ -1,22 +1,23 @@
+# The module's outputs under the names the pipeline and the scripts already use.
 output "web_url" {
   description = "The address of the web app; the post-deploy smoke runs against it."
-  value       = "https://${azurerm_container_app.apps["web"].ingress[0].fqdn}"
+  value       = module.environment.web_url
 }
 
 output "key_vault_name" {
-  value = azurerm_key_vault.kv.name
+  value = module.environment.key_vault_name
 }
 
 output "cosmos_account_name" {
-  value = azurerm_cosmosdb_account.cosmos.name
+  value = module.environment.cosmos_account_name
 }
 
 output "secret_names" {
-  description = "Key Vault secrets Terraform creates with a placeholder; the post-apply step sets the real values (cosmos-connection-string from the account's key; ordering-client-secret from the issuer)."
-  value       = [for s in azurerm_key_vault_secret.placeholder : s.name]
+  description = "Key Vault secrets Terraform creates with a placeholder; the post-apply step sets the real values."
+  value       = module.environment.secret_names
 }
 
 output "issuer_url" {
   description = "The token issuer in use (the mock issuer's public address in mock mode)."
-  value       = local.authority
+  value       = module.environment.issuer_url
 }
