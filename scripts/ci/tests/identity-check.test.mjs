@@ -22,6 +22,70 @@ const deploy = [
   { role: 'AcrPush', scope: REGISTRY, conditioned: false },
 ];
 
+describe('the UAT identities (WI-DEP-002 step 7)', () => {
+  const UAT = `${SUB}/resourceGroups/rg-bakery-uat`;
+  const STATE_UAT = STATE.replace(/tfstate$/, 'tfstate-uat');
+  const APPS_UAT = `${FOUNDATION}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-bakery-uat-apps`;
+  const uatDeploy = [
+    { role: 'Contributor', scope: UAT, conditioned: false },
+    { role: 'Role Based Access Control Administrator', scope: UAT, conditioned: true },
+    { role: 'Storage Blob Data Contributor', scope: STATE_UAT, conditioned: false },
+    { role: 'Managed Identity Operator', scope: APPS_UAT, conditioned: false },
+    { role: 'AcrPull', scope: REGISTRY, conditioned: false },
+  ];
+
+  test('the shared plan identity passes with or without its read of the UAT state container, for either environment', () => {
+    const withUat = [...plan, { role: 'Storage Blob Data Reader', scope: STATE_UAT, conditioned: false }];
+    for (const env of ['dev', 'uat']) {
+      assert.equal(compareRoles(plan, expectedRoles('plan', env)).ok, true, env);
+      assert.equal(compareRoles(withUat, expectedRoles('plan', env)).ok, true, env);
+    }
+  });
+
+  test('the UAT deploy identity passes with exactly its promote-run roles, checked by itself and by the plan identity', () => {
+    assert.deepEqual(compareRoles(uatDeploy, expectedRoles('deploy', 'uat', { asSelf: false })), {
+      ok: true,
+      problems: [],
+    });
+    const asSelf = uatDeploy.filter((r) => r.role !== 'Storage Blob Data Contributor');
+    assert.equal(compareRoles(asSelf, expectedRoles('deploy', 'uat')).ok, true, 'it cannot see its state role itself');
+    const withVault = [
+      ...uatDeploy,
+      {
+        role: 'Key Vault Secrets Officer',
+        scope: `${UAT}/providers/Microsoft.KeyVault/vaults/kv-uat`,
+        conditioned: false,
+      },
+    ];
+    assert.equal(compareRoles(withVault, expectedRoles('deploy', 'uat', { asSelf: false })).ok, true);
+  });
+
+  test("the UAT deploy identity is refused dev's state, any foundation group role, AcrPush, or the other environment's apps identity", () => {
+    for (const extra of [
+      { role: 'Storage Blob Data Contributor', scope: STATE, conditioned: false },
+      { role: 'Contributor', scope: FOUNDATION, conditioned: false },
+      { role: 'Role Based Access Control Administrator', scope: FOUNDATION, conditioned: true },
+      { role: 'AcrPush', scope: REGISTRY, conditioned: false },
+      { role: 'Contributor', scope: DEV, conditioned: false },
+      { role: 'Managed Identity Operator', scope: APPS_UAT.replace('-uat-', '-dev-'), conditioned: false },
+    ])
+      assert.equal(
+        compareRoles([...uatDeploy, extra], expectedRoles('deploy', 'uat', { asSelf: false })).ok,
+        false,
+        `${extra.role} at ${extra.scope}`,
+      );
+    const wrongApps = uatDeploy.map((r) =>
+      r.role === 'Managed Identity Operator' ? { ...r, scope: APPS_UAT.replace('-uat-', '-dev-') } : r,
+    );
+    assert.equal(compareRoles(wrongApps, expectedRoles('deploy', 'uat', { asSelf: false })).ok, false);
+  });
+
+  test("dev's deploy identity is unchanged by the UAT set", () => {
+    assert.equal(compareRoles(deploy, expectedRoles('deploy', 'dev', { asSelf: false })).ok, true);
+    assert.equal(compareRoles(uatDeploy, expectedRoles('deploy', 'dev', { asSelf: false })).ok, false);
+  });
+});
+
 describe('the identity check', () => {
   test('passes the plan identity holding exactly Reader on the subscription and Blob Data Reader on the state container', () => {
     assert.deepEqual(compareRoles(plan, expectedRoles('plan', 'dev')), { ok: true, problems: [] });

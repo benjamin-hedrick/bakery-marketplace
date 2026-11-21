@@ -22,11 +22,46 @@ import { fileURLToPath } from 'node:url';
  */
 export function expectedRoles(identity, environment, { asSelf = true } = {}) {
   const group = (name) => new RegExp(`^/subscriptions/[^/]+/resourceGroups/${name}$`, 'i');
-  const stateContainer = /\/blobServices\/default\/containers\/tfstate$/i;
+  const container = (name) => new RegExp(`/blobServices/default/containers/${name}$`, 'i');
+  const stateContainer = container('tfstate');
+  const registry =
+    /^\/subscriptions\/[^/]+\/resourceGroups\/rg-bakery-foundation\/providers\/Microsoft\.ContainerRegistry\/registries\/[^/]+$/i;
+  const vault = new RegExp(
+    `^/subscriptions/[^/]+/resourceGroups/rg-bakery-${environment}/providers/Microsoft\\.KeyVault/vaults/[^/]+$`,
+    'i',
+  );
   if (identity === 'plan')
     return [
       { role: 'Reader', scope: /^\/subscriptions\/[^/]+$/i, conditioned: false },
       { role: 'Storage Blob Data Reader', scope: stateContainer, conditioned: false },
+      // One plan identity serves dev and UAT (WI-DEP-002 step 7); its read of UAT's state container exists once the UAT bootstrap has added it.
+      { role: 'Storage Blob Data Reader', scope: container('tfstate-uat'), conditioned: false, optional: true },
+    ];
+  // UAT's deploy identity (bakery-uat-deploy, WI-DEP-002 step 7; proposed for the lead's approval, IAM): only what a promote run needs. No role in the
+  // foundation group and no AcrPush (it pushes nothing and applies nothing there); no read of the tfstate container (dev's state). What it needs
+  // beyond its own group: its state container; Managed Identity Operator on its apps identity, so its container apps can be given that identity
+  // (assigning a user-assigned identity is an action on the identity, which lives in the foundation group); and AcrPull on the registry, so the
+  // application deploy can read the build tags of the images the apps run (register 110: never deploy an older build).
+  if (identity === 'deploy' && environment !== 'dev')
+    return [
+      { role: 'Contributor', scope: group(`rg-bakery-${environment}`), conditioned: false },
+      { role: 'Role Based Access Control Administrator', scope: group(`rg-bakery-${environment}`), conditioned: true },
+      {
+        role: 'Storage Blob Data Contributor',
+        scope: container(`tfstate-${environment}`),
+        conditioned: false,
+        optional: asSelf,
+      },
+      {
+        role: 'Managed Identity Operator',
+        scope: new RegExp(
+          `^/subscriptions/[^/]+/resourceGroups/rg-bakery-foundation/providers/Microsoft\\.ManagedIdentity/userAssignedIdentities/id-bakery-${environment}-apps$`,
+          'i',
+        ),
+        conditioned: false,
+      },
+      { role: 'AcrPull', scope: registry, conditioned: false },
+      { role: 'Key Vault Secrets Officer', scope: vault, conditioned: false, optional: true },
     ];
   if (identity === 'deploy')
     return [
@@ -36,21 +71,8 @@ export function expectedRoles(identity, environment, { asSelf = true } = {}) {
       { role: 'Role Based Access Control Administrator', scope: group('rg-bakery-foundation'), conditioned: true },
       // Not visible to the deploy identity itself (it cannot read rg-bakery-tfstate); checked by the plan identity instead (--principal).
       { role: 'Storage Blob Data Contributor', scope: stateContainer, conditioned: false, optional: asSelf },
-      {
-        role: 'AcrPush',
-        scope:
-          /^\/subscriptions\/[^/]+\/resourceGroups\/rg-bakery-foundation\/providers\/Microsoft\.ContainerRegistry\/registries\/[^/]+$/i,
-        conditioned: false,
-      },
-      {
-        role: 'Key Vault Secrets Officer',
-        scope: new RegExp(
-          `^/subscriptions/[^/]+/resourceGroups/rg-bakery-${environment}/providers/Microsoft\\.KeyVault/vaults/[^/]+$`,
-          'i',
-        ),
-        conditioned: false,
-        optional: true,
-      },
+      { role: 'AcrPush', scope: registry, conditioned: false },
+      { role: 'Key Vault Secrets Officer', scope: vault, conditioned: false, optional: true },
     ];
   throw new Error(`unknown identity "${identity}" (plan or deploy)`);
 }

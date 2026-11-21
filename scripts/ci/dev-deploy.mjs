@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-// The application deploy of the dev pipeline (ADR-0020 decision 6: the application stage updates each app to the new digest; register 110:
-// it refuses an older build). Runs as bakery-deploy in the approved app_deploy job, after the secrets are set and the images pushed:
+// The application deploy of the environment pipelines (ADR-0020 decision 6: the application stage updates each app to the new digest; register 110:
+// it refuses an older build). Runs as the environment's deploy identity in the approved app_deploy job, after the secrets are set and, in dev, the
+// images pushed; in UAT the record is the promoted dev run's (WI-DEP-002 step 8), so the build compared is that dev build:
 //
-//   node scripts/ci/dev-deploy.mjs --record dev-images-pushed.json --resource-group <name> --suffix <revision suffix> --out <deployed.json>
+//   node scripts/ci/dev-deploy.mjs --record <env>-images-pushed.json --resource-group <name> --suffix <revision suffix> --out <deployed.json>
+//       [--seed true|false]    (the run's seed input, WI-DEP-002 step 3; default true, as dev always did)
 //
 // 1. For every app first, before anything changes: reads the image it runs now. The placeholder Terraform creates it with (or puts back, register
 //    217) counts as "no build yet"; an image of this registry counts as the build its tag names (the push tags each image with the build id). It
 //    refuses the whole deploy if any app runs a newer build than this one, or an image it cannot place.
 //    The seed job's image is checked the same way.
 // 2. Runs the seed job (register 224) on its digest and waits until the execution has succeeded; a failed seed stops the deploy before any app changes.
+//    With --seed false the job is neither updated nor run (UAT's default: its data is whatever the environment holds).
 // 3. Updates each app to its digest from the record, with a new revision named for this run (a new revision also reads the Key Vault secrets the
 //    step before may have set), and waits until each new revision is provisioned.
 // 4. Writes the record of what each app and job ran before and runs now, and the seed's execution name (its output is in the environment's log).
@@ -114,7 +117,7 @@ export function updateArgs(app, resourceGroup, image, suffix) {
  * @param {{wait: (ms: number) => void, now: () => number}} clock
  */
 export function deploy(
-  { record, resourceGroup, suffix, timeoutMs = 600_000, pollMs = 10_000 },
+  { record, resourceGroup, suffix, seed = true, timeoutMs = 600_000, pollMs = 10_000 },
   az,
   clock,
   log = console.log,
@@ -169,7 +172,8 @@ export function deploy(
 
   // The seed first: the apps' new revisions then find the data, and the catalog applies the seed's VendorVerified events when it starts.
   const jobs = [];
-  for (const job of JOBS) {
+  if (!seed) log(`${JOBS.join(', ')}: not run (this run's seed input is off)`);
+  for (const job of seed ? JOBS : []) {
     const image = record.images.find((i) => i.app === job).image;
     az([
       'containerapp',
@@ -277,16 +281,23 @@ export function deploy(
     if (!/^[a-z0-9.-]+$/.test(fqdn)) throw new Error(`${app}: no public address (${fqdn || 'none'})`);
     urls[app] = `https://${fqdn}`;
   }
-  return { build: record.tag, revision: record.revision, deployedAt, jobs, deployed, urls };
+  return { build: record.tag, revision: record.revision, deployedAt, seeded: seed, jobs, deployed, urls };
 }
 
 function main() {
   const argv = process.argv.slice(2);
   const get = (name) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined);
-  const [recordPath, resourceGroup, suffix, out] = ['--record', '--resource-group', '--suffix', '--out'].map(get);
-  if (!recordPath || !resourceGroup || !suffix || !out) {
+  const [recordPath, resourceGroup, suffix, out, seedArg] = [
+    '--record',
+    '--resource-group',
+    '--suffix',
+    '--out',
+    '--seed',
+  ].map(get);
+  const seed = seedArg === undefined || /^true$/i.test(seedArg);
+  if (!recordPath || !resourceGroup || !suffix || !out || (seedArg !== undefined && !/^(true|false)$/i.test(seedArg))) {
     console.error(
-      'usage: dev-deploy.mjs --record <dev-images-pushed.json> --resource-group <name> --suffix <revision suffix> --out <deployed.json>',
+      'usage: dev-deploy.mjs --record <env-images-pushed.json> --resource-group <name> --suffix <revision suffix> --out <deployed.json> [--seed true|false]',
     );
     process.exit(2);
   }
@@ -296,7 +307,11 @@ function main() {
     wait: (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms),
   };
   try {
-    const result = deploy({ record: JSON.parse(readFileSync(recordPath, 'utf8')), resourceGroup, suffix }, az, clock);
+    const result = deploy(
+      { record: JSON.parse(readFileSync(recordPath, 'utf8')), resourceGroup, suffix, seed },
+      az,
+      clock,
+    );
     writeFileSync(out, `${JSON.stringify(result, null, 2)}\n`);
     console.log(`dev deploy: build ${result.build} runs in all ${result.deployed.length} apps.`);
   } catch (e) {
