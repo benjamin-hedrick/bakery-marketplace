@@ -75,3 +75,8 @@ variable "budget_amount" {
   type    = number
   default = null
 }
+
+variable "chaos_scenario" {
+  type    = string
+  default = null
+}

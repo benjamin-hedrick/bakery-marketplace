@@ -382,3 +382,84 @@ run "every_app_names_the_consumption_profile_azure_assigns" {
     error_message = "Every container app names the Consumption profile; unset, each plan after the first apply tries to remove it."
   }
 }
+
+# ---- the chaos scenario (WI-CHAOS-006) --------------------------------------------------------------------------------------------------------
+
+run "with_no_scenario_no_app_has_a_chaos_setting_and_the_web_app_names_its_environment" {
+  command = plan
+
+  override_resource {
+    target          = azurerm_container_app_environment.env
+    override_during = plan
+    values = {
+      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/managedEnvironments/cae-bakery-dev"
+      default_domain = "test.example.io"
+    }
+  }
+
+  assert {
+    condition = alltrue([
+      for k in ["catalog", "ordering", "bff", "web"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if startswith(e.name, "Chaos__") || startswith(e.name, "CHAOS_")]) == 0
+    ])
+    error_message = "With chaos_scenario none, no app may carry a chaos setting."
+  }
+  assert {
+    condition     = length([for e in azurerm_container_app.apps["web"].template[0].container[0].env : e if e.name == "DEPLOYMENT_ENVIRONMENT" && e.value == "dev"]) == 1
+    error_message = "The web app names its environment (DEPLOYMENT_ENVIRONMENT), as the BFF does, so a web or session chaos layer can start in dev."
+  }
+}
+
+run "a_scenario_reaches_every_app_through_the_settings_its_library_reads" {
+  command = plan
+
+  variables {
+    chaos_scenario = "dev-chaos"
+  }
+
+  override_resource {
+    target          = azurerm_container_app_environment.env
+    override_during = plan
+    values = {
+      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/managedEnvironments/cae-bakery-dev"
+      default_domain = "test.example.io"
+    }
+  }
+
+  assert {
+    condition = alltrue([
+      for k in ["catalog", "ordering"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if(e.name == "Chaos__Enabled" && e.value == "true") || (e.name == "Chaos__Scenario" && e.value == "dev-chaos")]) == 2
+    ])
+    error_message = "The .NET services get Chaos__Enabled and Chaos__Scenario."
+  }
+  assert {
+    condition = alltrue([
+      for k in ["bff", "web"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if(e.name == "CHAOS_ENABLED" && e.value == "true") || (e.name == "CHAOS_SCENARIO" && e.value == "dev-chaos")]) == 2
+    ])
+    error_message = "The BFF and the web app get CHAOS_ENABLED and CHAOS_SCENARIO."
+  }
+}
+
+run "a_scenario_is_refused_for_an_environment_that_is_not_dev" {
+  command = plan
+
+  variables {
+    environment      = "uat"
+    host_environment = "Production"
+    chaos_scenario   = "dev-chaos"
+  }
+
+  expect_failures = [var.chaos_scenario]
+}
+
+run "a_scenario_must_be_a_plain_name" {
+  command = plan
+
+  variables {
+    chaos_scenario = "../secrets"
+  }
+
+  expect_failures = [var.chaos_scenario]
+}

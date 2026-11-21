@@ -58,6 +58,13 @@ parameters:
     displayName: Rehearsal only. Seconds the infrastructure apply step waits, to hold the stage open for the lock test (G6). Leave 0 otherwise
     type: number
     default: 0
+  - name: chaosScenario
+    displayName: Chaos scenario for this deployment (WI-CHAOS-006). none = no chaos; dev-chaos = the dev scenario, aimed at the chaos seed data only
+    type: string
+    default: none
+    values:
+      - none
+      - dev-chaos
   - name: confirmEnvironment
     displayName: To destroy, type the environment name (dev)
     type: string
@@ -83,6 +90,7 @@ stages:
       simulateInfrastructureChanges: ${{ parameters.simulateInfrastructureChanges }}
       holdSeconds: ${{ parameters.holdSeconds }}
       confirmEnvironment: ${{ parameters.confirmEnvironment }}
+      chaosScenario: ${{ parameters.chaosScenario }}
       planConnection: bakery-plan
       deployConnection: bakery-deploy
       infraEnvironment: dev-infra

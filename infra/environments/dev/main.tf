@@ -33,6 +33,9 @@ module "environment" {
   web_auth_issuer             = var.web_auth_issuer
   auth_metadata_address       = var.auth_metadata_address
   budget_amount               = var.budget_amount
+
+  # The dev pipeline's chaosScenario input (none or dev-chaos, WI-CHAOS-006), as TF_VAR_chaos_scenario on its plan and its apply.
+  chaos_scenario = var.chaos_scenario
 }
 
 # The resources were created at the root of this stack and moved into the module on 2026-11-21. These blocks tell Terraform they are the same
