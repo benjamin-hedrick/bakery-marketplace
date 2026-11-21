@@ -86,7 +86,7 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
   test('the smoke runs the deployed suite and the latency run on the recorded addresses after the deploy, and the observe stage follows it either way', () => {
     const smoke = stage('smoke');
     assert.match(smoke, /dependsOn: app_deploy\n\s+condition: succeeded\(\)/);
-    assert.match(real('smoke'), /npx playwright test -c playwright\.deployed\.config\.ts/);
+    assert.match(real('smoke'), /DEPLOYED_WHERE=agent npx playwright test -c playwright\.deployed\.config\.ts/);
     assert.match(
       real('smoke'),
       /node scripts\/ci\/deployed-latency\.mjs --web "\$web" --issuer "\$issuer" --where agent/,

@@ -4,10 +4,11 @@
 //
 //   node scripts/ci/dev-observe.mjs --resource-group rg-bakery-dev --workspace log-bakery-dev --deployment dev-deployment.json
 //        [--correlation correlation-ids.jsonl] --out observe.json
+//   node scripts/ci/dev-observe.mjs --resource-group rg-bakery-dev --workspace log-bakery-dev --since <ISO time> --out observe.json   (the lead's sign-in)
 //
 //   1. Platform metrics of each app for the window (from the deployment to now, one-minute grain): requests, replicas, restarts, CPU, memory.
 //   2. The environment's log (Log Analytics, through its query API with "az rest": the log query command needs a CLI extension): console lines and
-//      lines that look like errors per app, and the platform's system events per app and reason.
+//      lines that look like errors per app, the platform's system events per app and reason, and every replica start with its duration (coldStarts).
 //   3. Which of the smoke's correlation ids (X-Correlation-Id, the trace id, ADR-0016) appear in the apps' console log, and in which app.
 // Only counts, reasons and ids are kept, never a log line's text (it could hold a customer's details). A metric or query that fails is recorded as
 // failed with its message, and the others still run: the point is to see what is and is not observable. Exit code 0 = written (even with failures
@@ -40,6 +41,14 @@ export function queries(start, end, ids = []) {
       `ContainerAppConsoleLogs_CL | where ${window} | where Log_s has_any ('error', 'fail', 'exception', 'unhandled') ` +
       `| summarize lines = count() by app = ContainerAppName_s`,
     systemEventsPerAppAndReason: `ContainerAppSystemLogs_CL | where ${window} | summarize events = count() by app = ContainerAppName_s, reason = Reason_s`,
+    // Every replica start (register 228): from the platform assigning a replica to its container starting, per app. A deploy's new revision and a
+    // wake from zero both start one; the app's own start-up comes after this (the warm-up's client times include it).
+    coldStarts:
+      `ContainerAppSystemLogs_CL | where ${window} | where Reason_s in ('AssigningReplica', 'ContainerStarted') ` +
+      `| project t = TimeGenerated, app = ContainerAppName_s, reason = Reason_s | order by app asc, t asc | serialize ` +
+      `| extend prevReason = prev(reason), prevT = prev(t), prevApp = prev(app) ` +
+      `| where reason == 'ContainerStarted' and prevReason == 'AssigningReplica' and prevApp == app and isnotempty(app) ` +
+      `| project app, assigned = prevT, containerStarted = t, seconds = round(datetime_diff('millisecond', t, prevT) / 1000.0, 1) | order by assigned asc`,
   };
   if (safeIds.length > 0)
     q.correlationIdsInConsoleLog =
@@ -193,21 +202,40 @@ function main() {
     '--deployment',
     '--out',
   ].map(get);
-  if (!resourceGroup || !workspace || !deployment || !outPath) {
+  const since = get('--since');
+  if (
+    !resourceGroup ||
+    !workspace ||
+    !outPath ||
+    !deployment === !since ||
+    (since && Number.isNaN(Date.parse(since)))
+  ) {
     console.error(
-      'usage: dev-observe.mjs --resource-group <rg> --workspace <name> --deployment <dev-deployment.json> [--correlation <file>] --out <observe.json>',
+      'usage: dev-observe.mjs --resource-group <rg> --workspace <name> (--deployment <dev-deployment.json> | --since <ISO time>) [--correlation <file>] --out <observe.json>',
     );
     process.exit(2);
   }
-  const record = JSON.parse(readFileSync(deployment, 'utf8'));
   const end = new Date().toISOString();
-  // From five minutes before the deployment (its record's time) to now; without a time, the last two hours.
-  const start = new Date(
-    (record.deployedAt ? Date.parse(record.deployedAt) : Date.now() - 2 * 3600_000) - 5 * 60_000,
-  ).toISOString();
+  // With --deployment: from five minutes before the deployment (its record's time) to now; without a time in it, the last two hours. With --since (a
+  // run from the lead's machine, register 228): from that time to now.
+  const record = deployment ? JSON.parse(readFileSync(deployment, 'utf8')) : {};
+  const start = since
+    ? new Date(Date.parse(since)).toISOString()
+    : new Date(
+        (record.deployedAt ? Date.parse(record.deployedAt) : Date.now() - 2 * 3600_000) - 5 * 60_000,
+      ).toISOString();
   const correlation = get('--correlation');
   const ids = correlation && existsSync(correlation) ? correlationIds(readFileSync(correlation, 'utf8')) : [];
-  const az = (args) => execFileSync('az', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  // The pipeline runs this on Linux, where az is called directly. On Windows (the lead's --since run) az is a .cmd that needs a shell, so each argument
+  // is quoted for cmd, as identity-check.mjs does.
+  const az = (args) =>
+    process.platform === 'win32'
+      ? execFileSync(`az.cmd ${args.map((a) => `"${a.replaceAll('"', '""')}"`).join(' ')}`, {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+          shell: true,
+        })
+      : execFileSync('az', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const result = observe({ resourceGroup, workspace, start, end, ids }, az);
   writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`);
   console.log(`dev observe: ${start} to ${end}`);
@@ -218,6 +246,10 @@ function main() {
         .join('  ')}`,
     );
   for (const [name, rows] of Object.entries(result.logs)) console.log(`  log ${name}: ${rows.length} row(s)`);
+  for (const r of result.logs.coldStarts ?? [])
+    console.log(
+      `  replica start  ${String(r.app).padEnd(12)} assigned ${String(r.assigned).slice(11, 19)}  started after ${r.seconds} s`,
+    );
   if (result.correlation)
     console.log(
       `  correlation ids: ${result.correlation.foundInConsoleLog} of ${result.correlation.asked} found in the console log`,

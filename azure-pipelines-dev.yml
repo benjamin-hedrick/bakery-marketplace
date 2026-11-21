@@ -375,7 +375,7 @@ stages:
                       issuer=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).urls['mock-oidc'])" "$record")
                       out="$(Build.ArtifactStagingDirectory)/dev-smoke"
                       mkdir -p "$out"
-                      (cd apps/web-customer && WEB_URL="$web" ISSUER_URL="$issuer" DEPLOYED_EVIDENCE_DIR="$out" npx playwright test -c playwright.deployed.config.ts)
+                      (cd apps/web-customer && WEB_URL="$web" ISSUER_URL="$issuer" DEPLOYED_EVIDENCE_DIR="$out" DEPLOYED_WHERE=agent npx playwright test -c playwright.deployed.config.ts)
                       suite=$?
                       node scripts/ci/deployed-latency.mjs --web "$web" --issuer "$issuer" --where agent --json "$out/latency-agent.json"
                       latency=$?
