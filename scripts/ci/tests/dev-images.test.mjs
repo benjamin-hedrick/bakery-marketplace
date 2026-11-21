@@ -19,8 +19,28 @@ describe('the image list agrees with the dev stack and the Compose apps profile'
     const names = [...appsBlock.matchAll(/^\s+name\s+= "([a-z-]+)"$/gm)].map((m) => m[1]);
     assert.ok(/name\s+= "mock-oidc"/.test(stack), 'the mock issuer app');
     names.push('mock-oidc');
-    assert.deepEqual(IMAGES.map((i) => i.app).sort(), names.sort());
-    assert.equal(stack.split('image  = var.image_placeholder').length - 1, 2, 'the apps resource and the mock issuer');
+    assert.deepEqual(
+      IMAGES.filter((i) => i.kind === 'app')
+        .map((i) => i.app)
+        .sort(),
+      names.sort(),
+    );
+    // The container app jobs (resource "azurerm_container_app_job" "<key>" with name = "<name>").
+    const jobs = [...stack.matchAll(/resource "azurerm_container_app_job" "\w+" \{\n\s+name\s+= "([a-z-]+)"/g)].map(
+      (m) => m[1],
+    );
+    assert.deepEqual(
+      IMAGES.filter((i) => i.kind === 'job')
+        .map((i) => i.app)
+        .sort(),
+      jobs.sort(),
+    );
+    assert.ok(IMAGES.every((i) => i.kind === 'app' || i.kind === 'job'));
+    assert.equal(
+      stack.split('image  = var.image_placeholder').length - 1,
+      3,
+      'the apps resource, the mock issuer and the seed job',
+    );
   });
 
   test('each Dockerfile exists and each repository name is unique', () => {

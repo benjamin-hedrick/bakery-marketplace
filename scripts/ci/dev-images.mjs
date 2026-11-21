@@ -2,8 +2,8 @@
 // The dev environment's application images (ADR-0020 decision 1: build once, promote by digest; WI-DEP-001). Two halves, in two pipeline stages:
 //
 //   node scripts/ci/dev-images.mjs build --tag <build id> --revision <commit> --out <dir>
-//       Builds the five images the dev stack runs, one at a time (register item 103), with no credentials and no registry. Writes
-//       <dir>/images.tar.gz (all five, one docker save) and <dir>/images.json (each image's app, repository and image id). The pipeline publishes
+//       Builds the six images the dev stack runs (five apps and the seed job), one at a time (register item 103), with no credentials and no registry. Writes
+//       <dir>/images.tar.gz (all six, one docker save) and <dir>/images.json (each image's app, repository and image id). The pipeline publishes
 //       <dir> as an artifact, so the build has passed before anyone is asked to approve the deploy.
 //   node scripts/ci/dev-images.mjs push --in <dir> --registry <login server> --out <record.json>
 //       In the approved deploy job, after "az acr login": loads the artifact, refuses unless every image id is the one the build recorded, tags
@@ -20,18 +20,21 @@ import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
 
 /**
- * The images the dev stack runs. `app` is the container app's name in infra/environments/dev/main.tf; the build arguments match the `apps`
- * profile in docker-compose.yml. The notification service is not deployed to dev (no event crosses a service boundary there), so it has no image.
+ * The images the dev stack runs. `app` is the container app's (or, with `kind: 'job'`, the container app job's) name in infra/environments/dev/main.tf;
+ * the build arguments match the `apps` profile in docker-compose.yml. The notification service is not deployed to dev (no event crosses a service
+ * boundary there), so it has no image. The seed is a job: it runs once per deploy and exits (register 224).
  */
 export const IMAGES = [
   {
     app: 'catalog',
+    kind: 'app',
     repository: 'bakery-catalog',
     dockerfile: 'services/Dockerfile.dotnet',
     args: { PROJECT: 'services/catalog-service/src/CatalogService.csproj', ASSEMBLY: 'CatalogService', PORT: '5200' },
   },
   {
     app: 'ordering',
+    kind: 'app',
     repository: 'bakery-ordering',
     dockerfile: 'services/Dockerfile.dotnet',
     args: {
@@ -40,12 +43,26 @@ export const IMAGES = [
       PORT: '5300',
     },
   },
-  { app: 'graphql-bff', repository: 'bakery-bff', dockerfile: 'services/graphql-bff/Dockerfile', args: {} },
-  { app: 'web', repository: 'bakery-web', dockerfile: 'apps/web-customer/Dockerfile', args: {} },
+  {
+    app: 'graphql-bff',
+    kind: 'app',
+    repository: 'bakery-bff',
+    dockerfile: 'services/graphql-bff/Dockerfile',
+    args: {},
+  },
+  { app: 'web', kind: 'app', repository: 'bakery-web', dockerfile: 'apps/web-customer/Dockerfile', args: {} },
   {
     app: 'mock-oidc',
+    kind: 'app',
     repository: 'bakery-mock-oidc',
     dockerfile: 'tools/BakeryMarketplace.MockOidcHost/Dockerfile',
+    args: {},
+  },
+  {
+    app: 'seed',
+    kind: 'job',
+    repository: 'bakery-seed',
+    dockerfile: 'tools/BakeryMarketplace.Seed/Dockerfile',
     args: {},
   },
 ];

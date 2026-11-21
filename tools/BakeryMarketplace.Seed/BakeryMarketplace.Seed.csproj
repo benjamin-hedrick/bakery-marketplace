@@ -5,6 +5,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Publishing (the seed image, register 224) brings the catalog's and ordering's appsettings*.json to the same path. The seed reads only environment
+         variables and the command line (Program.cs), never appsettings, so which copy lands does not matter. -->
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
   </PropertyGroup>
 
   <ItemGroup>

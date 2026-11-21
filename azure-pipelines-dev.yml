@@ -5,7 +5,7 @@
 # Azure yet, nor have the post-apply secret step and the app update; the smoke is still a REHEARSAL that only prints. With planMode=rehearsal every step goes back
 # to its rehearsal (no service connection, no build), to re-prove the gates.
 #
-#   deploy:  images       no service connection: builds the five images (scripts/ci/dev-images.mjs build) and publishes them, saved, as an
+#   deploy:  images       no service connection: builds the six images (scripts/ci/dev-images.mjs build) and publishes them, saved, as an
 #                         artifact, while the plan runs, so a broken build fails before any approval.
 #            infra_plan   bakery-plan (read-only): checks its own roles, plans the dev stack from the state with -lock=false (ADR-0020
 #                         decision 5) and -refresh=false (register 213: refreshing a Key Vault secret reads its value), and publishes a
@@ -238,7 +238,7 @@ stages:
             steps:
               - checkout: self
               - ${{ if eq(parameters.planMode, 'rehearsal') }}:
-                  - script: echo "REHEARSAL - the real step builds the five images (scripts/ci/dev-images.mjs build) and publishes them as the dev-images artifact."
+                  - script: echo "REHEARSAL - the real step builds the six images (scripts/ci/dev-images.mjs build) and publishes them as the dev-images artifact."
                     displayName: Build the images (rehearsal)
 
               - ${{ if eq(parameters.planMode, 'real') }}:
@@ -246,7 +246,7 @@ stages:
                     inputs:
                       version: '24.x'
                   - script: node scripts/ci/dev-images.mjs build --tag "$(Build.BuildId)" --revision "$(Build.SourceVersion)" --out "$(Build.ArtifactStagingDirectory)/dev-images"
-                    displayName: Build the five images one at a time and save them (no registry, no credentials)
+                    displayName: Build the six images one at a time and save them (no registry, no credentials)
                   - publish: $(Build.ArtifactStagingDirectory)/dev-images
                     artifact: dev-images
                     displayName: Publish the saved images and their ids
