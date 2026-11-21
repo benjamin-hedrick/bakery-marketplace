@@ -18,6 +18,7 @@ Afterwards (read from the lead's sign-in, no value printed):
 
 - **The state:** 17 managed resources, none tainted: everything above, the three placeholder secrets, the wait after the role assignments and the budget's start date. The environment was not in it, nor any app (they need the environment, so none was sent to Azure).
 - **Azure:** the environment existed, with the resource's provisioning state `Succeeded` but its own `properties.provisioningState` still `Waiting`, at 04:14 and again at 04:41 (77 minutes after the create was accepted). It had the `Consumption` workload profile and a default domain, but no static IP.
+- **The activity log (read on 2026-11-21):** the create operation did end, `Succeeded` at 04:41:36, about 77 minutes after it was accepted and a minute before the delete below. The 45-minute limit set afterwards would not have saved this run. For comparison, the same definition's create in the successful apply earlier on 2026-11-20 took 14.5 minutes (accepted 18:34:27, succeeded 18:48:58), and the eight apps then took 15 to 35 seconds each, in two batches.
 - **Azure Service Health** for the subscription listed no event for the period.
 - **Not explained:** the deploy identity went on reading the environment about every 15 seconds until at least 04:11, after the apply step had ended.
 
