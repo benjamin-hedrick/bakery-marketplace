@@ -39,7 +39,7 @@ describe('azure-pipelines.yml (the pull-request checks)', () => {
   });
 });
 
-describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply, teardown and image push; the app update a rehearsal)', () => {
+describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, secrets, seed, app update, smoke, observe, teardown)', () => {
   const file = 'azure-pipelines-dev.yml';
   const text = code(file);
   /** The text of one stage, from its "- stage:" line to the next one. */
@@ -76,6 +76,33 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply, tear
       stage('images'),
       /azureSubscription|AzureCLI@|connectedServiceName|docker login|acr login|\baz\s/,
     );
+    // The smoke runs browser tests against the public addresses: nothing on its agent can change Azure.
+    assert.doesNotMatch(stage('smoke'), /azureSubscription|AzureCLI@|connectedServiceName|\baz\s/);
+    // The observe stage reads only, as the read-only identity, and is no deployment job.
+    assert.doesNotMatch(stage('observe'), /bakery-deploy|- deployment: /);
+    assert.match(real('observe'), /azureSubscription: bakery-plan/);
+  });
+
+  test('the smoke runs the deployed suite and the latency run on the recorded addresses after the deploy, and the observe stage follows it either way', () => {
+    const smoke = stage('smoke');
+    assert.match(smoke, /dependsOn: app_deploy\n\s+condition: succeeded\(\)/);
+    assert.match(real('smoke'), /npx playwright test -c playwright\.deployed\.config\.ts/);
+    assert.match(
+      real('smoke'),
+      /node scripts\/ci\/deployed-latency\.mjs --web "\$web" --issuer "\$issuer" --where agent/,
+    );
+    assert.match(real('smoke'), /\.urls\.web\)/);
+    assert.match(
+      real('smoke'),
+      /- publish: \$\(Build\.ArtifactStagingDirectory\)\/dev-smoke\n[\s\S]*?condition: always\(\)/,
+    );
+    assert.match(
+      stage('observe'),
+      /condition: and\(succeeded\('app_deploy'\), in\(dependencies\.smoke\.result, 'Succeeded', 'SucceededWithIssues', 'Failed'\)\)/,
+    );
+    assert.match(real('observe'), /node scripts\/ci\/dev-observe\.mjs --resource-group "\$\(RESOURCE_GROUP\)"/);
+    for (const name of ['smoke', 'observe'])
+      assert.match(stage(name), /\{\{ if eq\(parameters\.planMode, 'rehearsal'\) \}\}:/, name);
   });
 
   test('every deployment job is bound to one of the three gated environments, and each is used', () => {
@@ -197,13 +224,15 @@ describe('azure-pipelines-dev.yml (manual dev operations: real plan, apply, tear
     );
   });
 
-  test('only the value-free summaries, the images and the image and deployment records are published, never a saved plan or its JSON', () => {
+  test('only the value-free summaries, the images, the records and the smoke and observe evidence are published, never a saved plan or its JSON', () => {
     const published = [...text.matchAll(/- publish: (\S+)/g)].map((m) => m[1]).sort();
     assert.deepEqual(published, [
       '$(Build.ArtifactStagingDirectory)/destroy-summary',
       '$(Build.ArtifactStagingDirectory)/dev-deployment',
       '$(Build.ArtifactStagingDirectory)/dev-images',
       '$(Build.ArtifactStagingDirectory)/dev-images-pushed',
+      '$(Build.ArtifactStagingDirectory)/dev-observe',
+      '$(Build.ArtifactStagingDirectory)/dev-smoke',
       '$(Build.ArtifactStagingDirectory)/plan-summary',
     ]);
     for (const name of ['infra_plan', 'destroy_plan'])
