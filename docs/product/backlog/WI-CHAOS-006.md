@@ -1,4 +1,4 @@
-> **Status:** In progress · built: the observe step counts the scenarios started and the faults injected (`dev-observe.mjs`); the full plan below waits for the lead's agreement before any other piece is built (the lead, 2026-11-21: agree the whole plan first, then build in steps)
+> **Status:** In progress · the lead agreed the whole plan and the request-sequence triggers (2026-11-21). Built: the observe step's chaos counts, and step 2 (the C# library applies `where`, `off` and `signals`, with shared vectors). Remaining: steps 1, 3 to 7
 
 ```
 WI ID:               CHAOS-006
@@ -34,6 +34,7 @@ Size:                 L
 
 **Built so far**
 
+- Step 2 (2026-11-21): the C# library applies `where`, `off` and `signals` (`ChaosRuntime.Signal`, `ChaosLayer.Disturbs`, `ChaosMatching`); every C# layer asks `Disturbs` first and passes a call it is not aimed at straight through. `chaos/match-vectors.json` holds the shared cases (payload patterns, rules against calls, and two runs of signals); the Node and C# suites both reproduce them. The key and payload a rule sees per layer are in `chaos/README.md`; ADR-0024 has a dated note. Tests: the chaos library 79 of 79 (all earlier tests unchanged), the Node chaos package 71 of 71, ordering 551, catalog 411, notification 64 passed (Redis and Cosmos tests skipped without their containers).
 - `dev-observe.mjs` counts, per app, the scenarios that started (`chaosScenariosOn`) and the faults injected by layer and fault (`chaosInjected`), counts only. Run against the dev workspace on 2026-11-21: both read, 0 rows.
 
 **Order of building, after agreement**

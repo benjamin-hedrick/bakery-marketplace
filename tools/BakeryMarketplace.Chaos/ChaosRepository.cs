@@ -37,14 +37,18 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
     private Task Before(string operation, string partitionKey, CancellationToken ct) =>
         _layer.BeforeAsync(operation, $"{typeof(T).Name}/{partitionKey}", "failure", "failureRate", StoreFailure, ct);
 
+    // Aiming (WI-CHAOS-006): a rule's key for this layer is the partition (the vendor of catalog documents, the customer of orders), its payload the
+    // entity saved or, for a read or delete, { id }. A call the layer does not disturb goes straight through.
     public async Task<T?> GetAsync(string id, string partitionKey, CancellationToken ct = default)
     {
+        if (!_layer.Disturbs("get", partitionKey, new { id })) return await _inner.GetAsync(id, partitionKey, ct);
         await Before("get", partitionKey, ct);
         return await _inner.GetAsync(id, partitionKey, ct);
     }
 
     public async Task<T> SaveAsync(T entity, string partitionKey, CancellationToken ct = default)
     {
+        if (!_layer.Disturbs("save", partitionKey, entity)) return await _inner.SaveAsync(entity, partitionKey, ct);
         await Before("save", partitionKey, ct);
         var saved = await _inner.SaveAsync(entity, partitionKey, ct);
         if (_layer.LostResponse("save", EntityKey(partitionKey))) throw LostResponse();
@@ -53,6 +57,7 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
 
     public async Task<T?> SaveIfUnchangedAsync(T entity, string partitionKey, CancellationToken ct = default)
     {
+        if (!_layer.Disturbs("saveIfUnchanged", partitionKey, entity)) return await _inner.SaveIfUnchangedAsync(entity, partitionKey, ct);
         await Before("saveIfUnchanged", partitionKey, ct);
         if (_layer.InjectAttempt("saveIfUnchanged", $"{typeof(T).Name}/{partitionKey}", "conflict", "conflictRate"))
             return null; // the document "changed": nothing is saved
@@ -63,6 +68,12 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
 
     public async Task DeleteAsync(string id, string partitionKey, CancellationToken ct = default)
     {
+        if (!_layer.Disturbs("delete", partitionKey, new { id }))
+        {
+            await _inner.DeleteAsync(id, partitionKey, ct);
+            return;
+        }
+
         await Before("delete", partitionKey, ct);
         await _inner.DeleteAsync(id, partitionKey, ct);
         if (_layer.LostResponse("delete", EntityKey(partitionKey))) throw LostResponse();
@@ -73,7 +84,7 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
         Func<IQueryable<T>, IQueryable<T>> query,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        await Before("query", partitionKey, ct);
+        if (_layer.Disturbs("query", partitionKey)) await Before("query", partitionKey, ct);
         await foreach (var item in _inner.QueryAsync(partitionKey, query, ct).WithCancellation(ct))
             yield return item;
     }
@@ -83,7 +94,7 @@ public sealed class ChaosRepository<T> : IRepository<T> where T : class
         Func<IQueryable<T>, IQueryable<T>> query,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        await Before("query", "", ct);
+        if (_layer.Disturbs("query", "")) await Before("query", "", ct);
         await foreach (var item in _inner.QueryAcrossPartitionsAsync(query, ct).WithCancellation(ct))
             yield return item;
     }
@@ -119,6 +130,7 @@ public sealed class ChaosBatchFactory : IBatchFactory
 
         public async Task<bool> ExecuteAsync(CancellationToken ct = default)
         {
+            if (!layer.Disturbs("batch", partitionKey)) return await inner.ExecuteAsync(ct);
             await layer.BeforeAsync("batch", partitionKey, "failure", "failureRate", ChaosRepository<object>.StoreFailure, ct);
             if (layer.InjectAttempt("batch", partitionKey, "conflict", "conflictRate"))
                 return false; // the optimistic-concurrency check "failed": nothing was written

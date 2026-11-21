@@ -41,6 +41,15 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
     {
         var key = envelope.EventId.ToString();
 
+        // Aiming (WI-CHAOS-006): a rule's key for this layer is the event id, its payload the envelope (eventType, payload, ...). An event the layer
+        // does not disturb is published as is (and an event held back for reordering goes after it).
+        if (!_layer.Disturbs("publish", key, envelope))
+        {
+            await _publisher.PublishAsync(envelope, ct);
+            await ReleaseHeldAsync(ct);
+            return;
+        }
+
         if (_layer.Latency is { } delay)
         {
             // The timer before the journal entry, so a test that sees the entry cannot advance its manual clock before the timer exists (register 207).
@@ -107,7 +116,8 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
         CancellationToken ct = default) =>
         _subscriber.SubscribeAsync<T>(eventType, (envelope, token) =>
         {
-            if (_layer.Setting("handlerFailureRate") > 0 && _layer.Inject("handlerFailure", "handlerFailureRate", AttemptKey("handlerFailure", envelope.EventId)))
+            if (_layer.Disturbs("handle", envelope.EventId.ToString(), envelope)
+                && _layer.Setting("handlerFailureRate") > 0 && _layer.Inject("handlerFailure", "handlerFailureRate", AttemptKey("handlerFailure", envelope.EventId)))
                 throw new InvalidOperationException($"ChaosEventTransport: simulated handler failure for event {envelope.EventId}.");
             return handler(envelope, token);
         }, consumerName, ct);
@@ -124,7 +134,9 @@ public sealed class ChaosEventTransport : IEventPublisher, IEventSubscriber
             var passing = new List<DomainEventEnvelope<T>>();
             foreach (var envelope in batch)
             {
-                if (_layer.Setting("handlerFailureRate") > 0 && _layer.Inject("handlerFailure", "handlerFailureRate", AttemptKey("handlerFailure", envelope.EventId)))
+                if (_layer.Disturbs("handle", envelope.EventId.ToString(), envelope)
+                    && _layer.Setting("handlerFailureRate") > 0
+                    && _layer.Inject("handlerFailure", "handlerFailureRate", AttemptKey("handlerFailure", envelope.EventId)))
                     failed.Add(envelope.EventId);
                 else
                     passing.Add(envelope);

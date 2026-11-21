@@ -24,8 +24,11 @@ public sealed class ChaosCacheProvider : ICacheProvider
         _layer = (runtime ?? throw new ArgumentNullException(nameof(runtime))).Layer(LayerName);
     }
 
-    private async Task InjectAsync(string operation, string key, CancellationToken ct)
+    // Aiming (WI-CHAOS-006): a rule's key for this layer is the cache key. A call the layer does not disturb goes straight through.
+    // Returns whether the layer disturbs this call, after injecting what the scenario sets for it.
+    private async Task<bool> InjectAsync(string operation, string key, CancellationToken ct)
     {
+        if (!_layer.Disturbs(operation, key)) return false;
         if (_layer.Latency is { } delay)
         {
             // The timer before the journal entry, so a test that sees the entry cannot advance its manual clock before the timer exists (register 207).
@@ -46,6 +49,8 @@ public sealed class ChaosCacheProvider : ICacheProvider
             if (_layer.Inject("failure", "failureRate", $"{operation}:{key}:{attempt}"))
                 throw new InvalidOperationException("ChaosCacheProvider: simulated failure.");
         }
+
+        return true;
     }
 
     public async Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken ct = default)
@@ -74,7 +79,11 @@ public sealed class ChaosCacheProvider : ICacheProvider
 
     public async Task DeleteAsync(string key, CancellationToken ct = default)
     {
-        await InjectAsync("delete", key, ct);
+        if (!await InjectAsync("delete", key, ct))
+        {
+            await _inner.DeleteAsync(key, ct);
+            return;
+        }
 
         // A delete that fails and leaves the entry in place: what an invalidation that does not get through looks like, so a reader sees the old value until the
         // entry expires. Separate from failureRate, which hits reads and writes alike and so rarely produces exactly this.

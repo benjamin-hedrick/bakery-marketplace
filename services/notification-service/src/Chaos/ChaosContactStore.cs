@@ -15,6 +15,8 @@ public sealed class ChaosContactStore(IContactStore inner, ChaosLayer layer) : I
     {
         ArgumentNullException.ThrowIfNull(customerIds);
         var key = string.Join(',', customerIds.Order(StringComparer.Ordinal));
+        // Aiming (WI-CHAOS-006): a rule's key here is the customer ids asked for, joined; there is no payload (a contact holds an address).
+        if (!layer.Disturbs("read", key)) return await inner.GetContactsAsync(customerIds, ct);
         await layer.BeforeAsync("read", key, "failure", "failureRate",
             () => new InvalidOperationException("ChaosContactStore: simulated store failure."), ct);
         return await inner.GetContactsAsync(customerIds, ct);

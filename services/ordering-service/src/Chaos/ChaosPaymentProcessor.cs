@@ -10,8 +10,10 @@ namespace OrderingService.Chaos;
 /// </summary>
 public sealed class ChaosPaymentProcessor(IPaymentProcessor inner, ChaosLayer layer) : IPaymentProcessor
 {
+    // Aiming (WI-CHAOS-006): a rule's key for this layer is the order id; authorize's payload is the request (its payment method, amount, ...).
     public async Task<PaymentResult> AuthorizeAsync(PaymentRequest request, CancellationToken ct = default)
     {
+        if (!layer.Disturbs("authorize", request.OrderId, request)) return await inner.AuthorizeAsync(request, ct);
         await layer.BeforeAsync("authorize", request.OrderId, "failure", "failureRate",
             () => new PaymentUnavailableException("ChaosPaymentProcessor: simulated processor failure."), ct);
 
@@ -28,6 +30,12 @@ public sealed class ChaosPaymentProcessor(IPaymentProcessor inner, ChaosLayer la
 
     public async Task VoidAsync(string orderId, CancellationToken ct = default)
     {
+        if (!layer.Disturbs("void", orderId))
+        {
+            await inner.VoidAsync(orderId, ct);
+            return;
+        }
+
         await layer.BeforeAsync("void", orderId, "failure", "failureRate",
             () => new PaymentUnavailableException("ChaosPaymentProcessor: simulated processor failure."), ct);
 

@@ -28,6 +28,13 @@ public sealed class ChaosBroadcastPublisher : IBroadcastPublisher
 
     public async Task PublishAsync(string channel, string message, CancellationToken ct = default)
     {
+        // Aiming (WI-CHAOS-006): a rule's key for this layer is the channel (a vendor's channel). A publish the layer does not disturb goes through.
+        if (!_layer.Disturbs("publish", channel))
+        {
+            await _inner.PublishAsync(channel, message, ct);
+            return;
+        }
+
         var key = MessageKey(channel, message);
         await _layer.BeforeAsync("publish", key, "failure", "failureRate", () => new InvalidOperationException("ChaosBroadcast: simulated publish failure."), ct);
         if (_layer.Inject("drop", "dropRate", key))
@@ -50,6 +57,12 @@ public sealed class ChaosBroadcastSubscriber : IBroadcastSubscriber
     public Task<IAsyncDisposable> SubscribeAsync(string channel, Func<string, CancellationToken, Task> handler, CancellationToken ct = default) =>
         _inner.SubscribeAsync(channel, async (message, token) =>
         {
+            if (!_layer.Disturbs("deliver", channel))
+            {
+                await handler(message, token);
+                return;
+            }
+
             var key = ChaosBroadcastPublisher.MessageKey(channel, message);
             if (_layer.Inject("deliveryDrop", "deliveryDropRate", key))
                 return;

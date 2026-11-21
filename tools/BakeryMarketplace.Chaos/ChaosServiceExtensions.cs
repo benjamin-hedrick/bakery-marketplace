@@ -2,6 +2,7 @@ using BakeryMarketplace.Caching;
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,7 +28,11 @@ public sealed class ChaosPlan
 
     public bool Enabled => Scenario is not null;
 
-    public bool Wants(string layer) => Scenario?.HasLayer(layer) == true;
+    /// <summary>
+    /// Whether this process wraps a layer: when the scenario has it (even switched off: a signal may turn it on), or when a signal can switch to another
+    /// scenario, whose layers must then already be wrapped (a wrapped layer the scenario that is on does not have passes every call through).
+    /// </summary>
+    public bool Wants(string layer) => Scenario is { } s && (s.HasLayer(layer) || s.CanSwitch);
 
     public IReadOnlyList<string> Applied
     {
@@ -76,9 +81,17 @@ public static class ChaosServiceExtensions
         services.AddSingleton(plan);
         // The runtime runs on the host's clock when the host registers one (the services register TimeProvider.System; a test host its own
         // manual clock, so an outage window ends when the test moves the clock: register 202), and on the system clock otherwise.
-        services.AddSingleton(sp => new ChaosRuntime(
-            scenario, environment.EnvironmentName, deployment, sp.GetRequiredService<ILoggerFactory>().CreateLogger("BakeryMarketplace.Chaos"),
-            sp.GetService<TimeProvider>()));
+        // A rule's "customer" is the signed-in user of the request being served (the validated token's sub), when there is one.
+        services.AddHttpContextAccessor();
+        services.AddSingleton(sp =>
+        {
+            var requests = sp.GetRequiredService<IHttpContextAccessor>();
+            return new ChaosRuntime(
+                scenario, environment.EnvironmentName, deployment, sp.GetRequiredService<ILoggerFactory>().CreateLogger("BakeryMarketplace.Chaos"),
+                sp.GetService<TimeProvider>(),
+                resolveScenario: name => ChaosScenario.Load(ChaosScenarioLocator.Resolve(name, environment.ContentRootPath)),
+                currentCustomer: () => CustomerOf(requests.HttpContext?.User));
+        });
         services.AddTransient<IStartupFilter, ChaosStartupFilter>();
 
         if (plan.Wants(ChaosEventTransport.LayerName)) DecorateEvents(services, plan);
@@ -87,6 +100,12 @@ public static class ChaosServiceExtensions
 
         return services;
     }
+
+    /// <summary>The <c>sub</c> of a signed-in user (kept as <c>sub</c>, or mapped to the name identifier claim by the JWT handler), or null.</summary>
+    internal static string? CustomerOf(System.Security.Claims.ClaimsPrincipal? user) =>
+        user?.Identity?.IsAuthenticated == true
+            ? user.FindFirst("sub")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            : null;
 
     /// <summary>
     /// Wraps what the service registered for <typeparamref name="TService"/> with <paramref name="wrap"/> when the scenario has <paramref name="layer"/>;
