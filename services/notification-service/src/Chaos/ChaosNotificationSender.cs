@@ -12,6 +12,13 @@ public sealed class ChaosNotificationSender(INotificationSender inner, ChaosLaye
 {
     public async Task SendAsync(Notification notification, CancellationToken ct = default)
     {
+        // Aiming (WI-CHAOS-006): a rule's key here is the event id; there is no payload (a notification holds the recipient's address).
+        if (!layer.Disturbs("send", notification.EventId.ToString()))
+        {
+            await inner.SendAsync(notification, ct);
+            return;
+        }
+
         await layer.BeforeAsync("send", notification.EventId.ToString(), "failure", "failureRate",
             () => new InvalidOperationException("ChaosNotificationSender: simulated delivery failure."), ct);
         await inner.SendAsync(notification, ct);

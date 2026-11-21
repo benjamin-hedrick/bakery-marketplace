@@ -91,6 +91,18 @@ public sealed class ChaosScenario
 
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>> Layers { get; }
 
+    /// <summary>Per layer, the calls it disturbs (a layer not named here disturbs every call).</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<ChaosMatch>> Where { get; private init; } = new Dictionary<string, IReadOnlyList<ChaosMatch>>();
+
+    /// <summary>The layers that start switched off (a signal can enable them).</summary>
+    public IReadOnlyList<string> Off { get; private init; } = [];
+
+    /// <summary>What normal calls that match switch: a layer on or off, another scenario, or a reset.</summary>
+    public IReadOnlyList<ChaosSignal> Signals { get; private init; } = [];
+
+    /// <summary>True when a signal can switch to another scenario, whose layers this process must then already have wrapped.</summary>
+    public bool CanSwitch => Signals.Any(s => s.Do == "switch");
+
     public ChaosScenario(string name, long seed, IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>> layers)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ChaosScenarioException("A scenario needs a name.");
@@ -186,12 +198,30 @@ public sealed class ChaosScenario
             if (seed is null) throw new ChaosScenarioException($"Scenario '{name}' needs a seed (a whole number).");
             var scenario = new ChaosScenario(name, seed.Value, layers);
             CheckSections(name, layers, sections);
-            return scenario;
+            return WithSections(scenario, sections);
         }
     }
 
-    // The where, off and signals sections are applied by the Node processes (the BFF's service clients). The C# services have no such client, so they
-    // only check the sections, with the same rules as packages/chaos, so one scenario file is valid for the whole stack or for none of it.
+    // The where, off and signals sections are checked with the same rules as packages/chaos, so one scenario file is valid for the whole stack or for
+    // none of it, and since WI-CHAOS-006 the C# library applies them too (ChaosRuntime.Signal, ChaosLayer.Disturbs), as the Node processes do.
+    private static ChaosScenario WithSections(ChaosScenario scenario, Dictionary<string, JsonElement> sections)
+    {
+        var where = new Dictionary<string, IReadOnlyList<ChaosMatch>>();
+        if (sections.TryGetValue("where", out var w))
+            foreach (var layer in w.EnumerateObject())
+                where[layer.Name] = layer.Value.EnumerateArray().Select(ChaosMatch.From).ToArray();
+        var off = sections.TryGetValue("off", out var o) ? o.EnumerateArray().Select(e => e.GetString()!).ToArray() : [];
+        var signals = new List<ChaosSignal>();
+        if (sections.TryGetValue("signals", out var s))
+            foreach (var signal in s.EnumerateArray())
+            {
+                string? Text(string name) => signal.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                signals.Add(new ChaosSignal(ChaosMatch.From(signal.GetProperty("when")), Text("do")!, Text("layer"), Text("scenario")));
+            }
+
+        return new ChaosScenario(scenario.Name, scenario.Seed, scenario.Layers) { Where = where, Off = off, Signals = signals };
+    }
+
     private static void CheckSections(string name, IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>> layers, Dictionary<string, JsonElement> sections)
     {
         void Present(string layer, string at)

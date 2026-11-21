@@ -35,35 +35,117 @@ public sealed class ChaosRuntime
 
     private readonly TimeProvider _time;
 
+    private readonly Func<string, ChaosScenario>? _resolve;
+    private readonly Func<string?> _customer;
+    private readonly object _switchLock = new();
+    private volatile ChaosScenario? _scenario;
+    private volatile State _state;
+
+    /// <summary>What a signal changes, swapped as a whole so a reader never sees half of it: the layers switched off and the start of the clock.</summary>
+    private sealed record State(IReadOnlySet<string> Off, DateTimeOffset Started);
+
     private ChaosRuntime()
     {
         _time = TimeProvider.System;
+        _customer = () => null;
         Journal = new ChaosJournal(null, _time);
-        Started = _time.GetUtcNow();
+        _state = new State(new HashSet<string>(), _time.GetUtcNow());
     }
 
     /// <param name="hostEnvironmentName">The host's environment name; checked with <paramref name="deploymentEnvironment"/> by <see cref="ChaosGate"/>.</param>
-    public ChaosRuntime(ChaosScenario scenario, string hostEnvironmentName, string? deploymentEnvironment = null, ILogger? logger = null, TimeProvider? time = null)
+    /// <param name="resolveScenario">Finds the scenario a <c>switch</c> signal names; without it a switch fails.</param>
+    /// <param name="currentCustomer">The signed-in user (<c>sub</c>) of the request being served, if any, for a rule's <c>customer</c>.</param>
+    public ChaosRuntime(
+        ChaosScenario scenario, string hostEnvironmentName, string? deploymentEnvironment = null, ILogger? logger = null, TimeProvider? time = null,
+        Func<string, ChaosScenario>? resolveScenario = null, Func<string?>? currentCustomer = null)
     {
         ChaosGate.Require(hostEnvironmentName, deploymentEnvironment);
-        Scenario = scenario ?? throw new ArgumentNullException(nameof(scenario));
+        _scenario = scenario ?? throw new ArgumentNullException(nameof(scenario));
         _time = time ?? TimeProvider.System;
+        _resolve = resolveScenario;
+        _customer = currentCustomer ?? (() => null);
         Journal = new ChaosJournal(logger, _time);
-        Started = _time.GetUtcNow();
+        _state = new State(scenario.Off.ToHashSet(StringComparer.Ordinal), _time.GetUtcNow());
     }
 
     /// <summary>A runtime for tests, in the Development environment.</summary>
-    public static ChaosRuntime ForTests(ChaosScenario scenario, TimeProvider? time = null) => new(scenario, Environments.Development, null, null, time);
+    public static ChaosRuntime ForTests(
+        ChaosScenario scenario, TimeProvider? time = null, Func<string, ChaosScenario>? resolveScenario = null, Func<string?>? currentCustomer = null) =>
+        new(scenario, Environments.Development, null, null, time, resolveScenario, currentCustomer);
 
-    public bool Enabled => Scenario is not null;
+    public bool Enabled => _scenario is not null;
 
-    public ChaosScenario? Scenario { get; }
+    /// <summary>The scenario that is on now; a <c>switch</c> signal replaces it.</summary>
+    public ChaosScenario? Scenario => _scenario;
 
     public ChaosJournal Journal { get; }
 
-    public DateTimeOffset Started { get; }
+    /// <summary>When the scenario's clock started (the runtime's creation, or the last reset or switch); outage windows are measured from it.</summary>
+    public DateTimeOffset Started => _state.Started;
 
     internal TimeProvider Time => _time;
+
+    /// <summary>The signed-in user of the request being served, or null (background work, an anonymous request).</summary>
+    internal string? CurrentCustomer => _customer();
+
+    /// <summary>True when a layer is in the scenario that is on and not switched off.</summary>
+    public bool IsOn(string layer) => _scenario?.HasLayer(layer) == true && !_state.Off.Contains(layer);
+
+    /// <summary>Whether a layer disturbs this call: it has no <c>where</c>, or the call matches one of its rules.</summary>
+    public bool AppliesTo(string layer, ChaosCall call) =>
+        _scenario is not { } s || !s.Where.TryGetValue(layer, out var rules) || rules.Any(r => ChaosMatching.Matches(r, call));
+
+    /// <summary>
+    /// Runs the scenario's signals that match this call, in order, and returns what they did (each also in the journal as <c>signal</c>, with the call's
+    /// key). The call itself goes on as normal and is judged after the signals, as in <c>packages/chaos</c>.
+    /// </summary>
+    public IReadOnlyList<string> Signal(ChaosCall call)
+    {
+        if (_scenario is not { Signals.Count: > 0 } scenario) return [];
+        var done = new List<string>();
+        foreach (var signal in scenario.Signals)
+        {
+            if (!ChaosMatching.Matches(signal.When, call)) continue;
+            string what;
+            lock (_switchLock)
+            {
+                switch (signal.Do)
+                {
+                    case "enable":
+                        _state = _state with { Off = _state.Off.Where(l => l != signal.Layer).ToHashSet(StringComparer.Ordinal) };
+                        what = $"enable:{signal.Layer}";
+                        break;
+                    case "disable":
+                        _state = _state with { Off = _state.Off.Append(signal.Layer!).ToHashSet(StringComparer.Ordinal) };
+                        what = $"disable:{signal.Layer}";
+                        break;
+                    case "reset":
+                        Restart(_scenario!);
+                        what = "reset";
+                        break;
+                    default: // switch (the scenario's own check allows nothing else)
+                        if (_resolve is null)
+                            throw new ChaosScenarioException($"Scenario '{scenario.Name}' has a switch signal but nothing can find scenarios.");
+                        Restart(_resolve(signal.Scenario!));
+                        what = $"switch:{signal.Scenario}";
+                        break;
+                }
+            }
+
+            Journal.Record("signal", what, call.Key);
+            done.Add(what);
+        }
+
+        return done;
+    }
+
+    /// <summary>Starts the counters and the clock again with <paramref name="scenario"/> (this one for a reset), its layers as it starts them.</summary>
+    private void Restart(ChaosScenario scenario)
+    {
+        _scenario = scenario;
+        _attempts.Clear();
+        _state = new State(scenario.Off.ToHashSet(StringComparer.Ordinal), _time.GetUtcNow());
+    }
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _attempts = new();
 
@@ -77,7 +159,24 @@ public sealed class ChaosRuntime
 /// <summary>One layer of the scenario, as a decorator sees it.</summary>
 public readonly struct ChaosLayer(ChaosRuntime runtime, string name)
 {
-    public bool Active => runtime.Scenario?.HasLayer(name) == true;
+    /// <summary>True when the layer is in the scenario that is on and not switched off.</summary>
+    public bool Active => runtime.IsOn(name);
+
+    /// <summary>In the scenario at all, whether or not it is switched off now (a signal may turn it on).</summary>
+    public bool Declared => runtime.Scenario?.HasLayer(name) == true;
+
+    /// <summary>
+    /// The first thing a decorator asks for each call: runs the signals the call matches, then answers whether this layer disturbs it (on, and aimed at
+    /// it by <c>where</c>, if the layer has one). When it answers false the decorator passes the call through untouched. <paramref name="payload"/>
+    /// is the call's main argument (a request, an entity, an event), matched as JSON; the customer is the signed-in user of the current request.
+    /// </summary>
+    public bool Disturbs(string operation, string key, object? payload = null)
+    {
+        if (runtime.Scenario is null) return false;
+        var call = new ChaosCall(name, operation, key, runtime.CurrentCustomer, payload);
+        runtime.Signal(call);
+        return runtime.IsOn(name) && runtime.AppliesTo(name, call);
+    }
 
     public double Setting(string setting) => runtime.Scenario?.Get(name, setting) ?? 0;
 

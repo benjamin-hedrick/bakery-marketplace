@@ -53,7 +53,7 @@ Settings ending in `Rate` are probabilities from 0 to 1; the others are non-nega
 
 One scenario file serves a whole stack. A process applies the layers it has an interface for and logs, once it is up, which layers it applied and which the scenario names but it does not have (the admin service has no event transport; notification has no payment processor). A layer name that no process knows fails when the scenario is loaded. Outage windows are measured from the process's chaos start. Scenarios: `flaky-broker`, `broker-outage`, `slow-cache`, `stale-cache`, `checkout-trouble`, `lost-confirmation`, `bff-door`, `web-door`. `layers.json` is the shared list of layers and settings; the C# and TypeScript libraries each test their copy against it. Not built yet: a scenario run on the whole real stack with evidence, and the web apps' server-side proxies (register 169).
 
-## Aiming a fault, and signals (ADR-0024 amendment, 2026-11-10; the Node processes apply them, the C# library only checks them)
+## Aiming a fault, and signals (ADR-0024 amendment, 2026-11-10; applied by the Node processes and, since 2026-11-21, the C# library)
 
 Three optional sections next to `layers`:
 
@@ -70,6 +70,21 @@ Three optional sections next to `layers`:
 - `where`: per layer, a list of matches; the layer disturbs only calls that match one of them (a layer with no `where` disturbs every call). A match has `operation` (the client method), `customer` (the `sub` of the bearer token, read and not verified), `key` (the call's first non-credential string: an id, an idempotency key), `payload` (a pattern the call's first object or array argument must contain: scalars equal, objects with at least those properties, arrays of the same length element by element) and, in signals, `client` (`bffCatalog` or `bffOrdering`).
 - `off`: layers that start switched off.
 - `signals`: a normal request that matches `when` runs `do`: `enable` or `disable` a `layer`, `switch` to the scenario file called `scenario` (a plain name, never a path), or `reset` (counters and clock again, layers as the scenario starts them). A request carries no setting and names no scenario; the matched request goes on as normal, judged after the signal; each signal is in the journal as `signal:<what>`.
+
+Both libraries apply the same rules; `match-vectors.json` holds the cases both test suites reproduce. What a call looks like to a rule depends on the layer (its `client` is the layer's name):
+
+| Layer | Operations | Key | Payload |
+|---|---|---|---|
+| `bffCatalog`, `bffOrdering` (BFF) | the client method | the call's first plain string (an id, an idempotency key) | the first object or array argument |
+| `repository` | `get`, `save`, `saveIfUnchanged`, `delete`, `query`, `batch` | the partition (the vendor of catalog documents, the customer of orders) | the entity saved, or `{ id }` |
+| `catalog` (ordering's gateway) | `getListing`, `reserve`, `release`, `getAllergenIds`, `listActiveReservations` | the listing id or the order id | `reserve`: `{ orderId, vendorId, lines: [{ listingId, quantity }] }`; `release`: `{ orderId, vendorId }` |
+| `payment` | `authorize`, `void` | the order id | `authorize`: the request (`paymentMethodId`, amount, ...) |
+| `events` | `publish`, `handle` | the event id | the envelope (`eventType`, `payload`, ...) |
+| `broadcast` | `publish`, `deliver` | the channel | none |
+| `cache` | the store method | the cache key | none |
+| `contacts`, `notification` | `read`, `send` | the customer ids, the event id | none (they hold addresses) |
+
+In the services a rule's `customer` is the signed-in user of the request being served, so a background call (an event handler, a sweeper) has none. A signal acts in the process that sees the matching call: a rule meant to switch a catalog fault on must match a call that reaches ordering's catalog gateway.
 
 `mobile-flows` is the scenario the Android flows' runner gives the BFF (`node scripts/dev/mobile-flows.mjs`): it fails the first attempt of the one order flow 11 places.
 

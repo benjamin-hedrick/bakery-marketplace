@@ -1,0 +1,174 @@
+{
+  "description": "Shared cases for aiming a fault (ADR-0024 amendment of 2026-11-10; WI-CHAOS-006): which calls a rule matches, and what a sequence of calls does to a scenario's where, off and signals. The C# library (tools/BakeryMarketplace.Chaos) and the Node one (packages/chaos) must both reproduce every case, so one scenario file aims the same way in every process. 'contains': a payload pattern against a value (a missing value is written as the absence of 'value'). 'matches': a rule against a call. 'runs': a scenario and a sequence of calls through its layers; each step says what the call's signals did and whether the layer named by the call's client disturbs it.",
+  "contains": [
+    { "pattern": { "a": 1 }, "value": { "a": 1, "b": 2 }, "expected": true },
+    { "pattern": { "a": 1 }, "value": { "a": 2 }, "expected": false },
+    { "pattern": { "a": 1 }, "expected": false },
+    { "pattern": { "a": 1 }, "value": null, "expected": false },
+    { "pattern": [{ "q": 2 }], "value": [{ "q": 2, "id": "x" }], "expected": true },
+    { "pattern": [{ "q": 2 }], "value": [{ "q": 2 }, { "q": 1 }], "expected": false },
+    { "pattern": { "a": [] }, "value": { "a": {} }, "expected": false },
+    { "pattern": "x", "value": "x", "expected": true },
+    { "pattern": 2, "value": 2.0, "expected": true },
+    { "pattern": true, "value": "true", "expected": false },
+    { "pattern": null, "value": null, "expected": true },
+    { "pattern": { "a": null }, "value": {}, "expected": false },
+    {
+      "pattern": { "lines": [{ "listingId": "listing-chaos-1" }] },
+      "value": { "orderId": "o-1", "lines": [{ "listingId": "listing-chaos-1", "quantity": 2 }] },
+      "expected": true
+    }
+  ],
+  "matches": [
+    {
+      "match": { "operation": "authorize" },
+      "call": { "client": "payment", "operation": "authorize", "key": "o-1" },
+      "expected": true
+    },
+    {
+      "match": { "operation": "void" },
+      "call": { "client": "payment", "operation": "authorize", "key": "o-1" },
+      "expected": false
+    },
+    {
+      "match": { "customer": "user-chaos-1" },
+      "call": { "client": "payment", "operation": "authorize", "key": "o-1", "customer": "user-chaos-1" },
+      "expected": true
+    },
+    {
+      "match": { "customer": "user-chaos-1" },
+      "call": { "client": "payment", "operation": "authorize", "key": "o-1" },
+      "expected": false
+    },
+    {
+      "match": { "key": "listing-chaos-1" },
+      "call": { "client": "catalog", "operation": "getListing", "key": "listing-chaos-1" },
+      "expected": true
+    },
+    {
+      "match": { "client": "catalog", "operation": "getListing" },
+      "call": { "client": "payment", "operation": "getListing", "key": "x" },
+      "expected": false
+    },
+    {
+      "match": { "payload": { "paymentMethodId": "pm-chaos-decline" } },
+      "call": {
+        "client": "payment",
+        "operation": "authorize",
+        "key": "o-1",
+        "payload": { "orderId": "o-1", "paymentMethodId": "pm-chaos-decline", "amount": 5 }
+      },
+      "expected": true
+    },
+    {
+      "match": { "payload": { "paymentMethodId": "pm-chaos-decline" } },
+      "call": { "client": "payment", "operation": "authorize", "key": "o-1" },
+      "expected": false
+    },
+    {
+      "match": { "operation": "reserve", "payload": { "lines": [{ "listingId": "listing-chaos-1" }] } },
+      "call": {
+        "client": "catalog",
+        "operation": "reserve",
+        "key": "o-1",
+        "payload": { "orderId": "o-1", "lines": [{ "listingId": "listing-latte-001", "quantity": 1 }] }
+      },
+      "expected": false
+    }
+  ],
+  "runs": [
+    {
+      "name": "where limits a layer to the calls it names; an off layer disturbs nothing until a signal enables it and again after another disables it",
+      "scenario": {
+        "name": "vector-aimed",
+        "seed": 1,
+        "layers": { "catalog": { "unavailableRate": 1 }, "payment": { "declineRate": 1 } },
+        "where": { "payment": [{ "customer": "user-chaos" }] },
+        "off": ["catalog"],
+        "signals": [
+          {
+            "when": { "client": "catalog", "operation": "getListing", "key": "listing-chaos-outage" },
+            "do": "enable",
+            "layer": "catalog"
+          },
+          {
+            "when": { "client": "catalog", "operation": "getListing", "key": "listing-chaos-recover" },
+            "do": "disable",
+            "layer": "catalog"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "call": { "client": "payment", "operation": "authorize", "key": "o-1", "customer": "user-a" },
+          "signals": [],
+          "disturbs": false
+        },
+        {
+          "call": { "client": "payment", "operation": "authorize", "key": "o-2", "customer": "user-chaos" },
+          "signals": [],
+          "disturbs": true
+        },
+        {
+          "call": { "client": "catalog", "operation": "getListing", "key": "listing-x" },
+          "signals": [],
+          "disturbs": false
+        },
+        {
+          "call": { "client": "catalog", "operation": "getListing", "key": "listing-chaos-outage" },
+          "signals": ["enable:catalog"],
+          "disturbs": true
+        },
+        {
+          "call": { "client": "catalog", "operation": "getListing", "key": "listing-x" },
+          "signals": [],
+          "disturbs": true
+        },
+        {
+          "call": { "client": "catalog", "operation": "getListing", "key": "listing-chaos-recover" },
+          "signals": ["disable:catalog"],
+          "disturbs": false
+        },
+        {
+          "call": { "client": "catalog", "operation": "getListing", "key": "listing-x" },
+          "signals": [],
+          "disturbs": false
+        }
+      ]
+    },
+    {
+      "name": "a reset puts the layers back as the scenario starts them",
+      "scenario": {
+        "name": "vector-reset",
+        "seed": 2,
+        "layers": { "repository": { "failureRate": 1 } },
+        "signals": [
+          { "when": { "client": "repository", "key": "vendor-chaos-off" }, "do": "disable", "layer": "repository" },
+          { "when": { "client": "repository", "key": "vendor-chaos-reset" }, "do": "reset" }
+        ]
+      },
+      "steps": [
+        {
+          "call": { "client": "repository", "operation": "get", "key": "vendor-shop-001" },
+          "signals": [],
+          "disturbs": true
+        },
+        {
+          "call": { "client": "repository", "operation": "get", "key": "vendor-chaos-off" },
+          "signals": ["disable:repository"],
+          "disturbs": false
+        },
+        {
+          "call": { "client": "repository", "operation": "get", "key": "vendor-shop-001" },
+          "signals": [],
+          "disturbs": false
+        },
+        {
+          "call": { "client": "repository", "operation": "get", "key": "vendor-chaos-reset" },
+          "signals": ["reset"],
+          "disturbs": true
+        }
+      ]
+    }
+  ]
+}

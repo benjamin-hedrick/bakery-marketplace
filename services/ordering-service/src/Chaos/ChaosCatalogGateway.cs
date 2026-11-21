@@ -18,14 +18,18 @@ public sealed class ChaosCatalogGateway(ICatalogGateway inner, ChaosLayer layer)
     private Task Before(string operation, string key, CancellationToken ct) =>
         layer.BeforeAsync(operation, key, "unavailable", "unavailableRate", Unreachable, ct);
 
+    // Aiming (WI-CHAOS-006): a rule's key for this layer is the listing id (getListing) or the order id (reserve, release); reserve's payload is
+    // { orderId, vendorId, lines: [{ listingId, quantity }] }. A call the layer does not disturb goes straight through.
     public async Task<CatalogListing?> GetListingAsync(string listingId, CancellationToken ct = default)
     {
+        if (!layer.Disturbs("getListing", listingId)) return await inner.GetListingAsync(listingId, ct);
         await Before("getListing", listingId, ct);
         return await inner.GetListingAsync(listingId, ct);
     }
 
     public async Task<IReadOnlyCollection<string>> GetAllergenIdsAsync(CancellationToken ct = default)
     {
+        if (!layer.Disturbs("getAllergenIds", "all")) return await inner.GetAllergenIdsAsync(ct);
         await Before("getAllergenIds", "all", ct);
         return await inner.GetAllergenIdsAsync(ct);
     }
@@ -33,6 +37,8 @@ public sealed class ChaosCatalogGateway(ICatalogGateway inner, ChaosLayer layer)
     public async Task<StockReservationOutcome> ReserveAsync(
         string orderId, string vendorId, IReadOnlyList<(string ListingId, int Quantity)> lines, CancellationToken ct = default)
     {
+        var payload = new { orderId, vendorId, lines = lines.Select(l => new { listingId = l.ListingId, quantity = l.Quantity }).ToArray() };
+        if (!layer.Disturbs("reserve", orderId, payload)) return await inner.ReserveAsync(orderId, vendorId, lines, ct);
         await Before("reserve", orderId, ct);
         if (layer.InjectAttempt("reserve", orderId, "reject", "rejectRate"))
             return new StockReservationOutcome(false, "conflict");
@@ -43,6 +49,12 @@ public sealed class ChaosCatalogGateway(ICatalogGateway inner, ChaosLayer layer)
 
     public async Task ReleaseAsync(string orderId, string vendorId, CancellationToken ct = default)
     {
+        if (!layer.Disturbs("release", orderId, new { orderId, vendorId }))
+        {
+            await inner.ReleaseAsync(orderId, vendorId, ct);
+            return;
+        }
+
         await Before("release", orderId, ct);
         await inner.ReleaseAsync(orderId, vendorId, ct);
         if (layer.LostResponse("release", orderId)) throw LostResponse();
@@ -51,6 +63,8 @@ public sealed class ChaosCatalogGateway(ICatalogGateway inner, ChaosLayer layer)
     public async Task<ActiveReservationPage> ListActiveReservationsAsync(
         TimeSpan olderThan, TimeSpan notOlderThan, int limit, string? after, CancellationToken ct = default)
     {
+        if (!layer.Disturbs("listActiveReservations", after ?? "first"))
+            return await inner.ListActiveReservationsAsync(olderThan, notOlderThan, limit, after, ct);
         await Before("listActiveReservations", after ?? "first", ct);
         return await inner.ListActiveReservationsAsync(olderThan, notOlderThan, limit, after, ct);
     }
