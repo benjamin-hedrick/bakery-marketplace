@@ -3,16 +3,21 @@ using Microsoft.Extensions.Configuration;
 namespace BakeryMarketplace.Auth;
 
 /// <summary>
-/// The start-up rule for running the mock issuer outside a developer machine (WI-DEP-001, register item 102, approved 2026-10-31).
-/// The host still refuses to start in Production unless a named switch allows it, and the switch is only honoured on safe terms:
-/// an https issuer, a list of roles that may log in (Customer only by default), and, for any other role, an explicit statement that the
-/// ingress is restricted to an IP allow-list. Outside Production nothing changes: every mock user is offered, as before.
+/// The start-up rule for running the mock issuer outside a developer machine (WI-DEP-001, register item 102, approved 2026-10-31; widened to UAT by the lead
+/// 2026-11-21, WI-DEP-002 step 4, so the same deployed tests can run in dev and UAT side by side until Entra, register 222).
+/// The host still refuses to start in Production unless a named switch allows it, and the switch is only honoured on safe terms: the environment says it is
+/// dev or uat (never anything else), an https issuer, a list of roles that may log in (Customer only by default), and, for any other role, an explicit
+/// statement that the ingress is restricted to an IP allow-list. Outside Production nothing changes: every mock user is offered, as before.
 /// </summary>
 public static class MockOidcDeployment
 {
-    public const string AllowDeployedDevKey = "MockOidc:AllowDeployedDev";
+    public const string AllowDeployedKey = "MockOidc:AllowDeployed";
     public const string AllowedRolesKey = "MockOidc:AllowedRoles";
     public const string IngressRestrictedKey = "MockOidc:IngressRestricted";
+    public const string DeploymentEnvironmentKey = "Deployment:Environment";
+
+    /// <summary>The only deployed environments the mock issuer may run in. Production is never one of them.</summary>
+    public static readonly IReadOnlyList<string> AllowedEnvironments = ["dev", "uat"];
 
     private static readonly string[] KnownRoles = ["Customer", "Vendor", "Admin"];
 
@@ -31,12 +36,20 @@ public static class MockOidcDeployment
 
         if (!isProduction) return configured;
 
-        if (!configuration.GetValue<bool>(AllowDeployedDevKey))
+        if (!configuration.GetValue<bool>(AllowDeployedKey))
         {
             throw new InvalidOperationException(
                 "The mock OIDC issuer refuses to start in the Production environment. " +
-                $"Set ASPNETCORE_ENVIRONMENT=Development for local use. A deployed dev environment must set {AllowDeployedDevKey}=true, " +
-                "an https MockOidc:Issuer, and (for any role but Customer) " + IngressRestrictedKey + "=true; never use it for a real environment.");
+                $"Set ASPNETCORE_ENVIRONMENT=Development for local use. A deployed dev or uat environment must set {AllowDeployedKey}=true, " +
+                $"{DeploymentEnvironmentKey}=dev or uat, an https MockOidc:Issuer, and (for any role but Customer) " + IngressRestrictedKey + "=true; " +
+                "never use it for a real environment.");
+        }
+
+        var environment = configuration[DeploymentEnvironmentKey];
+        if (environment is null || !AllowedEnvironments.Contains(environment, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"A deployed mock issuer runs only in a dev or uat environment; {DeploymentEnvironmentKey} is '{environment ?? "(none)"}'.");
         }
 
         var issuer = configuration["MockOidc:Issuer"];

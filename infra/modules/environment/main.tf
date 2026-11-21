@@ -526,7 +526,8 @@ resource "azurerm_container_app" "apps" {
 # ---- The seed job (register item 224; decided by the lead 2026-11-20) -------------------------------------------------------------------
 # The seed runs inside the environment because its VendorVerified events go to the events Redis, which only apps in the environment can reach. Started by
 # hand from the application deploy (az containerapp job start), never on a schedule. The seed's own guard (SeedTarget) refuses any database but the local
-# emulator unless both settings below are present, and creates nothing here: the containers above are this stack's. Billed only while it runs.
+# emulator unless both settings below are present and the environment is dev or uat (WI-DEP-002 step 4), and creates nothing here: the containers above
+# are this stack's. Billed only while it runs.
 resource "azurerm_container_app_job" "seed" {
   name                         = "seed"
   resource_group_name          = local.rg
@@ -567,8 +568,8 @@ resource "azurerm_container_app_job" "seed" {
 
       dynamic "env" {
         for_each = {
-          Seed__AllowDeployedDev  = "true"
-          Deployment__Environment = var.environment # the seed refuses anything but "dev"
+          Seed__AllowDeployed     = "true"
+          Deployment__Environment = var.environment # the seed refuses anything but "dev" or "uat"
           Redis__ConnectionString = local.dotnet_env.Redis__ConnectionString
           Cosmos__Database        = local.dotnet_env.Cosmos__Database
         }
@@ -595,8 +596,9 @@ resource "azurerm_container_app_job" "seed" {
 
 # ---- The mock issuer (register item 102; chosen for the first deployed dev environment on 2026-10-31) -------------------------
 # Public https ingress, because the browser logs in here. It signs tokens for whoever asks, so it is held to MockOidcDeployment: it starts in
-# Production only with AllowDeployedDev, an https issuer, and the role list below (Customer only unless allowed_ips is set). Its ordering client
-# secret is the same Key Vault secret ordering presents; the post-apply step generates and stores it.
+# Production only with AllowDeployed, an environment that says it is dev or uat (WI-DEP-002 step 4), an https issuer, and the role list below
+# (Customer only unless allowed_ips is set). Its ordering client secret is the same Key Vault secret ordering presents; the post-apply step generates
+# and stores it.
 resource "azurerm_container_app" "mock" {
   count                        = local.use_mock ? 1 : 0
   name                         = "mock-oidc"
@@ -660,7 +662,8 @@ resource "azurerm_container_app" "mock" {
             # services refuse (register 226, approved by the lead 2026-11-20). From outside only the ingress reaches the app.
             ASPNETCORE_FORWARDEDHEADERS_ENABLED                          = "true"
             Auth__Audience                                               = var.auth_audience
-            MockOidc__AllowDeployedDev                                   = "true"
+            MockOidc__AllowDeployed                                      = "true"
+            Deployment__Environment                                      = var.environment # the issuer refuses anything but "dev" or "uat"
             MockOidc__Issuer                                             = local.mock_url
             MockOidc__IngressRestricted                                  = length(var.allowed_ips) > 0 ? "true" : "false"
             MockOidc__RedirectUris__0                                    = "${local.web_url}/api/auth/callback"

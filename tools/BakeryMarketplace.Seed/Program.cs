@@ -3,8 +3,9 @@
 //   Cosmos__ConnectionString="AccountEndpoint=http://localhost:8081/;AccountKey=<emulator key>" dotnet run --project tools/BakeryMarketplace.Seed
 //
 // Settings use the same names as catalog-service so one env file serves both. Redis__ConnectionString defaults to
-// localhost:6379; Cosmos__Database to "bakery". Refuses any Cosmos endpoint but a loopback one, except the deployed dev environment's when its seed job
-// sets Seed__AllowDeployedDev=true and Deployment__Environment=dev (SeedTarget; register 224). There it creates nothing: the containers are the dev stack's.
+// localhost:6379; Cosmos__Database to "bakery". Refuses any Cosmos endpoint but a loopback one, except a deployed dev or uat environment's when its seed
+// job sets Seed__AllowDeployed=true and Deployment__Environment=dev or uat (SeedTarget; register 224, WI-DEP-002). There it creates nothing: the containers
+// are the environment stack's.
 using BakeryMarketplace.Data;
 using BakeryMarketplace.Eventing;
 using CatalogService.Domain;
@@ -30,28 +31,28 @@ internal static class SeedProgram
             return 2;
         }
 
-        var target = SeedTarget.Decide(cosmosConnection, config[SeedTarget.AllowDeployedDevSetting], config[SeedTarget.DeploymentEnvironmentSetting]);
+        var target = SeedTarget.Decide(cosmosConnection, config[SeedTarget.AllowDeployedSetting], config[SeedTarget.DeploymentEnvironmentSetting]);
         if (!target.Allowed)
         {
             Console.Error.WriteLine($"Refusing to seed: {target.Reason}");
             return 2;
         }
-        var deployed = target.Kind == SeedTargetKind.DeployedDev;
+        var deployed = target.Kind == SeedTargetKind.Deployed;
         var redisConnection = config["Redis:ConnectionString"];
         if (deployed && string.IsNullOrWhiteSpace(redisConnection))
         {
             // Locally the events Redis is on localhost; in the deployed environment there is no such default (the dev stack names it).
-            Console.Error.WriteLine("Redis__ConnectionString is required when seeding the deployed dev environment.");
+            Console.Error.WriteLine("Redis__ConnectionString is required when seeding a deployed environment.");
             return 2;
         }
-        Console.WriteLine(deployed ? "Seeding the deployed dev environment." : "Seeding the local emulator.");
+        Console.WriteLine(deployed ? $"Seeding the deployed {target.Environment} environment." : "Seeding the local emulator.");
 
         var database = config["Cosmos:Database"] ?? "bakery";
         var cosmos = CosmosClientFactory.Create(cosmosConnection, gatewayMode: true); // the emulator only works over the gateway; https only, for the deployed account too
         string[] containers = ["catalog", "preferences", "payment-methods"];
         if (deployed)
         {
-            // The deployed database and containers are the dev stack's (infra/environments/dev, Terraform); the seed never creates or changes them there.
+            // The deployed database and containers are the environment stack's (infra/modules/environment, Terraform); the seed never creates or changes them there.
             foreach (var name in containers)
                 await cosmos.GetContainer(database, name).ReadContainerAsync();
         }

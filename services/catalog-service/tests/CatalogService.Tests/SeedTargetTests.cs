@@ -3,8 +3,8 @@ using BakeryMarketplace.Seed;
 namespace CatalogService.Tests;
 
 /// <summary>
-/// The seed's guard on where it writes (register 224): the local emulator as before, the deployed dev environment only with the switch, the environment name and an
-/// Azure Cosmos account address all present, and nothing else.
+/// The seed's guard on where it writes (register 224, WI-DEP-002 step 4): the local emulator as before, a deployed dev or uat environment only with the switch, the
+/// environment name and an Azure Cosmos account address all present, and nothing else.
 /// </summary>
 public sealed class SeedTargetTests
 {
@@ -20,13 +20,16 @@ public sealed class SeedTargetTests
         Assert.Equal(SeedTargetKind.LocalEmulator, SeedTarget.Decide(connection, null, null).Kind);
     }
 
-    [Fact]
-    public void The_deployed_dev_account_is_allowed_with_the_switch_and_the_environment_name()
+    [Theory]
+    [InlineData("dev")]
+    [InlineData("uat")]
+    public void A_deployed_dev_or_uat_account_is_allowed_with_the_switch_and_the_environment_name(string environment)
     {
-        var decision = SeedTarget.Decide(DevAccount, "true", "dev");
-        Assert.Equal(SeedTargetKind.DeployedDev, decision.Kind);
+        var decision = SeedTarget.Decide(DevAccount, "true", environment);
+        Assert.Equal(SeedTargetKind.Deployed, decision.Kind);
+        Assert.Equal(environment, decision.Environment);
         Assert.True(decision.Allowed);
-        Assert.Equal(SeedTargetKind.DeployedDev, SeedTarget.Decide(DevAccount.Replace(":443", ""), "true", "dev").Kind);
+        Assert.Equal(SeedTargetKind.Deployed, SeedTarget.Decide(DevAccount.Replace(":443", ""), "true", environment).Kind);
     }
 
     [Theory]
@@ -35,9 +38,12 @@ public sealed class SeedTargetTests
     [InlineData("True", "dev")] // exactly "true"
     [InlineData("1", "dev")]
     [InlineData("true", null)] // no environment name
-    [InlineData("true", "uat")]
     [InlineData("true", "prod")]
+    [InlineData("true", "production")]
+    [InlineData("true", "staging")]
     [InlineData("true", "Dev")] // exactly "dev"
+    [InlineData("true", "UAT")] // exactly "uat"
+    [InlineData("true", "")]
     [InlineData("true", "local")]
     public void A_cloud_account_without_both_settings_exactly_is_refused(string? allow, string? environment)
     {
@@ -60,6 +66,7 @@ public sealed class SeedTargetTests
     public void Any_other_endpoint_is_refused_even_with_both_settings(string? connection)
     {
         Assert.Equal(SeedTargetKind.Refused, SeedTarget.Decide(connection, "true", "dev").Kind);
+        Assert.Equal(SeedTargetKind.Refused, SeedTarget.Decide(connection, "true", "uat").Kind);
     }
 
     [Fact]

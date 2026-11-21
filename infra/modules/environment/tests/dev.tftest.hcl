@@ -329,7 +329,7 @@ run "cosmos_is_in_its_own_region_not_the_resource_groups" {
   }
 }
 
-run "the_seed_job_is_started_by_hand_and_names_the_dev_switch_with_its_database_secret_from_the_vault" {
+run "the_seed_job_is_started_by_hand_and_names_the_deployed_switch_with_its_database_secret_from_the_vault" {
   command = plan
 
   assert {
@@ -338,10 +338,10 @@ run "the_seed_job_is_started_by_hand_and_names_the_dev_switch_with_its_database_
   }
   assert {
     condition = (
-      length([for e in azurerm_container_app_job.seed.template[0].container[0].env : e if e.name == "Seed__AllowDeployedDev" && e.value == "true"]) == 1
+      length([for e in azurerm_container_app_job.seed.template[0].container[0].env : e if e.name == "Seed__AllowDeployed" && e.value == "true"]) == 1
       && length([for e in azurerm_container_app_job.seed.template[0].container[0].env : e if e.name == "Deployment__Environment" && e.value == "dev"]) == 1
     )
-    error_message = "The seed refuses a cloud database unless the job sets Seed__AllowDeployedDev=true and Deployment__Environment=dev (SeedTarget)."
+    error_message = "The seed refuses a cloud database unless the job sets Seed__AllowDeployed=true and Deployment__Environment=dev or uat (SeedTarget)."
   }
   assert {
     condition = (
