@@ -7,10 +7,10 @@
 | Step | What | Result |
 |---|---|---|
 | 0 | Dev's deploy identity narrowed (section 0, register 231) | Not yet: just before `feature/uat-environment` is merged |
-| 1 | Foundation: `"uat"` added to `app_identities`, plan adds exactly two resources, apply | Not yet |
+| 1 | Foundation: `"uat"` added to `app_identities` in the variables file outside the repository (kept on the lead's machine, not in a temporary folder). Planned from the lead's machine (Terraform 1.17.1, Git Bash, the lead's Azure CLI): exactly `azurerm_user_assigned_identity.apps["uat"]` (`id-bakery-uat-apps`, eastus, tagged `Environment=uat Lifetime=persistent`) and `azurerm_role_assignment.acr_pull_apps["uat"]` (AcrPull on the registry), "2 to add, 0 to change, 0 to destroy". Re-planned into a saved plan, still the two, and that plan applied on the lead's go | **Applied** 2026-11-21: 2 added; a fresh plan afterwards: no changes |
 | 2 | `rg-bakery-uat` in East US 2 (`eastus2`), empty, tags `Stack=environment ManagedBy=bootstrap` (as dev's). `az group exists` said false first | **Created** 2026-11-21, provisioning state Succeeded |
 | 3 | Container `tfstate-uat` in the state account, created with `--auth-mode login` (the account has no shared key access). `az storage container exists` said false first | **Created** 2026-11-21, no public access, as `tfstate` |
-| 4 | Connection `bakery-uat-deploy` (the lead: workload identity federation, automatic, resource group `rg-bakery-uat`, not granted to all pipelines). Its identity found by the connection id at the end of its display name: one federated credential, no password, no certificate. Roles set by the agent (below) | **Created**; roles set except Managed Identity Operator, which needs foundation step 1 |
+| 4 | Connection `bakery-uat-deploy` (the lead: workload identity federation, automatic, resource group `rg-bakery-uat`, not granted to all pipelines). Its identity found by the connection id at the end of its display name: one federated credential, no password, no certificate. Roles set by the agent (below) | **Created**; roles set (Managed Identity Operator after step 1) |
 | 5 | Connection `bakery-uat-plan`, made the same way; the same credential check | **Created**; roles set |
 | 6 | Approval environments `uat-infra`, `uat-app`, `uat-destroy` (the lead: approval, branch control `main`, exclusive lock) | **Done by the lead**, as the lead reported; not read by the agent |
 | 7 | Pipeline `bakery-uat-operations` and its variables | Not yet |
@@ -29,9 +29,13 @@ Before: each identity held only the Contributor on `rg-bakery-uat` that Azure De
 | bakery-uat-deploy | Storage Blob Data Contributor | the `tfstate-uat` container | none |
 | bakery-uat-deploy | Reader | `rg-bakery-foundation` | none |
 | bakery-uat-deploy | AcrPull | the foundation's registry | none |
-| bakery-uat-deploy | Managed Identity Operator | `id-bakery-uat-apps` | **not yet**: created by foundation step 1 |
+| bakery-uat-deploy | Managed Identity Operator | `id-bakery-uat-apps` only | none (added after foundation step 1) |
 
-Checked offline against the pipeline's own rule (`compareRoles` and `expectedRoles` of `scripts/ci/identity-check.mjs`, environment `uat`, the deploy identity checked as the plan identity checks it): the plan identity's set is exactly the expected one; the deploy identity's only problem is the missing Managed Identity Operator. Neither identity has a role on anything of dev's. The pipeline's own identity checks run on the first UAT run.
+Checked offline against the pipeline's own rule (`compareRoles` and `expectedRoles` of `scripts/ci/identity-check.mjs`, environment `uat`, the deploy identity checked as the plan identity checks it): before step 1 the deploy identity's only problem was the missing Managed Identity Operator; after it, **both sets are exactly the expected ones** (plan 2 roles, deploy 6). Neither identity has a role on anything of dev's. The pipeline's own identity checks run on the first UAT run.
+
+## UAT's own resource names (for step 7)
+
+Chosen by the lead, in dev's pattern: Key Vault `kv-bakery-uat-juoki` (`az keyvault check-name`: available; no soft-deleted vault of that name) and Cosmos account `cosmos-bakery-uat-juoki` (`az cosmosdb check-name-exists`: false). Checked 2026-11-21; the stack creates both on the first UAT apply.
 
 ## The state account, read after step 3
 
