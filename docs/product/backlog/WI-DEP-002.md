@@ -37,7 +37,7 @@ ADR-0020 decision 9 designed UAT and Prod as a second pipeline over the same tem
 3. **The seed and the mock issuer are switched on by settings named for dev** (`Seed:AllowDeployedDev`, `MockOidc:AllowDeployedDev`), and the seed accepts only `Deployment:Environment = dev`.
 4. **The identities and the state container are dev's.** `bakery-deploy` is scoped to `rg-bakery-dev` and the foundation group, with Storage Blob Data Contributor on the one `tfstate` container.
 5. **ADR-0020 says promotion imports the digest into that environment's registry.** There is one registry, in the foundation.
-6. **The subscription allows one Container Apps environment per region** (Free Trial offer, spending limit on; read 2026-11-21: East US 1 of 1 used by dev, East US 2 0 of 1). UAT's environment therefore goes in East US 2, where dev's Cosmos account already is. A second Cosmos account (not on the free tier) is within the account limit; whether East US 2 has capacity for it is known only when it is created (East US refused dev's for "high demand").
+6. **(Corrected 2026-11-22, register 235: the limit is one Container Apps environment per subscription, not per region; the first UAT apply was refused. The paragraph below is the original, wrong reading.)** **The subscription allows one Container Apps environment per region** (Free Trial offer, spending limit on; read 2026-11-21: East US 1 of 1 used by dev, East US 2 0 of 1). UAT's environment therefore goes in East US 2, where dev's Cosmos account already is. A second Cosmos account (not on the free tier) is within the account limit; whether East US 2 has capacity for it is known only when it is created (East US refused dev's for "high demand").
 
 **Decided by the lead (2026-11-21)**
 
