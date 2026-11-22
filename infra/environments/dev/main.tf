@@ -36,6 +36,9 @@ module "environment" {
 
   # The dev pipeline's chaosScenario input (none or dev-chaos, WI-CHAOS-006), as TF_VAR_chaos_scenario on its plan and its apply.
   chaos_scenario = var.chaos_scenario
+
+  # The dev pipeline's cacheRedis input (register 216 option d), as TF_VAR_cache_redis on its plan and its apply; unset, the module keeps the app.
+  cache_redis = var.cache_redis
 }
 
 # The resources were created at the root of this stack and moved into the module on 2026-11-21. These blocks tell Terraform they are the same

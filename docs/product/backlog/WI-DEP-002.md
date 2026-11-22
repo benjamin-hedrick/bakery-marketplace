@@ -59,6 +59,7 @@ The pipeline already takes `action` (deploy or destroy) and `planMode` (real or 
 | `mockIssuer` | infrastructure | always on (dev's only issuer) | default off; on for a side-by-side run | a Terraform variable: the mock issuer app and the services' issuer settings exist only when on, so turning it on or off is a plan change behind the infrastructure approval |
 | `issuerRoles`, `issuerAllowedIps` | infrastructure | Customer only, no list | the same | Terraform variables (the existing `issuer_roles` and `allowed_ips`); Vendor or Admin logins need an allow-list, as the issuer's guard already requires |
 | `chaosScenario` | infrastructure | `none` (default) or `dev-chaos` | not offered | dev only: a Terraform variable the module refuses outside dev; the scenario lives as long as the deployment, and the standard suite runs against it unchanged (`WI-CHAOS-006`) |
+| `cacheRedis` | infrastructure | on (default) or off | not offered | dev only, added 2026-11-21 for the lead's goal 3 (`WI-DEP-001`, register 216 option d): off, the module leaves out the cache Redis app and the catalog caches in process; a Terraform variable the module refuses off outside dev |
 | `devBuild` | run | not offered | the dev build to promote | refuses a build whose smoke did not pass |
 
 An infrastructure input is passed to the plan and to the re-plan after approval the same way, so the approved plan is the applied plan (ADR-0020 decision 6). A run input is recorded in the deployment record. Neither kind can name a value outside the list the pipeline file allows.

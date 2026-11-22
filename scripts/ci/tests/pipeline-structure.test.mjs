@@ -93,12 +93,13 @@ const PIPELINES = {
       'holdSeconds',
       'confirmEnvironment',
       'chaosScenario',
+      'cacheRedis',
       'seed',
       'issuerRoles',
       'issuerAllowedIps',
     ],
     fixed: { mockIssuer: 'true' }, // dev's only issuer
-    defaults: { seed: 'true' },
+    defaults: { seed: 'true', cacheRedis: 'true' },
   },
   'azure-pipelines-uat.yml': {
     environment: 'uat',
@@ -210,6 +211,24 @@ describe('the stage template (pipelines/templates/environment-stages.yml)', () =
       stage('inputs').includes('[ "${{ parameters.chaosScenario }}" != "none" ] && [ "$(ENVIRONMENT_NAME)" != "dev" ]'),
       'the inputs stage refuses a scenario outside dev',
     );
+  });
+
+  test('the cache Redis switch (register 216 option d): given only to the deploy plan and the apply, in lower case, and offered only by dev', () => {
+    // Azure DevOps prints a boolean as True or False, which Terraform does not read as a bool; lower() gives true or false.
+    const given = [...template.matchAll(/TF_VAR_cache_redis: (.+)/g)].map((m) => m[1].trim());
+    assert.deepEqual(given, ['${{ lower(parameters.cacheRedis) }}', '${{ lower(parameters.cacheRedis) }}']);
+    assert.match(real('infra_plan'), /TF_VAR_cache_redis/);
+    assert.match(real('infra_apply'), /TF_VAR_cache_redis/);
+    for (const name of ['destroy_plan', 'destroy_apply', 'app_deploy', 'smoke', 'observe'])
+      assert.doesNotMatch(stage(name), /cache_redis|cacheRedis/, name);
+    assert.match(template, /- name: cacheRedis\n\s+type: boolean\n\s+default: true\n/);
+    assert.doesNotMatch(
+      code('azure-pipelines-uat.yml'),
+      /cacheRedis/,
+      'UAT keeps the cache Redis (the module refuses it off there too)',
+    );
+    assert.match(code('infra/environments/dev/main.tf'), /^\s+cache_redis = var\.cache_redis$/m);
+    assert.doesNotMatch(code('infra/environments/uat/main.tf'), /cache_redis/);
   });
 
   test('the issuer inputs (WI-DEP-002 step 3): checked in the inputs stage, given to the deploy plan and the apply the same way, as mapped variables only', () => {
@@ -604,6 +623,7 @@ function runStep(script, values) {
     .replaceAll('${{ parameters.imageSource }}', values.imageSource ?? 'build')
     .replaceAll('${{ parameters.devBuild }}', values.devBuild ?? '0')
     .replaceAll('${{ parameters.chaosScenario }}', values.chaos ?? 'none')
+    .replaceAll('${{ parameters.cacheRedis }}', values.cacheRedis ?? 'True')
     .replaceAll('${{ parameters.action }}', values.action ?? 'deploy')
     .replaceAll('${{ parameters.confirmEnvironment }}', values.confirm ?? '')
     .replaceAll('${{ parameters.simulateInfrastructureChanges }}', values.simulate ?? 'True');

@@ -52,6 +52,8 @@ The Redis apps are the only always-on cost. Whether they can be left out depends
 
 Options, for the lead (register item 216): **(a)** keep only the sessions Redis and run events in memory and the cache locally: one always-on app instead of three, about a third of the Redis cost, no code change, only a switch in the dev stack; **(b)** no Redis at all: also needs the session store's guard widened for a named demo setting (a security-relevant change to the login path, so the lead's approval), with the web app kept at one replica and sessions lost whenever it scales to zero; **(c)** keep all three for the first full run (goal 2), so the deployed environment matches the local one, and try (a) on the repeat (goal 3).
 
+**Update 2026-11-21:** the events row above no longer holds. The seed job (register 224, added after this section was written) runs in its own container and publishes `VendorVerified` through the events Redis, which is how the catalog learns that the seeded vendors are verified; with events in memory the catalog would show no listings. So (a) and (b) are not workable as written, and the events Redis stays. The lead chose **(d)**: leave out only the cache Redis (the dev pipeline's `cacheRedis` input, off), keeping the events and sessions Redis: two always-on apps instead of three, about a third less of the Redis cost. Not yet run in Azure.
+
 ## The one real cost, precisely
 
 Azure Cache for Redis Basic tier, C0 SKU (250MB): **$16.06/month**, confirmed against Azure's current published pricing at time of drafting, not carried forward as a vague earlier estimate. If enabled in both staging and prod (per ADR-0002's per-environment toggle), that's **~$32/month** total; if only prod, **~$16/month**.

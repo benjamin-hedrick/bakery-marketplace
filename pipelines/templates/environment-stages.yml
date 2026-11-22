@@ -35,6 +35,11 @@ parameters:
   - name: chaosScenario
     type: string
     default: none
+  # Whether the environment keeps its cache Redis app (register 216 option d); only dev's file offers it, and the module refuses it off elsewhere.
+  # Given to Terraform in lower case: Azure DevOps prints a boolean as True or False, which Terraform does not read as a bool.
+  - name: cacheRedis
+    type: boolean
+    default: true
   # The run inputs of WI-DEP-002 step 3. seed: the application deploy runs the seed job. mockIssuer: the mock issuer and the issuer settings derived
   # from it (a Terraform variable, so switching it is a plan change); refused when off until Entra exists (register 222). issuerRoles and
   # issuerAllowedIps: the roles that may log in and the IPv4 ranges that may reach the environment (Terraform's issuer_roles and allowed_ips).
@@ -90,7 +95,7 @@ stages:
                 echo "##vso[task.logissue type=error]A promote run needs devBuild: the id of the dev run whose digests to deploy."
                 exit 1
               fi
-              echo "Inputs are acceptable: action=${{ parameters.action }} chaosScenario=${{ parameters.chaosScenario }} imageSource=${{ parameters.imageSource }}"
+              echo "Inputs are acceptable: action=${{ parameters.action }} chaosScenario=${{ parameters.chaosScenario }} cacheRedis=${{ parameters.cacheRedis }} imageSource=${{ parameters.imageSource }}"
             displayName: Manual run, and for a destroy the typed confirmation (must equal the environment name)
           - ${{ if eq(parameters.action, 'deploy') }}:
               # The free-text input reaches the script only as a mapped variable, never as text in it.
@@ -157,6 +162,7 @@ stages:
                       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                       BUDGET_CONTACT_EMAIL: $(BUDGET_CONTACT_EMAIL)
                       TF_VAR_chaos_scenario: ${{ parameters.chaosScenario }}
+                      TF_VAR_cache_redis: ${{ lower(parameters.cacheRedis) }}
                       # The issuer inputs (WI-DEP-002 step 3): dev-stack-env.sh checks them and gives them to Terraform; the same in the apply.
                       MOCK_ISSUER: ${{ parameters.mockIssuer }}
                       ISSUER_ROLES: ${{ parameters.issuerRoles }}
@@ -228,6 +234,7 @@ stages:
                             SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                             BUDGET_CONTACT_EMAIL: $(BUDGET_CONTACT_EMAIL)
                             TF_VAR_chaos_scenario: ${{ parameters.chaosScenario }}
+                            TF_VAR_cache_redis: ${{ lower(parameters.cacheRedis) }}
                             MOCK_ISSUER: ${{ parameters.mockIssuer }}
                             ISSUER_ROLES: ${{ parameters.issuerRoles }}
                             ISSUER_ALLOWED_IPS: ${{ parameters.issuerAllowedIps }}
