@@ -24,8 +24,27 @@ const roots = (rootsArg ?? 'infra/foundation,infra/modules/environment,infra/env
   .split(',')
   .map((r) => r.trim());
 
+/**
+ * The checks' own Terraform data folder for a stack: `.terraform/checks` inside it (git-ignored, like all of `.terraform`). A real `terraform init`
+ * against the remote state (the lead's plans and applies) writes the backend settings to `.terraform/terraform.tfstate`; `init -backend=false`
+ * in the default folder still read them and tried to sign in to the state storage, which the image cannot (register 225). With a folder of its
+ * own the checks never meet a real init, and a real init never meets theirs.
+ */
+const dataDir = (workdir) => `/repo/${workdir}/.terraform/checks`;
+
 function terraform(workdir, args) {
-  const docker = ['run', '--rm', '-e', 'HOME=/tmp', '-e', 'TF_IN_AUTOMATION=1', '-e', 'TF_INPUT=0'];
+  const docker = [
+    'run',
+    '--rm',
+    '-e',
+    'HOME=/tmp',
+    '-e',
+    'TF_IN_AUTOMATION=1',
+    '-e',
+    'TF_INPUT=0',
+    '-e',
+    `TF_DATA_DIR=${dataDir(workdir)}`,
+  ];
   // On Linux the container user must own the mounted files, or the folder it writes (.terraform) is owned by root.
   if (process.platform !== 'win32') docker.push('--user', `${process.getuid()}:${process.getgid()}`);
   docker.push('-v', `${root}:/repo`, '-w', `/repo/${workdir}`, image, ...args);
