@@ -80,3 +80,8 @@ variable "chaos_scenario" {
   type    = string
   default = null
 }
+
+variable "cache_redis" {
+  type    = bool
+  default = null
+}

@@ -1,10 +1,11 @@
 import { LISTINGS, expect, saveEvidence, test } from './support';
 
 // Tests 1 and 2 of the deployed suite (register 218). The home page is rendered on the server: web app -> BFF -> catalog -> Cosmos, with the catalog's
-// cache Redis. The seeded listings appear only after the catalog has applied the seed job's VendorVerified events from the events Redis, so seeing them
-// proves that path too. The first request after the deploy starts the apps from zero; the time until the listings appear is recorded as evidence.
+// listing cache (the cache Redis, or the catalog's in-process cache when dev runs without it, register 216). The seeded listings appear only after the
+// catalog has applied the seed job's VendorVerified events from the events Redis, so seeing them proves that path too. The first request after the
+// deploy starts the apps from zero; the time until the listings appear is recorded as evidence.
 
-test('1. the server-rendered home page shows the seeded listings (web, BFF, catalog, Cosmos, the events and cache Redis)', async ({
+test('1. the server-rendered home page shows the seeded listings (web, BFF, catalog and its cache, Cosmos, the events Redis)', async ({
   page,
 }) => {
   test.setTimeout(420_000);

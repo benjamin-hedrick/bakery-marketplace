@@ -51,6 +51,13 @@ locals {
   dotnet_chaos = local.chaos_on ? { Chaos__Enabled = "true", Chaos__Scenario = var.chaos_scenario } : {}
   node_chaos   = local.chaos_on ? { CHAOS_ENABLED = "true", CHAOS_SCENARIO = var.chaos_scenario } : {}
 
+  # The listing cache (ADR-0002, WI-CAT-003): the cache Redis below when the environment has it, otherwise the catalog's in-process cache
+  # (var.cache_redis, register 216 option d). With the cache Redis unreachable the catalog serves from its in-process fallback anyway.
+  catalog_cache = var.cache_redis ? {
+    Cache__Backend                 = "redis"
+    Cache__Redis__ConnectionString = "redis-cache:6380"
+  } : { Cache__Backend = "local" }
+
   dotnet_env = {
     ASPNETCORE_ENVIRONMENT  = var.host_environment
     Deployment__Environment = var.environment
@@ -71,12 +78,8 @@ locals {
       name     = "catalog"
       port     = 5200
       external = false
-      # The listing cache (ADR-0002, WI-CAT-003) uses the cache Redis below; if it is unreachable the catalog serves from its in-process fallback.
-      env = merge(local.dotnet_env, local.dotnet_chaos, {
-        Cache__Backend                 = "redis"
-        Cache__Redis__ConnectionString = "redis-cache:6380"
-      })
-      secrets = { "cosmos-connection-string" = "Cosmos__ConnectionString" }
+      env      = merge(local.dotnet_env, local.dotnet_chaos, local.catalog_cache)
+      secrets  = { "cosmos-connection-string" = "Cosmos__ConnectionString" }
     }
     ordering = {
       name     = "ordering"
@@ -367,8 +370,10 @@ resource "azurerm_container_app" "redis" {
 
 # The cache Redis (ADR-0002): internal only, no persistence, a separate instance from the event Redis so eviction can never touch the event streams.
 # It is on its own TCP port because two TCP apps in one environment cannot share an exposed port. A full cache evicts the least recently used
-# keys; sessions are NOT kept here (they are in redis-sessions below, register item 118).
+# keys; sessions are NOT kept here (they are in redis-sessions below, register item 118). Left out when var.cache_redis is false (dev only, register
+# 216): adding the count moves the existing app to redis_cache[0] in the state, with no change in Azure.
 resource "azurerm_container_app" "redis_cache" {
+  count                        = var.cache_redis ? 1 : 0
   name                         = "redis-cache"
   resource_group_name          = local.rg
   container_app_environment_id = azurerm_container_app_environment.env.id

@@ -66,6 +66,10 @@ parameters:
     values:
       - none
       - dev-chaos
+  - name: cacheRedis
+    displayName: Keep the cache Redis app (register 216). Off = the catalog caches in process, one always-on app fewer; the events and sessions Redis stay
+    type: boolean
+    default: true
   - name: seed
     displayName: Run the seed job before the apps are updated (fixture data; dev always has)
     type: boolean
@@ -111,6 +115,7 @@ stages:
       holdSeconds: ${{ parameters.holdSeconds }}
       confirmEnvironment: ${{ parameters.confirmEnvironment }}
       chaosScenario: ${{ parameters.chaosScenario }}
+      cacheRedis: ${{ parameters.cacheRedis }}
       seed: ${{ parameters.seed }}
       mockIssuer: true
       issuerRoles: ${{ parameters.issuerRoles }}

@@ -37,6 +37,18 @@ variable "chaos_scenario" {
   }
 }
 
+variable "cache_redis" {
+  type        = bool
+  description = "Whether the environment has the cache Redis app (ADR-0002, register 216 option d). Off, the app is not created and the catalog's listing cache runs in process (Cache__Backend local): one always-on app fewer. The events and sessions Redis apps stay either way (the seed job's events reach the catalog through the events Redis; the session store refuses memory off loopback). Only dev may turn it off; UAT and production keep the shape production would have."
+  default     = true
+  nullable    = false
+
+  validation {
+    condition     = var.cache_redis || var.environment == "dev"
+    error_message = "cache_redis may be false only when environment is dev; UAT and production keep the cache Redis (register 216)."
+  }
+}
+
 variable "name_prefix" {
   type    = string
   default = "bakery"

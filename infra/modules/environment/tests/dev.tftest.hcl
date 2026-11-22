@@ -118,7 +118,7 @@ run "the_web_app_keeps_its_sessions_in_an_internal_noeviction_redis_with_its_key
     condition = (
       azurerm_container_app.redis_sessions.ingress[0].external_enabled == false
       && azurerm_container_app.redis_sessions.ingress[0].exposed_port != azurerm_container_app.redis.ingress[0].exposed_port
-      && azurerm_container_app.redis_sessions.ingress[0].exposed_port != azurerm_container_app.redis_cache.ingress[0].exposed_port
+      && azurerm_container_app.redis_sessions.ingress[0].exposed_port != azurerm_container_app.redis_cache[0].ingress[0].exposed_port
     )
     error_message = "The sessions Redis must be internal and must not share the event Redis's or the cache Redis's exposed port (ADR-0019)."
   }
@@ -129,12 +129,12 @@ run "the_web_app_keeps_its_sessions_in_an_internal_noeviction_redis_with_its_key
   }
 
   assert {
-    condition     = contains(azurerm_container_app.redis_cache.template[0].container[0].args, "allkeys-lru")
+    condition     = contains(azurerm_container_app.redis_cache[0].template[0].container[0].args, "allkeys-lru")
     error_message = "The cache Redis stays an evicting cache (ADR-0002); sessions do not live in it (register item 118)."
   }
 
   assert {
-    condition     = local.apps["catalog"].env["Cache__Backend"] == "redis" && local.apps["catalog"].env["Cache__Redis__ConnectionString"] == "redis-cache:${azurerm_container_app.redis_cache.ingress[0].exposed_port}"
+    condition     = local.apps["catalog"].env["Cache__Backend"] == "redis" && local.apps["catalog"].env["Cache__Redis__ConnectionString"] == "redis-cache:${azurerm_container_app.redis_cache[0].ingress[0].exposed_port}"
     error_message = "The catalog must use the cache Redis (ADR-0002) at the address and port the cache app exposes; a cache app that no service uses is wasted cost."
   }
 
@@ -303,13 +303,58 @@ run "a_plain_http_issuer_address_is_refused" {
 }
 
 # The first apply (2026-11-20) stopped on both of these; the mocked provider could not have caught either, so the tests pin the fixes.
+# ---- the cache Redis switch (register 216 option d) ---------------------------------------------------------------------------------------
+
+run "without_the_cache_redis_the_catalog_caches_in_process_and_the_events_and_sessions_redis_stay" {
+  command = plan
+
+  variables {
+    cache_redis = false
+  }
+
+  assert {
+    condition     = length(azurerm_container_app.redis_cache) == 0
+    error_message = "With cache_redis false the cache Redis app is not created."
+  }
+
+  assert {
+    condition = (
+      length([for e in azurerm_container_app.apps["catalog"].template[0].container[0].env : e if e.name == "Cache__Backend" && e.value == "local"]) == 1
+      && length([for e in azurerm_container_app.apps["catalog"].template[0].container[0].env : e if e.name == "Cache__Redis__ConnectionString"]) == 0
+    )
+    error_message = "Without the cache Redis the catalog must cache in process (Cache__Backend local) and be given no cache Redis address."
+  }
+
+  assert {
+    condition = (
+      azurerm_container_app.redis.name == "redis-events"
+      && azurerm_container_app.redis_sessions.name == "redis-sessions"
+      && local.apps["web"].env["SESSION_REDIS_URL"] == "redis://redis-sessions:6381"
+      && local.apps["catalog"].env["Events__Backend"] == "redis"
+    )
+    error_message = "The events Redis (the seed job's events reach the catalog through it) and the sessions Redis stay when the cache Redis goes."
+  }
+}
+
+run "the_cache_redis_may_be_left_out_only_in_dev" {
+  command = plan
+
+  variables {
+    environment      = "uat"
+    host_environment = "Production"
+    cache_redis      = false
+  }
+
+  expect_failures = [var.cache_redis]
+}
+
 run "the_redis_apps_turn_snapshots_off_without_an_empty_argument" {
   command = plan
 
   assert {
     condition = alltrue([for args in [
       azurerm_container_app.redis.template[0].container[0].args,
-      azurerm_container_app.redis_cache.template[0].container[0].args,
+      azurerm_container_app.redis_cache[0].template[0].container[0].args,
       azurerm_container_app.redis_sessions.template[0].container[0].args,
     ] : contains(args, "--save") && !contains(args, "") && args[index(args, "--save") + 1] == "--appendonly"])
     error_message = "Each Redis app turns snapshots off with a bare --save and passes no empty argument (the provider fails reading one back)."
@@ -377,7 +422,7 @@ run "every_app_names_the_consumption_profile_azure_assigns" {
     condition = alltrue(concat(
       [for a in azurerm_container_app.apps : a.workload_profile_name == "Consumption"],
       [for a in azurerm_container_app.mock : a.workload_profile_name == "Consumption"],
-      [for a in [azurerm_container_app.redis, azurerm_container_app.redis_cache, azurerm_container_app.redis_sessions] : a.workload_profile_name == "Consumption"],
+      [for a in [azurerm_container_app.redis, azurerm_container_app.redis_cache[0], azurerm_container_app.redis_sessions] : a.workload_profile_name == "Consumption"],
     ))
     error_message = "Every container app names the Consumption profile; unset, each plan after the first apply tries to remove it."
   }
