@@ -163,7 +163,8 @@ Each Claude Code session's cost, model time and size were copied by me from the 
 | 2026-11-21 | the pre-push gates for the environment's 45-minute create limit, the activity log read (the stuck create ended after 77 minutes, a normal one took 14.5), and the push before the third full deploy run (`WI-DEP-001`; register 227) | 0.62 | 3 min | 8 |
 | 2026-11-21 (second) | build 88's evidence, the warm-up and cold-start measures, the UAT proposal with its decisions, both refactors (a shared environment module and a stage template, proved against the dev state), and the dev chaos plan with its first wave built and run on the local stack (`WI-DEP-001`, `WI-DEP-002`, `WI-CHAOS-006`; registers 227 to 229) | 21.75 | 1 h 8 min | 3,462 |
 | 2026-11-21 (third) | the UAT build in code (the ADR-0020 note, deployed-environment switches, the UAT Terraform root, the run inputs, the template's promote mode and the UAT pipeline file, not run), the dev run's sold-out seed listings fixed, and each environment its own pipeline identities, proposed (`WI-DEP-001`, `WI-DEP-002`; registers 218, 225, 229 to 231) | 11.81 | 39 min | 3,203 |
-| **Total** |  | **291.36** | **21 h 39 min** | **91,481** |
+| 2026-11-21 (fourth) | why dev build 93 skipped its smoke after a good deploy (a bare `succeeded()` counted the skipped apply), and the fix with its test (`WI-DEP-001`; register 232) | 0.81 | 4 min | 33 |
+| **Total** |  | **292.17** | **21 h 43 min** | **91,514** |
 
 Read it with care. API time is the assistant working. Lines added are the screen's count and include documents and generated records. Over the same weeks the repository grew the specifications, decision records, tests and evidence records it holds now ([`STATUS.md`](../product/backlog/STATUS.md) has where each specification stands); not every item was built in a recorded session, so the table is not a cost per item. Nothing here compares with doing the work by hand.
 
