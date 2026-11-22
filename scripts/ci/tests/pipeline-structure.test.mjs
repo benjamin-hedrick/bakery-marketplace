@@ -328,7 +328,7 @@ describe('the stage template (pipelines/templates/environment-stages.yml)', () =
     const smoke = stage('smoke');
     // Named, not bare (register 232): a bare succeeded() also checks the stages before app_deploy, and the apply is skipped when nothing changes.
     assert.match(smoke, /dependsOn: app_deploy\n\s+condition: succeeded\('app_deploy'\)\n/);
-    assert.doesNotMatch(text, /condition: succeeded\(\)\s*$/m, 'no stage condition is a bare succeeded()');
+    assert.doesNotMatch(template, /condition: succeeded\(\)\s*$/m, 'no stage condition is a bare succeeded()');
     assert.match(real('smoke'), /DEPLOYED_WHERE=agent npx playwright test -c playwright\.deployed\.config\.ts/);
     assert.match(
       real('smoke'),
