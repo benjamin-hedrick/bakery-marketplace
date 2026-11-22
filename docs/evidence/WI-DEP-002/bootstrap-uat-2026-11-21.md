@@ -1,20 +1,20 @@
 # Bootstrap of the UAT environment, 2026-11-21
 
-> **Status:** In progress · the first run of [`uat-environment.md`](../../operations/runbooks/uat-environment.md) section 1, by the human lead with the agent running the Azure CLI commands from the lead's signed-in Azure CLI (2.93.0, the same installation as the dev bootstrap of 2026-11-19, [`bootstrap-2026-11-19.md`](../WI-DEP-001/bootstrap-2026-11-19.md)). Work item: `WI-DEP-002` step 7. This record is filled in as each step is done; no step below is claimed until it has run. Names are given; ids, the tenant, the subscription and the state account's name are not.
+> **Status:** Snapshot · 2026-11-21 to 2026-11-22, every step done · the first run of [`uat-environment.md`](../../operations/runbooks/uat-environment.md) section 1, by the human lead with the agent running the Azure CLI commands from the lead's signed-in Azure CLI (2.93.0, the same installation as the dev bootstrap of 2026-11-19, [`bootstrap-2026-11-19.md`](../WI-DEP-001/bootstrap-2026-11-19.md)). Work item: `WI-DEP-002` step 7. This record was filled in as each step was done; no step below is claimed until it had run. Names are given; ids, the tenant, the subscription and the state account's name are not.
 
 ## Steps
 
 | Step | What | Result |
 |---|---|---|
-| 0 | Dev's deploy identity narrowed (section 0, register 231) | Not yet: just before `feature/uat-environment` is merged |
+| 0 | Dev's deploy identity narrowed (section 0, register 231) | **Done** 2026-11-22, after the merge, not before it: [`dev-roles-and-run-100-2026-11-22.md`](dev-roles-and-run-100-2026-11-22.md) |
 | 1 | Foundation: `"uat"` added to `app_identities` in the variables file outside the repository (kept on the lead's machine, not in a temporary folder). Planned from the lead's machine (Terraform 1.17.1, Git Bash, the lead's Azure CLI): exactly `azurerm_user_assigned_identity.apps["uat"]` (`id-bakery-uat-apps`, eastus, tagged `Environment=uat Lifetime=persistent`) and `azurerm_role_assignment.acr_pull_apps["uat"]` (AcrPull on the registry), "2 to add, 0 to change, 0 to destroy". Re-planned into a saved plan, still the two, and that plan applied on the lead's go | **Applied** 2026-11-21: 2 added; a fresh plan afterwards: no changes |
 | 2 | `rg-bakery-uat` in East US 2 (`eastus2`), empty, tags `Stack=environment ManagedBy=bootstrap` (as dev's). `az group exists` said false first | **Created** 2026-11-21, provisioning state Succeeded |
 | 3 | Container `tfstate-uat` in the state account, created with `--auth-mode login` (the account has no shared key access). `az storage container exists` said false first | **Created** 2026-11-21, no public access, as `tfstate` |
 | 4 | Connection `bakery-uat-deploy` (the lead: workload identity federation, automatic, resource group `rg-bakery-uat`, not granted to all pipelines). Its identity found by the connection id at the end of its display name: one federated credential, no password, no certificate. Roles set by the agent (below) | **Created**; roles set (Managed Identity Operator after step 1) |
 | 5 | Connection `bakery-uat-plan`, made the same way; the same credential check | **Created**; roles set |
 | 6 | Approval environments `uat-infra`, `uat-app`, `uat-destroy` (the lead: approval, branch control `main`, exclusive lock) | **Done by the lead**, as the lead reported; not read by the agent |
-| 7 | Pipeline `bakery-uat-operations` and its variables | Not yet |
-| 8 | Rehearsal run | Not yet |
+| 7 | Pipeline `bakery-uat-operations` and its variables | **Done by the lead** 2026-11-22: the 11 plain variables from the agent's list (each read back from Azure or the foundation's outputs that day), `BUDGET_CONTACT_EMAIL` as a secret |
+| 8 | Rehearsal run | **Passed** 2026-11-22, G1 to G6 and G8; G7 with the next pull request that edits the pipeline: [`uat-rehearsal-2026-11-22.md`](uat-rehearsal-2026-11-22.md) |
 
 ## The UAT pipeline identities' roles, as applied and listed afterwards
 

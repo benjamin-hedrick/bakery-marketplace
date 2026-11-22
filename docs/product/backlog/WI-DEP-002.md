@@ -1,4 +1,4 @@
-> **Status:** In progress · steps 1 to 6 and 8 built (2026-11-21; 2a proved against the dev state; the pipeline files checked by text and unit tests only, not yet by Azure DevOps' preview or a run); remaining: step 7 (the lead's bootstrap, with register 230's roles to decide), the first UAT run and step 9's evidence
+> **Status:** In progress · steps 1 to 6 and 8 built (2026-11-21), step 7 (the lead's bootstrap) done in Azure (2026-11-21), dev's deploy identity narrowed and proved by dev run 100 (2026-11-22), the UAT pipeline's gate rehearsal passed G1 to G6 and G8 (2026-11-22; G7 with the next pull request that edits it); remaining: the first UAT run, side by side, the UAT teardown and step 9's evidence
 
 > **Progress note (2026-11-21, third session):** built on `feature/uat-environment`, not pushed. Step 1: the ADR-0020 note. Step 4: `Seed:AllowDeployed` and `MockOidc:AllowDeployed`, each accepting only `dev` or `uat` (the mock issuer now checks `Deployment:Environment` as well). Step 5: `infra/environments/uat` and module tests with UAT's values. Step 6: a foundation plan test with `dev` and `uat`; the value itself is in the lead's variables file. Step 3: the inputs of the table, checked by `scripts/ci/run-inputs.mjs` and given to the plan and the apply alike; the lead decided in the session that `mockIssuer` off is refused until Entra (register 222), because UAT would otherwise have no issuer at all, and the module refuses `entra` mode without its addresses. Step 8: the template's promote mode (`environmentName`, `imageSource`, `devBuild`; Terraform in the environment's own root, every artifact named for the environment; `scripts/ci/promote-check.mjs` refuses unless the dev run deployed for real from `main` and its smoke passed), `azure-pipelines-uat.yml` (not run), UAT's own state container and the foundation's outputs as pipeline variables. Found: UAT's deploy identity needs Managed Identity Operator on its apps identity and AcrPull on the registry (register 230, for the lead). Step 9 so far: `docs/operations/runbooks/uat-environment.md` (bootstrap checklist, first run, side by side, teardown) and the teardown runbook names UAT. Checks run: the CI script tests, `terraform-checks.mjs` (all stacks, in a clean worktree, register 225), the seed and mock-issuer tests, the format and docs gates.
 
@@ -56,7 +56,7 @@ The pipeline already takes `action` (deploy or destroy) and `planMode` (real or 
 | Input | Kind | Dev | UAT | How it is applied |
 |---|---|---|---|---|
 | `seed` | run | default on | default off | the application deploy runs the seed job, or skips it |
-| `mockIssuer` | infrastructure | always on (dev's only issuer) | default off; on for a side-by-side run | a Terraform variable: the mock issuer app and the services' issuer settings exist only when on, so turning it on or off is a plan change behind the infrastructure approval |
+| `mockIssuer` | infrastructure | always on (dev's only issuer) | default on until Entra (the lead, 2026-11-22: a run with it off is refused, register 222; was default off) | a Terraform variable: the mock issuer app and the services' issuer settings exist only when on, so turning it on or off is a plan change behind the infrastructure approval |
 | `issuerRoles`, `issuerAllowedIps` | infrastructure | Customer only, no list | the same | Terraform variables (the existing `issuer_roles` and `allowed_ips`); Vendor or Admin logins need an allow-list, as the issuer's guard already requires |
 | `chaosScenario` | infrastructure | `none` (default) or `dev-chaos` | not offered | dev only: a Terraform variable the module refuses outside dev; the scenario lives as long as the deployment, and the standard suite runs against it unchanged (`WI-CHAOS-006`) |
 | `cacheRedis` | infrastructure | on (default) or off | not offered | dev only, added 2026-11-21 for the lead's goal 3 (`WI-DEP-001`, register 216 option d): off, the module leaves out the cache Redis app and the catalog caches in process; a Terraform variable the module refuses off outside dev |
@@ -102,6 +102,11 @@ The same shape as dev (`docs/management/budget-cost-estimate.md`): three Redis a
 3. The two settings are renamed and widened to `uat` (step 4): approved.
 4. UAT runs the services as Production, as part of what UAT tests: approved.
 5. The foundation's outputs reach UAT as pipeline variables, not through the `tfstate` container: approved, on the condition that no secret is exposed or logged. The outputs are a registry login server and an identity's resource id and principal id, none of them a secret; they are still set as plain pipeline variables (not printed by any step), and `dev-stack-env.sh` prints nothing but Terraform's own init output.
+
+**Answered by the lead (2026-11-22)**
+
+6. Answer 2 changed: UAT's `mockIssuer` defaults to on. With Entra not built, a run with it off is refused (register 222), so the default made every run switch it on by hand; the rehearsal of 2026-11-22 needed it. It goes back to off when Entra exists.
+7. The run parameters' descriptions say what each one is, with no work item or reason; those are comments in the pipeline files.
 
 **Dependencies**
 

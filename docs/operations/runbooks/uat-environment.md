@@ -1,6 +1,6 @@
 # Procedure: bootstrap, deploy and tear down the UAT environment
 
-> **Status:** Draft · written 2026-11-21 (`WI-DEP-002` steps 7 to 9), NOT RUN: nothing here has been done in Azure or Azure DevOps. Decision: ADR-0020 decision 9 and its note of 2026-11-21. Pipeline: [`azure-pipelines-uat.yml`](../../../azure-pipelines-uat.yml). It becomes Current when a UAT deploy and a UAT teardown have run and "Last tested" says so.
+> **Status:** Draft · written 2026-11-21 (`WI-DEP-002` steps 7 to 9); sections 0 and 1 done (2026-11-21 to 2026-11-22: the bootstrap, then the rehearsal with G7 still to run); sections 2 to 4 not run. Decision: ADR-0020 decision 9 and its note of 2026-11-21. Pipeline: [`azure-pipelines-uat.yml`](../../../azure-pipelines-uat.yml). It becomes Current when a UAT deploy and a UAT teardown have run and "Last tested" says so.
 
 **Purpose.** Create what UAT needs once (the lead, by hand: IAM), then deploy a passing dev build to UAT, run the deployed suite against both environments side by side, and tear UAT down. UAT runs the same stage template and Terraform module as dev, in promote mode: it deploys the digests a dev run recorded, only if that run's smoke passed, and builds nothing.
 
@@ -37,6 +37,8 @@ az role assignment list --assignee "$DEPLOY" --all --query "[].{role:roleDefinit
 
 Afterwards the list must be exactly the "add" and "keep" rows above, plus Key Vault Secrets Officer on dev's vault while dev exists (the stack creates it). Then merge, and the next dev run's identity checks prove the set.
 
+**Done 2026-11-22**, after the merge rather than before it: a dev destroy run in the gap failed at its first check and changed nothing, as the next paragraph says it would. Dev run 100 then proved the set. Record: [`dev-roles-and-run-100-2026-11-22.md`](../../evidence/WI-DEP-002/dev-roles-and-run-100-2026-11-22.md).
+
 **Order.** The identity check refuses any set but the expected one, and the expected set changes with the branch that carries this change. Do the role change in Azure and the merge of that branch back to back, with no dev run in between; a dev run in the gap fails at its first step, before it changes anything. Then run dev once (`chaosScenario: none`) to prove the new set: the plan and apply identity checks, the apply (if it has changes), the push and the deploy. The dev run without the cache Redis (`cacheRedis` off, register 216) can be that run: the identity checks come first, so a failure there is the roles, not the switch.
 
 ## 1. Bootstrap (once; the lead; IAM changes need the lead's approval)
@@ -61,7 +63,7 @@ Do these in this order. Copy the shape of each command from [`bootstrap-terrafor
 5. **Plan identity and connection** `bakery-uat-plan`, UAT's own (register 231), pipeline permission for the UAT pipeline only: **Reader on the subscription** and **Storage Blob Data Reader on `tfstate-uat` only**. `bakery-plan` stays dev's and gets no read of `tfstate-uat`: UAT's state will hold UAT's Cosmos keys (register 214). Reader on the subscription is what lets a plan identity check its deploy identity's complete roles; it reads no secret (listing keys and reading vault secrets are actions it does not hold), but it does read the other environment's resource settings and can query its Log Analytics workspace. Its object id is not a pipeline variable (the connection signs it in); `PLAN_CONNECTION_ID` is this connection's id.
 6. **Approval environments** `uat-infra`, `uat-app`, `uat-destroy`: each with an approval, branch control (`main` only) and an exclusive lock, as dev's (`prove-the-pipeline-gates.md`).
 7. **Register the pipeline** `bakery-uat-operations` from `azure-pipelines-uat.yml`, and set its variables (its header lists them). The foundation's outputs for UAT go in as plain variables: `REGISTRY_LOGIN_SERVER`, `APP_IDENTITY_ID`, `APP_IDENTITY_PRINCIPAL_ID` (`terraform -chdir=infra/foundation output app_identities`, the `uat` entry, read on your machine). `DEV_PIPELINE_ID` is the dev pipeline's definition id (the number in its URL). `KEY_VAULT_NAME` and `COSMOS_ACCOUNT_NAME` are UAT's own, globally unique, not dev's.
-8. **Rehearse** once with `planMode: rehearsal` and a real `devBuild`, to prove the three new approval environments' checks before any real step (G1 to G8 of `prove-the-pipeline-gates.md`, with `uat-*`).
+8. **Rehearse** once with `planMode: rehearsal` and a real `devBuild`, to prove the three new approval environments' checks before any real step (G1 to G8 of `prove-the-pipeline-gates.md`, with `uat-*`). The variables of step 7 must be saved first: `inputs` needs them even in rehearsal, and its promote check reads `devBuild` for real.
 
 ## 2. Deploy a dev build to UAT
 
@@ -89,4 +91,4 @@ As [`dev-environment-teardown.md`](dev-environment-teardown.md), with `bakery-ua
 
 ## Last tested
 
-Never.
+Sections 0 and 1, 2026-11-21 to 2026-11-22, by the lead with the agent running the Azure CLI commands: [`bootstrap-uat-2026-11-21.md`](../../evidence/WI-DEP-002/bootstrap-uat-2026-11-21.md), [`dev-roles-and-run-100-2026-11-22.md`](../../evidence/WI-DEP-002/dev-roles-and-run-100-2026-11-22.md), [`uat-rehearsal-2026-11-22.md`](../../evidence/WI-DEP-002/uat-rehearsal-2026-11-22.md). Sections 2 to 4: never.
