@@ -6,7 +6,7 @@
 
 ## 0. Dev's deploy identity first: no role on anything of UAT's (register 231)
 
-Today `bakery-deploy` holds Contributor and the role-assignment right on all of `rg-bakery-foundation`, where UAT's apps identity will live, so a dev run could give a dev app UAT's identity, or add a credential to it, and read UAT's Key Vault. Narrow it before UAT exists. **Proposed for your approval**:
+Today `bakery-deploy` holds Contributor and the role-assignment right on all of `rg-bakery-foundation`, where UAT's apps identity will live, so a dev run could give a dev app UAT's identity, or add a credential to it, and read UAT's Key Vault. Narrow it before UAT exists. **Confirmed by the lead on 2026-11-21** (register 231):
 
 | Change | Role | Scope |
 |---|---|---|
@@ -20,7 +20,24 @@ Today `bakery-deploy` holds Contributor and the role-assignment right on all of 
 
 Nothing in a pipeline writes to the foundation group: the foundation is applied from your machine as you, and the pipeline only reads its state and pushes images. Not tried in Azure.
 
-**Order.** The identity check refuses any set but the expected one, and the expected set changes with the branch that carries this change. Do the role change in Azure and the merge of that branch back to back, with no dev run in between; a dev run in the gap fails at its first step, before it changes anything. Then run dev once (`chaosScenario: none`) to prove the new set: the plan and apply identity checks, the apply (if it has changes), the push and the deploy.
+The change, from Git Bash on your machine, signed in as yourself (`az login`), when the branch's pull request is green and just before you merge it. `DEPLOY` is `bakery-deploy`'s object id, the dev pipeline's `DEPLOY_PRINCIPAL_ID` variable (an id, not a secret):
+
+```bash
+export MSYS_NO_PATHCONV=1   # Git Bash would otherwise turn each /subscriptions/... scope into a Windows path
+DEPLOY=<bakery-deploy object id>
+fnd="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-bakery-foundation"
+az role assignment list --assignee "$DEPLOY" --all --query "[].{role:roleDefinitionName, scope:scope}" -o table   # before
+az role assignment delete --assignee "$DEPLOY" --role "Contributor" --scope "$fnd"
+az role assignment delete --assignee "$DEPLOY" --role "Role Based Access Control Administrator" --scope "$fnd"
+az role assignment create --assignee-object-id "$DEPLOY" --assignee-principal-type ServicePrincipal --role "Reader" --scope "$fnd"
+az role assignment create --assignee-object-id "$DEPLOY" --assignee-principal-type ServicePrincipal --role "Managed Identity Operator" \
+  --scope "$fnd/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-bakery-dev-apps"
+az role assignment list --assignee "$DEPLOY" --all --query "[].{role:roleDefinitionName, scope:scope}" -o table   # after
+```
+
+Afterwards the list must be exactly the "add" and "keep" rows above, plus Key Vault Secrets Officer on dev's vault while dev exists (the stack creates it). Then merge, and the next dev run's identity checks prove the set.
+
+**Order.** The identity check refuses any set but the expected one, and the expected set changes with the branch that carries this change. Do the role change in Azure and the merge of that branch back to back, with no dev run in between; a dev run in the gap fails at its first step, before it changes anything. Then run dev once (`chaosScenario: none`) to prove the new set: the plan and apply identity checks, the apply (if it has changes), the push and the deploy. The dev run without the cache Redis (`cacheRedis` off, register 216) can be that run: the identity checks come first, so a failure there is the roles, not the switch.
 
 ## 1. Bootstrap (once; the lead; IAM changes need the lead's approval)
 
@@ -29,7 +46,7 @@ Do these in this order. Copy the shape of each command from [`bootstrap-terrafor
 1. **Foundation** (step 6): add `"uat"` to `app_identities` in the foundation's variables file (outside the repository), plan from your machine and check the plan **adds exactly two** resources (`azurerm_user_assigned_identity.apps["uat"]` and `azurerm_role_assignment.acr_pull_apps["uat"]`) and changes nothing; then apply. `infra/foundation/tests/foundation.tftest.hcl` shows the same with a mocked provider.
 2. **Resource group** `rg-bakery-uat` in **East US 2** (`eastus2`): the subscription allows one Container Apps environment per region and dev's is in East US (register 229). The UAT stack reads its region from this group.
 3. **State container** `tfstate-uat` in the state account, with the same settings as `tfstate` (Entra-only access, versioning and soft delete are account settings already on).
-4. **Deploy identity and connection** `bakery-uat-deploy` (workload identity federation, as `bakery-deploy`), pipeline permission for the UAT pipeline only. Its roles, **proposed for your approval** (registers 230, 231); `scripts/ci/identity-check.mjs` refuses anything else:
+4. **Deploy identity and connection** `bakery-uat-deploy` (workload identity federation, as `bakery-deploy`), pipeline permission for the UAT pipeline only. Its roles, **confirmed by the lead on 2026-11-21** (registers 230, 231); `scripts/ci/identity-check.mjs` refuses anything else:
 
    | Role | Scope | Why |
    |---|---|---|
