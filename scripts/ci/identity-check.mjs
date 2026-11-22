@@ -16,65 +16,55 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 /**
- * What each identity must hold (ADR-0020; the bootstrap and the 2026-11-20 evidence). `optional` entries may be absent: the deploy identity's
- * Key Vault role exists only while an environment does (the environment stack creates it). `conditioned` says whether the assignment must
- * carry a condition (the constrained role-assignment right) or must not.
+ * What each identity must hold (ADR-0020; the bootstrap and the 2026-11-20 evidence; narrowed per environment by register 231, the lead's direction
+ * of 2026-11-21: no identity of one environment holds a role on the other's resources). `optional` entries may be absent: the deploy identity's
+ * Key Vault role exists only while an environment does (the environment stack creates it), and the deploy identity cannot see its own state role.
+ * `conditioned` says whether the assignment must carry a condition (the constrained role-assignment right) or must not.
+ *
+ * Each environment has its own plan identity (bakery-plan for dev, bakery-uat-plan for UAT) and its own deploy identity (bakery-deploy,
+ * bakery-uat-deploy). Every one of them is checked for exactly this set, so a role added by hand later fails the next run.
  */
-export function expectedRoles(identity, environment, { asSelf = true } = {}) {
+export function expectedRoles(identity, environment = 'dev', { asSelf = true } = {}) {
   const group = (name) => new RegExp(`^/subscriptions/[^/]+/resourceGroups/${name}$`, 'i');
-  const container = (name) => new RegExp(`/blobServices/default/containers/${name}$`, 'i');
-  const stateContainer = container('tfstate');
+  // dev's state is in the container tfstate (with the foundation's), every other environment's in tfstate-<environment> (WI-DEP-002).
+  const stateContainer = new RegExp(
+    `/blobServices/default/containers/${environment === 'dev' ? 'tfstate' : `tfstate-${environment}`}$`,
+    'i',
+  );
   const registry =
     /^\/subscriptions\/[^/]+\/resourceGroups\/rg-bakery-foundation\/providers\/Microsoft\.ContainerRegistry\/registries\/[^/]+$/i;
+  const appsIdentity = new RegExp(
+    `^/subscriptions/[^/]+/resourceGroups/rg-bakery-foundation/providers/Microsoft\\.ManagedIdentity/userAssignedIdentities/id-bakery-${environment}-apps$`,
+    'i',
+  );
   const vault = new RegExp(
     `^/subscriptions/[^/]+/resourceGroups/rg-bakery-${environment}/providers/Microsoft\\.KeyVault/vaults/[^/]+$`,
     'i',
   );
+  // The plan identity reads the subscription (it checks the deploy identity's complete roles, which needs every scope) and its own environment's
+  // state only. Reader gives no secret: listing keys, reading Key Vault secrets and registry credentials are actions Reader does not hold.
   if (identity === 'plan')
     return [
       { role: 'Reader', scope: /^\/subscriptions\/[^/]+$/i, conditioned: false },
       { role: 'Storage Blob Data Reader', scope: stateContainer, conditioned: false },
-      // One plan identity serves dev and UAT (WI-DEP-002 step 7); its read of UAT's state container exists once the UAT bootstrap has added it.
-      { role: 'Storage Blob Data Reader', scope: container('tfstate-uat'), conditioned: false, optional: true },
     ];
-  // UAT's deploy identity (bakery-uat-deploy, WI-DEP-002 step 7; proposed for the lead's approval, IAM): only what a promote run needs. No role in the
-  // foundation group and no AcrPush (it pushes nothing and applies nothing there); no read of the tfstate container (dev's state). What it needs
-  // beyond its own group: its state container; Managed Identity Operator on its apps identity, so its container apps can be given that identity
-  // (assigning a user-assigned identity is an action on the identity, which lives in the foundation group); and AcrPull on the registry, so the
-  // application deploy can read the build tags of the images the apps run (register 110: never deploy an older build).
-  if (identity === 'deploy' && environment !== 'dev')
-    return [
-      { role: 'Contributor', scope: group(`rg-bakery-${environment}`), conditioned: false },
-      { role: 'Role Based Access Control Administrator', scope: group(`rg-bakery-${environment}`), conditioned: true },
-      {
-        role: 'Storage Blob Data Contributor',
-        scope: container(`tfstate-${environment}`),
-        conditioned: false,
-        optional: asSelf,
-      },
-      {
-        role: 'Managed Identity Operator',
-        scope: new RegExp(
-          `^/subscriptions/[^/]+/resourceGroups/rg-bakery-foundation/providers/Microsoft\\.ManagedIdentity/userAssignedIdentities/id-bakery-${environment}-apps$`,
-          'i',
-        ),
-        conditioned: false,
-      },
-      { role: 'AcrPull', scope: registry, conditioned: false },
-      { role: 'Key Vault Secrets Officer', scope: vault, conditioned: false, optional: true },
-    ];
-  if (identity === 'deploy')
-    return [
-      { role: 'Contributor', scope: group(`rg-bakery-${environment}`), conditioned: false },
-      { role: 'Contributor', scope: group('rg-bakery-foundation'), conditioned: false },
-      { role: 'Role Based Access Control Administrator', scope: group(`rg-bakery-${environment}`), conditioned: true },
-      { role: 'Role Based Access Control Administrator', scope: group('rg-bakery-foundation'), conditioned: true },
-      // Not visible to the deploy identity itself (it cannot read rg-bakery-tfstate); checked by the plan identity instead (--principal).
-      { role: 'Storage Blob Data Contributor', scope: stateContainer, conditioned: false, optional: asSelf },
-      { role: 'AcrPush', scope: registry, conditioned: false },
-      { role: 'Key Vault Secrets Officer', scope: vault, conditioned: false, optional: true },
-    ];
-  throw new Error(`unknown identity "${identity}" (plan or deploy)`);
+  if (identity !== 'deploy') throw new Error(`unknown identity "${identity}" (plan or deploy)`);
+  // The deploy identity: its own group, its own state, its own apps identity, and the shared registry. In the foundation group it only reads
+  // (az acr list and az acr login look the registry up there); the foundation itself is applied by the lead, never by a pipeline. Managed Identity
+  // Operator on its own apps identity is what lets Terraform give the environment's container apps that identity (an action on the identity), and
+  // nothing else: it cannot add credentials to the identity or touch the other environment's.
+  const roles = [
+    { role: 'Contributor', scope: group(`rg-bakery-${environment}`), conditioned: false },
+    { role: 'Role Based Access Control Administrator', scope: group(`rg-bakery-${environment}`), conditioned: true },
+    // Not visible to the deploy identity itself (it cannot read rg-bakery-tfstate); checked by the plan identity instead (--principal).
+    { role: 'Storage Blob Data Contributor', scope: stateContainer, conditioned: false, optional: asSelf },
+    { role: 'Reader', scope: group('rg-bakery-foundation'), conditioned: false },
+    { role: 'Managed Identity Operator', scope: appsIdentity, conditioned: false },
+    { role: 'Key Vault Secrets Officer', scope: vault, conditioned: false, optional: true },
+  ];
+  // dev builds and pushes the images; UAT deploys dev's digests and only reads the registry (the build tags of what its apps run, register 110).
+  roles.push({ role: environment === 'dev' ? 'AcrPush' : 'AcrPull', scope: registry, conditioned: false });
+  return roles;
 }
 
 /**

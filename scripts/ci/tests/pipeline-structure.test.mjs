@@ -83,6 +83,7 @@ const PIPELINES = {
     environment: 'dev',
     group: 'rg-bakery-dev',
     imageSource: 'build',
+    planConnection: 'bakery-plan',
     deployConnection: 'bakery-deploy',
     approvals: ['dev-infra', 'dev-app', 'dev-destroy'],
     passedThrough: [
@@ -103,6 +104,7 @@ const PIPELINES = {
     environment: 'uat',
     group: 'rg-bakery-uat',
     imageSource: 'promote',
+    planConnection: 'bakery-uat-plan', // its own, not dev's (register 231)
     deployConnection: 'bakery-uat-deploy',
     approvals: ['uat-infra', 'uat-app', 'uat-destroy'],
     passedThrough: [
@@ -159,8 +161,8 @@ for (const [file, want] of Object.entries(PIPELINES)) {
       assert.doesNotMatch(caller, /- stage: /, 'no stage is left in the calling file');
     });
 
-    test('uses the shared plan connection and its own deploy connection, and nothing else', () => {
-      assert.equal(passed('planConnection'), 'bakery-plan');
+    test('uses its own plan and deploy connections, and nothing else', () => {
+      assert.equal(passed('planConnection'), want.planConnection);
       assert.equal(passed('deployConnection'), want.deployConnection);
       assert.doesNotMatch(caller, /azureSubscription/);
     });
