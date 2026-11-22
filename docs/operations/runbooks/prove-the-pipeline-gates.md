@@ -46,6 +46,7 @@ Since 2026-11-20 the plan, apply and teardown are real by default (plan mode `re
 
 ## What not to do
 
+- Do not reject or leave the application deploy approval after an infrastructure apply that changed an app (the plan summary says "to change" for a container app). The apply puts each changed app back on the placeholder image, and only the application deploy restores the real one (register 217, accepted by the lead 2026-11-21, option a; seen in dev build 96). If a run did stop between the two, the smoke of the next deploy run fails against the placeholder until its application deploy runs.
 - Do not add a service connection to this pipeline until the step that uses it has been rehearsed.
 - Do not rely on the YAML alone to protect a stage. A pull request can change the YAML; the environment checks are the control, and they live in the Azure interface.
 - Do not approve a run you cannot explain. The approval is for the exact plan shown.

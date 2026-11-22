@@ -84,6 +84,7 @@ As [`dev-environment-teardown.md`](dev-environment-teardown.md), with `bakery-ua
 
 - Do not queue the UAT pipeline before step 1 is done: an approval environment Azure DevOps has not seen is created on first use with no checks (ADR-0020, "Not verified").
 - Do not give `bakery-uat-deploy` dev's roles to make a run pass; read the identity check's reasons and decide.
+- Do not reject or leave `uat-app` after an apply that changed an app: the apply puts a changed app back on the placeholder image and only the application deploy restores the promoted digest (register 217, accepted as in dev).
 - Do not name a chaos scenario for UAT: the pipeline does not offer one and the module refuses it (ADR-0024).
 
 ## Last tested
