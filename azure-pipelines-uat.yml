@@ -1,9 +1,10 @@
 # Manual operations on the UAT environment (ADR-0020 decision 9 and its note of 2026-11-21; WI-DEP-002 step 8). Register this file as its OWN
 # pipeline ("bakery-uat-operations"); it never runs by itself: no push trigger, no pull-request trigger.
 #
-# STATE OF THIS FILE (2026-11-21): written, NOT RUN. Nothing it needs in Azure or Azure DevOps exists yet (WI-DEP-002 step 7, the lead's bootstrap:
-# rg-bakery-uat, the tfstate-uat container, the bakery-uat-plan and bakery-uat-deploy connections, the uat-infra, uat-app and uat-destroy approval
-# environments, and the variables below). UAT has identities of its own, none shared with dev (register 231). Until they exist, do not queue it: an approval environment Azure DevOps has not seen is created on first use with no checks.
+# STATE OF THIS FILE (2026-11-22): registered and rehearsed, no real run yet. What it needs in Azure and Azure DevOps exists (WI-DEP-002 step 7, the
+# lead's bootstrap of 2026-11-21: rg-bakery-uat, the tfstate-uat container, the bakery-uat-plan and bakery-uat-deploy connections, the uat-infra,
+# uat-app and uat-destroy approval environments, and the variables below). UAT has identities of its own, none shared with dev (register 231). The
+# gate rehearsal (planMode rehearsal, devBuild 100) passed G1 to G6 and G8 on 2026-11-22 (docs/evidence/WI-DEP-002/uat-rehearsal-2026-11-22.md).
 #
 # The stages are dev's (pipelines/templates/environment-stages.yml), in promote mode:
 #   inputs      also checks the issuer inputs and, with this run's own token, that devBuild is a real deploy of the dev pipeline from main whose
@@ -26,41 +27,46 @@ pr: none
 
 parameters:
   - name: action
-    displayName: What to do
+    displayName: Action
     type: string
     default: deploy
     values:
       - deploy # infrastructure (only if the plan has changes), then the promoted application
       - destroy # the teardown
   - name: devBuild
-    displayName: The dev run to promote (its run id). Refused unless it was a real deploy from main whose smoke passed
+    # Refused unless it was a real deploy from main whose smoke passed (scripts/ci/promote-check.mjs).
+    displayName: Dev run id to promote
     type: number
     default: 0
   - name: planMode
-    displayName: Infrastructure steps. real = plan, apply and teardown in Azure; rehearsal = print only, no service connection (gate tests)
+    # rehearsal: every infrastructure step only prints and uses no service connection, to prove the approval gates
+    # (docs/operations/runbooks/prove-the-pipeline-gates.md).
+    displayName: Plan mode (rehearsal = print only)
     type: string
     default: real
     values:
       - real
       - rehearsal
   - name: simulateInfrastructureChanges
-    displayName: Rehearsal plan only. Pretend the infrastructure plan has changes (false = no changes, so the infrastructure approval is skipped)
+    displayName: Rehearsal only. Pretend the plan has changes
     type: boolean
     default: true
   - name: holdSeconds
-    displayName: Rehearsal only. Seconds the infrastructure apply step waits, to hold the stage open for the lock test. Leave 0 otherwise
+    displayName: Rehearsal only. Seconds the apply step holds the lock
     type: number
     default: 0
   - name: seed
-    displayName: Run the seed job before the apps are updated (fixture data; off by default in UAT)
+    # Before the apps are updated; fixture data. Off by default: UAT keeps the data it holds.
+    displayName: Run the seed job
     type: boolean
     default: false
   - name: mockIssuer
-    displayName: Deploy the mock issuer (UAT's only issuer until Entra, register 222; a run with it off is refused until then)
+    # UAT's only issuer until Entra: a run with it off is refused until then (register 222), so it defaults to on.
+    displayName: Deploy the mock issuer
     type: boolean
-    default: false
+    default: true
   - name: issuerRoles
-    displayName: Roles that may log in at the mock issuer. Any role but Customer needs issuerAllowedIps
+    displayName: Mock issuer roles (any but Customer needs allowed IPs)
     type: string
     default: Customer
     values:
@@ -69,11 +75,12 @@ parameters:
       - Customer,Admin
       - Customer,Vendor,Admin
   - name: issuerAllowedIps
-    displayName: IPv4 ranges allowed to reach the web app and the mock issuer (none = everyone). Shown in the run's parameters; the agent's smoke cannot reach a restricted environment
+    # The web app's and the mock issuer's ingress. Shown in the run's parameters; the agent's smoke cannot reach a restricted environment.
+    displayName: Allowed IPv4 ranges (none = everyone; smoke needs none)
     type: string
     default: none
   - name: confirmEnvironment
-    displayName: To destroy, type the environment name (uat)
+    displayName: Type uat to confirm a destroy
     type: string
     default: none # not empty: the run dialog keeps Next disabled while a text box is blank; any value but the environment name fails a destroy
 

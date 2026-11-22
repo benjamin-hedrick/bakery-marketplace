@@ -38,44 +38,49 @@ pr: none
 
 parameters:
   - name: action
-    displayName: What to do
+    displayName: Action
     type: string
     default: deploy
     values:
       - deploy # infrastructure (only if the plan has changes), then the application
       - destroy # the teardown
   - name: planMode
-    displayName: Infrastructure steps. real = plan, apply and teardown in Azure; rehearsal = print only, no service connection (gate tests)
+    # rehearsal: every infrastructure step only prints and uses no service connection, to prove the approval gates
+    # (docs/operations/runbooks/prove-the-pipeline-gates.md).
+    displayName: Plan mode (rehearsal = print only)
     type: string
     default: real
     values:
       - real
       - rehearsal
   - name: simulateInfrastructureChanges
-    displayName: Rehearsal plan only. Pretend the infrastructure plan has changes (false = no changes, so the infrastructure approval is skipped)
+    displayName: Rehearsal only. Pretend the plan has changes
     type: boolean
     default: true
   - name: holdSeconds
-    displayName: Rehearsal only. Seconds the infrastructure apply step waits, to hold the stage open for the lock test (G6). Leave 0 otherwise
+    displayName: Rehearsal only. Seconds the apply step holds the lock
     type: number
     default: 0
   - name: chaosScenario
-    displayName: Chaos scenario for this deployment (WI-CHAOS-006). none = no chaos; dev-chaos = the dev scenario, aimed at the chaos seed data only
+    # dev-chaos is aimed at the chaos seed data only (WI-CHAOS-006, ADR-0024).
+    displayName: Configure injected chaos scenario
     type: string
     default: none
     values:
       - none
       - dev-chaos
   - name: cacheRedis
-    displayName: Keep the cache Redis app (register 216). Off = the catalog caches in process, one always-on app fewer; the events and sessions Redis stay
+    # Off: the catalog caches in process, one always-on app fewer; the events and sessions Redis stay (register 216).
+    displayName: Cache Redis (off = in-process cache)
     type: boolean
     default: true
   - name: seed
-    displayName: Run the seed job before the apps are updated (fixture data; dev always has)
+    # Before the apps are updated; fixture data.
+    displayName: Run the seed job
     type: boolean
     default: true
   - name: issuerRoles
-    displayName: Roles that may log in at the mock issuer. Any role but Customer needs issuerAllowedIps
+    displayName: Mock issuer roles (any but Customer needs allowed IPs)
     type: string
     default: Customer
     values:
@@ -84,11 +89,12 @@ parameters:
       - Customer,Admin
       - Customer,Vendor,Admin
   - name: issuerAllowedIps
-    displayName: IPv4 ranges allowed to reach the web app and the mock issuer (none = everyone). Shown in the run's parameters; the agent's smoke cannot reach a restricted environment
+    # The web app's and the mock issuer's ingress. Shown in the run's parameters; the agent's smoke cannot reach a restricted environment.
+    displayName: Allowed IPv4 ranges (none = everyone; smoke needs none)
     type: string
     default: none
   - name: confirmEnvironment
-    displayName: To destroy, type the environment name (dev)
+    displayName: Type dev to confirm a destroy
     type: string
     default: none # not empty: the run dialog keeps Next disabled while a text box is blank (seen 2026-10-31); any value but the environment name fails a destroy
 
