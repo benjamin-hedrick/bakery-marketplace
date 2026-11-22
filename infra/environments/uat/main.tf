@@ -4,7 +4,7 @@
 # What differs from dev, and why:
 # - It runs the services as Production (decided by the lead 2026-11-21: part of what UAT tests), so the Development settings and chaos never apply.
 #   It never names a chaos scenario (ADR-0024; scripts/ci/tests/chaos-not-deployed.test.mjs) and never names itself "dev".
-# - Its group, rg-bakery-uat, is in East US 2: the subscription allows one Container Apps environment per region and dev's is in East US (register 229).
+# - Its group, rg-bakery-uat, is in East US 2: chosen when the subscription was thought to allow one Container Apps environment per region; it allows one in all (register 235).
 #   The apps go where the group is (the module reads the group's location), and Cosmos goes there too.
 # - Its Cosmos account is not on the free tier: the subscription's one free-tier account is dev's.
 # - Its state is in its own container, tfstate-uat (decision 3), given at init by scripts/ci/dev-stack-env.sh.

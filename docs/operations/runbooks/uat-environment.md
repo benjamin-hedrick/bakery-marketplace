@@ -46,7 +46,7 @@ Afterwards the list must be exactly the "add" and "keep" rows above, plus Key Va
 Do these in this order. Copy the shape of each command from [`bootstrap-terraform-state.md`](bootstrap-terraform-state.md), which did the same for dev on 2026-11-19, and record what you ran like `docs/evidence/WI-DEP-001/bootstrap-2026-11-19.md`. Print no secret; the outputs below are ids and names, none a secret.
 
 1. **Foundation** (step 6): add `"uat"` to `app_identities` in the foundation's variables file (outside the repository), plan from your machine and check the plan **adds exactly two** resources (`azurerm_user_assigned_identity.apps["uat"]` and `azurerm_role_assignment.acr_pull_apps["uat"]`) and changes nothing; then apply. `infra/foundation/tests/foundation.tftest.hcl` shows the same with a mocked provider.
-2. **Resource group** `rg-bakery-uat` in **East US 2** (`eastus2`): the subscription allows one Container Apps environment per region and dev's is in East US (register 229). The UAT stack reads its region from this group.
+2. **Resource group** `rg-bakery-uat` in **East US 2** (`eastus2`): the UAT stack reads its region from this group. (The East US 2 choice rested on "one Container Apps environment per region"; that was wrong: the subscription allows **one in all**, register 235, so UAT cannot be created while dev's environment exists.)
 3. **State container** `tfstate-uat` in the state account, with the same settings as `tfstate` (Entra-only access, versioning and soft delete are account settings already on).
    Then **create the empty state blob** with your own login (register 234). The read-only plan identity cannot: with no state blob the backend writes an empty one first, which needs write access, and the first plan fails with a 403. Upload a version 4 empty state (`{"version":4,"terraform_version":"<TF_VERSION of the pipeline>","serial":0,"lineage":"<a new uuid>","outputs":{},"resources":[],"check_results":null}`) as `uat.tfstate` with `az storage blob upload --account-name <state account> --container-name tfstate-uat --name uat.tfstate --file <that file> --auth-mode login --overwrite false`, and list the container to see it.
 4. **Deploy identity and connection** `bakery-uat-deploy` (workload identity federation, as `bakery-deploy`), pipeline permission for the UAT pipeline only. Its roles, **confirmed by the lead on 2026-11-21** (registers 230, 231); `scripts/ci/identity-check.mjs` refuses anything else:
@@ -68,6 +68,8 @@ Do these in this order. Copy the shape of each command from [`bootstrap-terrafor
 
 ## 2. Deploy a dev build to UAT
 
+**Blocked 2026-11-22 (register 235).** The first run's apply was refused: `MaxNumberOfGlobalEnvironmentsInSubExceeded`, the subscription allows one Container Apps environment in all and dev's is up. Before any UAT deploy, check `az containerapp env list --query "length(@)"` is 0 (tear dev down), or that the limit has been raised. UAT was torn down instead (section 4); the bootstrap stays.
+
 1. Pick a dev run on `main` whose smoke passed (the dev pipeline's run list; its `smoke` stage is green). Its run id is `devBuild`. **It must be built after `feature/uat-environment` was merged:** older images read only the dev-named switches (`MockOidc:AllowDeployedDev`, `Seed:AllowDeployedDev`), which UAT does not set (`WI-DEP-002` step 4), so their mock issuer and seed would refuse to start in UAT. The promote check does not look at this; builds 95 and 96 (2026-11-21) are too old.
 2. **Run pipeline** `bakery-uat-operations` on `main`: action `deploy`, `devBuild` = that id, plan mode `real`, **`mockIssuer` on** (until Entra a run with it off is refused, register 222), **`seed` on for the first run** (a new UAT database is empty and the deployed suite needs the seed data; later runs may leave it off).
 3. `inputs` refuses unless that dev run was a real deploy from `main`, its smoke succeeded, and it published its digest record. `images` fetches that record; nothing is built.
@@ -76,6 +78,8 @@ Do these in this order. Copy the shape of each command from [`bootstrap-terrafor
 6. `smoke` and `observe` run as in dev. Their evidence is the run's `uat-smoke` and `uat-observe` artifacts (read through the step logs, as for dev: TF400813).
 
 ## 3. Side by side
+
+**Cannot run on this subscription (register 235):** two environments need two Container Apps environments.
 
 With both environments up, run the deployed suite against each in the same session from your machine (`apps/web-customer`: `WEB_URL=... ISSUER_URL=... npx playwright test -c playwright.deployed.config.ts`, the addresses from each run's deployment record). Record both under `docs/evidence/WI-DEP-002/`.
 
