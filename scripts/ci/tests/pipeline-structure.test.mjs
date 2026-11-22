@@ -121,7 +121,7 @@ const PIPELINES = {
       'issuerAllowedIps',
     ],
     fixed: {},
-    defaults: { seed: 'false', mockIssuer: 'false' },
+    defaults: { seed: 'false', mockIssuer: 'true' }, // on until Entra: a run with it off is refused (register 222)
   },
 };
 
