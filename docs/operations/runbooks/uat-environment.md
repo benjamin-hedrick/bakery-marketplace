@@ -4,6 +4,24 @@
 
 **Purpose.** Create what UAT needs once (the lead, by hand: IAM), then deploy a passing dev build to UAT, run the deployed suite against both environments side by side, and tear UAT down. UAT runs the same stage template and Terraform module as dev, in promote mode: it deploys the digests a dev run recorded, only if that run's smoke passed, and builds nothing.
 
+## 0. Dev's deploy identity first: no role on anything of UAT's (register 231)
+
+Today `bakery-deploy` holds Contributor and the role-assignment right on all of `rg-bakery-foundation`, where UAT's apps identity will live, so a dev run could give a dev app UAT's identity, or add a credential to it, and read UAT's Key Vault. Narrow it before UAT exists. **Proposed for your approval**:
+
+| Change | Role | Scope |
+|---|---|---|
+| remove | Contributor | `rg-bakery-foundation` |
+| remove | Role Based Access Control Administrator (conditioned) | `rg-bakery-foundation` |
+| add | Reader | `rg-bakery-foundation` (the push step looks the registry up there: `az acr list`, `az acr login`) |
+| add | Managed Identity Operator | `id-bakery-dev-apps` only (Terraform gives the dev apps that identity, an action on the identity) |
+| keep | Contributor; Role Based Access Control Administrator (conditioned) | `rg-bakery-dev` |
+| keep | Storage Blob Data Contributor | the `tfstate` container |
+| keep | AcrPush | the registry |
+
+Nothing in a pipeline writes to the foundation group: the foundation is applied from your machine as you, and the pipeline only reads its state and pushes images. Not tried in Azure.
+
+**Order.** The identity check refuses any set but the expected one, and the expected set changes with the branch that carries this change. Do the role change in Azure and the merge of that branch back to back, with no dev run in between; a dev run in the gap fails at its first step, before it changes anything. Then run dev once (`chaosScenario: none`) to prove the new set: the plan and apply identity checks, the apply (if it has changes), the push and the deploy.
+
 ## 1. Bootstrap (once; the lead; IAM changes need the lead's approval)
 
 Do these in this order. Copy the shape of each command from [`bootstrap-terraform-state.md`](bootstrap-terraform-state.md), which did the same for dev on 2026-11-19, and record what you ran like `docs/evidence/WI-DEP-001/bootstrap-2026-11-19.md`. Print no secret; the outputs below are ids and names, none a secret.
@@ -11,18 +29,19 @@ Do these in this order. Copy the shape of each command from [`bootstrap-terrafor
 1. **Foundation** (step 6): add `"uat"` to `app_identities` in the foundation's variables file (outside the repository), plan from your machine and check the plan **adds exactly two** resources (`azurerm_user_assigned_identity.apps["uat"]` and `azurerm_role_assignment.acr_pull_apps["uat"]`) and changes nothing; then apply. `infra/foundation/tests/foundation.tftest.hcl` shows the same with a mocked provider.
 2. **Resource group** `rg-bakery-uat` in **East US 2** (`eastus2`): the subscription allows one Container Apps environment per region and dev's is in East US (register 229). The UAT stack reads its region from this group.
 3. **State container** `tfstate-uat` in the state account, with the same settings as `tfstate` (Entra-only access, versioning and soft delete are account settings already on).
-4. **Deploy identity and connection** `bakery-uat-deploy` (workload identity federation, as `bakery-deploy`), pipeline permission for the UAT pipeline only. Its roles, **proposed for your approval** (register 230); `scripts/ci/identity-check.mjs` refuses anything else:
+4. **Deploy identity and connection** `bakery-uat-deploy` (workload identity federation, as `bakery-deploy`), pipeline permission for the UAT pipeline only. Its roles, **proposed for your approval** (registers 230, 231); `scripts/ci/identity-check.mjs` refuses anything else:
 
    | Role | Scope | Why |
    |---|---|---|
    | Contributor | `rg-bakery-uat` | the stack's resources |
    | Role Based Access Control Administrator, with the same condition as dev's (only Key Vault Secrets User and Key Vault Secrets Officer) | `rg-bakery-uat` | the stack's two Key Vault role assignments |
    | Storage Blob Data Contributor | the `tfstate-uat` container only | UAT's state; no read of `tfstate`, which holds dev's state and so dev's Cosmos keys (register 214) |
-   | Managed Identity Operator | `id-bakery-uat-apps` (in `rg-bakery-foundation`) | giving UAT's container apps their identity is an action on that identity; dev's deploy identity has it through Contributor on the foundation group, which UAT's does not get |
+   | Reader | `rg-bakery-foundation` | the Azure CLI looks the registry up there |
+   | Managed Identity Operator | `id-bakery-uat-apps` only | giving UAT's container apps their identity is an action on that identity |
    | AcrPull | the registry | the application deploy reads the build tags of the images the apps run, to refuse an older build (register 110) |
 
-   Not given, unlike dev's: anything else in `rg-bakery-foundation`, and AcrPush (a promote run pushes nothing).
-5. **Plan identity** `bakery-plan` (reused): add **Storage Blob Data Reader on `tfstate-uat`**. Its Reader on the subscription already covers UAT. The identity check accepts it with or without this role, so dev runs are not affected.
+   The same shape as dev's after section 0, with AcrPull where dev has AcrPush (a promote run pushes nothing). No role on anything of dev's.
+5. **Plan identity and connection** `bakery-uat-plan`, UAT's own (register 231), pipeline permission for the UAT pipeline only: **Reader on the subscription** and **Storage Blob Data Reader on `tfstate-uat` only**. `bakery-plan` stays dev's and gets no read of `tfstate-uat`: UAT's state will hold UAT's Cosmos keys (register 214). Reader on the subscription is what lets a plan identity check its deploy identity's complete roles; it reads no secret (listing keys and reading vault secrets are actions it does not hold), but it does read the other environment's resource settings and can query its Log Analytics workspace. Its object id is not a pipeline variable (the connection signs it in); `PLAN_CONNECTION_ID` is this connection's id.
 6. **Approval environments** `uat-infra`, `uat-app`, `uat-destroy`: each with an approval, branch control (`main` only) and an exclusive lock, as dev's (`prove-the-pipeline-gates.md`).
 7. **Register the pipeline** `bakery-uat-operations` from `azure-pipelines-uat.yml`, and set its variables (its header lists them). The foundation's outputs for UAT go in as plain variables: `REGISTRY_LOGIN_SERVER`, `APP_IDENTITY_ID`, `APP_IDENTITY_PRINCIPAL_ID` (`terraform -chdir=infra/foundation output app_identities`, the `uat` entry, read on your machine). `DEV_PIPELINE_ID` is the dev pipeline's definition id (the number in its URL). `KEY_VAULT_NAME` and `COSMOS_ACCOUNT_NAME` are UAT's own, globally unique, not dev's.
 8. **Rehearse** once with `planMode: rehearsal` and a real `devBuild`, to prove the three new approval environments' checks before any real step (G1 to G8 of `prove-the-pipeline-gates.md`, with `uat-*`).
