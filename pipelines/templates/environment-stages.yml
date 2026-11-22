@@ -306,10 +306,12 @@ stages:
 
       # The post-deploy smoke, from outside: the deployed customer suite (11 tests) and the latency run, against the two public addresses only, with no
       # service connection (nothing on this agent can change Azure). Its addresses come from the deployment record. Evidence is published whatever the result.
+      # The condition names app_deploy (register 232): a bare succeeded() also checks the stages before it, so a skipped apply (no infrastructure
+      # changes) skipped the smoke and the observe stage after a good deploy (build 93).
       - stage: smoke
         displayName: Post-deploy smoke (no credentials)
         dependsOn: app_deploy
-        condition: succeeded()
+        condition: succeeded('app_deploy')
         jobs:
           - job: smoke
             timeoutInMinutes: 60
