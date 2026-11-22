@@ -44,7 +44,7 @@ Of 56 work items marked Done: 30 are named by a test file, 21 by an evidence rec
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |
 | [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | In progress | `MockOidcFixedIssuerTests.cs` | `README.md`, `apply-and-teardown-prep-2026-11-20.md`, `bootstrap-2026-11-19.md` and 13 more |
-| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | In progress | `chaos-not-deployed.test.mjs`, `dev-deploy.test.mjs`, `pipeline-structure.test.mjs` and 4 more | `module-refactor-2026-11-21.md`, `ai-usage-2026-11-21-b.md` |
+| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | In progress | `chaos-not-deployed.test.mjs`, `dev-deploy.test.mjs`, `dev-stack-env.test.mjs` and 5 more | `module-refactor-2026-11-21.md`, `ai-usage-2026-11-21-b.md` |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | Done | *none* | *none* |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | Done | *none* | `findings.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | Done | `walking-skeleton.spec.ts`, `SeederTests.cs` | `findings.md`, `findings.md` |
