@@ -134,7 +134,9 @@ describe('azure-pipelines-dev.yml (manual dev operations: plan, apply, images, s
 
   test('the smoke runs the deployed suite and the latency run on the recorded addresses after the deploy, and the observe stage follows it either way', () => {
     const smoke = stage('smoke');
-    assert.match(smoke, /dependsOn: app_deploy\n\s+condition: succeeded\(\)/);
+    // Named, not bare (register 232): a bare succeeded() also checks the stages before app_deploy, and the apply is skipped when nothing changes.
+    assert.match(smoke, /dependsOn: app_deploy\n\s+condition: succeeded\('app_deploy'\)\n/);
+    assert.doesNotMatch(text, /condition: succeeded\(\)\s*$/m, 'no stage condition is a bare succeeded()');
     assert.match(real('smoke'), /DEPLOYED_WHERE=agent npx playwright test -c playwright\.deployed\.config\.ts/);
     assert.match(
       real('smoke'),
