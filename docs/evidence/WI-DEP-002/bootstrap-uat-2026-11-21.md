@@ -10,11 +10,28 @@
 | 1 | Foundation: `"uat"` added to `app_identities`, plan adds exactly two resources, apply | Not yet |
 | 2 | `rg-bakery-uat` in East US 2 (`eastus2`), empty, tags `Stack=environment ManagedBy=bootstrap` (as dev's). `az group exists` said false first | **Created** 2026-11-21, provisioning state Succeeded |
 | 3 | Container `tfstate-uat` in the state account, created with `--auth-mode login` (the account has no shared key access). `az storage container exists` said false first | **Created** 2026-11-21, no public access, as `tfstate` |
-| 4 | Connection `bakery-uat-deploy` (Azure DevOps, the lead) and its roles (the agent, after the lead's approval) | Not yet |
-| 5 | Connection `bakery-uat-plan` and its roles | Not yet |
-| 6 | Approval environments `uat-infra`, `uat-app`, `uat-destroy` | Not yet |
+| 4 | Connection `bakery-uat-deploy` (the lead: workload identity federation, automatic, resource group `rg-bakery-uat`, not granted to all pipelines). Its identity found by the connection id at the end of its display name: one federated credential, no password, no certificate. Roles set by the agent (below) | **Created**; roles set except Managed Identity Operator, which needs foundation step 1 |
+| 5 | Connection `bakery-uat-plan`, made the same way; the same credential check | **Created**; roles set |
+| 6 | Approval environments `uat-infra`, `uat-app`, `uat-destroy` (the lead: approval, branch control `main`, exclusive lock) | **Done by the lead**, as the lead reported; not read by the agent |
 | 7 | Pipeline `bakery-uat-operations` and its variables | Not yet |
 | 8 | Rehearsal run | Not yet |
+
+## The UAT pipeline identities' roles, as applied and listed afterwards
+
+Before: each identity held only the Contributor on `rg-bakery-uat` that Azure DevOps gives. The agent ran a script (dry run first, then applied) from the lead's Azure CLI: it removed the plan identity's Contributor and added the rest. The role-assignment condition was read from dev's live assignment on `rg-bakery-dev` and applied unchanged, with `az rest` and a JSON body (the `az.cmd` wrapper breaks braces and `!`); it is the condition in [`bootstrap-2026-11-19.md`](../WI-DEP-001/bootstrap-2026-11-19.md).
+
+| Identity | Role | Scope | Condition |
+|---|---|---|---|
+| bakery-uat-plan | Reader | the subscription | none |
+| bakery-uat-plan | Storage Blob Data Reader | the `tfstate-uat` container | none |
+| bakery-uat-deploy | Contributor | `rg-bakery-uat` (given by Azure DevOps) | none |
+| bakery-uat-deploy | Role Based Access Control Administrator | `rg-bakery-uat` | yes: dev's (write and delete of a role assignment only for Key Vault Secrets User and Key Vault Secrets Officer) |
+| bakery-uat-deploy | Storage Blob Data Contributor | the `tfstate-uat` container | none |
+| bakery-uat-deploy | Reader | `rg-bakery-foundation` | none |
+| bakery-uat-deploy | AcrPull | the foundation's registry | none |
+| bakery-uat-deploy | Managed Identity Operator | `id-bakery-uat-apps` | **not yet**: created by foundation step 1 |
+
+Checked offline against the pipeline's own rule (`compareRoles` and `expectedRoles` of `scripts/ci/identity-check.mjs`, environment `uat`, the deploy identity checked as the plan identity checks it): the plan identity's set is exactly the expected one; the deploy identity's only problem is the missing Managed Identity Operator. Neither identity has a role on anything of dev's. The pipeline's own identity checks run on the first UAT run.
 
 ## The state account, read after step 3
 
