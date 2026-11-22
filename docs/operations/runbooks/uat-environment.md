@@ -65,7 +65,7 @@ Do these in this order. Copy the shape of each command from [`bootstrap-terrafor
 
 ## 2. Deploy a dev build to UAT
 
-1. Pick a dev run on `main` whose smoke passed (the dev pipeline's run list; its `smoke` stage is green). Its run id is `devBuild`.
+1. Pick a dev run on `main` whose smoke passed (the dev pipeline's run list; its `smoke` stage is green). Its run id is `devBuild`. **It must be built after `feature/uat-environment` was merged:** older images read only the dev-named switches (`MockOidc:AllowDeployedDev`, `Seed:AllowDeployedDev`), which UAT does not set (`WI-DEP-002` step 4), so their mock issuer and seed would refuse to start in UAT. The promote check does not look at this; builds 95 and 96 (2026-11-21) are too old.
 2. **Run pipeline** `bakery-uat-operations` on `main`: action `deploy`, `devBuild` = that id, plan mode `real`, **`mockIssuer` on** (until Entra a run with it off is refused, register 222), **`seed` on for the first run** (a new UAT database is empty and the deployed suite needs the seed data; later runs may leave it off).
 3. `inputs` refuses unless that dev run was a real deploy from `main`, its smoke succeeded, and it published its digest record. `images` fetches that record; nothing is built.
 4. Approve `uat-infra` only after reading the plan summary (the first run creates the whole stack, the same resources as dev's: about 26 with the budget alert). The Cosmos account is created in East US 2 off the free tier; Azure may refuse it for capacity, as East US refused dev's (register 229).
