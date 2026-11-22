@@ -25,7 +25,8 @@ Set `$SUB`, `$LOC` (the region, for example `eastus`) and a storage account name
    az storage account create -n $SA -g rg-bakery-tfstate -l $LOC --sku Standard_LRS --kind StorageV2 \
      --min-tls-version TLS1_2 --allow-blob-public-access false --allow-shared-key-access false
    az storage account blob-service-properties update --account-name $SA -g rg-bakery-tfstate \
-     --enable-versioning true --enable-delete-retention true --delete-retention-days 30
+     --enable-versioning true --enable-delete-retention true --delete-retention-days 30 \
+     --enable-container-delete-retention true --container-delete-retention-days 30
    az storage container create --account-name $SA -n tfstate --auth-mode login
    az lock create --name keep-state --lock-type CanNotDelete -g rg-bakery-tfstate
    ```
@@ -40,7 +41,7 @@ Set `$SUB`, `$LOC` (the region, for example `eastus`) and a storage account name
 
 1. As yourself: `az storage blob list --account-name $SA -c tfstate --auth-mode login -o table` lists (empty is fine). It must work **without** `--account-key`.
 2. A key must fail: `az storage blob list --account-name $SA -c tfstate --auth-mode key` is refused (shared key access is off).
-3. Versioning and soft delete: `az storage account blob-service-properties show --account-name $SA -g rg-bakery-tfstate --query "{versioning:isVersioningEnabled, delete:deleteRetentionPolicy}"`.
+3. Versioning and soft delete: `az storage account blob-service-properties show --account-name $SA -g rg-bakery-tfstate --query "{versioning:isVersioningEnabled, delete:deleteRetentionPolicy, containerDelete:containerDeleteRetentionPolicy}"`: all three on (container soft delete added 2026-11-21, register 233; a deleted state container is then recoverable for 30 days).
 4. The lock: try `az group delete -n rg-bakery-tfstate` and expect it to be refused.
 5. Initialise the foundation stack against it (on Windows run Terraform from Git Bash: PowerShell 5.1 splits `-backend-config=backend.hcl` at the dot; Terraform's Azure sign-in calls `az`, so the Azure CLI must be on `PATH`): copy `infra/foundation/backend.hcl.example` to `backend.hcl` with your account name and run `terraform init -backend-config=backend.hcl` in `infra/foundation`; then `terraform plan` (needs `ARM_SUBSCRIPTION_ID`) shows the resource group, the registry and role assignments to create. Do not apply from here until the gates are proved ([`prove-the-pipeline-gates.md`](prove-the-pipeline-gates.md)).
 6. Each pipeline identity: run a pipeline step that reports `az account show` and `az role assignment list --assignee <id>`; the roles must be exactly the ones above, and `bakery-plan` must fail to create anything.
