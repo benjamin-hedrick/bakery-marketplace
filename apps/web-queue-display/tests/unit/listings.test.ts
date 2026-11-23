@@ -5,7 +5,9 @@ import {
   formatCents,
   formFieldFor,
   formFromListing,
+  adjustedMessage,
   groupProblems,
+  newCreateKey,
   newOptionId,
   parseDollars,
   parseWhole,
@@ -225,5 +227,33 @@ describe('the rest', () => {
         newOptionId(() => r),
         /^[a-z0-9][a-z0-9-]{0,63}$/,
       );
+  });
+});
+
+// Register 239 (the review of WI-CAT-007 and WI-CAT-008).
+describe('the create key', () => {
+  test('is the browser’s UUID when it has one', () => {
+    assert.equal(
+      newCreateKey({ randomUUID: () => 'from-randomUUID', getRandomValues: () => assert.fail('not needed') } as never),
+      'from-randomUUID',
+    );
+  });
+
+  test('is still a version 4 UUID where randomUUID does not exist (a page opened over plain http)', () => {
+    const key = newCreateKey({ getRandomValues: (a: Uint8Array) => a.fill(0xff) } as never);
+    assert.match(key, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+});
+
+describe('the message after an adjustment', () => {
+  test('is the plain count for add and remove, and for a Sold out that reached zero', () => {
+    assert.equal(adjustedMessage('Loaf', 4, false), 'Loaf: 4 left.');
+    assert.equal(adjustedMessage('Loaf', 0, true), 'Loaf: 0 left.');
+  });
+
+  test('says Sold out did not reach zero when units were added after the screen read the count', () => {
+    const text = adjustedMessage('Loaf', 5, true);
+    assert.match(text, /^Loaf: 5 left\./);
+    assert.match(text, /did not reach zero/);
   });
 });

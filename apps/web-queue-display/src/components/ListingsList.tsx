@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { graphql } from 'react-relay';
 import { fetchQuery } from 'relay-runtime';
@@ -7,7 +7,7 @@ import { getBrowserEnvironment, GraphQLRequestError, UnauthenticatedError } from
 import { formatCents, formFromListing, LISTING_TEXT, stockText, toInput, type LoadedListing } from '../lib/listings';
 import { readListing } from './ListingFields';
 import { updateListing } from './ListingWrites';
-import { StockControls } from './StockControls';
+import { readOwnListing, StockControls } from './StockControls';
 
 // The vendor's own listings (WI-CAT-008 requirements 2, 3 and 7): each with its price, Draft or Published, its stock and when it last changed; filtered
 // by status and paged. The counts are changed here by adjustments only, and publishing saves only the status, with the edit version it was read at.
@@ -74,11 +74,30 @@ export function ListingsList() {
     else if (e instanceof GraphQLRequestError && e.codes.includes('FORBIDDEN')) setLoad('forbidden');
     else setLoad('failed');
   }, []);
-  const fetchPage = (status: Filter, after: string | null, append: boolean) =>
-    readPage(status, after).then(showPage(append), showFailure);
+  // Only the latest request may write the list (register 239): a slower answer to an earlier filter or page must not overwrite a newer one.
+  const latestRequest = useRef(0);
+  const fetchPage = (status: Filter, after: string | null, append: boolean) => {
+    const mine = ++latestRequest.current;
+    return readPage(status, after).then(
+      (result) => {
+        if (mine === latestRequest.current) showPage(append)(result);
+      },
+      (e: unknown) => {
+        if (mine === latestRequest.current) showFailure(e);
+      },
+    );
+  };
 
   useEffect(() => {
-    readPage(filter, null).then(showPage(false), showFailure);
+    const mine = ++latestRequest.current;
+    readPage(filter, null).then(
+      (result) => {
+        if (mine === latestRequest.current) showPage(false)(result);
+      },
+      (e: unknown) => {
+        if (mine === latestRequest.current) showFailure(e);
+      },
+    );
   }, [filter, showPage, showFailure]);
 
   const replace = (listing: LoadedListing) =>
@@ -108,6 +127,12 @@ export function ListingsList() {
     }
     if (outcome.kind === 'rejected') {
       if (outcome.code === 'CHANGED') {
+        // Read only this listing again and replace its row: the pages already loaded and the place in the list stay (register 239).
+        const fresh = await readOwnListing(listing.id);
+        if (fresh) {
+          replace(fresh);
+          return say(listing.id, `${listing.name}: ${LISTING_TEXT.CHANGED} Its row shows it as it is now.`);
+        }
         say(listing.id, `${listing.name}: ${LISTING_TEXT.CHANGED} The list has been reloaded.`);
         return fetchPage(filter, null, false);
       }

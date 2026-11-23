@@ -3,13 +3,14 @@ import { graphql } from 'react-relay';
 import { fetchQuery } from 'relay-runtime';
 import type { StockControlsRefreshQuery } from '../__generated__/StockControlsRefreshQuery.graphql';
 import { getBrowserEnvironment } from '../lib/relay/environment';
-import { LISTING_TEXT, parseWhole, type LoadedListing } from '../lib/listings';
+import { adjustedMessage, LISTING_TEXT, parseWhole, type LoadedListing } from '../lib/listings';
 import { readListing } from './ListingFields';
 import { adjustStock } from './ListingWrites';
 
 // Add, remove and sold out for a counted listing (WI-CAT-008 requirement 3). Each is one adjustment by a number of units: the screen never sends a
 // count it read earlier (ADR-0017), so a sale between the read and the click is never undone. A removal the catalog refuses because the count had
-// gone down reads the listing again and shows the count as it is now.
+// gone down reads the listing again and shows the count as it is now. "Sold out" is a removal of the count the screen shows, not a set-to-zero: if
+// units were added since, some remain, and the message says so (register 239).
 
 const refreshQuery = graphql`
   query StockControlsRefreshQuery($id: ID!) {
@@ -29,6 +30,21 @@ interface Props {
   disabled?: boolean;
 }
 
+/** One of the caller's own listings as it is now, or null when it could not be read. Used when a change was refused because the listing had moved. */
+export async function readOwnListing(id: string): Promise<LoadedListing | null> {
+  try {
+    const data = await fetchQuery<StockControlsRefreshQuery>(
+      getBrowserEnvironment(),
+      refreshQuery,
+      { id },
+      { fetchPolicy: 'network-only' },
+    ).toPromise();
+    return data?.myListing ? readListing(data.myListing) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function StockControls({ listing, onChanged, onMessage, disabled = false }: Props) {
   const [units, setUnits] = useState('1');
   const [busy, setBusy] = useState(false);
@@ -38,27 +54,18 @@ export function StockControls({ listing, onChanged, onMessage, disabled = false 
   const fieldId = `units-${listing.id}`;
 
   const readAgain = async () => {
-    try {
-      const data = await fetchQuery<StockControlsRefreshQuery>(
-        getBrowserEnvironment(),
-        refreshQuery,
-        { id: listing.id },
-        { fetchPolicy: 'network-only' },
-      ).toPromise();
-      if (data?.myListing) onChanged(readListing(data.myListing));
-    } catch {
-      /* the message already says the count changed; the next load of the page shows it */
-    }
+    const fresh = await readOwnListing(listing.id);
+    if (fresh) onChanged(fresh); // when it cannot be read, the message already says the count changed; the next load of the page shows it
   };
 
-  const change = async (delta: number) => {
+  const change = async (delta: number, soldOutAsked = false) => {
     if (delta === 0) return;
     setBusy(true);
     const outcome = await adjustStock(listing.id, delta);
     setBusy(false);
     if (outcome.kind === 'saved') {
       onChanged(outcome.listing);
-      onMessage(`${name}: ${outcome.listing.stock.availableQuantity ?? 0} left.`);
+      onMessage(adjustedMessage(name, outcome.listing.stock.availableQuantity ?? 0, soldOutAsked));
       return;
     }
     if (outcome.kind === 'rejected') {
@@ -122,7 +129,7 @@ export function StockControls({ listing, onChanged, onMessage, disabled = false 
         type="button"
         disabled={off || count === 0}
         aria-label={`Mark ${name} sold out`}
-        onClick={() => void change(-count)}
+        onClick={() => void change(-count, true)}
       >
         Sold out
       </button>
