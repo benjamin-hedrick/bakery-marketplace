@@ -199,6 +199,8 @@ describe('observe, with a fake Azure CLI', () => {
     assert.equal(never.traceAttempts, 4);
     assert.equal(n, 3, 'no wait after the last read');
     assert.equal(never.correlation.foundInTraces, 0);
+    assert.equal(never.noSpans, true, 'tracing on and no id has a span: the exporter chain is broken, not slow');
+    assert.equal(stable.noSpans, undefined, 'some ids have spans');
   });
 
   test('without tracing no span table is queried and nothing waits', () => {

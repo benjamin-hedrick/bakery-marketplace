@@ -238,7 +238,16 @@ export function observe(
     );
   // The trace queries wait for the spans to land (below) when there are smoke ids to look for; with none there is nothing to wait for.
   const waited = new Set(
-    traces && ids.length > 0 ? ['smokeTraces', 'spansPerApp', 'failedSpansPerApp', 'chaosTraces'] : [],
+    traces && ids.length > 0
+      ? [
+          'smokeTraces',
+          'spansPerApp',
+          'failedSpansPerApp',
+          'chaosTraces',
+          'chaosInjected',
+          'correlationIdsInConsoleLog',
+        ]
+      : [],
   );
   if (customerId) {
     for (const [name, query] of Object.entries(queries(start, end, ids, { traces }))) {
@@ -267,7 +276,15 @@ export function observe(
       if (rows) out.logs.smokeTraces = rows;
       out.traceAttempts = attempts;
       const rest = queries(start, end, ids, { traces });
-      for (const name of ['spansPerApp', 'failedSpansPerApp', 'chaosTraces']) {
+      // The console log lands in the workspace about as late as the spans (build 120 read it straight after the suite and found no injected fault and no
+      // id, with every one there minutes later, register 236), so its two queries run here too, after the wait.
+      for (const name of [
+        'spansPerApp',
+        'failedSpansPerApp',
+        'chaosTraces',
+        'chaosInjected',
+        'correlationIdsInConsoleLog',
+      ]) {
         const rows = ask(name, rest[name]);
         if (rows) out.logs[name] = rows;
       }
@@ -277,6 +294,8 @@ export function observe(
     const found = new Set((out.logs.correlationIdsInConsoleLog ?? []).map((r) => r.id));
     out.correlation = { asked: ids.length, foundInConsoleLog: found.size };
     if (traces) out.correlation.foundInTraces = new Set((out.logs.smokeTraces ?? []).map((r) => r.id)).size;
+    // A stack with tracing on whose smoke left no span at all has a broken exporter chain, not a slow one (build 120, register 237): say so plainly.
+    if (traces && out.correlation.foundInTraces === 0) out.noSpans = true;
   }
   return out;
 }
@@ -374,9 +393,13 @@ function main() {
         `  correlation ids: ${result.correlation.foundInTraces} of ${result.correlation.asked} found in Application Insights (${result.traceAttempts} read(s))`,
       );
   }
+  if (result.noSpans)
+    console.log(
+      `  NO SPANS: tracing is on and none of the ${result.correlation.asked} smoke trace ids has a span in Application Insights after ${result.traceAttempts} read(s); the apps are not reaching the collector, or it is not exporting (register 237)`,
+    );
   for (const f of result.failures) console.log(`  NOT READ: ${f.what}: ${f.error}`);
   const anything = Object.keys(result.metrics).length > 0 || Object.keys(result.logs).length > 0;
-  process.exitCode = anything ? 0 : 1;
+  process.exitCode = anything && !result.noSpans ? 0 : 1;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main();
