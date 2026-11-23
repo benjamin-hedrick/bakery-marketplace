@@ -63,7 +63,10 @@ locals {
   # Tracing (WI-OBS-001, ADR-0016): every app sends OTLP over http to the collector, which holds the Application Insights connection string. The C#
   # services export nothing unless the protocol is http/protobuf as well as the endpoint (register 36 and docs/evidence/slice-1/findings.md); the
   # two Node apps append /v1/traces to the endpoint themselves.
-  otel_endpoint = "http://otel-collector"
+  # The collector's full internal address, not its short name: the short name "otel-collector" did not resolve inside the environment (build 120,
+  # register 237), so no app reached the collector and every exporter failed without a message, while the short names of the other apps resolve.
+  # The address is http because the collector's ingress allows it (below); it is internal to the environment.
+  otel_endpoint = "http://otel-collector.internal.${azurerm_container_app_environment.env.default_domain}"
   dotnet_tracing = var.tracing ? {
     OTEL_EXPORTER_OTLP_ENDPOINT = local.otel_endpoint
     OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf"
@@ -502,9 +505,10 @@ resource "azurerm_container_app" "otel_collector" {
   }
 
   ingress {
-    external_enabled = false
-    target_port      = 4318 # OTLP over http; the apps reach it at http://otel-collector
-    transport        = "http"
+    external_enabled           = false
+    allow_insecure_connections = true # the apps send OTLP over plain http to this internal address; without it the ingress answers http with a redirect to https
+    target_port                = 4318 # OTLP over http; the apps reach it at its full internal address (see local.otel_endpoint)
+    transport                  = "http"
 
     traffic_weight {
       latest_revision = true
