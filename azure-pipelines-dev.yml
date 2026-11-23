@@ -74,6 +74,11 @@ parameters:
     displayName: Cache Redis (off = in-process cache)
     type: boolean
     default: true
+  - name: tracing
+    # Off: no Application Insights, no collector and no OTLP settings on the apps (WI-OBS-001); use it to rerun when the tracing is what failed.
+    displayName: Tracing (Application Insights through the collector)
+    type: boolean
+    default: true
   - name: seed
     # Before the apps are updated; fixture data.
     displayName: Run the seed job
@@ -122,6 +127,7 @@ stages:
       confirmEnvironment: ${{ parameters.confirmEnvironment }}
       chaosScenario: ${{ parameters.chaosScenario }}
       cacheRedis: ${{ parameters.cacheRedis }}
+      tracing: ${{ parameters.tracing }}
       seed: ${{ parameters.seed }}
       mockIssuer: true
       issuerRoles: ${{ parameters.issuerRoles }}

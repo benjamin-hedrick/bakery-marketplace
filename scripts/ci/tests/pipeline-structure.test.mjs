@@ -94,12 +94,13 @@ const PIPELINES = {
       'confirmEnvironment',
       'chaosScenario',
       'cacheRedis',
+      'tracing',
       'seed',
       'issuerRoles',
       'issuerAllowedIps',
     ],
     fixed: { mockIssuer: 'true' }, // dev's only issuer
-    defaults: { seed: 'true', cacheRedis: 'true' },
+    defaults: { seed: 'true', cacheRedis: 'true', tracing: 'true' },
   },
   'azure-pipelines-uat.yml': {
     environment: 'uat',
@@ -229,6 +230,23 @@ describe('the stage template (pipelines/templates/environment-stages.yml)', () =
     );
     assert.match(code('infra/environments/dev/main.tf'), /^\s+cache_redis = var\.cache_redis$/m);
     assert.doesNotMatch(code('infra/environments/uat/main.tf'), /cache_redis/);
+  });
+
+  test('the tracing switch (WI-OBS-001): given only to the deploy plan and the apply, in lower case, on by default, and offered only by dev', () => {
+    const given = [...template.matchAll(/TF_VAR_tracing: (.+)/g)].map((m) => m[1].trim());
+    assert.deepEqual(given, ['${{ lower(parameters.tracing) }}', '${{ lower(parameters.tracing) }}']);
+    assert.match(real('infra_plan'), /TF_VAR_tracing/);
+    assert.match(real('infra_apply'), /TF_VAR_tracing/);
+    for (const name of ['destroy_plan', 'destroy_apply', 'app_deploy', 'smoke', 'observe'])
+      assert.doesNotMatch(stage(name), /TF_VAR_tracing|parameters\.tracing/, name);
+    assert.match(template, /- name: tracing\n(\s+#.*\n)*\s+type: boolean\n\s+default: true\n/);
+    assert.match(
+      code('azure-pipelines-dev.yml'),
+      /- name: tracing\n(\s+#.*\n)*\s+displayName: .*\n\s+type: boolean\n\s+default: true\n/,
+    );
+    assert.doesNotMatch(code('azure-pipelines-uat.yml'), /tracing/, 'UAT does not offer it');
+    assert.match(code('infra/environments/dev/main.tf'), /^\s+tracing = var\.tracing$/m);
+    assert.doesNotMatch(code('infra/environments/uat/main.tf'), /tracing/);
   });
 
   test('the issuer inputs (WI-DEP-002 step 3): checked in the inputs stage, given to the deploy plan and the apply the same way, as mapped variables only', () => {
@@ -624,6 +642,7 @@ function runStep(script, values) {
     .replaceAll('${{ parameters.devBuild }}', values.devBuild ?? '0')
     .replaceAll('${{ parameters.chaosScenario }}', values.chaos ?? 'none')
     .replaceAll('${{ parameters.cacheRedis }}', values.cacheRedis ?? 'True')
+    .replaceAll('${{ parameters.tracing }}', values.tracing ?? 'True')
     .replaceAll('${{ parameters.action }}', values.action ?? 'deploy')
     .replaceAll('${{ parameters.confirmEnvironment }}', values.confirm ?? '')
     .replaceAll('${{ parameters.simulateInfrastructureChanges }}', values.simulate ?? 'True');
