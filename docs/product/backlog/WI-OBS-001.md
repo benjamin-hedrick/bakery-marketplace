@@ -1,4 +1,6 @@
-> **Status:** Proposed · written 2026-11-22 at the lead's request; the design is ADR-0016's (collector to Application Insights), the open choices are listed below and wait for the lead.
+> **Status:** In progress · steps 1 to 3 built locally on 2026-11-22 at the lead's go (nothing applied to Azure); steps 4 to 7 remain. The design is ADR-0016's (collector to Application Insights).
+
+> **Progress note (2026-11-22):** steps 1 to 3 are built on `feature/dev-chaos-evidence`, checked offline only (`terraform-checks.mjs`: validate and the mocked-provider tests, 2 new runs; the unit tests of the two scripts; the collector config run in Docker with the config passed in an environment variable, which answered 200 to a span and 404 to metrics). **Not proved: that any of it works in Azure.** What changed from the proposal above, for the lead to confirm: (1) **no image of our own**: Terraform runs the public `otel/opentelemetry-collector-contrib:0.164.0` (variable `otel_collector_version`, the version `docker-compose.yml` pins) and passes `infra/otel-collector/cloud.yaml` in the environment variable `OTEL_COLLECTOR_CONFIG` (`--config=env:...`), so the image pipeline, the push record and the deploy stage's digest rules are untouched; (2) the connection string follows the secrets rule (never in the state): a fourth Key Vault placeholder secret, set after apply by `dev-secrets.mjs` from the Application Insights resource (skipped when the stack has no tracing), and because a revision reads its secrets only when it starts, `dev-deploy.mjs` gives the collector a new revision after the secrets step and before the apps; (3) **no pipeline input yet**: the module's `tracing` is off by default, the dev root turns it on (`var.tracing`, default true), so the next dev create has tracing and a run cannot yet leave it out; (4) the C# services need `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` as well as the endpoint (register 36; the Terraform sets both). Known and left alone: with an endpoint set the C# services also try to send metrics, which the collector's traces-only pipeline answers 404 (the exporter logs it); `Microsoft.Insights` is registered on the subscription (checked 2026-11-22 with `az provider show`; the runbook's provider list does not name it, so a new subscription would need it added there); the deploy identity needs no new role (Contributor on the group creates the resource and reads its connection string), but this is also unproved.
 
 ```
 WI ID:               OBS-001
@@ -7,7 +9,7 @@ Type:                 Service Implementation
 Epic:                 EPIC-OBSERVABILITY
 Shared with epic(s):  EPIC-CLOUD-INFRA
 Hat/Owner:            Platform Engineering
-Status:               Proposed
+Status:               In progress
 Size:                 M
 ```
 

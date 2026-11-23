@@ -11,11 +11,11 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 56 |
-| In progress | 7 |
+| In progress | 8 |
 | In review | 37 |
 | Built | 1 |
 | Ready | 2 |
-| Proposed | 5 |
+| Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 2 |
 
@@ -129,7 +129,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
-| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | EPIC-OBSERVABILITY | Proposed | written 2026-11-22 at the lead's request; the design is ADR-0016's (collector to Application Insights), the open choices are listed below and wait for the lead. |
+| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | EPIC-OBSERVABILITY | In progress | steps 1 to 3 built locally on 2026-11-22 at the lead's go (nothing applied to Azure); steps 4 to 7 remain. The design is ADR-0016's (collector to Application Insights). |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/sla.md` |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/evidence/runbook-event-broker-2026-10-30.md`; the runbook is `docs/operations/runbooks/event-broker-unavailable-during-checkout.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
