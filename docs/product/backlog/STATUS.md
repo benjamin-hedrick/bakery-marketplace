@@ -11,9 +11,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | Status | Count |
 |---|---|
 | Done | 56 |
-| In progress | 8 |
+| In progress | 7 |
 | In review | 37 |
-| Built | 1 |
+| Built | 2 |
 | Ready | 2 |
 | Proposed | 4 |
 | Deferred | 11 |
@@ -101,8 +101,8 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` and its tests |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | EPIC-DATA-STORE | Done | evidence: `tools/BakeryMarketplace.Data` (Cosmos repository) and its tests |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | EPIC-LOCAL-DEV | In review | decision: the cold run, the stranger test and the reading-time check (rows `G-E05`, `G-H07`, `G-H09`) need the lead; the rest is built |
-| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | EPIC-CLOUD-INFRA | In progress | remaining: infrastructure as code, the deploy stage, the post-deploy smoke, teardown and cost evidence; the images and the Compose `apps` profile are built (see the progress note) |
-| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | EPIC-CLOUD-INFRA | In progress | steps 1 to 6 and 8 built (2026-11-21), step 7 (the lead's bootstrap) done in Azure (2026-11-21), dev's deploy identity narrowed and proved by dev run 100 (2026-11-22), the UAT pipeline's gate rehearsal passed G1 to G6 and G8 (2026-11-22; G7 with the next pull request that edits it); remaining: the first UAT run, side by side, the UAT teardown and step 9's evidence |
+| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | EPIC-CLOUD-INFRA | In progress | the deployed dev environment is created, deployed to, smoke-tested, observed and torn down through the pipelines (builds 88, 100 and 117; teardowns 2026-11-20 and 2026-11-22; evidence in `docs/evidence/WI-DEP-001`, `WI-DEP-002` and `WI-CHAOS-006`, banner rewritten 2026-11-23 from the earlier "infrastructure as code, deploy stage, smoke, teardown and cost evidence remain"); remaining: goal 3's create from empty with the cache Redis off (only its removal in place is shown, run 100; build 117 had it on), the deployed concurrency test on a freshly created environment (skipped in build 117), and a cost reading for the later nights (the first, for 2026-11-20 and 2026-11-21, is in the build 88 record) |
+| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | EPIC-CLOUD-INFRA | Built | steps 1 to 6 and 8 built (2026-11-21), step 7 (the lead's bootstrap) done in Azure (2026-11-21), dev's deploy identity narrowed and proved by dev run 100 (2026-11-22), the UAT pipeline's gate rehearsal passed G1 to G6 and G8 (2026-11-22; G7 with the next pull request that edits it); the first real UAT apply was refused on 2026-11-22 (the subscription allows one Container Apps environment in all, register 235), UAT was torn down (build 116; the group confirmed empty 2026-11-23, `docs/evidence/WI-DEP-001/dev-and-uat-teardown-2026-11-22.md`) and the lead parked UAT; missing verification: the first UAT run that creates an environment, the side-by-side run and step 9's evidence, all blocked until the subscription can hold two Container Apps environments (a quota raise or a second subscription, the lead's call) |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | EPIC-LOCAL-DEV | Done | evidence: `BakeryMarketplace.slnx` and the projects it lists |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | EPIC-LOCAL-DEV | Done | evidence: merged `c945b18`; verified under Docker, `docs/operations/local-dev.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | EPIC-LOCAL-DEV | Done | evidence: the Outcome note under this banner; `tools/BakeryMarketplace.Seed` |
