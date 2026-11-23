@@ -18,7 +18,7 @@ This is the approved design. If a step shows it cannot be done as written (the r
 Set `$SUB`, `$LOC` (the region, for example `eastus`) and a storage account name `$SA` (3 to 24 lower-case letters and digits, globally unique, for example `stbakerytf` plus a few characters of your own).
 
 1. **Sign in** with your own account: `az login --tenant <tenant id>`; `az account set --subscription $SUB`. Name the tenant: when it requires multi-factor authentication, a plain `az login` signs in but lists no subscription (seen 2026-11-19).
-   **Register the resource providers** the stacks use, once per subscription (the pipeline identities only have rights on resource groups and cannot): `Microsoft.Storage`, `Microsoft.App`, `Microsoft.OperationalInsights`, `Microsoft.DocumentDB`, `Microsoft.KeyVault`, `Microsoft.ContainerRegistry`, `Microsoft.ManagedIdentity`, each with `az provider register -n <namespace> --wait`; `az provider show -n <namespace> --query registrationState` must say `Registered`. A new subscription has none of them.
+   **Register the resource providers** the stacks use, once per subscription (the pipeline identities only have rights on resource groups and cannot): `Microsoft.Storage`, `Microsoft.App`, `Microsoft.OperationalInsights`, `Microsoft.Insights` (Application Insights, `WI-OBS-001`; registered on this subscription on 2026-11-22), `Microsoft.DocumentDB`, `Microsoft.KeyVault`, `Microsoft.ContainerRegistry`, `Microsoft.ManagedIdentity`, each with `az provider register -n <namespace> --wait`; `az provider show -n <namespace> --query registrationState` must say `Registered`. A new subscription has none of them.
 2. **State resource group and account.**
    ```
    az group create -n rg-bakery-tfstate -l $LOC
