@@ -454,3 +454,5 @@ tfplan*
 *.tfvars
 crash.log
 backend.hcl
+# The image scan's raw Trivy JSON is large (9 MB for one run); the committed record is summary.md and the evidence note (WI-SEC-007).
+docs/evidence/WI-SEC-007/*/raw/
