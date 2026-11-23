@@ -124,7 +124,7 @@ services:
   # Jaeger, opt-in (profile jaeger), for trying the UAT/Prod option locally. Needs OTEL_COLLECTOR_CONFIG=local-jaeger.yaml.
   # Traces are kept in memory and lost on restart.
   jaeger:
-    image: jaegertracing/jaeger:2.22.0
+    image: jaegertracing/jaeger:2.23.0
     profiles: ["jaeger"]
     ports:
       - "127.0.0.1:${JAEGER_UI_PORT:-16686}:16686"

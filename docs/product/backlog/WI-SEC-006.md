@@ -1,4 +1,4 @@
-> **Status:** Ready · created 2026-11-23 from the lead's decision on register 162 point (3); split out of `WI-SEC-004`
+> **Status:** In progress · step 1 built 2026-11-23 on `feature/pipeline-and-images`: the `audit` job in `azure-pipelines.yml` (the seven npm projects installed, the audit step `continueOnError`, the summary, SBOMs and raw output published as the `dependency-audit` artifact) and its structure test; **not yet run in Azure Pipelines**. Step 2 (blocking) waits for the lead to have seen it green on a few runs. Created from the lead's decision on register 162 point (3); split out of `WI-SEC-004`.
 
 ```
 WI ID:                SEC-006
@@ -7,7 +7,7 @@ Type:                 Infra/Environment
 Epic:                 EPIC-CI-CD
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               In progress
 Size:                 S
 Verification class:   V1 (a pipeline job and its structure test; the proof is a pipeline run, which the lead starts). The classes are proposed in `docs/process/verification-policy.md` (register item 130).
 ```

@@ -30,7 +30,25 @@ The six images the dev stack deploys (`scripts/ci/dev-images.mjs`: catalog, orde
 - Shows: the scan runs end to end from one command, on the exact images the pipeline builds and on the third-party images, and the exit-code logic works (unit tests on canned reports, and this run's exit 1).
 - Does not show: that any finding is exploitable in this stack, or reachable; that a rebuild or a newer base tag clears them (not tried); anything about the images in Azure Container Registry as pushed (this scanned local builds of the same Dockerfiles); a scan of Terraform or configuration.
 
+## What was done about it, the same day (the lead's decisions on register 240)
+
+Two more runs of the same script, each building the six images again (now with `--pull`, so the base images are current and not a stale local copy):
+
+| Run | Change | .NET images (4) | Node images (2) | Jaeger | Collector | Emulator |
+|---|---|---:|---:|---:|---:|---:|
+| 1 (above), [`2026-11-23`](2026-11-23/summary.md) | none | 5 fixable each | 6 each | 9 | 2 | 80 |
+| 2, [`2026-11-23-rebuilt`](2026-11-23-rebuilt/summary.md) | bases pulled fresh (decision 1) | **0** | 6 each | 9 | 2 | 80 |
+| 3, [`2026-11-23-final`](2026-11-23-final/summary.md) | npm removed from the Node runtime images (decision 2); Jaeger 2.22.0 to 2.23.0 (decision 4) | 0 | **0** | **4** | 2 | 80 |
+
+- **Decision 1 (rebuild and rescan):** a fresh pull of the .NET base cleared all five findings in each of the four .NET images (the ASP.NET Core runtime and `apt`). The Node base had nothing newer.
+- **Decision 2 (newer base and remove npm):** there is no newer Node base to move to, so `RUN rm -rf` of npm now ends `services/graphql-bff/Dockerfile` (after its install) and `apps/web-customer/Dockerfile` (in the runtime stage). Run 3 shows the six findings gone from both. Both images were then started: `npm` is absent, `node` is 24.22.3, the BFF logs "listening" and the web app logs "Ready". **Not shown:** that the apps behave correctly end to end without npm (the web page answered 500 because no BFF was behind it in this test, as expected); the next pipeline smoke is that proof.
+- **Decision 4 (move the tags):** Jaeger moved to 2.23.0 in `docker-compose.yml` (local only), which cleared five of its nine; four remain, all in Jaeger's own Alpine and Go layers. The Cosmos emulator is already on the newest dated tag Microsoft publishes (`vnext-EN20261019`), so its 80 stay.
+- **Decision 3 (pipeline job, non-blocking):** the `images` job in `azure-pipelines.yml`, structure-tested; not run in Azure Pipelines yet.
+- **Still unfixed and not decided:** the deployed collector has two findings; `0.165.0` exists, and moving it changes the infra variable `otel_collector_version` and the Compose tag, so it is the lead's call. The one critical `zlib1g` in each Node image has no fix (Debian). Every Node image still lists 37 high findings that have no fix, reported and not failing.
+
 ## Decisions for the lead (register 240)
+
+These were the questions after run 1; the lead's answers are in the section above.
 
 1. **Rebuild on the current base tags and rescan** before the next deploy, to see how many clear with no change (the .NET runtime and apt items should, if the newer images exist). Cheap, and it is the first thing to try.
 2. **Whether the Node base image is changed or pinned** because of npm's bundled copies: options are to remove npm from the runtime image, a newer `node:24-slim`, or to accept it because the app does not run npm.

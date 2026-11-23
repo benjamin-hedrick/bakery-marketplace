@@ -11,6 +11,9 @@ COPY packages/chaos packages/chaos
 COPY chaos/scenarios chaos/scenarios
 COPY services/graphql-bff/package.json services/graphql-bff/package-lock.json services/graphql-bff/
 RUN cd services/graphql-bff && npm ci --omit=dev
+# npm is only needed for the install above; the process runs with node (CMD below). Its bundled packages (undici, brace-expansion) carried high
+# findings with fixes in the first image scan (register 240), and the base image has no newer npm, so the runtime image does not keep it.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /root/.npm
 COPY services/graphql-bff/src services/graphql-bff/src
 COPY services/graphql-bff/schema services/graphql-bff/schema
 WORKDIR /repo/services/graphql-bff
