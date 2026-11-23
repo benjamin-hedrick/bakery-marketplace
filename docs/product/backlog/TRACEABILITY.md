@@ -64,7 +64,7 @@ Of 56 work items marked Done: 30 are named by a test file, 21 by an evidence rec
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | In review | *none* | `ai-usage-2026-11-03.md` |
-| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | In progress | `dev-deploy.test.mjs`, `pipeline-structure.test.mjs` | `dev-and-uat-teardown-2026-11-22.md`, `ai-usage-2026-11-22-evening.md` |
+| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | In progress | `proxy-trace.test.ts`, `dev-deploy.test.mjs`, `pipeline-structure.test.mjs` | `dev-and-uat-teardown-2026-11-22.md`, `dev-tracing-2026-11-22.md`, `ai-usage-2026-11-22-evening.md` |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | Done | *none* | *none* |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | Done | *none* | `runbook-event-broker-2026-10-30.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | Done | *none* | *none* |
