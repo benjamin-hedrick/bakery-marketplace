@@ -2,6 +2,10 @@
 // there is no cross-origin call). The BFF address is read from GRAPHQL_URL on every request, so one built image serves every environment
 // (ADR-0020, register item 101). A rewrite in next.config.js could not do this: Next.js stores its destination in the build.
 import type { IncomingHttpHeaders, ServerResponse } from 'node:http';
+import { exportProxySpan, proxyTraceparent, startProxySpan, type ProxyTracing } from './trace.ts';
+
+const headerText = (value: string | string[] | undefined): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 
 // Only these request headers reach the BFF: no cookies and no forwarding chain. A rewrite forwarded every header, so a header the BFF starts
 // to read must be added here. `authorization` is deliberately not here (ADR-0019): the browser holds no token and sends none; the bearer header
@@ -286,18 +290,27 @@ export async function proxyGraphql(
   bearerToken?: string,
   /** The address this server counted the browser by (register 137); the BFF counts the request against it when it trusts this server. */
   clientAddress?: string,
+  /** Where this server's span for the call goes (WI-OBS-001); absent or without an endpoint, no span is made and the caller's `traceparent` is forwarded as it came. */
+  tracing?: ProxyTracing,
 ): Promise<void> {
   if (!target) {
     res.status(502);
     res.json({ error: 'The GraphQL service is not configured' });
     return;
   }
+  const method = req.method ?? 'POST';
+  const traced = tracing?.endpoint?.trim() ? tracing : undefined;
+  const span = traced ? startProxySpan(headerText(req.headers['traceparent'])) : undefined;
+  const finish = (statusCode: number | undefined, failed: boolean) => {
+    if (traced && span) exportProxySpan(traced, span, method, statusCode, failed, Date.now, fetchImpl);
+  };
   try {
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
     const upstream = await fetchImpl(target, {
-      method: req.method ?? 'POST',
+      method,
       headers: {
         ...forwardedRequestHeaders(req.headers, extraHeaders),
+        ...(span ? { traceparent: proxyTraceparent(span) } : {}),
         ...clientAddressHeader(clientAddress),
         ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}),
       },
@@ -311,12 +324,15 @@ export async function proxyGraphql(
       if (!HOP_BY_HOP_RESPONSE_HEADERS.has(name)) res.setHeader(name, value);
     });
     res.send(body);
+    finish(upstream.status, upstream.status >= 500);
   } catch (e) {
     if (e instanceof BodyTooLarge) {
       res.status(413);
       res.json({ error: 'The request is too large' });
+      finish(413, true);
       return;
     }
+    finish(502, true);
     res.status(502);
     res.json({ error: 'The GraphQL service could not be reached' });
   }
