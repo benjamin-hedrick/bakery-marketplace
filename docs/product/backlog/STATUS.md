@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-121 specs.
+123 specs.
 
 | Status | Count |
 |---|---|
@@ -14,7 +14,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In progress | 7 |
 | In review | 37 |
 | Built | 2 |
-| Ready | 2 |
+| Ready | 4 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 2 |
@@ -30,7 +30,7 @@ Superseded and obsolete items are not counted.
 | EPIC-BACKLOG-PLANNING | 0 of 2 | PLAN-001, PLAN-002 |
 | EPIC-CACHING | 4 of 4 | CACHE-001, CACHE-002, CACHE-003, CACHE-004 |
 | EPIC-CATALOG | 3 of 6 | CAT-001, CAT-003, CAT-005, CAT-006, CAT-007, CAT-008 |
-| EPIC-CI-CD | 0 of 2 | SEC-004, SEC-005 |
+| EPIC-CI-CD | 0 of 4 | SEC-004, SEC-005, SEC-006, SEC-007 |
 | EPIC-CLOUD-INFRA | 0 of 2 | DEP-001, DEP-002 |
 | EPIC-DATA-STORE | 2 of 2 | DATA-001, DATA-002 |
 | EPIC-EVENTING | 2 of 3 | EVT-001, EVT-003, EVT-004 |
@@ -171,8 +171,10 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [REPO-003](WI-REPO-003.md) | Review how deferred items, set-aside notes and ideas, and delegated-work findings are captured | EPIC-REPO-OPS | Deferred | trigger: a later session, after the documentation review pull request has merged (decided by the lead on 2026-10-30) |
 | [SEC-001](WI-SEC-001.md) | Per-environment Key Vault + managed identity RBAC grants (Terraform) | EPIC-SECRETS | Built | missing verification: the Terraform module exists; `terraform plan` has never been run |
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | EPIC-SECRETS | Done | evidence: `tools/BakeryMarketplace.Secrets` and its tests |
-| [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | EPIC-CI-CD | In progress | the dependency audit and SBOM part is built and run locally (2026-11-07: `scripts/ci/dependency-audit.mjs`, `docs/evidence/WI-SEC-004/`); remaining: `G-E06` (Terraform validate and plan of the Key Vault module), a pipeline job for the audit (needs the lead's decision, register 162), and a container image scan |
+| [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | EPIC-CI-CD | In progress | the dependency audit and SBOM part is built and run locally (2026-11-07: `scripts/ci/dependency-audit.mjs`, `docs/evidence/WI-SEC-004/`); remaining: `G-E06` (Terraform validate and plan of the Key Vault module), a pipeline job for the audit (decided 2026-11-23, now `WI-SEC-006`), and a container image scan (now `WI-SEC-007`) |
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In review | evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/` (fuzz, soak, ZAP), `docs/governance/review-statement.md`; all five steps are done and recorded (see the outcome note of 2026-11-03 below) |
+| [SEC-006](WI-SEC-006.md) | The dependency audit as a pipeline job, non-blocking first, then blocking | EPIC-CI-CD | Ready | created 2026-11-23 from the lead's decision on register 162 point (3); split out of `WI-SEC-004` |
+| [SEC-007](WI-SEC-007.md) | A container image scan: a local script that runs Trivy in Docker, run once and recorded | EPIC-CI-CD | Ready | created 2026-11-23 from the lead's decision on register 162 point (4); split out of `WI-SEC-004` |
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | EPIC-SEARCH | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the rule, its wording and the two defaults below (this is the safety rule) |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review, the allergen list (open point) and ADR-0022's acceptance |
 | [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
@@ -239,7 +241,7 @@ Accepted: 23 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 15 |
-| Resolved | 127 |
+| Resolved | 128 |
 | Accepted | 8 |
 | Tracking | 14 |
 | Open | 73 |

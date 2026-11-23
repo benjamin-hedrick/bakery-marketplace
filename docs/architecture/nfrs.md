@@ -111,4 +111,12 @@ Nothing below is a target. All numbers are from one developer machine, Windows 1
 | OWASP ZAP baseline of both web apps and an API scan of the BFF (2026-11-03, two runs) | no high finding; two medium per web app (`unsafe-inline` for scripts and styles, documented, not fixed); the low findings fixed (`docs/evidence/WI-SEC-005/zap-2026-11-03.md`) |
 | Cross-browser (Chromium, Firefox, WebKit, phone profiles), mock-backed, 2026-11-06 | customer app 663 of 665, queue display 296 of 300; the earlier 13 failures were classified as 4 test flaws and 1 reporting difference, no application defect (`docs/evidence/cross-browser/`) |
 
-**No latency budget exists** (register item 100 proposes setting one from these data). ADR-0013 asks for one for the BFF "once measured"; the table above is one local data point, not a budget. The 99.0% availability target (section 2) has no measurement, because nothing is deployed.
+**Latency budget (decided by the lead 2026-11-23, register item 100; not enforced).** ADR-0013 asks for one for the BFF "once measured". The reference is the deployed dev environment with the apps warm, measured by `scripts/ci/deployed-latency.mjs` from the agent and from the lead's machine (`docs/evidence/WI-CHAOS-006/dev-chaos-deployed-2026-11-22.md`, `docs/evidence/WI-OBS-001/dev-tracing-2026-11-22.md`); local numbers are context only. Targets are p95, with about twice the headroom over the worst p95 measured so far:
+
+| Request kind | Budget (p95) | Worst measured (p95) |
+|---|---:|---:|
+| Reads: server-rendered pages and the anonymous listings query | 250 ms | 111 ms |
+| Checkout, later orders | 500 ms | 226 ms |
+| Five concurrent reads | 500 ms | 223 ms |
+
+**Cold starts are accepted and outside the budget.** With scale-to-zero the apps take minutes to wake (the warm-up took 155 to 181 s in builds 117 and 120); the warm-up step exists for that, and shortening it would mean paying for minimum replicas, which is a cost decision not taken. **Nothing enforces the budget:** the latency script reports figures and fails nothing, and each table so far is one sample, so the budget is a statement to be tested, not a measured guarantee. The 99.0% availability target (section 2) has no measurement.

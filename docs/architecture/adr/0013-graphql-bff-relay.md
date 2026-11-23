@@ -63,3 +63,7 @@ ADR-0008 made Azure API Management the single entry point for the frontend apps,
 The BFF is built (`services/graphql-bff`) and validated end to end by slice 1: browse, `placeOrder`, `order` and `pickupWindows` run through it against the real services. On 2026-10-30, 75 BFF tests passed, and 21 real-stack journeys passed in each of 3 runs. It is composition and error mapping only; business rules stay in the C# services.
 
 The latency budget this ADR asks for "once measured" has one data point from the slice-1 capture (`docs/evidence/slice-1/findings.md`): the first checkout on a cold stack took about 4.7 s (token metadata fetches from a cold mock issuer), and the following checkouts took 55 to 78 ms. The BFF's checkout timeout is 15 s. This is a local measurement, not a budget.
+
+## Amendment 2026-11-23 (latency budget)
+
+The lead set the latency budget this ADR asks for: p95 of 250 ms for reads, 500 ms for later checkouts and 500 ms for five concurrent reads, measured against the deployed dev environment with the apps warm. Cold starts after scale-to-zero are accepted and outside the budget, and nothing enforces it. The table, the evidence and the reasoning are in `nfrs.md` section 8 (register item 100).
