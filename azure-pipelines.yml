@@ -108,7 +108,7 @@ jobs:
         displayName: Node $(NODE_VERSION)
         inputs:
           version: $(NODE_VERSION)
-      - script: node scripts/ci/image-scan.mjs --out $(Build.ArtifactStagingDirectory)/image-scan
+      - script: node scripts/ci/image-scan.mjs --clean --out $(Build.ArtifactStagingDirectory)/image-scan
         displayName: Build the deployed images and scan them all (exit 1 = a high or critical finding with a fix, 2 = an image could not be scanned)
         continueOnError: true
       - script: rm -rf $(Build.ArtifactStagingDirectory)/image-scan/raw

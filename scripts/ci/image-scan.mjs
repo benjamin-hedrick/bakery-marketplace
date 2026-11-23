@@ -4,8 +4,9 @@
 //     credentials and no registry, the way the pipeline builds them;
 //   - every image the Compose file pulls from elsewhere (Redis, the Cosmos emulator, the Aspire dashboard, the OpenTelemetry collector, Jaeger).
 //
-//   node scripts/ci/image-scan.mjs [--out <dir>] [--only <text>] [--no-build]
+//   node scripts/ci/image-scan.mjs [--out <dir>] [--only <text>] [--no-build] [--clean]
 //
+//   --clean       remove each image after it is scanned (for a small CI agent; do not use where the images are in use locally)
 //   --out <dir>   where the summary and the tool's raw JSON go (default docs/evidence/WI-SEC-007/<today>)
 //   --only <text> scan only the images whose reference contains <text> (for a quick try)
 //   --no-build    use the images already built as bakery-*:scan instead of building them again
@@ -129,10 +130,11 @@ export function renderSummary(results, { when, trivy }) {
 // ---- the run ---------------------------------------------------------------------------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const opts = { out: null, only: null, build: true };
+  const opts = { out: null, only: null, build: true, clean: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--out') opts.out = argv[++i];
+    if (a === '--clean') opts.clean = true;
+    else if (a === '--out') opts.out = argv[++i];
     else if (a === '--only') opts.only = argv[++i];
     else if (a === '--no-build') opts.build = false;
     else throw new Error(`unknown argument: ${a}`);
@@ -147,6 +149,20 @@ const docker = (args, options = {}) =>
     env: { ...process.env, MSYS_NO_PATHCONV: '1' },
     ...options,
   });
+
+/** Removes a scanned image and the layers it leaves dangling, so a small CI agent does not fill up (the first Azure run warned at 95% disk used). Failures are ignored. */
+function removeImage(reference) {
+  for (const args of [
+    ['rmi', '--force', reference],
+    ['image', 'prune', '--force'],
+  ]) {
+    try {
+      docker(args);
+    } catch {
+      /* best effort */
+    }
+  }
+}
 
 function scanOne(reference, scratch, rawDir) {
   const name = reference.replace(/[^A-Za-z0-9_.-]+/g, '_');
@@ -259,6 +275,7 @@ function main() {
         console.error(`  not scanned: ${message}`);
         results.push({ reference: item.reference, error: message });
       }
+      if (opts.clean) removeImage(item.reference);
     }
   } finally {
     rmSync(scratch, { recursive: true, force: true });
