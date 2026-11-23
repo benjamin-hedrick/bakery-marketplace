@@ -77,3 +77,7 @@ The amendment's DEV row ("Application Insights, through the collector") is built
 - **The apps** name the collector through `OTEL_EXPORTER_OTLP_ENDPOINT`; the C# services also need `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` (register 36). The collector's pipeline is traces only; the C# services' metrics are answered 404.
 - **Reading the traces** in evidence: the observe stage queries the workspace-based Application Insights tables (`scripts/ci/dev-observe.mjs`).
 - The dev pipeline has a `tracing` input (default on) so a run can leave all of this out. UAT and Prod are not built (register 235).
+
+## Amendment 2026-11-23 (collector version)
+
+The collector image moved from `0.164.0` to `0.165.0` (`docker-compose.yml` and the default of `otel_collector_version`), because the first image scan found two high findings with fixes in `0.164.0`'s binary (`go-jose` and `golang.org/x/net`; register 240). With `0.165.0` run in Docker, `otelcol-contrib validate` accepts `local.yaml`, `local-jaeger.yaml` and `cloud.yaml` (with a dummy connection string), and the `azure_monitor` exporter is still Beta for traces, metrics and logs. Not shown: that spans reach Application Insights with `0.165.0` (that needs a deployed run).
