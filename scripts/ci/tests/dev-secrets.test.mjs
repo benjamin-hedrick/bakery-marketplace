@@ -24,6 +24,8 @@ const written = (created = '2026-11-20T11:00:00+00:00') => ({
   tags: { [WRITTEN_BY.key]: WRITTEN_BY.value },
 });
 const connectionString = 'AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=a2V5;';
+const appInsights =
+  'InstrumentationKey=00000000-0000-0000-0000-000000000001;IngestionEndpoint=https://eastus-0.in.applicationinsights.azure.com/';
 const cosmosKeys = {
   connectionStrings: [
     { connectionString, description: 'Primary SQL Connection String', keyKind: 'Primary', type: 'SQL' },
@@ -43,13 +45,21 @@ const cosmosKeys = {
 };
 
 describe('the secret list agrees with the dev stack', () => {
-  test('the same three secrets Terraform creates with a placeholder', () => {
+  test('the same secrets Terraform creates with a placeholder: three always, and the tracing one only with tracing', () => {
     const stack = readFileSync(path.join(root, 'infra/modules/environment/main.tf'), 'utf8');
-    const listed = /placeholder_secrets\s*=\s*toset\(\[([^\]]*)\]\)/
-      .exec(stack)[1]
-      .match(/"[^"]+"/g)
-      .map((s) => s.slice(1, -1));
-    assert.deepEqual(SECRETS.map((s) => s.name).sort(), listed.sort());
+    const block = /placeholder_secrets\s*=\s*toset\(concat\(([\s\S]*?)\n {2}\)\)/.exec(stack)[1];
+    const names = (text) => (text.match(/"[^"]+"/g) ?? []).map((n) => n.slice(1, -1));
+    const [always, withTracing] = block.split('var.tracing ?');
+    assert.deepEqual(
+      SECRETS.filter((x) => !x.optional)
+        .map((x) => x.name)
+        .sort(),
+      names(always).sort(),
+    );
+    assert.deepEqual(
+      SECRETS.filter((x) => x.optional).map((x) => x.name),
+      names(withTracing),
+    );
   });
 });
 
@@ -119,7 +129,12 @@ describe('the step, with a fake Azure CLI', () => {
       calls.push(args);
       if (args[0] === 'keyvault' && args[2] === 'list-versions')
         return JSON.stringify(versionsByName[args[args.indexOf('--name') + 1]]);
+      if (args[0] === 'keyvault' && args[2] === 'list')
+        return JSON.stringify(Object.keys(versionsByName).filter((n) => args.join(' ').includes(`'${n}'`)));
       if (args[0] === 'cosmosdb') return JSON.stringify(cosmosKeys);
+      if (args[0] === 'resource' && args[1] === 'list')
+        return JSON.stringify(['/subscriptions/s/resourceGroups/rg-x/providers/Microsoft.Insights/components/appi-x']);
+      if (args[0] === 'resource' && args[1] === 'show') return JSON.stringify({ ConnectionString: appInsights });
       if (args[0] === 'keyvault' && args[2] === 'set') {
         const file = args[args.indexOf('--file') + 1];
         writes.push({
@@ -150,14 +165,16 @@ describe('the step, with a fake Azure CLI', () => {
       const results = setSecrets(options(temp), az, (l) => log.push(l));
       assert.deepEqual(
         results.map((r) => r.action),
-        ['set', 'set', 'set'],
+        ['set', 'set', 'set', 'set'],
       );
       assert.deepEqual(
         writes.map((w) => w.name),
         SECRETS.map((s) => s.name),
       );
       assert.equal(writes[0].value, connectionString);
-      for (const w of writes.slice(1)) assert.match(w.value, /^[A-Za-z0-9_-]{43}$/);
+      for (const w of writes.slice(1, 3)) assert.match(w.value, /^[A-Za-z0-9_-]{43}$/);
+      assert.equal(writes[3].name, 'appinsights-connection-string');
+      assert.equal(writes[3].value, appInsights);
       if (process.platform !== 'win32') for (const w of writes) assert.equal(w.mode, 0o600, w.name);
       assert.deepEqual(readdirSync(temp), [], 'the private folders are deleted');
       for (const w of writes) {
@@ -186,6 +203,7 @@ describe('the step, with a fake Azure CLI', () => {
         { name: 'cosmos-connection-string', action: 'kept' },
         { name: 'ordering-client-secret', action: 'kept' },
         { name: 'session-encryption-key', action: 'set' },
+        { name: 'appinsights-connection-string', action: 'kept' },
       ]);
       assert.deepEqual(
         writes.map((w) => w.name),
@@ -194,10 +212,37 @@ describe('the step, with a fake Azure CLI', () => {
     });
   });
 
+  test('a stack without tracing has no Application Insights secret: it is left out, and no Application Insights call is made', () => {
+    withTemp((temp) => {
+      const required = SECRETS.filter((s) => !s.optional);
+      const { az, calls, writes } = fakeAz(Object.fromEntries(required.map((s) => [s.name, [placeholder()]])));
+      const results = setSecrets(options(temp), az, () => {});
+      assert.deepEqual(
+        results.map((r) => `${r.name}:${r.action}`),
+        [...required.map((s) => `${s.name}:set`), 'appinsights-connection-string:absent'],
+      );
+      assert.equal(writes.length, 3);
+      assert.ok(!calls.some((c) => c[0] === 'resource'));
+    });
+  });
+
+  test('more than one Application Insights resource in the group is refused', () => {
+    withTemp((temp) => {
+      const base = fakeAz(Object.fromEntries(SECRETS.map((s) => [s.name, [placeholder()]])));
+      const az = (args) => (args[0] === 'resource' && args[1] === 'list' ? JSON.stringify(['a', 'b']) : base.az(args));
+      assert.throws(
+        () => setSecrets(options(temp), az, () => {}),
+        /expected one Application Insights resource, found 2/,
+      );
+      assert.deepEqual(readdirSync(temp), []);
+    });
+  });
+
   test('a failed write still deletes the file', () => {
     withTemp((temp) => {
       const az = (args) => {
         if (args[2] === 'list-versions') return JSON.stringify([placeholder()]);
+        if (args[0] === 'keyvault' && args[2] === 'list') return JSON.stringify(['appinsights-connection-string']);
         if (args[0] === 'cosmosdb') return JSON.stringify(cosmosKeys);
         throw new Error('Forbidden');
       };

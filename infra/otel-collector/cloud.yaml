@@ -20,7 +20,7 @@ processors:
   batch: {}
 
 exporters:
-  azuremonitor:
+  azure_monitor:
     connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
   # otlp/jaeger:
   #   endpoint: ${env:JAEGER_OTLP_ENDPOINT}
@@ -30,4 +30,4 @@ service:
     traces:
       receivers: [otlp]
       processors: [attributes/safety, batch]
-      exporters: [azuremonitor]
+      exporters: [azure_monitor]

@@ -7,7 +7,8 @@
 //
 // Terraform creates each secret with a placeholder (write-only value_wo, never in the state). For each secret whose newest version is not one
 // this step wrote, it sets the real value: the Cosmos connection string read from Azure, or a new random value (32 bytes, base64url, the format
-// scripts/dev/init-env.mjs uses locally). A secret this step already set is left alone, so a second deploy does not rotate the session key (which
+// scripts/dev/init-env.mjs uses locally), or, for the tracing stack's optional Application Insights secret (WI-OBS-001; left out when the vault has no such
+// secret), the connection string of the group's one Application Insights resource. A secret this step already set is left alone, so a second deploy does not rotate the session key (which
 // would log everyone out). Which version is which is told by its tags, read with the versions list, which never returns a value.
 //
 // How a value travels: never on a command line and never in a shell variable. It is held in this process, masked in the pipeline log
@@ -28,7 +29,17 @@ export const SECRETS = [
   { name: 'cosmos-connection-string', source: 'cosmos' },
   { name: 'ordering-client-secret', source: 'random' },
   { name: 'session-encryption-key', source: 'random' },
+  // Only when the stack has tracing (WI-OBS-001): the secret is absent from the vault without it, and the step then leaves it out.
+  { name: 'appinsights-connection-string', source: 'appinsights', optional: true },
 ];
+
+/** The Application Insights connection string from "az resource show": it names the instrumentation key and the ingestion address. */
+export function appInsightsConnectionString(properties) {
+  const value = properties?.ConnectionString ?? properties?.connectionString;
+  if (typeof value !== 'string' || !value.startsWith('InstrumentationKey='))
+    throw new Error('expected an Application Insights connection string (InstrumentationKey=...)');
+  return value;
+}
 
 /** A new random secret: 32 bytes, base64url (what the session store and the mock issuer's client secret expect). */
 export function newSecret() {
@@ -96,6 +107,26 @@ export function setArgs(vault, name, file) {
 export function setSecrets({ vault, cosmosAccount, resourceGroup, temp }, az, log = console.log) {
   const results = [];
   for (const secret of SECRETS) {
+    if (secret.optional) {
+      const present = JSON.parse(
+        az([
+          'keyvault',
+          'secret',
+          'list',
+          '--vault-name',
+          vault,
+          '--query',
+          `[?name=='${secret.name}'].name`,
+          '--output',
+          'json',
+        ]),
+      );
+      if (present.length === 0) {
+        log(`${secret.name}: not in the vault (this stack has no tracing); left out.`);
+        results.push({ name: secret.name, action: 'absent' });
+        continue;
+      }
+    }
     const versions = JSON.parse(
       az(['keyvault', 'secret', 'list-versions', '--vault-name', vault, '--name', secret.name, '--output', 'json']),
     );
@@ -104,26 +135,46 @@ export function setSecrets({ vault, cosmosAccount, resourceGroup, temp }, az, lo
       results.push({ name: secret.name, action: 'kept' });
       continue;
     }
-    const value =
-      secret.source === 'cosmos'
-        ? primaryConnectionString(
-            JSON.parse(
-              az([
-                'cosmosdb',
-                'keys',
-                'list',
-                '--name',
-                cosmosAccount,
-                '--resource-group',
-                resourceGroup,
-                '--type',
-                'connection-strings',
-                '--output',
-                'json',
-              ]),
-            ),
-          )
-        : newSecret();
+    let value;
+    if (secret.source === 'cosmos')
+      value = primaryConnectionString(
+        JSON.parse(
+          az([
+            'cosmosdb',
+            'keys',
+            'list',
+            '--name',
+            cosmosAccount,
+            '--resource-group',
+            resourceGroup,
+            '--type',
+            'connection-strings',
+            '--output',
+            'json',
+          ]),
+        ),
+      );
+    else if (secret.source === 'appinsights') {
+      // The one Application Insights resource of the environment's group; "az resource" needs no extension. Output is the properties only.
+      const ids = JSON.parse(
+        az([
+          'resource',
+          'list',
+          '--resource-group',
+          resourceGroup,
+          '--resource-type',
+          'Microsoft.Insights/components',
+          '--query',
+          '[].id',
+          '--output',
+          'json',
+        ]),
+      );
+      if (ids.length !== 1) throw new Error(`expected one Application Insights resource, found ${ids.length}`);
+      value = appInsightsConnectionString(
+        JSON.parse(az(['resource', 'show', '--ids', ids[0], '--query', 'properties', '--output', 'json'])),
+      );
+    } else value = newSecret();
     log(`##vso[task.setsecret]${value}`);
     const dir = mkdtempSync(path.join(temp, 'kv-'));
     try {
@@ -133,9 +184,12 @@ export function setSecrets({ vault, cosmosAccount, resourceGroup, temp }, az, lo
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
-    log(
-      `${secret.name}: set (${secret.source === 'cosmos' ? "the Cosmos account's primary connection string" : 'a new random value'}).`,
-    );
+    const from = {
+      cosmos: "the Cosmos account's primary connection string",
+      appinsights: "the Application Insights resource's connection string",
+      random: 'a new random value',
+    }[secret.source];
+    log(`${secret.name}: set (${from}).`);
     results.push({ name: secret.name, action: 'set' });
   }
   return results;

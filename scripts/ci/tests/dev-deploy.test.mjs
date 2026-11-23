@@ -126,11 +126,12 @@ describe('refusals (register 110)', () => {
 });
 
 describe('the deploy, with a fake Azure CLI', () => {
-  function fake({ images, tags = {}, states = {}, seed = ['Running', 'Succeeded'] }) {
+  function fake({ images, tags = {}, states = {}, seed = ['Running', 'Succeeded'], collector = false }) {
     const calls = [];
     const az = (args) => {
       calls.push(args);
       const name = args[args.indexOf('--name') + 1];
+      if (args[0] === 'containerapp' && args[1] === 'list') return collector ? 'otel-collector\n' : '\n';
       if (args[0] === 'containerapp' && args[1] === 'job') {
         if (args[2] === 'show') return `${images[name]}\n`;
         if (args[2] === 'update') return '';
@@ -158,6 +159,28 @@ describe('the deploy, with a fake Azure CLI', () => {
     deploy({ record: record(), resourceGroup: 'rg', suffix: 'b120-1', ...opts }, f.az, f.clock, () => {});
   const appUpdates = (calls) =>
     calls.filter((c) => c[0] === 'containerapp' && c[1] === 'update').map((c) => c[c.indexOf('--name') + 1]);
+
+  test('with tracing (WI-OBS-001) the collector gets a new revision after the seed and before the apps, with no image; without it nothing is done', () => {
+    const f = fake({ images: placeholders, collector: true });
+    const result = run(f);
+    assert.deepEqual(appUpdates(f.calls), ['otel-collector', ...ORDER]);
+    const update = f.calls.find((c) => c[1] === 'update' && c.includes('otel-collector'));
+    assert.ok(!update.includes('--image'), 'the collector runs a public image Terraform pins; it is only restarted');
+    assert.equal(update[update.indexOf('--revision-suffix') + 1], 'b120-1');
+    assert.deepEqual(result.collector, { app: 'otel-collector', revision: 'otel-collector--b120-1' });
+    const seedDone = f.calls.findLastIndex((c) => c[1] === 'job' && c[2] === 'execution');
+    assert.ok(f.calls.findIndex((c) => c[1] === 'update' && c.includes('otel-collector')) > seedDone);
+
+    const none = fake({ images: placeholders });
+    assert.equal(run(none).collector, null);
+    assert.deepEqual(appUpdates(none.calls), ORDER);
+  });
+
+  test('a collector revision that fails stops the deploy before any app changes', () => {
+    const f = fake({ images: placeholders, collector: true, states: { 'otel-collector': ['Failed'] } });
+    assert.throws(() => run(f), /otel-collector: revision otel-collector--b120-1 failed to provision/);
+    assert.deepEqual(appUpdates(f.calls), ['otel-collector']);
+  });
 
   test('first deploy: the seed runs to success first, then every app is updated in order and waited for, and the record written', () => {
     const f = fake({ images: placeholders, states: { catalog: ['Provisioning', 'Provisioning', 'Provisioned'] } });
