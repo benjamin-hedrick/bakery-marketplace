@@ -571,6 +571,10 @@ run "with_tracing_a_collector_holds_the_connection_string_and_every_app_names_it
     error_message = "The collector is internal and always on (spans sent while it woke from zero would be lost)."
   }
   assert {
+    condition     = azurerm_container_app.otel_collector[0].ingress[0].allow_insecure_connections == true
+    error_message = "The apps send OTLP over plain http to the collector's internal address; without this the ingress redirects it to https and no span arrives (build 120)."
+  }
+  assert {
     condition     = alltrue([for e in azurerm_container_app.otel_collector[0].template[0].container[0].env : e.value == null || !strcontains(e.value, "InstrumentationKey")])
     error_message = "No connection string may appear in the collector's settings; it comes from the Key Vault secret."
   }
@@ -581,15 +585,15 @@ run "with_tracing_a_collector_holds_the_connection_string_and_every_app_names_it
   assert {
     condition = alltrue([
       for k in ["catalog", "ordering"] :
-      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if(e.name == "OTEL_EXPORTER_OTLP_ENDPOINT" && e.value == "http://otel-collector") || (e.name == "OTEL_EXPORTER_OTLP_PROTOCOL" && e.value == "http/protobuf")]) == 2
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if(e.name == "OTEL_EXPORTER_OTLP_ENDPOINT" && e.value == "http://otel-collector.internal.test.example.io") || (e.name == "OTEL_EXPORTER_OTLP_PROTOCOL" && e.value == "http/protobuf")]) == 2
     ])
     error_message = "The C# services need the endpoint and http/protobuf; with the endpoint alone they export nothing."
   }
   assert {
     condition = alltrue([
       for k in ["bff", "web"] :
-      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if e.name == "OTEL_EXPORTER_OTLP_ENDPOINT" && e.value == "http://otel-collector"]) == 1
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if e.name == "OTEL_EXPORTER_OTLP_ENDPOINT" && e.value == "http://otel-collector.internal.test.example.io"]) == 1
     ])
-    error_message = "The BFF and the web app name the collector."
+    error_message = "The BFF and the web app name the collector by its full internal address; the short name did not resolve (build 120, register 237)."
   }
 }
