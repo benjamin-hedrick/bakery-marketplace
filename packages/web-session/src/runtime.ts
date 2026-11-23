@@ -88,6 +88,10 @@ export function getSessionRuntime(env: Record<string, string | undefined> = proc
           service,
           target: () => process.env['GRAPHQL_URL'],
           extraHeaders: () => process.env['GRAPHQL_EXTRA_FORWARDED_HEADERS'],
+          tracing: () => ({
+            endpoint: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
+            serviceName: process.env['OTEL_SERVICE_NAME'] ?? 'web-customer',
+          }),
           log,
           limits,
           gate,

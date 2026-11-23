@@ -14,6 +14,7 @@ import {
 import { clientAddress, RATE_LIMITED_MESSAGE, type WebRateLimits } from './rate-limit.ts';
 import { LoginError, type SessionService } from './service.ts';
 import { SessionStoreUnavailableError } from './store.ts';
+import type { ProxyTracing } from './trace.ts';
 
 // Request handlers for the web app's API routes (Next.js Pages Router shape, written against the few members they use so the package does not
 // depend on Next). Each app mounts them at /api/auth/login, /api/auth/callback, /api/auth/logout, /api/auth/me and /api/graphql (ADR-0019).
@@ -200,6 +201,8 @@ export interface GraphqlHandlerDeps {
   extraHeaders?: () => string | undefined;
   fetchImpl?: typeof fetch;
   log?: (event: string) => void;
+  /** Where this server's span for each relayed call goes (WI-OBS-001), read on every request; no span without it. The JSON route only. */
+  tracing?: () => ProxyTracing | undefined;
   /** Rate limits; none when absent. */
   limits?: WebRateLimits | undefined;
   /** The chaos door (ADR-0024, layer `web`); absent unless a scenario is switched on. Asked first, before any limit or check. */
@@ -219,6 +222,7 @@ export function createGraphqlHandler({
   log = () => {},
   limits,
   gate,
+  tracing,
 }: GraphqlHandlerDeps) {
   return whenStoreUnreachable(async function graphql(req: ApiRequest, res: ApiResponse): Promise<void> {
     if (gate && (await gate(req, res))) return;
@@ -261,7 +265,16 @@ export function createGraphqlHandler({
     }
 
     res.setHeader('Cache-Control', 'no-store');
-    await proxyGraphql(req, res, target(), extraForwardedHeaders(extraHeaders?.()), fetchImpl, bearer, address);
+    await proxyGraphql(
+      req,
+      res,
+      target(),
+      extraForwardedHeaders(extraHeaders?.()),
+      fetchImpl,
+      bearer,
+      address,
+      tracing?.(),
+    );
   }, log);
 }
 
