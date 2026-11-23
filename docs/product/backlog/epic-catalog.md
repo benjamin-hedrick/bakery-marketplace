@@ -288,7 +288,7 @@ Scope: cross-cutting-artifact (post-MVP) · Primary hat(s): Operations, Manager/
 
 ### EPIC-OBSERVABILITY — Instrumentation
 Scope: cross-cutting-artifact · Primary hat(s): Platform Engineering, Operations · Status: Not Started
-- ⚪ OBS-001 (Service Implementation) — see `WI-OBS-001.md` (proposed 2026-11-22: DEV traces through the collector to Application Insights) — Application Insights wiring per service. **ADJUSTED 2026-10-26**: OpenTelemetry SDK + Azure Monitor exporter, covering the Next.js server and BFF as well as the C# services (ADR-0016)
+- 🔶 OBS-001 (Service Implementation) — see `WI-OBS-001.md` (in progress 2026-11-22: DEV traces through the collector to Application Insights) — Application Insights wiring per service. **ADJUSTED 2026-10-26**: OpenTelemetry SDK + Azure Monitor exporter, covering the Next.js server and BFF as well as the C# services (ADR-0016)
 - ⛔ OBS-002 (Integration) — **SUPERSEDED 2026-10-26** by `WI-PORT-005` (W3C Trace Context replaces custom correlation-ID propagation, ADR-0016). Was: Correlation-ID propagation across services, using `/tools/logging-helper` (`TOOL-002`)
 - ⚪ OBS-003 (Document/Artifact) — Actual dashboard construction implementing `OPS-003`'s thresholds (corrected: `OPS-003` is the policy layer this item implements against, not the other way around — see `docs/operations/monitoring-alerting.md`)
 
