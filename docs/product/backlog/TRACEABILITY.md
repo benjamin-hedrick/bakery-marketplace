@@ -30,7 +30,7 @@ Of 56 work items marked Done: 30 are named by a test file, 21 by an evidence rec
 | [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | In review | `chaos-outcomes.test.ts` | `README.md`, `README.md`, `flows-07-11-2026-11-11.md` and 3 more |
 | [CHAOS-004](WI-CHAOS-004.md) | Chaos scenarios: a layer on the web servers' session store | In review | `session-outage.spec.ts`, `chaos-store.test.ts` | `README.md`, `README.md`, `README.md` and 1 more |
 | [CHAOS-005](WI-CHAOS-005.md) | Chaos scenarios: the web apps' Relay network functions against an equivalence contract | Done | `relay-network.test.ts`, `relay-network.test.ts`, `relay-network-contract.ts` | `README.md`, `ai-usage-2026-11-16-b.md`, `ai-usage-2026-11-17-c.md` |
-| [CHAOS-006](WI-CHAOS-006.md) | Chaos in the deployed dev environment: one scenario, aimed at chaos seed data, switched on per deployment, exercised by the standard suite | In progress | `06b-chaos.spec.ts`, `support.ts`, `match-vectors.test.ts` and 7 more | `dev-chaos-deployed-2026-11-22.md`, `local-dev-chaos-2026-11-21.md`, `module-refactor-2026-11-21.md` and 1 more |
+| [CHAOS-006](WI-CHAOS-006.md) | Chaos in the deployed dev environment: one scenario, aimed at chaos seed data, switched on per deployment, exercised by the standard suite | In progress | `06b-chaos.spec.ts`, `support.ts`, `match-vectors.test.ts` and 7 more | `dev-chaos-deployed-2026-11-22.md`, `local-dev-chaos-2026-11-21.md`, `module-refactor-2026-11-21.md` and 2 more |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | Done | *none* | `findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | Done | *none* | *none* |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | Done | *none* | `baseline-2026-10-30.md` |
@@ -43,8 +43,8 @@ Of 56 work items marked Done: 30 are named by a test file, 21 by an evidence rec
 | [DATA-001](WI-DATA-001.md) | Define IRepository<T> interface + contract tests | Done | `FakeRepositoryTests.cs`, `RepositoryContractTests.cs` | *none* |
 | [DATA-002](WI-DATA-002.md) | CosmosRepository<T> implementation | Done | `CosmosRepositoryTests.cs` | *none* |
 | [DEMO-001](WI-DEMO-001.md) | Demo path: script, checklist, topology and a cold run | In review | *none* | *none* |
-| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | In progress | `MockOidcFixedIssuerTests.cs` | `README.md`, `dev-chaos-deployed-2026-11-22.md`, `apply-and-teardown-prep-2026-11-20.md` and 19 more |
-| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | Built | `chaos-not-deployed.test.mjs`, `dev-deploy.test.mjs`, `dev-stack-env.test.mjs` and 5 more | `dev-and-uat-teardown-2026-11-22.md`, `bootstrap-uat-2026-11-21.md`, `dev-roles-and-run-100-2026-11-22.md` and 5 more |
+| [DEP-001](WI-DEP-001.md) | Deployment path: images, deploy stage, dev environment, post-deploy smoke | In progress | `MockOidcFixedIssuerTests.cs` | `README.md`, `dev-chaos-deployed-2026-11-22.md`, `apply-and-teardown-prep-2026-11-20.md` and 20 more |
+| [DEP-002](WI-DEP-002.md) | A UAT environment next to DEV: deployed on demand, promoted from a passing DEV run, torn down like DEV | Built | `chaos-not-deployed.test.mjs`, `dev-deploy.test.mjs`, `dev-stack-env.test.mjs` and 5 more | `dev-and-uat-teardown-2026-11-22.md`, `bootstrap-uat-2026-11-21.md`, `dev-roles-and-run-100-2026-11-22.md` and 6 more |
 | [DEV-001](WI-DEV-001.md) | Scaffold the base .NET solution and project structure | Done | *none* | *none* |
 | [DEV-002](WI-DEV-002.md) | Real docker-compose.yml | Done | *none* | `findings.md` |
 | [DEV-004](WI-DEV-004.md) | Seed / fixture data script | Done | `walking-skeleton.spec.ts`, `SeederTests.cs` | `findings.md`, `findings.md` |
@@ -64,7 +64,7 @@ Of 56 work items marked Done: 30 are named by a test file, 21 by an evidence rec
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | Done | *none* | *none* |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | In review | `RedisBatchDeliveryTests.cs` | `ai-usage-2026-11-03.md`, `ai-usage-2026-11-04.md` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | In review | *none* | `ai-usage-2026-11-03.md` |
-| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | In progress | `dev-deploy.test.mjs`, `pipeline-structure.test.mjs` | `dev-and-uat-teardown-2026-11-22.md` |
+| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | In progress | `dev-deploy.test.mjs`, `pipeline-structure.test.mjs` | `dev-and-uat-teardown-2026-11-22.md`, `ai-usage-2026-11-22-evening.md` |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | Done | *none* | *none* |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | Done | *none* | `runbook-event-broker-2026-10-30.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | Done | *none* | *none* |
