@@ -1,4 +1,4 @@
-> **Status:** Ready · created 2026-11-23 from the lead's decision on register 162 point (4); split out of `WI-SEC-004`
+> **Status:** In review · built and run once 2026-11-23: `scripts/ci/image-scan.mjs` (Trivy 0.76.2 by digest, in Docker), its exit-code tests, and the first record `docs/evidence/WI-SEC-007/image-scan-2026-11-23.md` (11 images scanned; 9 have high or critical findings with a fix; the decisions are register 240) · waiting for the lead's review. Created from the lead's decision on register 162 point (4); split out of `WI-SEC-004`.
 
 ```
 WI ID:                SEC-007
@@ -7,7 +7,7 @@ Type:                 Document/Artifact
 Epic:                 EPIC-CI-CD
 Shared with epic(s):  none
 Hat/Owner:            Platform Engineering
-Status:               Ready
+Status:               In review
 Size:                 S
 Verification class:   V1 (a script and a recorded run). The classes are proposed in `docs/process/verification-policy.md` (register item 130).
 ```

@@ -12,9 +12,9 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 |---|---|
 | Done | 56 |
 | In progress | 7 |
-| In review | 37 |
+| In review | 38 |
 | Built | 2 |
-| Ready | 4 |
+| Ready | 3 |
 | Proposed | 4 |
 | Deferred | 11 |
 | Superseded | 2 |
@@ -174,7 +174,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | EPIC-CI-CD | In progress | the dependency audit and SBOM part is built and run locally (2026-11-07: `scripts/ci/dependency-audit.mjs`, `docs/evidence/WI-SEC-004/`); remaining: `G-E06` (Terraform validate and plan of the Key Vault module), a pipeline job for the audit (decided 2026-11-23, now `WI-SEC-006`), and a container image scan (now `WI-SEC-007`) |
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | EPIC-CI-CD | In review | evidence: `docs/architecture/threat-model.md`, `docs/evidence/WI-SEC-005/` (fuzz, soak, ZAP), `docs/governance/review-statement.md`; all five steps are done and recorded (see the outcome note of 2026-11-03 below) |
 | [SEC-006](WI-SEC-006.md) | The dependency audit as a pipeline job, non-blocking first, then blocking | EPIC-CI-CD | Ready | created 2026-11-23 from the lead's decision on register 162 point (3); split out of `WI-SEC-004` |
-| [SEC-007](WI-SEC-007.md) | A container image scan: a local script that runs Trivy in Docker, run once and recorded | EPIC-CI-CD | Ready | created 2026-11-23 from the lead's decision on register 162 point (4); split out of `WI-SEC-004` |
+| [SEC-007](WI-SEC-007.md) | A container image scan: a local script that runs Trivy in Docker, run once and recorded | EPIC-CI-CD | In review | built and run once 2026-11-23: `scripts/ci/image-scan.mjs` (Trivy 0.76.2 by digest, in Docker), its exit-code tests, and the first record `docs/evidence/WI-SEC-007/image-scan-2026-11-23.md` (11 images scanned; 9 have high or critical findings with a fix; the decisions are register 240) · waiting for the lead's review. Created from the lead's decision on register 162 point (4); split out of `WI-SEC-004`. |
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | EPIC-SEARCH | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review of the rule, its wording and the two defaults below (this is the safety rule) |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization` (2026-11-04); waiting for the lead's review, the allergen list (open point) and ADR-0022's acceptance |
 | [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | EPIC-TAGS | In review | built and run locally on `feature/slice-personalization-web` (2026-11-04); real-stack journeys passed on a clean stack (2026-11-04) |
@@ -222,12 +222,12 @@ Accepted: 23 · Superseded: 1
 
 ## Open-items register
 
-238 numbered items in `docs/governance/open-items-register.md` (highest number 239).
+239 numbered items in `docs/governance/open-items-register.md` (highest number 240).
 
 | Type | Count |
 |---|---|
 | Gap | 55 |
-| Decision | 29 |
+| Decision | 30 |
 | Defect | 28 |
 | Deferred scope | 26 |
 | Verification gap | 24 |
@@ -244,4 +244,4 @@ Accepted: 23 · Superseded: 1
 | Resolved | 128 |
 | Accepted | 8 |
 | Tracking | 14 |
-| Open | 73 |
+| Open | 74 |
