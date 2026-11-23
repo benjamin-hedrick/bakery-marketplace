@@ -6,7 +6,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 
 ## Work items
 
-120 specs.
+121 specs.
 
 | Status | Count |
 |---|---|
@@ -15,7 +15,7 @@ Status words are defined in `docs/method/status-and-supersession.md`.
 | In review | 37 |
 | Built | 1 |
 | Ready | 2 |
-| Proposed | 4 |
+| Proposed | 5 |
 | Deferred | 11 |
 | Superseded | 2 |
 
@@ -39,6 +39,7 @@ Superseded and obsolete items are not counted.
 | EPIC-GOVERNANCE | 1 of 1 | GOV-001 |
 | EPIC-LOCAL-DEV | 3 of 4 | DEMO-001, DEV-001, DEV-002, DEV-004 |
 | EPIC-NOTIFICATIONS | 0 of 2 | NOT-001, NOT-002 |
+| EPIC-OBSERVABILITY | 0 of 1 | OBS-001 |
 | EPIC-OPS-ARTIFACTS | 3 of 3 | OPS-001, OPS-002, OPS-003 |
 | EPIC-ORDERING | 7 of 11 | ORD-001, ORD-002, ORD-003, ORD-004, ORD-005, ORD-006, ORD-007, ORD-008, ORD-009, ORD-010, ORD-011 |
 | EPIC-PM-ARTIFACTS | 4 of 8 | MGMT-001, MGMT-002, MGMT-003, MGMT-004, MGMT-005, MGMT-006, MGMT-007, MGMT-008 |
@@ -128,6 +129,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
+| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | EPIC-OBSERVABILITY | Proposed | written 2026-11-22 at the lead's request; the design is ADR-0016's (collector to Application Insights), the open choices are listed below and wait for the lead. |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/sla.md` |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/evidence/runbook-event-broker-2026-10-30.md`; the runbook is `docs/operations/runbooks/event-broker-unavailable-during-checkout.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
