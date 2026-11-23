@@ -73,6 +73,15 @@ export function pulledImages(composeConfig) {
   return [...refs].sort();
 }
 
+/**
+ * The arguments of a `docker build` with `--pull` added: the base images (`node:24-slim`, `dotnet/aspnet:10.0`) are floating tags, and a scan of a
+ * stale local copy would report findings the current base no longer has (register 240 decision 1).
+ */
+export function withPull(args) {
+  if (args[0] !== 'build') throw new Error(`not a docker build: ${args[0]}`);
+  return ['build', '--pull', ...args.slice(1)];
+}
+
 /** The scan's built images: the deployed six, tagged `scan`, with their repository names as the reference. */
 export function builtImages(tag = 'scan') {
   return IMAGES.map((image) => ({ image, reference: `${image.repository}:${tag}` }));
@@ -230,7 +239,10 @@ function main() {
       console.log(`scanning ${item.reference}`);
       try {
         if (item.built && opts.build)
-          docker(buildArgs(item.image, 'scan', 'image-scan'), { cwd: root, stdio: ['ignore', 'pipe', 'inherit'] });
+          docker(withPull(buildArgs(item.image, 'scan', 'image-scan')), {
+            cwd: root,
+            stdio: ['ignore', 'pipe', 'inherit'],
+          });
         else if (!item.built) docker(['pull', '--quiet', item.reference]);
         results.push({
           image: item.image,

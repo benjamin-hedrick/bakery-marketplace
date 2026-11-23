@@ -26,9 +26,64 @@ describe('azure-pipelines.yml (the pull-request checks)', () => {
   });
 
   test('keeps every job it had, and adds the terraform and mobile jobs', () => {
-    for (const job of ['secrets', 'docs', 'dotnet', 'bff', 'web', 'skeleton', 'terraform', 'mobile']) {
+    for (const job of [
+      'secrets',
+      'docs',
+      'audit',
+      'images',
+      'dotnet',
+      'bff',
+      'web',
+      'skeleton',
+      'terraform',
+      'mobile',
+    ]) {
       assert.match(code(file), new RegExp(`^ {2}- job: ${job}$`, 'm'), job);
     }
+  });
+
+  // WI-SEC-006. Step 1 is non-blocking; step 2 (the lead's decision, after a few green runs) removes continueOnError, and this test then changes with it.
+  test('runs the dependency audit as a job: every npm project installed, the audit step non-blocking, the result published', () => {
+    const text = code(file);
+    const start = text.indexOf('  - job: audit\n');
+    assert.ok(start >= 0, 'no audit job');
+    const next = text.indexOf('\n  - job: ', start + 1);
+    const job = text.slice(start, next < 0 ? undefined : next);
+    for (const dir of [
+      'packages/web-session',
+      'packages/chaos',
+      'packages/customer-core',
+      'apps/web-customer',
+      'apps/web-queue-display',
+      'apps/mobile-customer',
+      'services/graphql-bff',
+    ]) {
+      assert.ok(job.includes(dir), `the audit job does not install ${dir}`);
+    }
+    assert.match(job, /dotnet restore BakeryMarketplace\.slnx/);
+    assert.match(
+      job,
+      /- script: node scripts\/ci\/dependency-audit\.mjs --out \$\(Build\.ArtifactStagingDirectory\)\/dependency-audit\n\s+displayName: [^\n]+\n\s+continueOnError: true/,
+      'step 1: the audit step is marked continueOnError',
+    );
+    assert.match(
+      job,
+      /PublishPipelineArtifact@1[\s\S]*condition: succeededOrFailed\(\)[\s\S]*artifact: dependency-audit/,
+    );
+  });
+
+  test('runs the container image scan as a non-blocking job that publishes its summary (WI-SEC-007)', () => {
+    const text = code(file);
+    const start = text.indexOf('  - job: images\n');
+    assert.ok(start >= 0, 'no images job');
+    const next = text.indexOf('\n  - job: ', start + 1);
+    const job = text.slice(start, next < 0 ? undefined : next);
+    assert.match(
+      job,
+      /- script: node scripts\/ci\/image-scan\.mjs --out \$\(Build\.ArtifactStagingDirectory\)\/image-scan\n\s+displayName: [^\n]+\n\s+continueOnError: true/,
+      'the scan step is marked continueOnError until the lead makes it blocking',
+    );
+    assert.match(job, /PublishPipelineArtifact@1[\s\S]*artifact: image-scan/);
   });
 
   test('has no Azure service connection and no deploy step: pull-request runs reach nothing in Azure', () => {
