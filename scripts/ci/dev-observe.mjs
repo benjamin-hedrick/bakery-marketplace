@@ -63,8 +63,8 @@ export function queries(start, end, ids = [], { traces = false } = {}) {
       `| summarize starts = count() by app = ContainerAppName_s, scenario`,
     chaosInjected:
       `ContainerAppConsoleLogs_CL | where ${window} | where Log_s has 'chaos injected' ` +
-      `| extend layer = coalesce(extract('layer=([a-z-]+)', 1, Log_s), extract('"layer":"([a-z-]+)"', 1, Log_s)), ` +
-      `fault = coalesce(extract('fault=([a-z-]+)', 1, Log_s), extract('"fault":"([a-z-]+)"', 1, Log_s)) ` +
+      `| extend layer = coalesce(extract('layer=([A-Za-z-]+)', 1, Log_s), extract('"layer":"([A-Za-z-]+)"', 1, Log_s)), ` +
+      `fault = coalesce(extract('fault=([A-Za-z-]+)', 1, Log_s), extract('"fault":"([A-Za-z-]+)"', 1, Log_s)) ` +
       `| where isnotempty(layer) and isnotempty(fault) | summarize faults = count() by app = ContainerAppName_s, layer, fault`,
   };
   if (safeIds.length > 0)
@@ -84,15 +84,15 @@ export function queries(start, end, ids = [], { traces = false } = {}) {
 export function traceQueries(window, safeIds) {
   const spans = 'union AppRequests, AppDependencies';
   const q = {
-    spansPerApp: `${spans} | where ${window} | summarize spans = count(), failed = countif(Success == false) by app = AppRoleName, kind = itemType`,
+    spansPerApp: `${spans} | where ${window} | summarize spans = count(), failed = countif(Success == false) by app = AppRoleName, spanKind = Type`, // not "kind" (a reserved word: the query does not parse) and not itemType (a classic-table column; these tables have Type); build 123
     failedSpansPerApp: `${spans} | where ${window} | where Success == false | summarize spans = count() by app = AppRoleName, resultCode = ResultCode`,
     // Each trace id the chaos layers logged when they injected a fault, with the spans of that trace: which apps it crossed, how many spans, how many
     // failed and the longest. The console line carries the trace id (.NET "trace=<id>", Node "traceId":"<id>"); the join keeps only the id, the
     // layer and the fault from it.
     chaosTraces:
       `let chaos = ContainerAppConsoleLogs_CL | where ${window} | where Log_s has 'chaos injected' ` +
-      `| extend layer = coalesce(extract('layer=([a-z-]+)', 1, Log_s), extract('"layer":"([a-z-]+)"', 1, Log_s)), ` +
-      `fault = coalesce(extract('fault=([a-z-]+)', 1, Log_s), extract('"fault":"([a-z-]+)"', 1, Log_s)), ` +
+      `| extend layer = coalesce(extract('layer=([A-Za-z-]+)', 1, Log_s), extract('"layer":"([A-Za-z-]+)"', 1, Log_s)), ` +
+      `fault = coalesce(extract('fault=([A-Za-z-]+)', 1, Log_s), extract('"fault":"([A-Za-z-]+)"', 1, Log_s)), ` +
       `id = coalesce(extract('trace=([0-9a-f]{32})', 1, Log_s), extract('"traceId":"([0-9a-f]{32})"', 1, Log_s)) ` +
       `| where isnotempty(layer) and isnotempty(fault) and isnotempty(id) | distinct id, layer, fault; ` +
       `${spans} | where ${window} | summarize spans = count(), failed = countif(Success == false), longestMs = round(max(DurationMs), 1), ` +
@@ -379,7 +379,7 @@ function main() {
   for (const r of result.logs.chaosInjected ?? [])
     console.log(`  chaos injected ${String(r.app).padEnd(12)} ${r.layer}:${r.fault} x${r.faults}`);
   for (const r of result.logs.spansPerApp ?? [])
-    console.log(`  spans          ${String(r.app).padEnd(12)} ${r.kind}: ${r.spans} (${r.failed} failed)`);
+    console.log(`  spans          ${String(r.app).padEnd(12)} ${r.spanKind}: ${r.spans} (${r.failed} failed)`);
   for (const r of result.logs.chaosTraces ?? [])
     console.log(
       `  chaos trace    ${r.layer}:${r.fault} ${r.id} ${r.spans} span(s) in ${JSON.stringify(r.apps)}, ${r.failed} failed, longest ${r.longestMs} ms`,

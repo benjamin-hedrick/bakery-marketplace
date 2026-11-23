@@ -42,6 +42,10 @@ describe('the pieces', () => {
       '{"level":"warn","msg":"chaos injected","layer":"bff-door","fault":"reject","key":"seq:3","traceId":"abc"}';
     assert.deepEqual(first(q.chaosInjected, dotnet), ['payment', 'lost-response']);
     assert.deepEqual(first(q.chaosInjected, node), ['bff-door', 'reject']);
+    // A layer name with a capital, as the BFF's catalog layer writes it in the deployed log (build 123); a lowercase-only pattern missed this fault.
+    const camel =
+      '{"level":"warn","msg":"chaos injected","layer":"bffCatalog","fault":"unavailable","key":"get:x:1","traceId":"abc"}';
+    assert.deepEqual(first(q.chaosInjected, camel), ['bffCatalog', 'unavailable']);
     assert.deepEqual(
       first(q.chaosScenariosOn, "warn: x[0] CHAOS SCENARIO 'checkout-trouble' IS ON (seed 7, layers payment)."),
       ['checkout-trouble'],
@@ -173,7 +177,10 @@ describe('observe, with a fake Azure CLI', () => {
     // the other trace queries ran once, after the waiting
     const queriesRun = calls.filter((c) => c[0] === 'rest').map((c) => JSON.parse(c[c.indexOf('--body') + 1]).query);
     assert.equal(queriesRun.filter((q) => q.includes('let chaos')).length, 1);
-    assert.equal(queriesRun.filter((q) => q.includes('countif(Success == false)') && q.includes('itemType')).length, 1);
+    assert.equal(
+      queriesRun.filter((q) => q.includes('countif(Success == false)') && q.includes('spanKind = Type')).length,
+      1,
+    );
     assert.ok(
       queriesRun.findLastIndex((q) => q.includes('OperationId in (')) <
         queriesRun.findIndex((q) => q.includes('let chaos')),
@@ -217,6 +224,17 @@ describe('observe, with a fake Azure CLI', () => {
     assert.doesNotMatch(text, /AppRequests|AppDependencies/);
     assert.equal(out.correlation.foundInTraces, undefined);
     assert.equal(out.traceAttempts, undefined);
+  });
+
+  test('the span count names its column something the query language accepts, from a column the workspace tables have (build 123: both were wrong)', () => {
+    const q = queries(START, END, [], { traces: true }).spansPerApp;
+    assert.doesNotMatch(q, /\bkind\s*=/, '"kind" is reserved, so the query does not parse');
+    assert.doesNotMatch(
+      q,
+      /\bitemType\b/,
+      'itemType belongs to the classic tables; AppRequests and AppDependencies have Type',
+    );
+    assert.match(q, /spanKind = Type/);
   });
 
   test('the trace queries keep counts, app names, result codes, durations and ids, never a span name, target, URL or properties', () => {

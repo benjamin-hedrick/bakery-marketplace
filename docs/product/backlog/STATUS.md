@@ -129,7 +129,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
-| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | EPIC-OBSERVABILITY | In progress | steps 1 to 5 and 7 built; step 6 run on dev build 120 (2026-11-23): tracing exported nothing as deployed (the collector's short name did not resolve, register 237), and worked once the apps were pointed at its full address by hand, with the chaos traces recorded in `docs/evidence/WI-OBS-001/dev-tracing-2026-11-22.md`. The fix and a web-server span for `/api/graphql` are committed on a branch and not deployed; remaining: one create with them, to show it working with no manual step. The design is ADR-0016's (collector to Application Insights). |
+| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | EPIC-OBSERVABILITY | In progress | steps 1 to 5 and 7 built; step 6 run twice: build 120 (2026-11-23) exported nothing as deployed (the collector's short name did not resolve, register 237; `docs/evidence/WI-OBS-001/dev-tracing-2026-11-22.md`), and **build 123 (a fresh create with the fix) shows tracing working with no manual step** and the chaos traces across the four apps, web span included (`docs/evidence/WI-OBS-001/dev-tracing-2026-11-23.md`). Remaining: the fourth chaos trace (the outage) in a pipeline run, which needs the observe-stage fixes of register 236 (on a branch), and the teardown with its record. The design is ADR-0016's (collector to Application Insights). |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/sla.md` |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/evidence/runbook-event-broker-2026-10-30.md`; the runbook is `docs/operations/runbooks/event-broker-unavailable-during-checkout.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
@@ -241,7 +241,7 @@ Accepted: 23 · Superseded: 1
 | Item status | Count |
 |---|---|
 | Deferred | 15 |
-| Resolved | 128 |
+| Resolved | 129 |
 | Accepted | 8 |
 | Tracking | 14 |
-| Open | 75 |
+| Open | 74 |
