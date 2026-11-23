@@ -78,6 +78,25 @@ test('the list shows each listing with its price, status, stock and when it chan
   await expect(row(page, 'Almond Croissant')).toBeVisible();
 });
 
+test('a slow answer to an earlier filter never replaces the list of the filter now chosen (register 239)', async ({
+  page,
+}) => {
+  await openListings(page, [croissant(), loaf()]);
+  await page.route('**/api/graphql', async (route) => {
+    if ((route.request().postData() ?? '').includes('"status":"PUBLISHED"'))
+      await new Promise((r) => setTimeout(r, 1500));
+    await route.continue();
+  });
+
+  await page.getByRole('radio', { name: 'Published' }).check();
+  await page.getByRole('radio', { name: 'Drafts' }).check();
+  await expect(row(page, 'Country Sourdough')).toBeVisible();
+
+  await page.waitForTimeout(2200); // the Published answer has arrived by now
+  await expect(page.getByTestId('listing-row')).toHaveCount(1);
+  await expect(row(page, 'Country Sourdough')).toBeVisible();
+});
+
 test('the list is paged', async ({ page }) => {
   const many = Array.from({ length: 23 }, (_, i) =>
     loaf({ id: listingId(`listing-${String(i).padStart(3, '0')}`), name: `Loaf ${String(i).padStart(2, '0')}` }),
@@ -197,6 +216,23 @@ test('publish from the list saves only the status, with the edit version, and ke
   expect(w?.variables.input?.['status']).toBe('PUBLISHED');
   expect(w?.variables.input?.['stock']).toBeNull();
   expect(w?.variables.input?.['name']).toBe('Country Sourdough');
+});
+
+test('a publish that finds the listing changed refreshes only its row, and the pages already loaded stay (register 239)', async ({
+  page,
+}) => {
+  const many = Array.from({ length: 23 }, (_, i) =>
+    loaf({ id: listingId(`listing-${String(i).padStart(3, '0')}`), name: `Loaf ${String(i).padStart(2, '0')}` }),
+  );
+  await openListings(page, many);
+  await page.getByTestId('listings-more').click();
+  await expect(page.getByTestId('listing-row')).toHaveCount(23);
+  await changeListingElsewhere({ id: listingId('listing-022'), edit: { name: 'Loaf 22 (from the other tab)' } });
+
+  await page.getByRole('button', { name: 'Publish Loaf 22' }).click();
+
+  await expect(row(page, 'Loaf 22 (from the other tab)')).toBeVisible();
+  await expect(page.getByTestId('listing-row')).toHaveCount(23);
 });
 
 test('an unverified vendor’s publish says the shop must be verified, and the listing stays a draft', async ({

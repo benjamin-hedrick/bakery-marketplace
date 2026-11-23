@@ -134,6 +134,32 @@ export function newOptionId(random: () => number = Math.random): string {
     .padStart(8, '0')}`;
 }
 
+/**
+ * The key of one create page (WI-CAT-007 requirement 5): a random UUID. `crypto.randomUUID` exists only in a secure context (https or localhost), so a
+ * vendor screen opened over plain http at a LAN address would crash on it (register 239); `getRandomValues` works there, so it is the fallback.
+ */
+export function newCreateKey(
+  source: Pick<Crypto, 'getRandomValues'> & Partial<Pick<Crypto, 'randomUUID'>> = globalThis.crypto,
+): string {
+  if (typeof source.randomUUID === 'function') return source.randomUUID();
+  const b = source.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6]! & 0x0f) | 0x40; // version 4
+  b[8] = (b[8]! & 0x3f) | 0x80; // variant 10
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+/**
+ * What the vendor is told after an adjustment. "Sold out" removes the count the screen showed, as one adjustment (ADR-0017: the screen never sends a
+ * count it read earlier as the new count), so when units were added after the screen read it the listing is not at zero and the message says so
+ * (register 239).
+ */
+export function adjustedMessage(name: string, left: number, soldOutAsked: boolean): string {
+  return soldOutAsked && left > 0
+    ? `${name}: ${left} left. Units were added after this screen read the count, so Sold out did not reach zero. Press Sold out again to clear the rest.`
+    : `${name}: ${left} left.`;
+}
+
 /** The form for a loaded listing: every field it had, so a save sends them all back (a missing options list would remove the options). */
 export function formFromListing(l: LoadedListing): ListingForm {
   const counted = l.stock.availableQuantity !== null && l.stock.availableQuantity !== undefined;

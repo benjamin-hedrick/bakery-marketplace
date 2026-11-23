@@ -11,6 +11,7 @@ import {
   formFromListing,
   groupProblems,
   LISTING_TEXT,
+  newCreateKey,
   newOptionId,
   toInput,
   type ListingForm,
@@ -138,7 +139,7 @@ export function ListingEditor({ id }: { id: string | null }) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [stockMessage, setStockMessage] = useState('');
   // One key for this create page (requirement 6): every attempt of this create sends it. A new key comes only with a new, empty page.
-  const [createKey] = useState(() => crypto.randomUUID());
+  const [createKey] = useState(() => newCreateKey());
   const sentWithKey = useRef<string[]>([]);
   const alertRef = useRef<HTMLDivElement>(null);
 
