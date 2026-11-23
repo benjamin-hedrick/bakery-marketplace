@@ -84,7 +84,7 @@ The checkout reserved the stock, the payment answer was lost (503), and the rese
 
 ## What changed in the repository because of this
 
-- The apps' endpoint and the collector's ingress in `infra/modules/environment/main.tf` (plan tests assert both; **the Terraform checks have not been run**: Docker was not running).
+- The apps' endpoint and the collector's ingress in `infra/modules/environment/main.tf` (plan tests assert both; the Terraform checks, including those plan tests against the mocked provider, passed afterwards, 11 of 11; the change itself has not been applied to Azure).
 - The web server's `/api/graphql` span (`packages/web-session`, unit tests pass).
 - The observe stage waits for the console log as it does for spans, and says `NO SPANS` and exits 1 when tracing is on and no smoke id has a span.
 - Register 237 (this finding), and an update to 236.
