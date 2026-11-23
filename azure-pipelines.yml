@@ -61,6 +61,66 @@ jobs:
       - script: node scripts/docs/traceability.mjs --check
         displayName: Traceability table is current (fix with node scripts/docs/traceability.mjs)
 
+  # Dependency audit (WI-SEC-006, register 162 point 3; the script and its policy are in scripts/ci/dependency-audit.mjs): npm audit of the seven npm
+  # projects, NuGet vulnerable and deprecated packages, and the SBOMs. STEP 1, NON-BLOCKING: the audit step is marked continueOnError, so a finding
+  # or a step that could not run shows as "succeeded with issues" and does not fail the pipeline. The lead makes it blocking (remove continueOnError
+  # from the audit step) after it has run green a few times. The summary and the tools' raw output are published as the dependency-audit artifact.
+  - job: audit
+    displayName: Dependency audit (npm and NuGet advisories, SBOMs; non-blocking, WI-SEC-006 step 1)
+    steps:
+      - checkout: self
+      - task: UseDotNet@2
+        displayName: .NET 10 SDK (the audit lists the solution's packages)
+        inputs:
+          version: '10.0.x'
+      - task: UseNode@1
+        displayName: Node $(NODE_VERSION)
+        inputs:
+          version: $(NODE_VERSION)
+      - script: dotnet restore BakeryMarketplace.slnx
+        displayName: Restore NuGet packages (the package listing needs them)
+      - script: |
+          set -e
+          for dir in packages/web-session packages/chaos packages/customer-core apps/web-customer apps/web-queue-display apps/mobile-customer services/graphql-bff; do
+            (cd "$dir" && npm ci)
+          done
+        displayName: Install every npm project (the audit reads each project's lockfile and tree)
+      - script: node scripts/ci/dependency-audit.mjs --out $(Build.ArtifactStagingDirectory)/dependency-audit
+        displayName: Audit (exit 1 = a high or critical production advisory or a vulnerable NuGet package, 2 = a step could not run)
+        continueOnError: true
+      - task: PublishPipelineArtifact@1
+        displayName: Publish the audit's summary, SBOMs and raw output
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)/dependency-audit
+          artifact: dependency-audit
+
+  # Container image scan (WI-SEC-007, register 240 decision 3; the script, the Trivy digest and the exit codes are in scripts/ci/image-scan.mjs): the six
+  # images the dev stack deploys, built here one at a time, and the images Compose pulls, scanned with Trivy in Docker. NON-BLOCKING, as the audit job
+  # above: the scan step is marked continueOnError, so a finding shows as "succeeded with issues". Whether it blocks is the lead's decision after the
+  # findings of register 240 are dealt with. The summary is published as the image-scan artifact (the raw JSON is large and is not published).
+  - job: images
+    displayName: Container image scan (Trivy; non-blocking, WI-SEC-007)
+    timeoutInMinutes: 90
+    steps:
+      - checkout: self
+      - task: UseNode@1
+        displayName: Node $(NODE_VERSION)
+        inputs:
+          version: $(NODE_VERSION)
+      - script: node scripts/ci/image-scan.mjs --out $(Build.ArtifactStagingDirectory)/image-scan
+        displayName: Build the deployed images and scan them all (exit 1 = a high or critical finding with a fix, 2 = an image could not be scanned)
+        continueOnError: true
+      - script: rm -rf $(Build.ArtifactStagingDirectory)/image-scan/raw
+        displayName: Leave out the raw Trivy output (large)
+        condition: succeededOrFailed()
+      - task: PublishPipelineArtifact@1
+        displayName: Publish the scan summary
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)/image-scan
+          artifact: image-scan
+
   # Terraform and script checks (ADR-0020, WI-DEP-001). No Azure account and no credential: the Terraform tests mock the provider, and the
   # script tests read fixtures. It proves the code is well formed and does what its tests say, not that Azure accepts it (that is the gated
   # plan, later). The Terraform steps run in the pinned hashicorp/terraform image (Docker is on the hosted agent). Written 2026-10-31,

@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { builtImages, exitCodeFor, pulledImages, renderSummary, summarize, TRIVY_IMAGE } from '../image-scan.mjs';
+import {
+  builtImages,
+  exitCodeFor,
+  pulledImages,
+  renderSummary,
+  summarize,
+  TRIVY_IMAGE,
+  withPull,
+} from '../image-scan.mjs';
 
 // WI-SEC-007: the exit-code logic and the reading of Trivy's report, on canned reports (no Docker, no network).
 
@@ -99,6 +107,12 @@ describe('the images', () => {
       },
     };
     assert.deepEqual(pulledImages(config), ['jaegertracing/jaeger:2.22.0', 'redis:7.4-alpine']);
+  });
+
+  test('every scan build pulls its base images fresh, and the rest of the build arguments are untouched', () => {
+    const args = withPull(['build', '--file', 'x/Dockerfile', '.']);
+    assert.deepEqual(args, ['build', '--pull', '--file', 'x/Dockerfile', '.']);
+    assert.throws(() => withPull(['run', 'x']), /not a docker build/);
   });
 
   test('Trivy is pinned by digest', () => {
