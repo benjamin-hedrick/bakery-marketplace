@@ -1428,6 +1428,13 @@ Build 120 ran with `dev-chaos` and tracing on; all 16 tests passed, but Applicat
 Fix on the branch: the apps use the full address, derived from the environment's default domain like the other apps' addresses, and the collector's ingress allows plain http; the plan tests assert both. The observe stage's handling of an empty result is its own item below.
 Reconciled when a fresh create with the fix shows spans without any manual change, then record the build here.
 
+**238. The DEV teardown's emptiness check fails on the Smart Detection action group, which Azure creates and Terraform does not own**
+Type: Surprise (defect found in a deployed run) · Source: the DEV teardown after build 120 (2026-11-23), `WI-DEP-001` · Hat: Engineering
+Status: Open (fix committed, not run on Azure; the leftover is still in `rg-bakery-dev` until the lead approves its deletion)
+The destroy finished, then `destroy_apply` failed: `Resources are left in rg-bakery-dev after the destroy: microsoft.insights/actiongroups Application Insights Smart Detection`. Azure makes that action group in the resource group when the first Application Insights resource is created (tracing, `WI-OBS-001`), so it is not in the state and no destroy removes it. It stayed listed for the whole 10-minute check, so it is not list lag. Read from the lead's sign-in on 2026-11-23: it is the only resource in the group, with the default Monitoring Contributor and Monitoring Reader role receivers and no email, SMS or webhook receivers.
+Fix: the emptiness check's query leaves out that one type and name (`environment-stages.yml`, `destroy_apply`); anything else still fails the check. A test in `scripts/ci/tests/pipeline-structure.test.mjs` pins the query. The query was run against the live group and returned nothing. Not yet run in a pipeline.
+Reconciled when a teardown of an environment with tracing ends with the check passing, and the leftover has been deleted by hand once.
+
 **239. A code review of the merged `WI-CAT-007` and `WI-CAT-008` found five real defects in the vendor's listing screens and one that did not hold**
 Type: Surprise (defects found in a review of merged work) · Source: `/code-review high` of `7dd5dcf^..46b67cf` on 2026-11-23, read by the agent and then confirmed one by one · Hat: Engineering
 Status: Open (fixed on `feature/hardening-and-review-fixes`, not pushed); waiting for the lead's review of the branch

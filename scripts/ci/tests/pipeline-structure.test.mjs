@@ -474,6 +474,12 @@ describe('the stage template (pipelines/templates/environment-stages.yml)', () =
       /for attempt in \$\(seq 1 \d+\); do\s+left=\$\(az resource list[^\n]*\n\s+if \[ -z "\$left" \] \|\| \[ "\$attempt" -eq \d+ \]; then break; fi[\s\S]*?sleep \d+\s+done\s+if \[ -n "\$left" \]; then/,
       'the emptiness check retries before it fails',
     );
+    // Azure makes this action group itself when Application Insights is created; no destroy can remove it, so only it is ignored.
+    assert.match(
+      s,
+      /--query "\[\?!\(type=='microsoft\.insights\/actiongroups' && name=='Application Insights Smart Detection'\)\]\.\{type:type, name:name\}"/,
+      'the emptiness check ignores only the platform-made Smart Detection action group',
+    );
   });
 
   test("the rehearsal's destroy guard runs on each environment's own fixture plan, which the real guard passes", () => {

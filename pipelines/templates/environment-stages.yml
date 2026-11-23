@@ -636,9 +636,11 @@ stages:
                               rm -f infra/environments/${{ parameters.environmentName }}/tfplan
                               # Azure's resource list lags a delete: the first real teardown (2026-11-20) still listed the Log Analytics
                               # workspace just after Terraform had deleted it, and the group was empty minutes later. Ask again for up to
-                              # 10 minutes before failing; anything still listed then is a real leftover.
+                              # 10 minutes before failing; anything still listed then is a real leftover. One resource is ignored: Azure
+                              # itself creates the "Application Insights Smart Detection" action group in the group when the first Application
+                              # Insights resource is made (second real teardown, 2026-11-23); Terraform never owned it, so no destroy removes it.
                               for attempt in $(seq 1 20); do
-                                left=$(az resource list -g "$(RESOURCE_GROUP)" --query "[].{type:type, name:name}" -o tsv)
+                                left=$(az resource list -g "$(RESOURCE_GROUP)" --query "[?!(type=='microsoft.insights/actiongroups' && name=='Application Insights Smart Detection')].{type:type, name:name}" -o tsv)
                                 if [ -z "$left" ] || [ "$attempt" -eq 20 ]; then break; fi
                                 echo "Still listed in $(RESOURCE_GROUP) (check $attempt of 20); asking again in 30 seconds:"; echo "$left"
                                 sleep 30
