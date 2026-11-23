@@ -101,7 +101,8 @@ Of 56 work items marked Done: 30 are named by a test file, 21 by an evidence rec
 | [SEC-003](WI-SEC-003.md) | Fail-fast startup validation for missing/malformed secrets | Done | *none* | *none* |
 | [SEC-004](WI-SEC-004.md) | Pipeline security checks and Terraform validation | In progress | *none* | `README.md`, `dependency-audit-2026-11-07.md`, `ai-usage-2026-11-07-b.md` and 2 more |
 | [SEC-005](WI-SEC-005.md) | Threat model, fuzz and property tests, load and soak, a dynamic scan, and a review statement (register item 129) | In review | `security-headers.spec.ts`, `security-headers.spec.ts`, `fuzz.test.ts` and 3 more | `README.md`, `fuzz-2026-11-02.md`, `load-soak-2026-11-03.md` and 2 more |
-| [SEC-007](WI-SEC-007.md) | A container image scan: a local script that runs Trivy in Docker, run once and recorded | In review | `image-scan.test.mjs` | `image-scan-2026-11-23.md` |
+| [SEC-006](WI-SEC-006.md) | The dependency audit as a pipeline job, non-blocking first, then blocking | In progress | `pipeline-structure.test.mjs` | `image-scan-2026-11-23.md` |
+| [SEC-007](WI-SEC-007.md) | A container image scan: a local script that runs Trivy in Docker, run once and recorded | In review | `image-scan.test.mjs`, `pipeline-structure.test.mjs` | `image-scan-2026-11-23.md` |
 | [SRCH-001](WI-SRCH-001.md) | Matching listings against the customer's allergen profile (browse, detail, cart check) | In review | `personalized.spec.ts`, `ConflictMatcherTests.cs`, `PersonalizedListingApiTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [TAG-001](WI-TAG-001.md) | The tag registry and the closed allergen list | In review | `tags.spec.ts`, `TagApiTests.cs`, `TagRegistryTests.cs` and 1 more | `ai-usage-2026-11-04.md` |
 | [TAG-002](WI-TAG-002.md) | Tags on listings and options: vendor assignment, visibility, display | In review | `tags.spec.ts`, `listing-tags.spec.ts`, `TagAssignmentApiTests.cs` and 2 more | `ai-usage-2026-11-04.md` |

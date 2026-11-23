@@ -29,6 +29,9 @@ COPY --from=build /repo/packages/chaos /repo/packages/chaos
 COPY chaos/scenarios /repo/chaos/scenarios
 COPY --from=build /repo/packages/customer-core /repo/packages/customer-core
 COPY --from=build /repo/services/graphql-bff/schema /repo/services/graphql-bff/schema
+# The build stage installed and built with npm; this stage only runs node (CMD below), so npm is removed: its bundled packages (undici,
+# brace-expansion) carried high findings with fixes in the first image scan (register 240), and the base image has no newer npm.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 EXPOSE 3000
 USER node
 CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3000"]
