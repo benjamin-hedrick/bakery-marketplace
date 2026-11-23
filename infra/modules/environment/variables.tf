@@ -257,3 +257,17 @@ variable "budget_contact_emails" {
   default     = []
   nullable    = false
 }
+
+variable "otel_collector_version" {
+  type        = string
+  description = "The tag of the OpenTelemetry collector contrib image the tracing collector runs (docker.io/otel/opentelemetry-collector-contrib). The version docker-compose.yml pins and cloud.yaml was validated with; change them together."
+  default     = "0.164.0"
+  nullable    = false
+}
+
+variable "tracing" {
+  type        = bool
+  description = "Whether the environment sends traces to Application Insights through an OpenTelemetry collector (WI-OBS-001, ADR-0016): an Application Insights resource on the environment's Log Analytics workspace, a collector app (internal, always on), a Key Vault secret for the connection string, and the endpoint on the four apps. Off, none of it exists and the apps export nothing, as before. Default off so a stack that has not asked for it is unchanged; the dev root turns it on."
+  default     = false
+  nullable    = false
+}

@@ -508,3 +508,84 @@ run "a_scenario_must_be_a_plain_name" {
 
   expect_failures = [var.chaos_scenario]
 }
+
+run "by_default_there_is_no_tracing_and_no_app_exports" {
+  command = plan
+
+  override_resource {
+    target          = azurerm_container_app_environment.env
+    override_during = plan
+    values = {
+      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/managedEnvironments/cae-bakery-dev"
+      default_domain = "test.example.io"
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_application_insights.tracing) == 0 && length(azurerm_container_app.otel_collector) == 0
+    error_message = "Without tracing there is no Application Insights resource and no collector."
+  }
+  assert {
+    condition     = length(azurerm_key_vault_secret.placeholder) == 3
+    error_message = "Without tracing there is no Application Insights secret."
+  }
+  assert {
+    condition = alltrue([
+      for k in ["catalog", "ordering", "bff", "web"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if startswith(e.name, "OTEL_")]) == 0
+    ])
+    error_message = "Without tracing, no app may name an OTLP endpoint (the services export only when one is set)."
+  }
+}
+
+run "with_tracing_a_collector_holds_the_connection_string_and_every_app_names_it" {
+  command = plan
+
+  variables {
+    tracing = true
+  }
+
+  override_resource {
+    target          = azurerm_container_app_environment.env
+    override_during = plan
+    values = {
+      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-bakery-dev/providers/Microsoft.App/managedEnvironments/cae-bakery-dev"
+      default_domain = "test.example.io"
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_application_insights.tracing) == 1 && azurerm_application_insights.tracing[0].application_type == "other"
+    error_message = "Tracing creates one Application Insights resource."
+  }
+  assert {
+    condition     = contains(keys(azurerm_key_vault_secret.placeholder), "appinsights-connection-string") && azurerm_key_vault_secret.placeholder["appinsights-connection-string"].value == null
+    error_message = "The connection string is a Key Vault secret created with the write-only placeholder, so it is never in the state."
+  }
+  assert {
+    condition     = azurerm_container_app.otel_collector[0].ingress[0].external_enabled == false && azurerm_container_app.otel_collector[0].template[0].min_replicas == 1
+    error_message = "The collector is internal and always on (spans sent while it woke from zero would be lost)."
+  }
+  assert {
+    condition     = alltrue([for e in azurerm_container_app.otel_collector[0].template[0].container[0].env : e.value == null || !strcontains(e.value, "InstrumentationKey")])
+    error_message = "No connection string may appear in the collector's settings; it comes from the Key Vault secret."
+  }
+  assert {
+    condition     = length([for e in azurerm_container_app.otel_collector[0].template[0].container[0].env : e if e.name == "APPLICATIONINSIGHTS_CONNECTION_STRING" && e.secret_name == "appinsights-connection-string"]) == 1
+    error_message = "The collector reads the connection string from its secret."
+  }
+  assert {
+    condition = alltrue([
+      for k in ["catalog", "ordering"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if(e.name == "OTEL_EXPORTER_OTLP_ENDPOINT" && e.value == "http://otel-collector") || (e.name == "OTEL_EXPORTER_OTLP_PROTOCOL" && e.value == "http/protobuf")]) == 2
+    ])
+    error_message = "The C# services need the endpoint and http/protobuf; with the endpoint alone they export nothing."
+  }
+  assert {
+    condition = alltrue([
+      for k in ["bff", "web"] :
+      length([for e in azurerm_container_app.apps[k].template[0].container[0].env : e if e.name == "OTEL_EXPORTER_OTLP_ENDPOINT" && e.value == "http://otel-collector"]) == 1
+    ])
+    error_message = "The BFF and the web app name the collector."
+  }
+}

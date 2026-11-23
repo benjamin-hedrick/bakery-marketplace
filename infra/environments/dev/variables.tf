@@ -85,3 +85,9 @@ variable "cache_redis" {
   type    = bool
   default = null
 }
+
+# WI-OBS-001: traces to Application Insights through the collector. On in dev by default; there is no pipeline input for it yet.
+variable "tracing" {
+  type    = bool
+  default = true
+}

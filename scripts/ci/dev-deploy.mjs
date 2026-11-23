@@ -27,6 +27,9 @@ export const PLACEHOLDER = 'mcr.microsoft.com/k8se/quickstart:latest';
 /** The order of the updates: the issuer first, then the services, the BFF and the web app (each only reaches the ones before it). */
 export const ORDER = ['mock-oidc', 'catalog', 'ordering', 'graphql-bff', 'web'];
 
+/** The tracing collector app (WI-OBS-001), present only in a stack with tracing; restarted for its secret, never given an image. */
+export const COLLECTOR = 'otel-collector';
+
 /** The container app jobs, run once per deploy before the apps are updated: the seed (register 224). */
 export const JOBS = ['seed'];
 
@@ -171,6 +174,33 @@ export function deploy(
   }
 
   // The seed first: the apps' new revisions then find the data, and the catalog applies the seed's VendorVerified events when it starts.
+  /** Waits until a new revision of an app is provisioned; a failed or a late one stops the deploy. */
+  const waitProvisioned = (app, revision) => {
+    const deadline = clock.now() + timeoutMs;
+    for (;;) {
+      const state = az([
+        'containerapp',
+        'revision',
+        'show',
+        '--name',
+        app,
+        '--resource-group',
+        resourceGroup,
+        '--revision',
+        revision,
+        '--query',
+        'properties.provisioningState',
+        '--output',
+        'tsv',
+      ]).trim();
+      if (state === 'Provisioned') return;
+      if (state === 'Failed') throw new Error(`${app}: revision ${revision} failed to provision`);
+      if (clock.now() >= deadline)
+        throw new Error(`${app}: revision ${revision} still ${state || 'unknown'} after ${timeoutMs / 1000} s`);
+      clock.wait(pollMs);
+    }
+  };
+
   const jobs = [];
   if (!seed) log(`${JOBS.join(', ')}: not run (this run's seed input is off)`);
   for (const job of seed ? JOBS : []) {
@@ -232,34 +262,44 @@ export function deploy(
     jobs.push({ job, before: current[job].image, beforeBuild: current[job].build ?? null, image, execution });
   }
 
+  // The tracing collector (WI-OBS-001), when the stack has one: it starts from Terraform with the placeholder Application Insights secret, and a
+  // revision reads its Key Vault secrets only when it starts, so it gets a new revision now that the secrets step has set the real one. It is not
+  // updated to an image (it runs a public image Terraform pins). Before the apps, so they have somewhere to send their first spans.
+  let collector = null;
+  const present = az([
+    'containerapp',
+    'list',
+    '--resource-group',
+    resourceGroup,
+    '--query',
+    `[?name=='${COLLECTOR}'].name`,
+    '--output',
+    'tsv',
+  ]).trim();
+  if (present === COLLECTOR) {
+    az([
+      'containerapp',
+      'update',
+      '--name',
+      COLLECTOR,
+      '--resource-group',
+      resourceGroup,
+      '--revision-suffix',
+      suffix,
+      '--output',
+      'none',
+    ]);
+    collector = { app: COLLECTOR, revision: `${COLLECTOR}--${suffix}` };
+    waitProvisioned(COLLECTOR, collector.revision);
+    log(`${COLLECTOR}: revision ${collector.revision} provisioned (reads its secret again)`);
+  } else log(`${COLLECTOR}: not in this environment (no tracing); nothing to restart`);
+
   const deployed = [];
   for (const app of ORDER) {
     const image = record.images.find((i) => i.app === app).image;
     az(updateArgs(app, resourceGroup, image, suffix));
     const revision = `${app}--${suffix}`;
-    const deadline = clock.now() + timeoutMs;
-    for (;;) {
-      const state = az([
-        'containerapp',
-        'revision',
-        'show',
-        '--name',
-        app,
-        '--resource-group',
-        resourceGroup,
-        '--revision',
-        revision,
-        '--query',
-        'properties.provisioningState',
-        '--output',
-        'tsv',
-      ]).trim();
-      if (state === 'Provisioned') break;
-      if (state === 'Failed') throw new Error(`${app}: revision ${revision} failed to provision`);
-      if (clock.now() >= deadline)
-        throw new Error(`${app}: revision ${revision} still ${state || 'unknown'} after ${timeoutMs / 1000} s`);
-      clock.wait(pollMs);
-    }
+    waitProvisioned(app, revision);
     log(`${app}: revision ${revision} provisioned, ${image}`);
     deployed.push({ app, before: current[app].image, beforeBuild: current[app].build ?? null, image, revision });
   }
@@ -281,7 +321,7 @@ export function deploy(
     if (!/^[a-z0-9.-]+$/.test(fqdn)) throw new Error(`${app}: no public address (${fqdn || 'none'})`);
     urls[app] = `https://${fqdn}`;
   }
-  return { build: record.tag, revision: record.revision, deployedAt, seeded: seed, jobs, deployed, urls };
+  return { build: record.tag, revision: record.revision, deployedAt, seeded: seed, jobs, collector, deployed, urls };
 }
 
 function main() {

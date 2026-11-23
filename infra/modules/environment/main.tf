@@ -26,8 +26,11 @@ locals {
   # Terraform creates each with a placeholder through the write-only value_wo, which is never stored and never read back, so the real value a
   # pipeline step sets later with "az keyvault secret set" stays out of the state. Other secrets do reach the state (the Cosmos account's keys,
   # the Log Analytics shared keys): docs/architecture/secrets-and-sensitive-values.md.
-  placeholder_secrets = toset(["cosmos-connection-string", "ordering-client-secret", "session-encryption-key"])
-  placeholder_value   = "set-after-apply"
+  placeholder_secrets = toset(concat(
+    ["cosmos-connection-string", "ordering-client-secret", "session-encryption-key"],
+    var.tracing ? ["appinsights-connection-string"] : [],
+  ))
+  placeholder_value = "set-after-apply"
 
   # Addresses are known before anything is created: an app's public name is <app>.<environment default domain>. In mock mode the issuer
   # addresses are derived from the mock issuer app, so there is nothing to type and no chicken-and-egg with the first apply.
@@ -53,6 +56,16 @@ locals {
 
   # The listing cache (ADR-0002, WI-CAT-003): the cache Redis below when the environment has it, otherwise the catalog's in-process cache
   # (var.cache_redis, register 216 option d). With the cache Redis unreachable the catalog serves from its in-process fallback anyway.
+  # Tracing (WI-OBS-001, ADR-0016): every app sends OTLP over http to the collector, which holds the Application Insights connection string. The C#
+  # services export nothing unless the protocol is http/protobuf as well as the endpoint (register 36 and docs/evidence/slice-1/findings.md); the
+  # two Node apps append /v1/traces to the endpoint themselves.
+  otel_endpoint = "http://otel-collector"
+  dotnet_tracing = var.tracing ? {
+    OTEL_EXPORTER_OTLP_ENDPOINT = local.otel_endpoint
+    OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf"
+  } : {}
+  node_tracing = var.tracing ? { OTEL_EXPORTER_OTLP_ENDPOINT = local.otel_endpoint } : {}
+
   catalog_cache = var.cache_redis ? {
     Cache__Backend                 = "redis"
     Cache__Redis__ConnectionString = "redis-cache:6380"
@@ -78,14 +91,14 @@ locals {
       name     = "catalog"
       port     = 5200
       external = false
-      env      = merge(local.dotnet_env, local.dotnet_chaos, local.catalog_cache)
+      env      = merge(local.dotnet_env, local.dotnet_chaos, local.dotnet_tracing, local.catalog_cache)
       secrets  = { "cosmos-connection-string" = "Cosmos__ConnectionString" }
     }
     ordering = {
       name     = "ordering"
       port     = 5300
       external = false
-      env = merge(local.dotnet_env, local.dotnet_chaos, {
+      env = merge(local.dotnet_env, local.dotnet_chaos, local.dotnet_tracing, {
         Catalog__BaseUrl           = "http://catalog"
         ServiceAuth__TokenEndpoint = local.token_endpoint
         ServiceAuth__ClientId      = var.service_auth_client_id
@@ -100,7 +113,7 @@ locals {
       name     = "graphql-bff"
       port     = 4100
       external = false
-      env = merge(local.node_chaos, {
+      env = merge(local.node_chaos, local.node_tracing, {
         CATALOG_URL  = "http://catalog"
         ORDERING_URL = "http://ordering"
         # Names the environment for chaos scenarios (ADR-0024): the image sets NODE_ENV=production everywhere, so this is what allows a scenario here.
@@ -112,7 +125,7 @@ locals {
       name     = "web"
       port     = 3000
       external = true
-      env = merge(local.node_chaos, {
+      env = merge(local.node_chaos, local.node_tracing, {
         GRAPHQL_URL    = "http://graphql-bff/graphql"
         AUTH_ISSUER    = local.web_issuer
         AUTH_CLIENT_ID = var.web_auth_client_id
@@ -444,6 +457,81 @@ resource "azurerm_container_app" "redis_sessions" {
   }
 }
 
+# ---- Tracing (WI-OBS-001, ADR-0016): Application Insights behind an OpenTelemetry collector ----------------------------------------------
+# Workspace-based Application Insights on the environment's Log Analytics workspace (so it shares the workspace's 0.5 GB a day cap and 30 days of
+# retention, and goes with the environment). The apps send OTLP to the collector; only the collector knows the connection string, which is a Key Vault
+# secret like the others: Terraform creates it with a placeholder and the post-apply step (scripts/ci/dev-secrets.mjs) reads the real one from this
+# resource, so it is never in the state. The collector's secret is read when a revision starts, so the application deploy starts a new revision of the
+# collector after the secrets are set (scripts/ci/dev-deploy.mjs).
+resource "azurerm_application_insights" "tracing" {
+  count               = var.tracing ? 1 : 0
+  name                = "appi-${var.name_prefix}-${var.environment}"
+  resource_group_name = local.rg
+  location            = local.location
+  workspace_id        = azurerm_log_analytics_workspace.logs.id
+  application_type    = "other"
+  tags                = local.tags
+}
+
+# The collector: the contrib distribution (it has the azure_monitor exporter, Beta for traces; checked in 0.164.0, the version docker-compose pins),
+# configured from infra/otel-collector/cloud.yaml, which is passed in an environment variable (--config=env:...) so no image of our own is built and no
+# file is mounted. The config holds no secret: it names ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}. Internal only; always on, because spans sent while
+# it woke from zero would be lost. One replica: the volume is a smoke run's.
+resource "azurerm_container_app" "otel_collector" {
+  count                        = var.tracing ? 1 : 0
+  name                         = "otel-collector"
+  resource_group_name          = local.rg
+  container_app_environment_id = azurerm_container_app_environment.env.id
+  revision_mode                = "Single"
+  workload_profile_name        = "Consumption" # what Azure assigns anyway (see the environment); unset, every plan would try to remove it
+  tags                         = local.tags
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.app_identity_id]
+  }
+
+  secret {
+    name                = "appinsights-connection-string"
+    identity            = var.app_identity_id
+    key_vault_secret_id = azurerm_key_vault_secret.placeholder["appinsights-connection-string"].versionless_id
+  }
+
+  ingress {
+    external_enabled = false
+    target_port      = 4318 # OTLP over http; the apps reach it at http://otel-collector
+    transport        = "http"
+
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
+  }
+
+  template {
+    min_replicas = 1
+    max_replicas = 1
+
+    container {
+      name   = "otel-collector"
+      image  = "docker.io/otel/opentelemetry-collector-contrib:${var.otel_collector_version}"
+      cpu    = 0.25
+      memory = "0.5Gi"
+      args   = ["--config=env:OTEL_COLLECTOR_CONFIG"]
+
+      env {
+        name  = "OTEL_COLLECTOR_CONFIG"
+        value = file("${path.module}/../../otel-collector/cloud.yaml")
+      }
+
+      env {
+        name        = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        secret_name = "appinsights-connection-string"
+      }
+    }
+  }
+}
+
 resource "azurerm_container_app" "apps" {
   for_each                     = local.apps
   name                         = each.value.name
@@ -525,7 +613,7 @@ resource "azurerm_container_app" "apps" {
     ignore_changes = [template[0].container[0].image]
   }
 
-  depends_on = [azurerm_container_app.redis, azurerm_container_app.redis_cache, azurerm_container_app.redis_sessions, azurerm_container_app.mock]
+  depends_on = [azurerm_container_app.redis, azurerm_container_app.redis_cache, azurerm_container_app.redis_sessions, azurerm_container_app.mock, azurerm_container_app.otel_collector]
 }
 
 # ---- The seed job (register item 224; decided by the lead 2026-11-20) -------------------------------------------------------------------
