@@ -80,7 +80,7 @@ describe('azure-pipelines.yml (the pull-request checks)', () => {
     const job = text.slice(start, next < 0 ? undefined : next);
     assert.match(
       job,
-      /- script: node scripts\/ci\/image-scan\.mjs --out \$\(Build\.ArtifactStagingDirectory\)\/image-scan\n\s+displayName: [^\n]+\n\s+continueOnError: true/,
+      /- script: node scripts\/ci\/image-scan\.mjs --clean --out \$\(Build\.ArtifactStagingDirectory\)\/image-scan\n\s+displayName: [^\n]+\n\s+continueOnError: true/,
       'the scan step is marked continueOnError until the lead makes it blocking',
     );
     assert.match(job, /PublishPipelineArtifact@1[\s\S]*artifact: image-scan/);

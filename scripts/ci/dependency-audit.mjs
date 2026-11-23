@@ -228,7 +228,7 @@ if (sbom) {
   }
 
   const toolDir = path.join(out, 'tools');
-  const tool = path.join(toolDir, isWin ? 'dotnet-cyclonedx.exe' : 'dotnet-cyclonedx');
+  const tool = path.join(toolDir, isWin ? 'dotnet-CycloneDX.exe' : 'dotnet-CycloneDX'); // the shim's name is case-sensitive on Linux (the first Azure run, 2026-11-23, failed on the lower-case name)
   if (!fs.existsSync(tool))
     run('dotnet', ['tool', 'install', '--tool-path', toolDir, 'CycloneDX', '--version', CYCLONEDX_DOTNET], root);
   for (const s of DOTNET_SERVICES) {
