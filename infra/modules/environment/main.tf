@@ -31,6 +31,10 @@ locals {
     var.tracing ? ["appinsights-connection-string"] : [],
   ))
   placeholder_value = "set-after-apply"
+  # The collector starts from Terraform, before the post-apply step sets the real connection string, and its exporter refuses a string that is not in
+  # the connection string format (tried 2026-11-22 against 0.164.0: it exits at start with "invalid format for connection string"). So this one
+  # secret's placeholder is a well-formed string with the all-zero key: it names no real Application Insights resource and ingests nothing.
+  appinsights_placeholder = "InstrumentationKey=00000000-0000-0000-0000-000000000000"
 
   # Addresses are known before anything is created: an app's public name is <app>.<environment default domain>. In mock mode the issuer
   # addresses are derived from the mock issuer app, so there is nothing to type and no chicken-and-egg with the first apply.
@@ -253,7 +257,7 @@ resource "azurerm_key_vault_secret" "placeholder" {
 
   # Write-only: sent on create, never stored in state or a plan, never compared. Raising the version would overwrite the real value with the
   # placeholder, so it stays 1.
-  value_wo         = local.placeholder_value
+  value_wo         = each.key == "appinsights-connection-string" ? local.appinsights_placeholder : local.placeholder_value
   value_wo_version = 1
 
   lifecycle {

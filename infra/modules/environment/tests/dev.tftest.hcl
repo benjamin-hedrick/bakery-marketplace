@@ -563,6 +563,10 @@ run "with_tracing_a_collector_holds_the_connection_string_and_every_app_names_it
     error_message = "The connection string is a Key Vault secret created with the write-only placeholder, so it is never in the state."
   }
   assert {
+    condition     = can(regex("^InstrumentationKey=00000000-0000-0000-0000-000000000000$", local.appinsights_placeholder))
+    error_message = "The collector starts before the real connection string is set, and its exporter exits at start on a string that is not in the connection string format; the placeholder must be well formed and name the all-zero key."
+  }
+  assert {
     condition     = azurerm_container_app.otel_collector[0].ingress[0].external_enabled == false && azurerm_container_app.otel_collector[0].template[0].min_replicas == 1
     error_message = "The collector is internal and always on (spans sent while it woke from zero would be lost)."
   }
