@@ -480,7 +480,7 @@ resource "azurerm_application_insights" "tracing" {
   tags                = local.tags
 }
 
-# The collector: the contrib distribution (it has the azure_monitor exporter, Beta for traces; checked in 0.164.0, the version docker-compose pins),
+# The collector: the contrib distribution (it has the azure_monitor exporter, Beta for traces; checked in 0.164.0 and again in 0.165.0, the version docker-compose pins),
 # configured from infra/otel-collector/cloud.yaml, which is passed in an environment variable (--config=env:...) so no image of our own is built and no
 # file is mounted. The config holds no secret: it names ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}. Internal only; always on, because spans sent while
 # it woke from zero would be lost. One replica: the volume is a smoke run's.

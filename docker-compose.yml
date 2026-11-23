@@ -112,7 +112,7 @@ services:
   # straight to the dashboard; it applies the data-safety processor and fans out. Same shape as DEV/UAT/Prod
   # (infra/otel-collector/cloud.yaml). Host ports differ from the dashboard's so both modes can be tried side by side.
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.164.0
+    image: otel/opentelemetry-collector-contrib:0.165.0
     profiles: ["collector"]
     command: ["--config=/etc/otelcol/${OTEL_COLLECTOR_CONFIG:-local.yaml}"]
     volumes:

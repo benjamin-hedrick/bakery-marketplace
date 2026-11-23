@@ -261,7 +261,7 @@ variable "budget_contact_emails" {
 variable "otel_collector_version" {
   type        = string
   description = "The tag of the OpenTelemetry collector contrib image the tracing collector runs (docker.io/otel/opentelemetry-collector-contrib). The version docker-compose.yml pins and cloud.yaml was validated with; change them together."
-  default     = "0.164.0"
+  default     = "0.165.0"
   nullable    = false
 }
 
