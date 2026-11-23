@@ -119,6 +119,123 @@ describe('observe, with a fake Azure CLI', () => {
     assert.deepEqual(out.failures, []);
   });
 
+  /** A fake az for the trace tests: the span queries answer from `spanRows` (called once per smoke-trace read), everything else is empty. */
+  const traceAz =
+    (spanRows, calls = []) =>
+    (args) => {
+      calls.push(args);
+      if (args[0] === 'containerapp') return 'id\n';
+      if (args[1] === 'metrics') return JSON.stringify({ value: [] });
+      if (args[1] === 'log-analytics') return 'workspace-guid\n';
+      if (args[0] === 'rest') {
+        const { query } = JSON.parse(args[args.indexOf('--body') + 1]);
+        if (query.includes('OperationId in ('))
+          return JSON.stringify({
+            tables: [
+              {
+                columns: ['id', 'spans', 'failed', 'longestMs', 'apps'].map((name) => ({ name })),
+                rows: spanRows().map((i) => [id(i), 3, 0, 20, ['web', 'catalog']]),
+              },
+            ],
+          });
+        return JSON.stringify({ tables: [{ columns: [{ name: 'app' }], rows: [] }] });
+      }
+      throw new Error(args.join(' '));
+    };
+  const run = (az, extra = {}, wait = () => {}) =>
+    observe(
+      {
+        resourceGroup: 'rg',
+        workspace: 'w',
+        start: START,
+        end: END,
+        ids: [id('a'), id('b'), id('c')],
+        traces: true,
+        ...extra,
+      },
+      az,
+      wait,
+    );
+
+  test('with tracing the smoke traces are read again until every id has spans, waiting between reads', () => {
+    const reads = [['a'], ['a', 'b'], ['a', 'b', 'c']];
+    const waits = [];
+    const calls = [];
+    const out = run(
+      traceAz(() => reads.shift() ?? ['a', 'b', 'c'], calls),
+      {},
+      (ms) => waits.push(ms),
+    );
+    assert.equal(out.traceAttempts, 3);
+    assert.deepEqual(waits, [45_000, 45_000]);
+    assert.equal(out.correlation.foundInTraces, 3);
+    assert.equal(out.logs.smokeTraces.length, 3);
+    // the other trace queries ran once, after the waiting
+    const queriesRun = calls.filter((c) => c[0] === 'rest').map((c) => JSON.parse(c[c.indexOf('--body') + 1]).query);
+    assert.equal(queriesRun.filter((q) => q.includes('let chaos')).length, 1);
+    assert.equal(queriesRun.filter((q) => q.includes('countif(Success == false)') && q.includes('itemType')).length, 1);
+    assert.ok(
+      queriesRun.findLastIndex((q) => q.includes('OperationId in (')) <
+        queriesRun.findIndex((q) => q.includes('let chaos')),
+    );
+  });
+
+  test('the wait ends when the count stops growing (ids that never make a span), and when the attempts are used up', () => {
+    const waits = [];
+    const stable = run(
+      traceAz(() => ['a', 'b']),
+      {},
+      (ms) => waits.push(ms),
+    );
+    assert.equal(stable.traceAttempts, 2, 'two reads of the same count');
+    assert.equal(stable.correlation.foundInTraces, 2);
+
+    let n = 0;
+    const never = run(
+      traceAz(() => []),
+      { maxTraceAttempts: 4 },
+      () => n++,
+    );
+    assert.equal(never.traceAttempts, 4);
+    assert.equal(n, 3, 'no wait after the last read');
+    assert.equal(never.correlation.foundInTraces, 0);
+  });
+
+  test('without tracing no span table is queried and nothing waits', () => {
+    const calls = [];
+    const out = run(
+      traceAz(() => [], calls),
+      { traces: false },
+      () => assert.fail('no waiting'),
+    );
+    const text = calls
+      .filter((c) => c[0] === 'rest')
+      .map((c) => c[c.indexOf('--body') + 1])
+      .join('\n');
+    assert.doesNotMatch(text, /AppRequests|AppDependencies/);
+    assert.equal(out.correlation.foundInTraces, undefined);
+    assert.equal(out.traceAttempts, undefined);
+  });
+
+  test('the trace queries keep counts, app names, result codes, durations and ids, never a span name, target, URL or properties', () => {
+    const q = queries(START, END, [id('a')], { traces: true });
+    for (const name of ['spansPerApp', 'failedSpansPerApp', 'chaosTraces', 'smokeTraces']) {
+      assert.match(q[name], /summarize/, name);
+      assert.doesNotMatch(q[name], /\bName\b|\bData\b|\bTarget\b|\bUrl\b|Properties|Message/, name);
+    }
+    assert.match(q.smokeTraces, new RegExp(`OperationId in \\('${id('a')}'\\)`));
+    assert.equal(queries(START, END, []).spansPerApp, undefined, 'not asked for without tracing');
+    assert.equal(queries(START, END, [], { traces: true }).smokeTraces, undefined, 'no ids, no per-trace query');
+    // The chaos join reads the trace id from both journals' lines: .NET "trace=<32 hex>" and Node "traceId":"<32 hex>".
+    const patterns = [...q.chaosTraces.matchAll(/extract\((['"])(.+?)\1, 1, Log_s\)/g)].map((m) => new RegExp(m[2]));
+    const trace = id('d');
+    const found = (line) => patterns.map((p) => p.exec(line)?.[1]).filter(Boolean);
+    assert.ok(found(`chaos injected: layer=payment fault=lost-response key=order-1 trace=${trace}`).includes(trace));
+    assert.ok(
+      found(`{"msg":"chaos injected","layer":"bff-door","fault":"reject","traceId":"${trace}"}`).includes(trace),
+    );
+  });
+
   test('a failed metric or query is recorded and the rest still run', () => {
     const az = (args) => {
       if (args[0] === 'containerapp') return 'id\n';
