@@ -229,8 +229,11 @@ public sealed class ListingService
     public async Task<ListingResult> UpdateAsync(
         ListingDocument existing, long expectedEditVersion, ListingRequest request, CancellationToken ct = default)
     {
+        // The version first (register 239): a form read before another edit is stale whatever it says, and its stock settings may only disagree with the
+        // listing because of that edit, so it must get the version mismatch, not a validation error about settings the vendor did not choose.
         // Whether the listing keeps a count changes only by an edit, which moves the edit version on, so checking the stock settings against the
         // copy read here holds for every retry below: a later copy with another mode fails the version check first.
+        if (existing.EditVersion != expectedEditVersion) return new ListingResult(ListingOutcome.VersionMismatch, existing);
         var errors = Validate(request, currentlyCounted: existing.AvailableQuantity is not null);
         if (errors.Count > 0) return new ListingResult(ListingOutcome.Invalid, Errors: errors);
 

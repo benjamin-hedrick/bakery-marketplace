@@ -288,4 +288,35 @@ public sealed class ListingEditPreconditionTests : IDisposable, IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, (await _anon.EditListingAsync(created.Id, Body(priceCents: 1), editVersion: 1)).StatusCode);
         Assert.Equal(800, (await StoredAsync(created.Id)).PriceCents);
     }
+
+    // ---- register 239: a stale form is a 409 whatever its stock settings say ---------------------------
+
+    [Fact]
+    public async Task AStaleFormThatDisagreesOnCountedIsAVersionMismatch_NotAValidationError()
+    {
+        var created = await CreateAsync(); // made to order, edit version 1
+        var switched = await _vendor.EditListingAsync(created.Id, Body(stock: new { mode = "counted", availableQuantity = 5 }), editVersion: 1);
+        Assert.Equal(HttpStatusCode.OK, switched.StatusCode); // another tab: now counted, edit version 2
+
+        // The stale form (version 1) still says "counted, with a starting quantity".
+        var stale = await _vendor.EditListingAsync(created.Id, Body(priceCents: 900, stock: new { mode = "counted", availableQuantity = 5 }), editVersion: 1);
+
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        Assert.Equal("version_mismatch", (await JsonOf(stale)).GetProperty("code").GetString());
+        Assert.Equal(800, (await StoredAsync(created.Id)).PriceCents);
+    }
+
+    [Fact]
+    public async Task AStaleFormThatLeavesOutTheQuantityOfANowMadeToOrderListingIsAVersionMismatch()
+    {
+        var created = await CreateAsync(new { mode = "counted", availableQuantity = 5 }); // counted, edit version 1
+        var switched = await _vendor.EditListingAsync(created.Id, Body(stock: new { mode = "madeToOrder" }), editVersion: 1);
+        Assert.Equal(HttpStatusCode.OK, switched.StatusCode); // another tab: now made to order, edit version 2
+
+        // The stale form (version 1) says "counted" without a quantity, which a counted listing allows.
+        var stale = await _vendor.EditListingAsync(created.Id, Body(priceCents: 900, stock: new { mode = "counted" }), editVersion: 1);
+
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        Assert.Equal("version_mismatch", (await JsonOf(stale)).GetProperty("code").GetString());
+    }
 }
