@@ -1,4 +1,4 @@
-> **Status:** In progress · the dependency audit and SBOM part is built and run locally (2026-11-07: `scripts/ci/dependency-audit.mjs`, `docs/evidence/WI-SEC-004/`); remaining: `G-E06` (Terraform validate and plan of the Key Vault module), a pipeline job for the audit (needs the lead's decision, register 162), and a container image scan
+> **Status:** In progress · the dependency audit and SBOM part is built and run locally (2026-11-07: `scripts/ci/dependency-audit.mjs`, `docs/evidence/WI-SEC-004/`); remaining: `G-E06` (Terraform validate and plan of the Key Vault module), a pipeline job for the audit (decided 2026-11-23, now `WI-SEC-006`), and a container image scan (now `WI-SEC-007`)
 
 ```
 WI ID:               SEC-004
