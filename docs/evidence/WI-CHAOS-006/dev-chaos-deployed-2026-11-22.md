@@ -4,7 +4,7 @@
 
 ## How it was run
 
-- Dev pipeline build **117**, started by the lead on 2026-11-22 (UTC 2026-11-23 00:15 to 00:54) with `chaosScenario: dev-chaos`, on the environment already up from run 100 (cache Redis removed, mock issuer). All seven stages succeeded: inputs, images, plan, apply, application deploy, smoke, observe.
+- Dev pipeline build **117**, started by the lead on 2026-11-22 (UTC 2026-11-23 00:15 to 00:54) with `chaosScenario: dev-chaos`, on the environment already up from run 100, with the pipeline's `cacheRedis` input at its default (on): the `redis-cache` app is running and the catalog has `Cache__Backend=redis` (checked afterwards with `az containerapp show`). Run 100's in-place removal was therefore undone by this run, and build 117 says nothing about goal 3 of `WI-DEP-001`. All seven stages succeeded: inputs, images, plan, apply, application deploy, smoke, observe.
 - The application deploy updated all five apps to new revisions (`web--b117-1`, `graphql-bff--b117-1`, `catalog--b117-1`, `ordering--b117-1`, `mock-oidc--b117-1`) and the pipeline reported "build 117 runs in all 5 apps". The seed job's image was still build 100's when the deploy step read it; whether the seed job ran on build 117 was not read from the log.
 - The deployed customer suite then ran from the agent against the public addresses, with the warm-up first, then the latency script.
 
@@ -49,7 +49,24 @@ Build 117, `dev-chaos` on, 5 apps warm (the warm-up reported no cold start; tota
 | concurrent (5 at once): home page | 18 | 0 | 0 | 68.9 | 201.6 | 201.6 |
 | concurrent (5 at once): listings query | 12 | 0 | 0 | 66.3 | 222.7 | 222.7 |
 
-No failed requests and no 429s. Compared with build 88 (first full dev deploy, with the cache Redis, no chaos) the reads are lower and the checkout figures are in the same range (later orders p50 178 to 192 ms then, 200 ms here). Different environment state (no cache Redis now), different time, one sample each: this is a second table beside the first, not a measured effect of chaos or of removing the cache Redis. No latency was gathered from the lead's machine in this session.
+No failed requests and no 429s. Compared with build 88 (first full dev deploy, with the cache Redis, no chaos) the reads are lower and the checkout figures are in the same range (later orders p50 178 to 192 ms then, 200 ms here). Different time, one sample each: this is a second table beside the first, not a measured effect of chaos.
+
+## Latency, from the lead's machine
+
+Run by the agent from the lead's Windows machine after build 117 (about 01:04 UTC), `--where lead`. The environment had scaled to zero in the half hour since the smoke: the warm-up took 155 s in all (issuer 22 s, web 25 s, BFF 26 s, catalog 31 s with 4 attempts, ordering 51 s with 6 attempts, every step "likely cold"), and `dev-chaos` was still on. The latency run came straight after the warm-up.
+
+| Request | n | Failed | 429 | p50 ms | p95 ms | max ms |
+|---|---:|---:|---:|---:|---:|---:|
+| first: home page (one request) | 1 | 0 | 0 | 249 | 249 | 249 |
+| read: home page (server-rendered) | 30 | 0 | 0 | 55.1 | 110.8 | 114.1 |
+| read: listing page (server-rendered) | 30 | 0 | 0 | 48.2 | 108.8 | 120.1 |
+| read: listings query (/api/graphql, anonymous) | 30 | 0 | 0 | 44.8 | 101.7 | 102.2 |
+| checkout: first order of the run | 1 | 0 | 0 | 1270.3 | 1270.3 | 1270.3 |
+| checkout: later orders | 9 | 0 | 0 | 244.7 | 370.7 | 370.7 |
+| concurrent (5 at once): home page | 18 | 0 | 0 | 99.1 | 329.4 | 329.4 |
+| concurrent (5 at once): listings query | 12 | 0 | 0 | 97.2 | 242.2 | 242.2 |
+
+Slower than the agent's table across the board (network path from the lead's machine to East US), and the first checkout of the run took 1.27 s, which fits an ordering app just woken. Scale-to-zero timing matters for any latency table: the agent's run came right after the deploy, with every app warm.
 
 ## What this shows and does not
 
