@@ -39,6 +39,10 @@
 - The Key Vault is **soft-deleted, not purged**: `az keyvault list-deleted` shows it for 7 days (see below).
 - A day or two later, Cost Management for `rg-bakery-dev` stops growing.
 
+## Tracing resources (WI-OBS-001; built 2026-11-22, not yet run in Azure)
+
+When the dev run had `tracing` on (the default), the stack also holds an Application Insights resource (`appi-bakery-dev`), the `otel-collector` app and one more Key Vault secret (`appinsights-connection-string`). The destroy removes them with the rest: the summary lists three more resources (a list of about 29 instead of 26 with the budget alert), every line `delete`. Nothing needs doing by hand. The traces themselves are in the environment's Log Analytics workspace and go with it; **if the evidence of a run is wanted, read it (the observe stage's `dev-observe` artifact, or a query by the lead) before the destroy**, because after it nothing is kept. A run with `tracing` off has none of these, and a destroy of such an environment lists none. Not yet seen: whether the soft-deleted `appinsights-connection-string` blocks a later create that has tracing on again (it should follow the vault's recovery rule below).
+
 ## The Key Vault after a teardown
 
 The deploy identity cannot purge a deleted vault (purging is a subscription-level action, and its rights stop at two resource groups), so the stack does not purge (`infra/environments/dev/versions.tf`, register 108). For 7 days the deleted vault keeps its name. In that time:

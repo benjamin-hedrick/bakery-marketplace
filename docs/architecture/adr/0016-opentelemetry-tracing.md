@@ -66,3 +66,14 @@ This **keeps** Application Insights as the cloud backend named in decision 5 (th
 ## Validation outcome (2026-10-30)
 
 Built and evidenced by `WI-PORT-005` (`docs/evidence/WI-PORT-005/findings.md`): one trace id on every hop of a checkout across the web server, BFF, ordering and catalog. `CorrelationIdMiddleware` never adopts an inbound `X-Correlation-Id`; the header is a response-only alias of the trace id. Follow-ups remain open as register items 36, 37 and 42. Where the text above says .NET 8, the services target .NET 10 (ADR-0010).
+
+## Note 2026-11-22: DEV tracing built, not yet run in Azure (`WI-OBS-001`)
+
+The amendment's DEV row ("Application Insights, through the collector") is built in `infra/modules/environment` and checked offline only (Terraform validate and mocked-provider tests, script unit tests, the collector config run in Docker); nothing has been applied to Azure, so the phase column above still stands until a deployed run shows spans in Application Insights. What the build settled, and what it did not:
+
+- **Who hosts the collector** (open in the amendment): one more Container App in the environment, internal, `min_replicas = 1` (spans sent while it woke from zero would be lost), the public image `otel/opentelemetry-collector-contrib:0.164.0` with `cloud.yaml` passed in the environment variable `OTEL_COLLECTOR_CONFIG` (`--config=env:...`), so no image of ours is built. Its cost is in `budget-cost-estimate.md`.
+- **The exporter** is `azure_monitor` (the amendment's text says `azuremonitor`, still accepted as an alias in 0.164.0): Beta for traces, metrics and logs in that version.
+- **The connection string** is a Key Vault secret set by the post-apply step from the Application Insights resource, never in the state; the collector reads it when a revision starts, so the application deploy starts a new revision of it after the secrets step.
+- **The apps** name the collector through `OTEL_EXPORTER_OTLP_ENDPOINT`; the C# services also need `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` (register 36). The collector's pipeline is traces only; the C# services' metrics are answered 404.
+- **Reading the traces** in evidence: the observe stage queries the workspace-based Application Insights tables (`scripts/ci/dev-observe.mjs`).
+- The dev pipeline has a `tracing` input (default on) so a run can leave all of this out. UAT and Prod are not built (register 235).
