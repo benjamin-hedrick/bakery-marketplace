@@ -88,7 +88,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [CHAOS-003](WI-CHAOS-003.md) | Chaos scenarios: the lost response, and the TypeScript library with the BFF's gate and client layers | EPIC-QUALITY-EVIDENCE | In review | evidence: `packages/chaos`, `services/graphql-bff/src/chaos.ts`, `services/graphql-bff/test/chaos.test.ts`, `apps/mobile-customer/tests/chaos-outcomes.test.ts`, the lost-response tests in `tools/tests` and the service tests |
 | [CHAOS-004](WI-CHAOS-004.md) | Chaos scenarios: a layer on the web servers' session store | EPIC-QUALITY-EVIDENCE | In review | evidence: `packages/web-session/src/chaos-store.ts`, `packages/web-session/tests/chaos-store.test.ts`, `chaos/scenarios/session-outage.json`, `apps/web-customer/tests/chaos/session-outage.spec.ts`, `docs/evidence/WI-CHAOS-004/README.md` |
 | [CHAOS-005](WI-CHAOS-005.md) | Chaos scenarios: the web apps' Relay network functions against an equivalence contract | EPIC-QUALITY-EVIDENCE | Done | evidence: `packages/web-session/tests/relay-network-contract.ts`, `apps/web-customer/tests/unit/relay-network.test.ts`, `apps/web-queue-display/tests/unit/relay-network.test.ts` |
-| [CHAOS-006](WI-CHAOS-006.md) | Chaos in the deployed dev environment: one scenario, aimed at chaos seed data, switched on per deployment, exercised by the standard suite | EPIC-QUALITY-EVIDENCE | In progress | the lead agreed the plan and the four design findings (2026-11-21). Built and run locally: the C# aiming, door aiming and the BFF's forwarding of service faults, the chaos seed data, `dev-chaos` (first wave), four chaos-aware tests (pass with and without the scenario). Step 7's dev half done 2026-11-22 (build 117, `docs/evidence/WI-CHAOS-006/dev-chaos-deployed-2026-11-22.md`: 15 passed, 1 skipped). Remaining: step 7's UAT half, parked (register 235) |
+| [CHAOS-006](WI-CHAOS-006.md) | Chaos in the deployed dev environment: one scenario, aimed at chaos seed data, switched on per deployment, exercised by the standard suite | EPIC-QUALITY-EVIDENCE | In progress | the lead agreed the plan and the four design findings (2026-11-21). Built and run locally: the C# aiming, door aiming and the BFF's forwarding of service faults, the chaos seed data, `dev-chaos` (first wave), four chaos-aware tests (pass with and without the scenario). Step 7's dev half done 2026-11-22 (build 117, `docs/evidence/WI-CHAOS-006/dev-chaos-deployed-2026-11-22.md`: 15 passed, 1 skipped); build 120 (2026-11-23, a fresh create with `cacheRedis` off) passed 16 of 16 including the concurrency test, and its chaos faults were read as traces (`docs/evidence/WI-OBS-001/dev-tracing-2026-11-22.md`). Remaining: step 7's UAT half, parked (register 235) |
 | [CUST-002](WI-CUST-002.md) | Listing browse + detail view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-003](WI-CUST-003.md) | Cart + checkout UI | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer`; `docs/evidence/slice-1/findings.md` |
 | [CUST-004](WI-CUST-004.md) | Order confirmation + order status view | EPIC-WEB-CUSTOMER | Done | evidence: `apps/web-customer` (`/orders/{id}`); `docs/evidence/slice-1/findings.md`. The order history list was split out into `WI-CUST-007` |
@@ -129,7 +129,7 @@ Epics with no spec yet are listed, with their planned items, in `epic-catalog.md
 | [NFR-001](WI-NFR-001.md) | Draft the Non-Functional Requirements document | EPIC-ARCH-DOCS | Done | evidence: `docs/architecture/nfrs.md` |
 | [NOT-001](WI-NOT-001.md) | Notification service: consume order events and dispatch through a sender adapter | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
 | [NOT-002](WI-NOT-002.md) | Notification templates for the order lifecycle | EPIC-NOTIFICATIONS | In review | built and run locally on `feature/slice-notifications` (2026-11-03); evidence: the Outcome note below; `services/notification-service` |
-| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | EPIC-OBSERVABILITY | In progress | steps 1 to 3 built locally on 2026-11-22 at the lead's go (nothing applied to Azure); steps 4 to 7 remain. The design is ADR-0016's (collector to Application Insights). |
+| [OBS-001](WI-OBS-001.md) | Traces in deployed DEV: an OpenTelemetry collector to Application Insights, and the chaos scenarios' spans in the evidence | EPIC-OBSERVABILITY | In progress | steps 1 to 5 and 7 built; step 6 run on dev build 120 (2026-11-23): tracing exported nothing as deployed (the collector's short name did not resolve, register 237), and worked once the apps were pointed at its full address by hand, with the chaos traces recorded in `docs/evidence/WI-OBS-001/dev-tracing-2026-11-22.md`. The fix and a web-server span for `/api/graphql` are committed on a branch and not deployed; remaining: one create with them, to show it working with no manual step. The design is ADR-0016's (collector to Application Insights). |
 | [OPS-001](WI-OPS-001.md) | Draft the SLA/SLO document | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/sla.md` |
 | [OPS-002](WI-OPS-002.md) | Runbook: first scenario and the template | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/evidence/runbook-event-broker-2026-10-30.md`; the runbook is `docs/operations/runbooks/event-broker-unavailable-during-checkout.md` |
 | [OPS-003](WI-OPS-003.md) | Draft the monitoring/alerting plan | EPIC-OPS-ARTIFACTS | Done | evidence: `docs/operations/monitoring-alerting.md` |
@@ -220,14 +220,14 @@ Accepted: 23 · Superseded: 1
 
 ## Open-items register
 
-236 numbered items in `docs/governance/open-items-register.md` (highest number 236).
+237 numbered items in `docs/governance/open-items-register.md` (highest number 237).
 
 | Type | Count |
 |---|---|
 | Gap | 55 |
 | Decision | 29 |
+| Defect | 27 |
 | Deferred scope | 26 |
-| Defect | 26 |
 | Verification gap | 24 |
 | Limitation | 23 |
 | Process | 21 |
@@ -242,4 +242,4 @@ Accepted: 23 · Superseded: 1
 | Resolved | 127 |
 | Accepted | 8 |
 | Tracking | 14 |
-| Open | 72 |
+| Open | 73 |
